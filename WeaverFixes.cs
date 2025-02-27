@@ -1,15 +1,21 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using Weaver.Optimizations.ObjectPools;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver;
 
-[BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
+internal static class ModInfo
+{
+    public const string Guid = "Weaver";
+    public const string Name = "Weaver";
+    public const string Version = "0.0.1";
+}
+
+[BepInPlugin(ModInfo.Guid, ModInfo.Name, ModInfo.Version)]
 public class WeaverFixes : BaseUnityPlugin
 {
-    internal static new ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(MyPluginInfo.PLUGIN_NAME);
+    internal static new ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(ModInfo.Name);
 
     private void Awake()
     {
@@ -33,8 +39,6 @@ public class WeaverFixes : BaseUnityPlugin
 
 
         // Optimizing the codes usage of object pools
-        Harmony.CreateAndPatchAll(typeof(ShrinkPools));
-
-
+        //Harmony.CreateAndPatchAll(typeof(ShrinkPools));
     }
 }
