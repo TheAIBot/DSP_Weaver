@@ -40,6 +40,7 @@ public class MultithreadSystemBenchmarkDisplayPatches
 {
     private static TimeIndexedCollectionStatistic? _latestComputeTimes = null;
     private static uint _latestMissionOrder = 0;
+    internal static bool _logResults = true;
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(MultithreadSystem), nameof(MultithreadSystem.Schedule))]
