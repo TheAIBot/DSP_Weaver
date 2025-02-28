@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using Weaver.Benchmarking;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver;
@@ -40,5 +41,8 @@ public class WeaverFixes : BaseUnityPlugin
 
         // Optimizing the codes usage of object pools
         //Harmony.CreateAndPatchAll(typeof(ShrinkPools));
+
+        Harmony.CreateAndPatchAll(typeof(WorkerThreadExecutorBenchmarkPatches));
+        Harmony.CreateAndPatchAll(typeof(MultithreadSystemBenchmarkDisplayPatches));
     }
 }

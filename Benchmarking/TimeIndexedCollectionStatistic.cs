@@ -4,13 +4,13 @@ using System.Diagnostics;
 
 namespace Weaver.Benchmarking;
 
-internal sealed class TimeThreadedIndexedCollectionStatistic
+internal sealed class TimeIndexedCollectionStatistic
 {
-    private readonly Stopwatch _timer = new Stopwatch();
+    private Stopwatch[] _timers = [];
     private SampleAverage[] _itemSampleAverages = [];
     private readonly int _maxSampleCount;
 
-    public TimeThreadedIndexedCollectionStatistic(int maxSampleCount)
+    public TimeIndexedCollectionStatistic(int maxSampleCount)
     {
         _maxSampleCount = maxSampleCount;
     }
@@ -38,22 +38,22 @@ internal sealed class TimeThreadedIndexedCollectionStatistic
         }
     }
 
-    public void StartThreadSampling()
+    public void StartSampling(int index)
     {
-        _timer.Restart();
+        _timers[index].Restart();
     }
 
-    public void EndThreadSampling(int index)
+    public void EndSampling(int index)
     {
         if (index >= _itemSampleAverages.Length)
         {
             throw new IndexOutOfRangeException($"{nameof(index)} is out of range. Value: {index}");
         }
 
-        float time = (float)_timer.Elapsed.TotalMilliseconds;
+        float time = (float)_timers[index].Elapsed.TotalMilliseconds;
 
         ref SampleAverage indexSamples = ref _itemSampleAverages[index];
-        indexSamples ??= new SampleAverage();
+        //indexSamples ??= new SampleAverage();
         indexSamples.EnsureInitialized();
 
         indexSamples.AddSample(_maxSampleCount, time);
@@ -67,16 +67,21 @@ internal sealed class TimeThreadedIndexedCollectionStatistic
         }
 
         Array.Resize(ref _itemSampleAverages, size);
+        Array.Resize(ref _timers, size);
+        for (int i = 0; i < _timers.Length; i++)
+        {
+            _timers[i] ??= new Stopwatch();
+        }
     }
 
-    private class SampleAverage
+    private struct SampleAverage
     {
         private Queue<float> _samples;
         private float _averageSample;
 
-        public float Average => _averageSample / Math.Max(1, _samples.Count);
+        public readonly float Average => _averageSample / Math.Max(1, _samples.Count);
 
-        public bool IsInitialized => _samples != null;
+        public readonly bool IsInitialized => _samples != null;
 
         public void EnsureInitialized()
         {
