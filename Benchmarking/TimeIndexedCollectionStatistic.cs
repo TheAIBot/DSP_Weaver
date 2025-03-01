@@ -93,6 +93,14 @@ internal sealed class TimeIndexedCollectionStatistic
         return true;
     }
 
+    public void Clear()
+    {
+        for (int i = 0; i < _itemSampleAverages.Length; i++)
+        {
+            _itemSampleAverages[i].Clear();
+        }
+    }
+
     private struct SampleAverage
     {
         private Queue<float> _samples;
@@ -132,6 +140,11 @@ internal sealed class TimeIndexedCollectionStatistic
 
             _samples.Enqueue(sample);
             _averageSample += sample;
+        }
+
+        public void Clear()
+        {
+            _samples?.Clear();
         }
     }
 

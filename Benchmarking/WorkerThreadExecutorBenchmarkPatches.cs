@@ -9,6 +9,16 @@ public class WorkerThreadExecutorBenchmarkPatches
 {
     internal static readonly Dictionary<uint, TimeIndexedCollectionStatistic> _missionComputeTimes = [];
 
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
+    private static void LoadCurrentGame_Prefix()
+    {
+        foreach (var computeTime in _missionComputeTimes.Values)
+        {
+            computeTime.Clear();
+        }
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.ComputerThread))]
     private static void ComputerThread_Prefix(WorkerThreadExecutor __instance, out uint __state)
@@ -41,7 +51,15 @@ public class MultithreadSystemBenchmarkDisplayPatches
     private static TimeIndexedCollectionStatistic? _latestComputeTimes = null;
     private static uint _latestMissionOrder = 0;
     internal static bool _logResults = true;
-    internal const int _sampleCount = 60;
+    internal const int _sampleCount = 200;
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
+    private static void LoadCurrentGame_Prefix()
+    {
+        _latestComputeTimes = null;
+        _latestMissionOrder = 0;
+    }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(MultithreadSystem), nameof(MultithreadSystem.Schedule))]

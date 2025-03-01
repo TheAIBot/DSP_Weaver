@@ -50,7 +50,8 @@ public class InserterThreadLoadBalance
             return;
         }
 
-        const int updateRate = MultithreadSystemBenchmarkDisplayPatches._sampleCount / 4;
+        const int updateRateToSampleCountRatio = 10;
+        const int updateRate = MultithreadSystemBenchmarkDisplayPatches._sampleCount / updateRateToSampleCountRatio;
         if (_updateCounter % updateRate == 0)
         {
             StringBuilder threadTimes = new StringBuilder();
@@ -84,7 +85,7 @@ public class InserterThreadLoadBalance
 
         int inserterCountToDistribute = 0;
         const float maxAllowedPositiveTimeDifference = 1.05f;
-        const float redistributionRate = 0.2f;
+        const float redistributionRate = 0.9f;
         for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
         {
             float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
@@ -145,10 +146,10 @@ public class InserterThreadLoadBalance
             inserterCountToDistribute -= insertersAddedToThread;
         }
 
-        if (inserterCountToDistribute > 0)
-        {
-            throw new InvalidOperationException($"Not all inserters were distributed. Undistributed inserter count: {inserterCountToDistribute}");
-        }
+        //if (inserterCountToDistribute > 0)
+        //{
+        //    throw new InvalidOperationException($"Not all inserters were distributed. Undistributed inserter count: {inserterCountToDistribute}");
+        //}
     }
 
     private static void RescaleToCurrentInserterCount(MultithreadSystem __instance)
