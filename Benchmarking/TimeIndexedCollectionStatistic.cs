@@ -10,6 +10,7 @@ internal sealed class TimeIndexedCollectionStatistic
     private SampleAverage[] _itemSampleAverages = [];
     private readonly int _maxSampleCount;
 
+
     public TimeIndexedCollectionStatistic(int maxSampleCount)
     {
         _maxSampleCount = maxSampleCount;
@@ -74,6 +75,24 @@ internal sealed class TimeIndexedCollectionStatistic
         }
     }
 
+    public bool IsFilledWithData(int length)
+    {
+        if (_itemSampleAverages.Length > length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), $"{nameof(length)} is out of range. Value: {length}");
+        }
+
+        for (int i = 0; i < length; i++)
+        {
+            if (!_itemSampleAverages[i].IsFilledWithData(_maxSampleCount))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private struct SampleAverage
     {
         private Queue<float> _samples;
@@ -82,6 +101,16 @@ internal sealed class TimeIndexedCollectionStatistic
         public readonly float Average => _averageSample / Math.Max(1, _samples.Count);
 
         public readonly bool IsInitialized => _samples != null;
+
+        public bool IsFilledWithData(int length)
+        {
+            if (!IsInitialized)
+            {
+                return false;
+            }
+
+            return _samples.Count == length;
+        }
 
         public void EnsureInitialized()
         {

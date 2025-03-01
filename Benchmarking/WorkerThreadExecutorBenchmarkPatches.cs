@@ -41,6 +41,7 @@ public class MultithreadSystemBenchmarkDisplayPatches
     private static TimeIndexedCollectionStatistic? _latestComputeTimes = null;
     private static uint _latestMissionOrder = 0;
     internal static bool _logResults = true;
+    internal const int _sampleCount = 60;
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(MultithreadSystem), nameof(MultithreadSystem.Schedule))]
@@ -48,7 +49,7 @@ public class MultithreadSystemBenchmarkDisplayPatches
     {
         if (!WorkerThreadExecutorBenchmarkPatches._missionComputeTimes.TryGetValue(__instance.missionOrders, out _latestComputeTimes))
         {
-            _latestComputeTimes = new TimeIndexedCollectionStatistic(200);
+            _latestComputeTimes = new TimeIndexedCollectionStatistic(_sampleCount);
             WorkerThreadExecutorBenchmarkPatches._missionComputeTimes.Add(__instance.missionOrders, _latestComputeTimes);
         }
 
@@ -60,22 +61,27 @@ public class MultithreadSystemBenchmarkDisplayPatches
     [HarmonyPatch(typeof(MultithreadSystem), nameof(MultithreadSystem.Complete))]
     private static void Complete_Postfix(MultithreadSystem __instance)
     {
-        if (_latestComputeTimes == null)
+        if (_latestComputeTimes == null || !_logResults)
         {
             return;
         }
 
+        LogComputeTimes((MissionOrderType)_latestMissionOrder, _latestComputeTimes);
+    }
+
+    internal static void LogComputeTimes(MissionOrderType missionOrder, TimeIndexedCollectionStatistic computeTimes)
+    {
         float minTime = float.MaxValue;
         float maxTime = float.MinValue;
         StringBuilder threadTimes = new StringBuilder();
-        foreach (TimeIndexedCollectionStatistic.IndexTime indexTime in _latestComputeTimes.GetIndexTimes())
+        foreach (TimeIndexedCollectionStatistic.IndexTime indexTime in computeTimes.GetIndexTimes())
         {
             threadTimes.Append($" {indexTime.Index,2}: {indexTime.TimeInMilliseconds,4:N1}");
             minTime = Math.Min(minTime, indexTime.TimeInMilliseconds);
             maxTime = Math.Max(maxTime, indexTime.TimeInMilliseconds);
         }
 
-        string missionName = Enum.GetName(typeof(MissionOrderType), _latestMissionOrder);
+        string missionName = Enum.GetName(typeof(MissionOrderType), missionOrder);
         WeaverFixes.Logger.LogMessage($"{nameof(MultithreadSystem)} Mission: {missionName,18} Min: {minTime,4:N1} Max: {maxTime,4:N1} Thread Times: {threadTimes}");
     }
 }

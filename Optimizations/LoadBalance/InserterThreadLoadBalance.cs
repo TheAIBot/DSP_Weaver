@@ -1,10 +1,13 @@
 ﻿using HarmonyLib;
+using System;
+using System.Text;
 using Weaver.Benchmarking;
 
 namespace Weaver.Optimizations.LoadBalance;
 
 public class InserterThreadLoadBalance
 {
+    private static uint _updateCounter = 0;
     internal static int[]? _inserterPerThreadItemCount = null;
     internal static bool enableStatisticsLoadBalancing = false;
 
@@ -17,6 +20,15 @@ public class InserterThreadLoadBalance
         Harmony.CreateAndPatchAll(typeof(InserterThreadLoadBalance));
     }
 
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
+    private static void LoadCurrentGame_Prefix()
+    {
+        _updateCounter = 0;
+        _inserterPerThreadItemCount = null;
+        enableStatisticsLoadBalancing = false;
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(MultithreadSystem), nameof(MultithreadSystem.Schedule))]
     private static void Schedule_Prefix(MultithreadSystem __instance, out bool __state)
@@ -26,12 +38,145 @@ public class InserterThreadLoadBalance
             __state = false;
             return;
         }
-
         __state = true;
+
+        _updateCounter++;
+        //MultithreadSystemBenchmarkDisplayPatches._logResults = true;
+
         if (_inserterPerThreadItemCount == null || _inserterPerThreadItemCount.Length != GameMain.multithreadSystem.usedThreadCnt)
         {
             _inserterPerThreadItemCount = new int[GameMain.multithreadSystem.usedThreadCnt];
             enableStatisticsLoadBalancing = false;
+            return;
+        }
+
+        const int updateRate = MultithreadSystemBenchmarkDisplayPatches._sampleCount / 4;
+        if (_updateCounter % updateRate == 0)
+        {
+            StringBuilder threadTimes = new StringBuilder();
+            for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
+            {
+                threadTimes.Append($" {_inserterPerThreadItemCount[i],7:N0}");
+            }
+            WeaverFixes.Logger.LogMessage($"{nameof(MultithreadSystem)} Sum: {_inserterPerThreadItemCount.Sum()} Thread item counts: {threadTimes}");
+            MultithreadSystemBenchmarkDisplayPatches.LogComputeTimes(MissionOrderType.Inserter, WorkerThreadExecutorBenchmarkPatches._missionComputeTimes[(uint)MissionOrderType.Inserter]);
+            RebalanceInsertersPerThread(__instance);
+        }
+
+        RescaleToCurrentInserterCount(__instance);
+    }
+
+    private static void RebalanceInsertersPerThread(MultithreadSystem __instance)
+    {
+        var computeTimes = WorkerThreadExecutorBenchmarkPatches._missionComputeTimes[(uint)MissionOrderType.Inserter];
+        if (!computeTimes.IsFilledWithData(_inserterPerThreadItemCount.Length))
+        {
+            return;
+        }
+
+        float timeSum = 0;
+        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
+        {
+            timeSum += computeTimes.GetAverageTimeInMilliseconds(i);
+        }
+
+        float averageThreadTime = timeSum / _inserterPerThreadItemCount.Length;
+
+        int inserterCountToDistribute = 0;
+        const float maxAllowedPositiveTimeDifference = 1.05f;
+        const float redistributionRate = 0.2f;
+        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
+        {
+            float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
+            if (threadTime <= averageThreadTime * maxAllowedPositiveTimeDifference)
+            {
+                continue;
+            }
+
+            int insertersRemovedFromThread = (int)(_inserterPerThreadItemCount[i] * ((1.0f - (1.0f / (threadTime / averageThreadTime))) * redistributionRate));
+            _inserterPerThreadItemCount[i] -= insertersRemovedFromThread;
+
+            inserterCountToDistribute += insertersRemovedFromThread;
+        }
+
+        if (inserterCountToDistribute == 0)
+        {
+            return;
+        }
+
+        int fastThreadsInserterDeficit = 0;
+        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
+        {
+            float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
+            if (threadTime > averageThreadTime)
+            {
+                continue;
+            }
+
+            //int insertersCanBeAddedToThread = (int)(_inserterPerThreadItemCount[i] * (1 - (1.0f / (threadTime / averageThreadTime))));
+            int insertersCanBeAddedToThread = (int)(_inserterPerThreadItemCount[i] * (1 - (threadTime / averageThreadTime)));
+            fastThreadsInserterDeficit += insertersCanBeAddedToThread;
+        }
+
+        if (fastThreadsInserterDeficit == 0)
+        {
+            return;
+        }
+
+        float insertersAvailableToDeficitRatio = inserterCountToDistribute / fastThreadsInserterDeficit;
+        if (insertersAvailableToDeficitRatio > 1.0f)
+        {
+            throw new InvalidOperationException("There should never be more to distribute than defecit due to maxAllowedPositiveTimeDifference");
+        }
+
+        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
+        {
+            float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
+            if (threadTime > averageThreadTime)
+            {
+                continue;
+            }
+
+            // Uses ceilling here to ensure we always take more items instead of less
+            int insertersCanBeAddedToThread = (int)Math.Ceiling(_inserterPerThreadItemCount[i] * (1 - (threadTime / averageThreadTime)));
+            int insertersAddedToThread = Math.Min(inserterCountToDistribute, (int)Math.Ceiling(insertersCanBeAddedToThread * insertersAvailableToDeficitRatio));
+
+            _inserterPerThreadItemCount[i] += insertersAddedToThread;
+            inserterCountToDistribute -= insertersAddedToThread;
+        }
+
+        if (inserterCountToDistribute > 0)
+        {
+            throw new InvalidOperationException($"Not all inserters were distributed. Undistributed inserter count: {inserterCountToDistribute}");
+        }
+    }
+
+    private static void RescaleToCurrentInserterCount(MultithreadSystem __instance)
+    {
+        PlanetFactory[] inserterFactories = __instance.workerThreadExecutors[0].inserterFactories;
+        int inserterFactoryCount = __instance.workerThreadExecutors[0].inserterFactoryCnt;
+        int currentInserterCount = 0;
+        for (int i = 0; i < inserterFactoryCount; i++)
+        {
+            currentInserterCount += inserterFactories[i].factorySystem.inserterCursor;
+        }
+
+        int previousInserterCount = _inserterPerThreadItemCount.Sum();
+        int inserterDifference = currentInserterCount - previousInserterCount;
+        int inserterChangePerThread = (inserterDifference + (_inserterPerThreadItemCount.Length - 1)) / _inserterPerThreadItemCount.Length;
+        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
+        {
+            _inserterPerThreadItemCount[i] += inserterChangePerThread;
+        }
+
+        int checkInserterSum = _inserterPerThreadItemCount.Sum();
+        if (checkInserterSum < currentInserterCount)
+        {
+            throw new InvalidOperationException($"""
+                Rescaled inserter count is less than the total inserter count.
+                Rescaled count: {checkInserterSum}
+                Expected count: {currentInserterCount}
+                """);
         }
     }
 
@@ -45,6 +190,7 @@ public class InserterThreadLoadBalance
         }
 
         enableStatisticsLoadBalancing = true;
+        MultithreadSystemBenchmarkDisplayPatches._logResults = false;
     }
 
     [HarmonyPostfix]
@@ -74,6 +220,7 @@ public class InserterThreadLoadBalance
         }
         _end = _start + _inserterPerThreadItemCount[_curThreadIdx];
 
+        //WeaverFixes.Logger.LogMessage($"{_curThreadIdx} {_start} {_end}");
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
@@ -84,6 +231,7 @@ public class InserterThreadLoadBalance
                   [ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out])]
     private static void CalculateMissionIndex_Loadbalance_Postfix(WorkerThreadExecutor __instance, int _curThreadIdx, int _start, int _end)
     {
+        //WeaverFixes.Logger.LogMessage($"{_curThreadIdx} {_start} {_end}");
         if (enableStatisticsLoadBalancing)
         {
             return;
@@ -95,5 +243,19 @@ public class InserterThreadLoadBalance
         }
 
         _inserterPerThreadItemCount[_curThreadIdx] = _end - _start;
+    }
+}
+
+internal static class ArrayExtensions
+{
+    public static int Sum(this int[] array)
+    {
+        int sum = 0;
+        for (int i = 0; i < array.Length; i++)
+        {
+            sum += array[i];
+        }
+
+        return sum;
     }
 }
