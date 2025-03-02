@@ -145,6 +145,7 @@ internal sealed class TimeIndexedCollectionStatistic
         public void Clear()
         {
             _samples?.Clear();
+            _averageSample = 0;
         }
     }
 

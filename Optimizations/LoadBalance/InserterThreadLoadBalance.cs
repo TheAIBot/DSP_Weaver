@@ -50,7 +50,7 @@ public class InserterThreadLoadBalance
             return;
         }
 
-        const int updateRateToSampleCountRatio = 10;
+        const int updateRateToSampleCountRatio = 4;
         const int updateRate = MultithreadSystemBenchmarkDisplayPatches._sampleCount / updateRateToSampleCountRatio;
         if (_updateCounter % updateRate == 0)
         {
@@ -83,9 +83,19 @@ public class InserterThreadLoadBalance
 
         float averageThreadTime = timeSum / _inserterPerThreadItemCount.Length;
 
-        int inserterCountToDistribute = 0;
-        const float maxAllowedPositiveTimeDifference = 1.05f;
-        const float redistributionRate = 0.9f;
+        int insertersUnderAverageTimeCount = 0;
+        for (int z = 0; z < _inserterPerThreadItemCount.Length; z++)
+        {
+            if (computeTimes.GetAverageTimeInMilliseconds(z) > averageThreadTime)
+            {
+                continue;
+            }
+
+            insertersUnderAverageTimeCount++;
+        }
+
+        const float maxAllowedPositiveTimeDifference = 1.01f;
+        const float redistributionRate = 1.0f;
         for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
         {
             float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
@@ -95,61 +105,24 @@ public class InserterThreadLoadBalance
             }
 
             int insertersRemovedFromThread = (int)(_inserterPerThreadItemCount[i] * ((1.0f - (1.0f / (threadTime / averageThreadTime))) * redistributionRate));
-            _inserterPerThreadItemCount[i] -= insertersRemovedFromThread;
+            int insertersPerThread = insertersRemovedFromThread / insertersUnderAverageTimeCount;
 
-            inserterCountToDistribute += insertersRemovedFromThread;
-        }
-
-        if (inserterCountToDistribute == 0)
-        {
-            return;
-        }
-
-        int fastThreadsInserterDeficit = 0;
-        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
-        {
-            float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
-            if (threadTime > averageThreadTime)
+            for (int z = 0; z < _inserterPerThreadItemCount.Length; z++)
             {
-                continue;
+                if (i == z)
+                {
+                    continue;
+                }
+
+                if (computeTimes.GetAverageTimeInMilliseconds(z) > averageThreadTime)
+                {
+                    continue;
+                }
+
+                _inserterPerThreadItemCount[z] += insertersPerThread;
+                _inserterPerThreadItemCount[i] -= insertersPerThread;
             }
-
-            //int insertersCanBeAddedToThread = (int)(_inserterPerThreadItemCount[i] * (1 - (1.0f / (threadTime / averageThreadTime))));
-            int insertersCanBeAddedToThread = (int)(_inserterPerThreadItemCount[i] * (1 - (threadTime / averageThreadTime)));
-            fastThreadsInserterDeficit += insertersCanBeAddedToThread;
         }
-
-        if (fastThreadsInserterDeficit == 0)
-        {
-            return;
-        }
-
-        float insertersAvailableToDeficitRatio = inserterCountToDistribute / fastThreadsInserterDeficit;
-        if (insertersAvailableToDeficitRatio > 1.0f)
-        {
-            throw new InvalidOperationException("There should never be more to distribute than defecit due to maxAllowedPositiveTimeDifference");
-        }
-
-        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
-        {
-            float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
-            if (threadTime > averageThreadTime)
-            {
-                continue;
-            }
-
-            // Uses ceilling here to ensure we always take more items instead of less
-            int insertersCanBeAddedToThread = (int)Math.Ceiling(_inserterPerThreadItemCount[i] * (1 - (threadTime / averageThreadTime)));
-            int insertersAddedToThread = Math.Min(inserterCountToDistribute, (int)Math.Ceiling(insertersCanBeAddedToThread * insertersAvailableToDeficitRatio));
-
-            _inserterPerThreadItemCount[i] += insertersAddedToThread;
-            inserterCountToDistribute -= insertersAddedToThread;
-        }
-
-        //if (inserterCountToDistribute > 0)
-        //{
-        //    throw new InvalidOperationException($"Not all inserters were distributed. Undistributed inserter count: {inserterCountToDistribute}");
-        //}
     }
 
     private static void RescaleToCurrentInserterCount(MultithreadSystem __instance)
