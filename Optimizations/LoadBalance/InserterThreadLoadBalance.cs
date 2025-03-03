@@ -50,7 +50,7 @@ public class InserterThreadLoadBalance
             return;
         }
 
-        const int updateRateToSampleCountRatio = 4;
+        const int updateRateToSampleCountRatio = 1;
         const int updateRate = MultithreadSystemBenchmarkDisplayPatches._sampleCount / updateRateToSampleCountRatio;
         if (_updateCounter % updateRate == 0)
         {
@@ -94,35 +94,56 @@ public class InserterThreadLoadBalance
             insertersUnderAverageTimeCount++;
         }
 
-        const float maxAllowedPositiveTimeDifference = 1.01f;
-        const float redistributionRate = 1.0f;
+        const float maxAllowedPositiveTimeDifference = 1.05f;
+        int slowestThreadIndex = -1;
+        float slowestTime = float.MinValue;
         for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
         {
-            float threadTime = computeTimes.GetAverageTimeInMilliseconds(i);
-            if (threadTime <= averageThreadTime * maxAllowedPositiveTimeDifference)
+            if (slowestTime >= computeTimes.GetAverageTimeInMilliseconds(i))
             {
                 continue;
             }
 
-            int insertersRemovedFromThread = (int)(_inserterPerThreadItemCount[i] * ((1.0f - (1.0f / (threadTime / averageThreadTime))) * redistributionRate));
-            int insertersPerThread = insertersRemovedFromThread / insertersUnderAverageTimeCount;
-
-            for (int z = 0; z < _inserterPerThreadItemCount.Length; z++)
-            {
-                if (i == z)
-                {
-                    continue;
-                }
-
-                if (computeTimes.GetAverageTimeInMilliseconds(z) > averageThreadTime)
-                {
-                    continue;
-                }
-
-                _inserterPerThreadItemCount[z] += insertersPerThread;
-                _inserterPerThreadItemCount[i] -= insertersPerThread;
-            }
+            slowestThreadIndex = i;
+            slowestTime = computeTimes.GetAverageTimeInMilliseconds(i);
         }
+
+        if (slowestThreadIndex == -1)
+        {
+            return;
+        }
+
+        int fastestThreadIndex = -1;
+        float fastestTime = float.MaxValue;
+        for (int i = 0; i < _inserterPerThreadItemCount.Length; i++)
+        {
+            if (fastestTime < computeTimes.GetAverageTimeInMilliseconds(i))
+            {
+                continue;
+            }
+
+            fastestThreadIndex = i;
+            fastestTime = computeTimes.GetAverageTimeInMilliseconds(i);
+        }
+
+        if (fastestThreadIndex == -1)
+        {
+            return;
+        }
+
+        if (slowestTime < averageThreadTime * maxAllowedPositiveTimeDifference)
+        {
+            return;
+        }
+
+
+        const float redistributionRate = 0.5f;
+        float threadTime = computeTimes.GetAverageTimeInMilliseconds(slowestThreadIndex);
+
+        int insertersRemovedFromThread = (int)(_inserterPerThreadItemCount[slowestThreadIndex] * ((1.0f - (1.0f / (threadTime / averageThreadTime))) * redistributionRate));
+        _inserterPerThreadItemCount[slowestThreadIndex] -= insertersRemovedFromThread;
+        _inserterPerThreadItemCount[fastestThreadIndex] += insertersRemovedFromThread;
+
     }
 
     private static void RescaleToCurrentInserterCount(MultithreadSystem __instance)

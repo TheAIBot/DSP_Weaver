@@ -51,7 +51,7 @@ public class MultithreadSystemBenchmarkDisplayPatches
     private static TimeIndexedCollectionStatistic? _latestComputeTimes = null;
     private static uint _latestMissionOrder = 0;
     internal static bool _logResults = true;
-    internal const int _sampleCount = 200;
+    internal const int _sampleCount = 60;
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
