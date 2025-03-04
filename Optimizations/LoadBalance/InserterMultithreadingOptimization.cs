@@ -92,6 +92,10 @@ internal static class Graphifier
             Graph graph = new Graph();
             foreach (var node in seen)
             {
+                if (node.EntityTypeIndex.EntityType != EntityType.Inserter)
+                {
+                    continue;
+                }
                 graph.AddNode(node);
             }
 
@@ -99,12 +103,28 @@ internal static class Graphifier
         }
 
         const int minNodePerGraph = 20;
-        const int maxCombinedGraphSize = 1000;
-        if (graphs.All(x => x.NodeCount >= minNodePerGraph))
+        const int maxCombinedGraphSize = 500;
+
+
+        List<Graph> splitGraphs = new List<Graph>();
+        foreach (var largeGraph in graphs.Where(x => x.NodeCount > maxCombinedGraphSize))
         {
-            return graphs;
+            foreach (Node[] nodeChunk in largeGraph.GetAllNodes()
+                                                   .OrderBy(x => x.EntityTypeIndex.Index)
+                                                   .Chunk(maxCombinedGraphSize))
+            {
+                Graph splitGraph = new Graph();
+                foreach (Node node in nodeChunk)
+                {
+                    splitGraph.AddNode(node);
+                }
+
+                splitGraphs.Add(splitGraph);
+            }
         }
 
+        graphs.RemoveAll(x => x.NodeCount > maxCombinedGraphSize);
+        graphs.AddRange(splitGraphs);
 
         List<Graph> combinedGraphs = new List<Graph>();
         foreach (Node[] nodeChunk in graphs.Where(x => x.NodeCount < minNodePerGraph)
@@ -460,7 +480,10 @@ public class InserterMultithreadingOptimization
         Parallel.ForEach(_inserterExecutables, parallelOptions, static executableGraph => executableGraph.Execute(_gameTime.Value));
         _inserterTickTimes.EndSampling(0);
 
-        WeaverFixes.Logger.LogMessage($"Inserter tick {_inserterTickTimes.GetAverageTimeInMilliseconds(0):N2}");
+        if (_gameTime.Value % 60 == 0)
+        {
+            WeaverFixes.Logger.LogMessage($"Inserter tick {_inserterTickTimes.GetAverageTimeInMilliseconds(0):N2}");
+        }
 
         __instance.isRevAllThreadCompleteSignal = true;
         __instance.missionOrders = 0u;
