@@ -98,6 +98,33 @@ internal static class Graphifier
             graphs.Add(graph);
         }
 
+        const int minNodePerGraph = 20;
+        const int maxCombinedGraphSize = 1000;
+        if (graphs.All(x => x.NodeCount >= minNodePerGraph))
+        {
+            return graphs;
+        }
+
+
+        List<Graph> combinedGraphs = new List<Graph>();
+        foreach (Node[] nodeChunk in graphs.Where(x => x.NodeCount < minNodePerGraph)
+                                           .SelectMany(x => x.GetAllNodes())
+                                           .OrderBy(x => x.EntityTypeIndex.Index)
+                                           .Chunk(maxCombinedGraphSize))
+        {
+            Graph smallerGraphsCombined = new Graph();
+            foreach (Node node in nodeChunk)
+            {
+                smallerGraphsCombined.AddNode(node);
+            }
+
+            combinedGraphs.Add(smallerGraphsCombined);
+        }
+
+        graphs.RemoveAll(x => x.NodeCount < minNodePerGraph);
+        graphs.AddRange(combinedGraphs);
+
+
         return graphs;
     }
 
@@ -312,6 +339,8 @@ internal sealed class Graph
 {
     private readonly Dictionary<int, Node> _idToNode = [];
 
+    public int NodeCount => _idToNode.Count;
+
     public void AddNode(Node node)
     {
         _idToNode.Add(node.EntityId, node);
@@ -362,6 +391,7 @@ public class InserterMultithreadingOptimization
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
+        _inserterTickTimes.Clear();
         _inserterExecutables.Clear();
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
@@ -450,5 +480,28 @@ internal static class ArrayExtensions
         }
 
         return sum;
+    }
+}
+
+internal static class LinqExtenstions
+{
+    public static IEnumerable<T[]> Chunk<T>(this IEnumerable<T> enumerable, int chunkSize)
+    {
+        List<T> chunk = new List<T>();
+        IEnumerator<T> enumerator = enumerable.GetEnumerator();
+        while (enumerator.MoveNext())
+        {
+            chunk.Add(enumerator.Current);
+            if (chunk.Count == chunkSize)
+            {
+                yield return chunk.ToArray();
+                chunk.Clear();
+            }
+        }
+
+        if (chunk.Count != 0)
+        {
+            yield return chunk.ToArray();
+        }
     }
 }
