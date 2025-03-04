@@ -22,7 +22,7 @@ public class InserterThreadLoadBalance
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
-    private static void LoadCurrentGame_Prefix()
+    private static void LoadCurrentGame_Postfix()
     {
         _updateCounter = 0;
         _inserterPerThreadItemCount = null;
@@ -238,19 +238,5 @@ public class InserterThreadLoadBalance
         }
 
         _inserterPerThreadItemCount[_curThreadIdx] = _end - _start;
-    }
-}
-
-internal static class ArrayExtensions
-{
-    public static int Sum(this int[] array)
-    {
-        int sum = 0;
-        for (int i = 0; i < array.Length; i++)
-        {
-            sum += array[i];
-        }
-
-        return sum;
     }
 }

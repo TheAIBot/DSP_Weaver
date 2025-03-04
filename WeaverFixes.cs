@@ -45,7 +45,8 @@ public class WeaverFixes : BaseUnityPlugin
         //Harmony.CreateAndPatchAll(typeof(WorkerThreadExecutorBenchmarkPatches));
         //Harmony.CreateAndPatchAll(typeof(MultithreadSystemBenchmarkDisplayPatches));
 
-        InserterThreadLoadBalance.EnableOptimization();
+        //InserterThreadLoadBalance.EnableOptimization();
+        InserterMultithreadingOptimization.EnableOptimization();
         //MultithreadSystemBenchmarkDisplayPatches._logResults = true;
     }
 }
