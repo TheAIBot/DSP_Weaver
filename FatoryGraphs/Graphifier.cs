@@ -40,8 +40,8 @@ internal static class Graphifier
                     entityTypeIndexToNode.Add(pickEntityTypeIndex, pickNode);
                 }
 
-                inserterNode.Nodes.Add(pickNode);
-                pickNode.Nodes.Add(inserterNode);
+                inserterNode.ReceivingFrom.Add(pickNode);
+                pickNode.SendingTo.Add(inserterNode);
             }
 
             if (inserter.insertTarget != 0)
@@ -55,8 +55,8 @@ internal static class Graphifier
                     entityTypeIndexToNode.Add(targetEntityTypeIndex, targetNode);
                 }
 
-                inserterNode.Nodes.Add(targetNode);
-                targetNode.Nodes.Add(inserterNode);
+                inserterNode.SendingTo.Add(targetNode);
+                targetNode.ReceivingFrom.Add(inserterNode);
             }
         }
 

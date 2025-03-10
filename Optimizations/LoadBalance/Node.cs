@@ -1,11 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations.LoadBalance;
 
 internal sealed class Node
 {
-    public HashSet<Node> Nodes { get; } = [];
+    public HashSet<Node> ReceivingFrom = [];
+    public HashSet<Node> SendingTo = [];
+    public IEnumerable<Node> Nodes => ReceivingFrom.Concat(SendingTo);
     public int EntityId { get; }
     public EntityTypeIndex EntityTypeIndex;
 
