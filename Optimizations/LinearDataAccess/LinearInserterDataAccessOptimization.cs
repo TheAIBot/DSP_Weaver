@@ -13,6 +13,7 @@ public class LinearInserterDataAccessOptimization
         Harmony.CreateAndPatchAll(typeof(LinearInserterDataAccessOptimization));
     }
 
+    [HarmonyPriority(2)] // need to be executed before InserterMultithreadingOptimization
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()

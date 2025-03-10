@@ -18,6 +18,7 @@ public class InserterMultithreadingOptimization
         Harmony.CreateAndPatchAll(typeof(InserterMultithreadingOptimization));
     }
 
+    [HarmonyPriority(1)]
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
