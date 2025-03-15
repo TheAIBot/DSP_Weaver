@@ -23,6 +23,8 @@ public class InserterMultithreadingOptimization
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
+        WeaverFixes.Logger.LogMessage($"Initializing {nameof(InserterMultithreadingOptimization)}");
+
         _inserterTickTimes.Clear();
         _inserterExecutables.Clear();
 

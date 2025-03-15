@@ -18,6 +18,8 @@ public class LinearInserterDataAccessOptimization
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
+        WeaverFixes.Logger.LogMessage($"Initializing {nameof(LinearInserterDataAccessOptimization)}");
+
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
             PlanetFactory planet = GameMain.data.factories[i];
@@ -41,7 +43,7 @@ public class LinearInserterDataAccessOptimization
 
             CompactInserters(planet, factory);
             InserterLinearAccessToAssemblers(planet, factory);
-            InserterLinearAccessToAssemblerEntities(planet, factory, power, hashSystem);
+            //InserterLinearAccessToAssemblerEntities(planet, factory, power, hashSystem);
             InserterLinearAccessToPowerConsumers(planet, factory, power, cargoTraffic, transport, defenseSystem, digitalSystem);
         }
     }
@@ -820,4 +822,1036 @@ public class LinearInserterDataAccessOptimization
     }
 
     private record struct EntityIndexAndPowerIndex(EntityType EntityType, int EntityIndex, int PowerConsumerIndex);
+}
+
+internal sealed class OptimizedInserters
+{
+    private static readonly Dictionary<PlanetFactory, OptimizedInserters> _planetToOptimizedInserters = [];
+
+    private int[] _inserterNetworkIds;
+    private InserterConnections[] _inserterConnections;
+
+    public static void EnableOptimization()
+    {
+        Harmony.CreateAndPatchAll(typeof(OptimizedInserters));
+    }
+
+    [HarmonyPriority(1)]
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
+    private static void LoadCurrentGame_Postfix()
+    {
+        WeaverFixes.Logger.LogMessage($"Initializing {nameof(OptimizedInserters)}");
+
+        _planetToOptimizedInserters.Clear();
+
+        for (int i = 0; i < GameMain.data.factoryCount; i++)
+        {
+            PlanetFactory planet = GameMain.data.factories[i];
+            FactorySystem factory = planet.factorySystem;
+            if (factory == null)
+            {
+                continue;
+            }
+
+            var optimizedInserters = new OptimizedInserters();
+            optimizedInserters.InitializeData(planet);
+            _planetToOptimizedInserters.Add(planet, optimizedInserters);
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.InserterPartExecute))]
+    public static bool InserterPartExecute(WorkerThreadExecutor __instance)
+    {
+        if (__instance.inserterFactories == null)
+        {
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+        int num = 0;
+        for (int i = 0; i < __instance.inserterFactoryCnt; i++)
+        {
+            num += __instance.inserterFactories[i].factorySystem.inserterCursor;
+        }
+        int minimumMissionCnt = 64;
+        if (!WorkerThreadExecutor.CalculateMissionIndex(num, __instance.usedThreadCnt, __instance.curThreadIdx, minimumMissionCnt, out var _start, out var _end))
+        {
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+        int num2 = 0;
+        int num3 = 0;
+        for (int j = 0; j < __instance.inserterFactoryCnt; j++)
+        {
+            int num4 = num3 + __instance.inserterFactories[j].factorySystem.inserterCursor;
+            if (num4 <= _start)
+            {
+                num3 = num4;
+                continue;
+            }
+            num2 = j;
+            break;
+        }
+        for (int k = num2; k < __instance.inserterFactoryCnt; k++)
+        {
+            bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[k].planet;
+            int num5 = _start - num3;
+            int num6 = _end - num3;
+            if (_end - _start > __instance.inserterFactories[k].factorySystem.inserterCursor - num5)
+            {
+                try
+                {
+                    PlanetFactory planet = __instance.inserterFactories[k];
+                    OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                    optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, __instance.inserterFactories[k].factorySystem.inserterCursor);
+                    num3 += __instance.inserterFactories[k].factorySystem.inserterCursor;
+                    _start = num3;
+                }
+                catch (Exception ex)
+                {
+                    __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + k.ToString() + " Inserter first gametick total cursor: " + __instance.inserterFactories[k].factorySystem.inserterCursor + "  Start & End: " + num5 + "/" + __instance.inserterFactories[k].factorySystem.inserterCursor + "  " + ex;
+                    __instance.hasErrorMessage = true;
+                }
+                continue;
+            }
+            try
+            {
+                __instance.inserterFactories[k].factorySystem.GameTickInserters(__instance.inserterTime, isActive, num5, num6);
+                break;
+            }
+            catch (Exception ex2)
+            {
+                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + k.ToString() + " Inserter second gametick total cursor: " + __instance.inserterFactories[k].factorySystem.inserterCursor + "  Start & End: " + num5 + "/" + num6 + "  " + ex2;
+                __instance.hasErrorMessage = true;
+                break;
+            }
+        }
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    public void InitializeData(PlanetFactory planet)
+    {
+        int[] inserterNetworkIds = new int[planet.factorySystem.inserterCursor];
+        InserterConnections[] inserterConnections = new InserterConnections[planet.factorySystem.inserterCursor];
+
+        for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
+        {
+            ref readonly InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
+            if (inserter.id != i)
+            {
+                continue;
+            }
+
+            inserterNetworkIds[i] = planet.powerSystem.consumerPool[inserter.pcId].networkId;
+
+            EntityTypeIndex pickFrom = new EntityTypeIndex(EntityType.None, 0);
+            if (inserter.pickTarget != 0)
+            {
+                pickFrom = Graphifier.GetEntityTypeIndex(inserter.pickTarget, planet.entityPool);
+            }
+
+            EntityTypeIndex insertInto = new EntityTypeIndex(EntityType.None, 0);
+            if (inserter.insertTarget != 0)
+            {
+                insertInto = Graphifier.GetEntityTypeIndex(inserter.insertTarget, planet.entityPool);
+            }
+
+            inserterConnections[i] = new InserterConnections(new TypedObjectIndex(pickFrom.EntityType, pickFrom.Index), new TypedObjectIndex(insertInto.EntityType, insertInto.Index));
+        }
+
+        _inserterNetworkIds = inserterNetworkIds;
+        _inserterConnections = inserterConnections;
+    }
+
+    public void GameTickInserters(PlanetFactory planet, long time, bool isActive, int _start, int _end)
+    {
+        PowerSystem powerSystem = planet.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        AnimData[] entityAnimPool = planet.entityAnimPool;
+        int[][] entityNeeds = planet.entityNeeds;
+        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+        EntityData[] entityPool = planet.entityPool;
+        BeltComponent[] beltPool = planet.cargoTraffic.beltPool;
+        byte b = (byte)GameMain.history.inserterStackCountObsolete;
+        byte b2 = (byte)GameMain.history.inserterStackInput;
+        byte stackOutput = (byte)GameMain.history.inserterStackOutput;
+        bool inserterBidirectional = GameMain.history.inserterBidirectional;
+        int delay = ((b > 1) ? 110000 : 0);
+        int delay2 = ((b2 > 1) ? 40000 : 0);
+        bool flag = time % 60 == 0;
+        _start = ((_start == 0) ? 1 : _start);
+        _end = ((_end > planet.factorySystem.inserterCursor) ? planet.factorySystem.inserterCursor : _end);
+        if (isActive)
+        {
+            for (int i = _start; i < _end; i++)
+            {
+                if (planet.factorySystem.inserterPool[i].id != i)
+                {
+                    continue;
+                }
+                ref InserterComponent reference = ref planet.factorySystem.inserterPool[i];
+                if (flag)
+                {
+                    reference.InternalOffsetCorrection(entityPool, planet.cargoTraffic, beltPool);
+                    if (reference.grade == 3)
+                    {
+                        reference.delay = delay;
+                        reference.stackInput = b;
+                        reference.stackOutput = 1;
+                        reference.bidirectional = false;
+                    }
+                    else if (reference.grade == 4)
+                    {
+                        reference.delay = delay2;
+                        reference.stackInput = b2;
+                        reference.stackOutput = stackOutput;
+                        reference.bidirectional = inserterBidirectional;
+                    }
+                    else
+                    {
+                        reference.delay = 0;
+                        reference.stackInput = 1;
+                        reference.stackOutput = 1;
+                        reference.bidirectional = false;
+                    }
+                }
+                float power = networkServes[_inserterNetworkIds[i]];
+                if (reference.bidirectional)
+                {
+                    InternalUpdate_Bidirectional(planet, ref reference, entityNeeds, entityAnimPool, power, isActive);
+                }
+                else
+                {
+                    reference.InternalUpdate(planet, entityNeeds, entityAnimPool, power);
+                }
+            }
+            return;
+        }
+        for (int j = _start; j < _end; j++)
+        {
+            if (planet.factorySystem.inserterPool[j].id != j)
+            {
+                continue;
+            }
+            ref InserterComponent reference2 = ref planet.factorySystem.inserterPool[j];
+            if (flag)
+            {
+                if (reference2.grade == 3)
+                {
+                    reference2.delay = delay;
+                    reference2.stackInput = b;
+                    reference2.stackOutput = 1;
+                    reference2.bidirectional = false;
+                }
+                else if (reference2.grade == 4)
+                {
+                    reference2.delay = delay2;
+                    reference2.stackInput = b2;
+                    reference2.stackOutput = stackOutput;
+                    reference2.bidirectional = inserterBidirectional;
+                }
+                else
+                {
+                    reference2.delay = 0;
+                    reference2.stackInput = 1;
+                    reference2.stackOutput = 1;
+                    reference2.bidirectional = false;
+                }
+            }
+            float power2 = networkServes[_inserterNetworkIds[j]];
+            if (reference2.bidirectional)
+            {
+                InternalUpdate_Bidirectional(planet, ref reference2, entityNeeds, entityAnimPool, power2, isActive);
+            }
+            else
+            {
+                reference2.InternalUpdateNoAnim(planet, entityNeeds, power2);
+            }
+        }
+    }
+
+    public void InternalUpdate_Bidirectional(PlanetFactory planet, ref InserterComponent inserter, int[][] needsPool, AnimData[] animPool, float power, bool isActive)
+    {
+        if (isActive)
+        {
+            animPool[inserter.entityId].power = power;
+        }
+        if (power < 0.1f)
+        {
+            return;
+        }
+        bool flag = false;
+        int num = 1;
+        do
+        {
+            if (inserter.pickTarget == 0)
+            {
+                planet.entitySignPool[inserter.entityId].signType = 10u;
+                break;
+            }
+            if (inserter.insertTarget == 0)
+            {
+                planet.entitySignPool[inserter.entityId].signType = 10u;
+                break;
+            }
+            byte stack;
+            byte inc;
+            if (inserter.itemId == 0)
+            {
+                int num2 = 0;
+                if (inserter.careNeeds)
+                {
+                    if (inserter.idleTick-- < 1)
+                    {
+                        int[] array = needsPool[inserter.insertTarget];
+                        if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
+                        {
+                            num2 = PickFrom(planet, inserter.pickTarget, inserter.pickOffset, inserter.filter, array, out stack, out inc);
+                            if (num2 > 0)
+                            {
+                                inserter.itemId = num2;
+                                inserter.itemCount += stack;
+                                inserter.itemInc += inc;
+                                inserter.stackCount++;
+                                flag = true;
+                            }
+                            else
+                            {
+                                num = 0;
+                            }
+                        }
+                        else
+                        {
+                            inserter.idleTick = 9;
+                            num = 0;
+                        }
+                    }
+                    else
+                    {
+                        num = 0;
+                    }
+                }
+                else
+                {
+                    num2 = PickFrom(planet, inserter.pickTarget, inserter.pickOffset, inserter.filter, null, out stack, out inc);
+                    if (num2 > 0)
+                    {
+                        inserter.itemId = num2;
+                        inserter.itemCount += stack;
+                        inserter.itemInc += inc;
+                        inserter.stackCount++;
+                        flag = true;
+                    }
+                    else
+                    {
+                        num = 0;
+                    }
+                }
+            }
+            else
+            {
+                if (inserter.stackCount >= inserter.stackInput)
+                {
+                    continue;
+                }
+                if (inserter.filter == 0 || inserter.filter == inserter.itemId)
+                {
+                    if (inserter.careNeeds)
+                    {
+                        if (inserter.idleTick-- < 1)
+                        {
+                            int[] array2 = needsPool[inserter.insertTarget];
+                            if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
+                            {
+                                if (PickFrom(planet, inserter.pickTarget, inserter.pickOffset, inserter.itemId, array2, out stack, out inc) > 0)
+                                {
+                                    inserter.itemCount += stack;
+                                    inserter.itemInc += inc;
+                                    inserter.stackCount++;
+                                    flag = true;
+                                }
+                                else
+                                {
+                                    num = 0;
+                                }
+                            }
+                            else
+                            {
+                                inserter.idleTick = 10;
+                                num = 0;
+                            }
+                        }
+                        else
+                        {
+                            num = 0;
+                        }
+                    }
+                    else if (PickFrom(planet, inserter.pickTarget, inserter.pickOffset, inserter.itemId, null, out stack, out inc) > 0)
+                    {
+                        inserter.itemCount += stack;
+                        inserter.itemInc += inc;
+                        inserter.stackCount++;
+                        flag = true;
+                    }
+                    else
+                    {
+                        num = 0;
+                    }
+                }
+                else
+                {
+                    num = 0;
+                }
+            }
+        }
+        while (num-- > 0);
+        num = 1;
+        int num3 = 0;
+        do
+        {
+            if (inserter.insertTarget == 0)
+            {
+                planet.entitySignPool[inserter.entityId].signType = 10u;
+                break;
+            }
+            if (inserter.itemId == 0 || inserter.stackCount == 0)
+            {
+                inserter.itemId = 0;
+                inserter.stackCount = 0;
+                inserter.itemCount = 0;
+                inserter.itemInc = 0;
+                break;
+            }
+            if (inserter.idleTick-- >= 1)
+            {
+                break;
+            }
+            int num4 = ((inserter.stackOutput > 1) ? planet.entityPool[inserter.insertTarget].beltId : 0);
+            if (num4 > 0)
+            {
+                int num5 = inserter.itemCount;
+                int num6 = inserter.itemInc;
+                planet.cargoTraffic.TryInsertItemToBeltWithStackIncreasement(num4, inserter.insertOffset, inserter.itemId, inserter.stackOutput, ref num5, ref num6);
+                if (num5 < inserter.itemCount)
+                {
+                    num3 = inserter.itemId;
+                }
+                inserter.itemCount = (short)num5;
+                inserter.itemInc = (short)num6;
+                inserter.stackCount = ((inserter.itemCount > 0) ? ((inserter.itemCount - 1) / 4 + 1) : 0);
+                if (inserter.stackCount == 0)
+                {
+                    inserter.itemId = 0;
+                    inserter.itemCount = 0;
+                    inserter.itemInc = 0;
+                    break;
+                }
+                num = 0;
+                continue;
+            }
+            if (inserter.careNeeds)
+            {
+                int[] array3 = needsPool[inserter.insertTarget];
+                if (array3 == null || (array3[0] == 0 && array3[1] == 0 && array3[2] == 0 && array3[3] == 0 && array3[4] == 0 && array3[5] == 0))
+                {
+                    inserter.idleTick = 10;
+                    break;
+                }
+            }
+            int num7 = inserter.itemCount / inserter.stackCount;
+            int num8 = (int)((float)inserter.itemInc / (float)inserter.itemCount * (float)num7 + 0.5f);
+            byte remainInc = (byte)num8;
+            int num9 = InsertInto(planet, inserter.insertTarget, inserter.insertOffset, inserter.itemId, (byte)num7, (byte)num8, out remainInc);
+            if (num9 <= 0)
+            {
+                break;
+            }
+            if (remainInc == 0 && num9 == num7)
+            {
+                inserter.stackCount--;
+            }
+            inserter.itemCount -= (short)num9;
+            inserter.itemInc -= (short)(num8 - remainInc);
+            num3 = inserter.itemId;
+            if (inserter.stackCount == 0)
+            {
+                inserter.itemId = 0;
+                inserter.itemCount = 0;
+                inserter.itemInc = 0;
+                break;
+            }
+        }
+        while (num-- > 0);
+        if (flag || num3 > 0)
+        {
+            inserter.stage = EInserterStage.Sending;
+        }
+        else if (inserter.itemId > 0)
+        {
+            inserter.stage = EInserterStage.Inserting;
+        }
+        else
+        {
+            inserter.stage = ((inserter.stage == EInserterStage.Sending) ? EInserterStage.Returning : EInserterStage.Picking);
+        }
+        if (isActive)
+        {
+            ref AnimData reference = ref animPool[inserter.entityId];
+            if (num3 > 0)
+            {
+                reference.prepare_length = 1f;
+            }
+            else
+            {
+                reference.prepare_length *= 0.7f;
+            }
+            reference.time += power * 0.125f * reference.prepare_length;
+            if (reference.time > 0.5f)
+            {
+                reference.time -= 0.5f;
+            }
+            int num10 = ((inserter.itemId > 0) ? inserter.itemId : num3);
+            if (num10 > 0 || reference.prepare_length < 0.5f)
+            {
+                reference.state = (uint)num10;
+            }
+        }
+    }
+
+    public int PickFrom(PlanetFactory planet, int entityId, int offset, int filter, int[] needs, out byte stack, out byte inc)
+    {
+        stack = 1;
+        inc = 0;
+        int beltId = planet.entityPool[entityId].beltId;
+        if (beltId > 0)
+        {
+            if (needs == null)
+            {
+                return planet.cargoTraffic.TryPickItem(beltId, offset, filter, out stack, out inc);
+            }
+            return planet.cargoTraffic.TryPickItem(beltId, offset, filter, needs, out stack, out inc);
+        }
+        int assemblerId = planet.entityPool[entityId].assemblerId;
+        if (assemblerId > 0)
+        {
+            lock (planet.entityMutexs[entityId])
+            {
+                int[] products = planet.factorySystem.assemblerPool[assemblerId].products;
+                int[] produced = planet.factorySystem.assemblerPool[assemblerId].produced;
+                if (products == null)
+                {
+                    return 0;
+                }
+                int num = products.Length;
+                switch (num)
+                {
+                    case 1:
+                        if (produced[0] > 0 && products[0] > 0 && (filter == 0 || filter == products[0]) && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
+                        {
+                            produced[0]--;
+                            return products[0];
+                        }
+                        break;
+                    case 2:
+                        if ((filter == products[0] || filter == 0) && produced[0] > 0 && products[0] > 0 && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
+                        {
+                            produced[0]--;
+                            return products[0];
+                        }
+                        if ((filter == products[1] || filter == 0) && produced[1] > 0 && products[1] > 0 && (needs == null || needs[0] == products[1] || needs[1] == products[1] || needs[2] == products[1] || needs[3] == products[1] || needs[4] == products[1] || needs[5] == products[1]))
+                        {
+                            produced[1]--;
+                            return products[1];
+                        }
+                        break;
+                    default:
+                        {
+                            for (int i = 0; i < num; i++)
+                            {
+                                if ((filter == products[i] || filter == 0) && produced[i] > 0 && products[i] > 0 && (needs == null || needs[0] == products[i] || needs[1] == products[i] || needs[2] == products[i] || needs[3] == products[i] || needs[4] == products[i] || needs[5] == products[i]))
+                                {
+                                    produced[i]--;
+                                    return products[i];
+                                }
+                            }
+                            break;
+                        }
+                }
+            }
+            return 0;
+        }
+        int ejectorId = planet.entityPool[entityId].ejectorId;
+        if (ejectorId > 0)
+        {
+            lock (planet.entityMutexs[entityId])
+            {
+                int bulletId = planet.factorySystem.ejectorPool[ejectorId].bulletId;
+                int bulletCount = planet.factorySystem.ejectorPool[ejectorId].bulletCount;
+                if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && (needs == null || needs[0] == bulletId || needs[1] == bulletId || needs[2] == bulletId || needs[3] == bulletId || needs[4] == bulletId || needs[5] == bulletId))
+                {
+                    planet.factorySystem.ejectorPool[ejectorId].TakeOneBulletUnsafe(out inc);
+                    return bulletId;
+                }
+            }
+            return 0;
+        }
+        int siloId = planet.entityPool[entityId].siloId;
+        if (siloId > 0)
+        {
+            lock (planet.entityMutexs[entityId])
+            {
+                int bulletId2 = planet.factorySystem.siloPool[siloId].bulletId;
+                int bulletCount2 = planet.factorySystem.siloPool[siloId].bulletCount;
+                if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && (needs == null || needs[0] == bulletId2 || needs[1] == bulletId2 || needs[2] == bulletId2 || needs[3] == bulletId2 || needs[4] == bulletId2 || needs[5] == bulletId2))
+                {
+                    planet.factorySystem.siloPool[siloId].TakeOneBulletUnsafe(out inc);
+                    return bulletId2;
+                }
+            }
+            return 0;
+        }
+        int storageId = planet.entityPool[entityId].storageId;
+        int inc2;
+        if (storageId > 0)
+        {
+            StorageComponent storageComponent = planet.factoryStorage.storagePool[storageId];
+            StorageComponent storageComponent2 = storageComponent;
+            if (storageComponent != null)
+            {
+                storageComponent = storageComponent.topStorage;
+                while (storageComponent != null)
+                {
+                    lock (planet.entityMutexs[storageComponent.entityId])
+                    {
+                        if (storageComponent.lastEmptyItem != 0 && storageComponent.lastEmptyItem != filter)
+                        {
+                            int itemId = filter;
+                            int count = 1;
+                            bool flag = false;
+                            if (needs == null)
+                            {
+                                storageComponent.TakeTailItems(ref itemId, ref count, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                                inc = (byte)inc2;
+                                flag = count == 1;
+                            }
+                            else
+                            {
+                                bool flag2 = storageComponent.TakeTailItems(ref itemId, ref count, needs, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                                inc = (byte)inc2;
+                                flag = count == 1 || flag2;
+                            }
+                            if (count == 1)
+                            {
+                                storageComponent.lastEmptyItem = -1;
+                                return itemId;
+                            }
+                            if (!flag)
+                            {
+                                storageComponent.lastEmptyItem = filter;
+                            }
+                        }
+                        if (storageComponent == storageComponent2)
+                        {
+                            break;
+                        }
+                        storageComponent = storageComponent.previousStorage;
+                        continue;
+                    }
+                }
+            }
+            return 0;
+        }
+        int stationId = planet.entityPool[entityId].stationId;
+        if (stationId > 0)
+        {
+            StationComponent stationComponent = planet.transport.stationPool[stationId];
+            if (stationComponent != null)
+            {
+                lock (planet.entityMutexs[entityId])
+                {
+                    int _itemId = filter;
+                    int _count = 1;
+                    if (needs == null)
+                    {
+                        stationComponent.TakeItem(ref _itemId, ref _count, out inc2);
+                        inc = (byte)inc2;
+                    }
+                    else
+                    {
+                        stationComponent.TakeItem(ref _itemId, ref _count, needs, out inc2);
+                        inc = (byte)inc2;
+                    }
+                    if (_count == 1)
+                    {
+                        return _itemId;
+                    }
+                }
+            }
+            return 0;
+        }
+        int labId = planet.entityPool[entityId].labId;
+        if (labId > 0)
+        {
+            lock (planet.entityMutexs[entityId])
+            {
+                int[] products2 = planet.factorySystem.labPool[labId].products;
+                int[] produced2 = planet.factorySystem.labPool[labId].produced;
+                if (products2 == null || produced2 == null)
+                {
+                    return 0;
+                }
+                for (int j = 0; j < products2.Length; j++)
+                {
+                    if (produced2[j] > 0 && products2[j] > 0 && (filter == 0 || filter == products2[j]) && (needs == null || needs[0] == products2[j] || needs[1] == products2[j] || needs[2] == products2[j] || needs[3] == products2[j] || needs[4] == products2[j] || needs[5] == products2[j]))
+                    {
+                        produced2[j]--;
+                        return products2[j];
+                    }
+                }
+            }
+            return 0;
+        }
+        int powerGenId = planet.entityPool[entityId].powerGenId;
+        if (powerGenId > 0)
+        {
+            if (offset > 0 && planet.powerSystem.genPool[offset].id == offset)
+            {
+                lock (planet.entityMutexs[entityId])
+                {
+                    if (planet.powerSystem.genPool[offset].fuelCount <= 8)
+                    {
+                        int result = planet.powerSystem.genPool[powerGenId].PickFuelFrom(filter, out inc2);
+                        inc = (byte)inc2;
+                        return result;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    public int InsertInto(PlanetFactory planet, int entityId, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
+    {
+        remainInc = itemInc;
+        int beltId = planet.entityPool[entityId].beltId;
+        if (beltId > 0)
+        {
+            if (planet.cargoTraffic.TryInsertItem(beltId, offset, itemId, itemCount, itemInc))
+            {
+                remainInc = 0;
+                return itemCount;
+            }
+            return 0;
+        }
+        int[] array = planet.entityNeeds[entityId];
+        int assemblerId = planet.entityPool[entityId].assemblerId;
+        if (assemblerId > 0)
+        {
+            if (array == null)
+            {
+                return 0;
+            }
+            lock (planet.entityMutexs[entityId])
+            {
+                ref AssemblerComponent reference = ref planet.factorySystem.assemblerPool[assemblerId];
+                int[] requires = reference.requires;
+                int num = requires.Length;
+                if (0 < num && requires[0] == itemId)
+                {
+                    reference.served[0] += itemCount;
+                    reference.incServed[0] += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+                if (1 < num && requires[1] == itemId)
+                {
+                    reference.served[1] += itemCount;
+                    reference.incServed[1] += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+                if (2 < num && requires[2] == itemId)
+                {
+                    reference.served[2] += itemCount;
+                    reference.incServed[2] += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+                if (3 < num && requires[3] == itemId)
+                {
+                    reference.served[3] += itemCount;
+                    reference.incServed[3] += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+                if (4 < num && requires[4] == itemId)
+                {
+                    reference.served[4] += itemCount;
+                    reference.incServed[4] += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+                if (5 < num && requires[5] == itemId)
+                {
+                    reference.served[5] += itemCount;
+                    reference.incServed[5] += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+            }
+            return 0;
+        }
+        int ejectorId = planet.entityPool[entityId].ejectorId;
+        if (ejectorId > 0)
+        {
+            if (array == null)
+            {
+                return 0;
+            }
+            lock (planet.entityMutexs[entityId])
+            {
+                if (array[0] == itemId && planet.factorySystem.ejectorPool[ejectorId].bulletId == itemId)
+                {
+                    planet.factorySystem.ejectorPool[ejectorId].bulletCount += itemCount;
+                    planet.factorySystem.ejectorPool[ejectorId].bulletInc += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+            }
+            return 0;
+        }
+        int siloId = planet.entityPool[entityId].siloId;
+        if (siloId > 0)
+        {
+            if (array == null)
+            {
+                return 0;
+            }
+            lock (planet.entityMutexs[entityId])
+            {
+                if (array[0] == itemId && planet.factorySystem.siloPool[siloId].bulletId == itemId)
+                {
+                    planet.factorySystem.siloPool[siloId].bulletCount += itemCount;
+                    planet.factorySystem.siloPool[siloId].bulletInc += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+            }
+            return 0;
+        }
+        int labId = planet.entityPool[entityId].labId;
+        if (labId > 0)
+        {
+            if (array == null)
+            {
+                return 0;
+            }
+            lock (planet.entityMutexs[entityId])
+            {
+                ref LabComponent reference2 = ref planet.factorySystem.labPool[labId];
+                if (reference2.researchMode)
+                {
+                    int[] matrixServed = reference2.matrixServed;
+                    int[] matrixIncServed = reference2.matrixIncServed;
+                    if (matrixServed == null)
+                    {
+                        return 0;
+                    }
+                    int num2 = itemId - 6001;
+                    if (num2 >= 0 && num2 < 6)
+                    {
+                        matrixServed[num2] += 3600 * itemCount;
+                        matrixIncServed[num2] += 3600 * itemInc;
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                }
+                else
+                {
+                    int[] requires2 = reference2.requires;
+                    int[] served = reference2.served;
+                    int[] incServed = reference2.incServed;
+                    if (requires2 == null)
+                    {
+                        return 0;
+                    }
+                    int num3 = requires2.Length;
+                    for (int i = 0; i < num3; i++)
+                    {
+                        if (requires2[i] == itemId)
+                        {
+                            served[i] += itemCount;
+                            incServed[i] += itemInc;
+                            remainInc = 0;
+                            return itemCount;
+                        }
+                    }
+                }
+            }
+            return 0;
+        }
+        int storageId = planet.entityPool[entityId].storageId;
+        if (storageId > 0)
+        {
+            StorageComponent storageComponent = planet.factoryStorage.storagePool[storageId];
+            while (storageComponent != null)
+            {
+                lock (planet.entityMutexs[storageComponent.entityId])
+                {
+                    if (storageComponent.lastFullItem != itemId)
+                    {
+                        int num4 = 0;
+                        num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
+                        remainInc = (byte)remainInc2;
+                        if (num4 == itemCount)
+                        {
+                            storageComponent.lastFullItem = -1;
+                        }
+                        else
+                        {
+                            storageComponent.lastFullItem = itemId;
+                        }
+                        if (num4 != 0 || storageComponent.nextStorage == null)
+                        {
+                            return num4;
+                        }
+                    }
+                    storageComponent = storageComponent.nextStorage;
+                }
+            }
+            return 0;
+        }
+        int stationId = planet.entityPool[entityId].stationId;
+        if (stationId > 0)
+        {
+            if (array == null)
+            {
+                return 0;
+            }
+            StationComponent stationComponent = planet.transport.stationPool[stationId];
+            lock (planet.entityMutexs[entityId])
+            {
+                if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
+                {
+                    stationComponent.warperCount += itemCount;
+                    remainInc = 0;
+                    return itemCount;
+                }
+                StationStore[] storage = stationComponent.storage;
+                for (int j = 0; j < array.Length && j < storage.Length; j++)
+                {
+                    if (array[j] == itemId && storage[j].itemId == itemId)
+                    {
+                        storage[j].count += itemCount;
+                        storage[j].inc += itemInc;
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                }
+            }
+            return 0;
+        }
+        int powerGenId = planet.entityPool[entityId].powerGenId;
+        if (powerGenId > 0)
+        {
+            PowerGeneratorComponent[] genPool = planet.powerSystem.genPool;
+            lock (planet.entityMutexs[entityId])
+            {
+                if (itemId == genPool[powerGenId].fuelId)
+                {
+                    if (genPool[powerGenId].fuelCount < 10)
+                    {
+                        ref short fuelCount = ref genPool[powerGenId].fuelCount;
+                        fuelCount += itemCount;
+                        ref short fuelInc = ref genPool[powerGenId].fuelInc;
+                        fuelInc += itemInc;
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    return 0;
+                }
+                if (genPool[powerGenId].fuelId == 0)
+                {
+                    array = ItemProto.fuelNeeds[genPool[powerGenId].fuelMask];
+                    if (array == null || array.Length == 0)
+                    {
+                        return 0;
+                    }
+                    for (int k = 0; k < array.Length; k++)
+                    {
+                        if (array[k] == itemId)
+                        {
+                            genPool[powerGenId].SetNewFuel(itemId, itemCount, itemInc);
+                            remainInc = 0;
+                            return itemCount;
+                        }
+                    }
+                    return 0;
+                }
+            }
+            return 0;
+        }
+        int splitterId = planet.entityPool[entityId].splitterId;
+        if (splitterId > 0)
+        {
+            switch (offset)
+            {
+                case 0:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltA, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+                case 1:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltB, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+                case 2:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltC, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+                case 3:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltD, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+            }
+            return 0;
+        }
+        return 0;
+    }
+
+    private readonly struct InserterConnections
+    {
+        public readonly TypedObjectIndex PickFrom;
+        public readonly TypedObjectIndex InserterInto;
+
+        public InserterConnections(TypedObjectIndex pickFrom, TypedObjectIndex inserterInto)
+        {
+            PickFrom = pickFrom;
+            InserterInto = inserterInto;
+        }
+    }
+}
+
+internal readonly struct TypedObjectIndex
+{
+    private readonly uint _value;
+
+    public readonly EntityType EntityType => (EntityType)(_value >> 24);
+    public readonly int Index => (int)(0x00_ff_ff_ff & _value);
+
+    public TypedObjectIndex(EntityType entityType, int index)
+    {
+        _value = ((uint)entityType << 24) | (uint)index;
+    }
 }

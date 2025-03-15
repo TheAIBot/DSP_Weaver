@@ -151,7 +151,7 @@ internal static class Graphifier
         graphs.AddRange(combinedGraphs);
     }
 
-    private static EntityTypeIndex GetEntityTypeIndex(int index, EntityData[] entities)
+    public static EntityTypeIndex GetEntityTypeIndex(int index, EntityData[] entities)
     {
         ref readonly EntityData entity = ref entities[index];
         if (entity.beltId != 0)
