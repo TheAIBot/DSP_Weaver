@@ -11,5 +11,15 @@ internal enum EntityType
     Station,
     PowerGenerator,
     Splitter,
-    Inserter
+    Inserter,
+    Monitor,
+    SprayCoater,
+    Piler,
+    Miner,
+    Fractionator,
+    Dispenser,
+    Turret,
+    FieldGenerator,
+    BattleBase,
+    Marker
 }
