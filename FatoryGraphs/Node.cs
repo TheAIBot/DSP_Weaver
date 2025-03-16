@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Weaver.FatoryGraphs;
 
-namespace Weaver.Optimizations.LoadBalance;
+namespace Weaver.FatoryGraphs;
 
 internal sealed class Node
 {

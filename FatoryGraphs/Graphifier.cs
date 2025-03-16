@@ -156,43 +156,43 @@ internal static class Graphifier
         ref readonly EntityData entity = ref entities[index];
         if (entity.beltId != 0)
         {
-            return new EntityTypeIndex(EntityType.Belt, index);
+            return new EntityTypeIndex(EntityType.Belt, entity.beltId);
         }
         else if (entity.assemblerId != 0)
         {
-            return new EntityTypeIndex(EntityType.Assembler, index);
+            return new EntityTypeIndex(EntityType.Assembler, entity.assemblerId);
         }
         else if (entity.ejectorId != 0)
         {
-            return new EntityTypeIndex(EntityType.Ejector, index);
+            return new EntityTypeIndex(EntityType.Ejector, entity.ejectorId);
         }
         else if (entity.siloId != 0)
         {
-            return new EntityTypeIndex(EntityType.Silo, index);
+            return new EntityTypeIndex(EntityType.Silo, entity.siloId);
         }
         else if (entity.labId != 0)
         {
-            return new EntityTypeIndex(EntityType.Lab, index);
+            return new EntityTypeIndex(EntityType.Lab, entity.labId);
         }
         else if (entity.storageId != 0)
         {
-            return new EntityTypeIndex(EntityType.Storage, index);
+            return new EntityTypeIndex(EntityType.Storage, entity.storageId);
         }
         else if (entity.stationId != 0)
         {
-            return new EntityTypeIndex(EntityType.Station, index);
+            return new EntityTypeIndex(EntityType.Station, entity.stationId);
         }
         else if (entity.powerGenId != 0)
         {
-            return new EntityTypeIndex(EntityType.PowerGenerator, index);
+            return new EntityTypeIndex(EntityType.PowerGenerator, entity.powerGenId);
         }
         else if (entity.splitterId != 0)
         {
-            return new EntityTypeIndex(EntityType.Splitter, index);
+            return new EntityTypeIndex(EntityType.Splitter, entity.splitterId);
         }
         else if (entity.inserterId != 0)
         {
-            return new EntityTypeIndex(EntityType.Inserter, index);
+            return new EntityTypeIndex(EntityType.Inserter, entity.inserterId);
         }
 
         throw new InvalidOperationException("Unknown entity type.");
