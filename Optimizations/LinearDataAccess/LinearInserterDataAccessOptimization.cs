@@ -1227,12 +1227,12 @@ internal sealed class OptimizedInserters
             {
                 break;
             }
-            int num4 = ((inserter.stackOutput > 1) ? planet.entityPool[inserter.insertTarget].beltId : 0);
-            if (num4 > 0)
+            TypedObjectIndex num4 = ((inserter.stackOutput > 1) ? _inserterConnections[inserter.id].InsertInto : default);
+            if (num4.EntityType == EntityType.Belt && num4.Index > 0)
             {
                 int num5 = inserter.itemCount;
                 int num6 = inserter.itemInc;
-                planet.cargoTraffic.TryInsertItemToBeltWithStackIncreasement(num4, inserter.insertOffset, inserter.itemId, inserter.stackOutput, ref num5, ref num6);
+                planet.cargoTraffic.TryInsertItemToBeltWithStackIncreasement(num4.Index, inserter.insertOffset, inserter.itemId, inserter.stackOutput, ref num5, ref num6);
                 if (num5 < inserter.itemCount)
                 {
                     num3 = inserter.itemId;
