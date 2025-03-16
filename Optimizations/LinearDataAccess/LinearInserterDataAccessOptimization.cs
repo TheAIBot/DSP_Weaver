@@ -1262,7 +1262,7 @@ internal sealed class OptimizedInserters
             int num7 = inserter.itemCount / inserter.stackCount;
             int num8 = (int)((float)inserter.itemInc / (float)inserter.itemCount * (float)num7 + 0.5f);
             byte remainInc = (byte)num8;
-            int num9 = InsertInto(planet, inserter.insertTarget, inserter.insertOffset, inserter.itemId, (byte)num7, (byte)num8, out remainInc);
+            int num9 = InsertInto(planet, inserter.id, inserter.insertTarget, inserter.insertOffset, inserter.itemId, (byte)num7, (byte)num8, out remainInc);
             if (num9 <= 0)
             {
                 break;
@@ -1566,304 +1566,303 @@ internal sealed class OptimizedInserters
         }
     }
 
-    public int InsertInto(PlanetFactory planet, int entityId, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
+    public int InsertInto(PlanetFactory planet, int inserterId, int entityId, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
     {
         remainInc = itemInc;
-        int beltId = planet.entityPool[entityId].beltId;
-        if (beltId > 0)
+        TypedObjectIndex typedObjectIndex = _inserterConnections[inserterId].InsertInto;
+        int objectIndex = typedObjectIndex.Index;
+        if (objectIndex == 0)
         {
-            if (planet.cargoTraffic.TryInsertItem(beltId, offset, itemId, itemCount, itemInc))
-            {
-                remainInc = 0;
-                return itemCount;
-            }
             return 0;
         }
-        int[] array = planet.entityNeeds[entityId];
-        int assemblerId = planet.entityPool[entityId].assemblerId;
-        if (assemblerId > 0)
+
+        switch (typedObjectIndex.EntityType)
         {
-            if (array == null)
-            {
-                return 0;
-            }
-            lock (planet.entityMutexs[entityId])
-            {
-                ref AssemblerComponent reference = ref planet.factorySystem.assemblerPool[assemblerId];
-                int[] requires = reference.requires;
-                int num = requires.Length;
-                if (0 < num && requires[0] == itemId)
+            case EntityType.Belt:
                 {
-                    reference.served[0] += itemCount;
-                    reference.incServed[0] += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-                if (1 < num && requires[1] == itemId)
-                {
-                    reference.served[1] += itemCount;
-                    reference.incServed[1] += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-                if (2 < num && requires[2] == itemId)
-                {
-                    reference.served[2] += itemCount;
-                    reference.incServed[2] += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-                if (3 < num && requires[3] == itemId)
-                {
-                    reference.served[3] += itemCount;
-                    reference.incServed[3] += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-                if (4 < num && requires[4] == itemId)
-                {
-                    reference.served[4] += itemCount;
-                    reference.incServed[4] += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-                if (5 < num && requires[5] == itemId)
-                {
-                    reference.served[5] += itemCount;
-                    reference.incServed[5] += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-            }
-            return 0;
-        }
-        int ejectorId = planet.entityPool[entityId].ejectorId;
-        if (ejectorId > 0)
-        {
-            if (array == null)
-            {
-                return 0;
-            }
-            lock (planet.entityMutexs[entityId])
-            {
-                if (array[0] == itemId && planet.factorySystem.ejectorPool[ejectorId].bulletId == itemId)
-                {
-                    planet.factorySystem.ejectorPool[ejectorId].bulletCount += itemCount;
-                    planet.factorySystem.ejectorPool[ejectorId].bulletInc += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-            }
-            return 0;
-        }
-        int siloId = planet.entityPool[entityId].siloId;
-        if (siloId > 0)
-        {
-            if (array == null)
-            {
-                return 0;
-            }
-            lock (planet.entityMutexs[entityId])
-            {
-                if (array[0] == itemId && planet.factorySystem.siloPool[siloId].bulletId == itemId)
-                {
-                    planet.factorySystem.siloPool[siloId].bulletCount += itemCount;
-                    planet.factorySystem.siloPool[siloId].bulletInc += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-            }
-            return 0;
-        }
-        int labId = planet.entityPool[entityId].labId;
-        if (labId > 0)
-        {
-            if (array == null)
-            {
-                return 0;
-            }
-            lock (planet.entityMutexs[entityId])
-            {
-                ref LabComponent reference2 = ref planet.factorySystem.labPool[labId];
-                if (reference2.researchMode)
-                {
-                    int[] matrixServed = reference2.matrixServed;
-                    int[] matrixIncServed = reference2.matrixIncServed;
-                    if (matrixServed == null)
+                    if (planet.cargoTraffic.TryInsertItem(objectIndex, offset, itemId, itemCount, itemInc))
                     {
-                        return 0;
-                    }
-                    int num2 = itemId - 6001;
-                    if (num2 >= 0 && num2 < 6)
-                    {
-                        matrixServed[num2] += 3600 * itemCount;
-                        matrixIncServed[num2] += 3600 * itemInc;
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                }
-                else
-                {
-                    int[] requires2 = reference2.requires;
-                    int[] served = reference2.served;
-                    int[] incServed = reference2.incServed;
-                    if (requires2 == null)
-                    {
-                        return 0;
-                    }
-                    int num3 = requires2.Length;
-                    for (int i = 0; i < num3; i++)
-                    {
-                        if (requires2[i] == itemId)
-                        {
-                            served[i] += itemCount;
-                            incServed[i] += itemInc;
-                            remainInc = 0;
-                            return itemCount;
-                        }
-                    }
-                }
-            }
-            return 0;
-        }
-        int storageId = planet.entityPool[entityId].storageId;
-        if (storageId > 0)
-        {
-            StorageComponent storageComponent = planet.factoryStorage.storagePool[storageId];
-            while (storageComponent != null)
-            {
-                lock (planet.entityMutexs[storageComponent.entityId])
-                {
-                    if (storageComponent.lastFullItem != itemId)
-                    {
-                        int num4 = 0;
-                        num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
-                        remainInc = (byte)remainInc2;
-                        if (num4 == itemCount)
-                        {
-                            storageComponent.lastFullItem = -1;
-                        }
-                        else
-                        {
-                            storageComponent.lastFullItem = itemId;
-                        }
-                        if (num4 != 0 || storageComponent.nextStorage == null)
-                        {
-                            return num4;
-                        }
-                    }
-                    storageComponent = storageComponent.nextStorage;
-                }
-            }
-            return 0;
-        }
-        int stationId = planet.entityPool[entityId].stationId;
-        if (stationId > 0)
-        {
-            if (array == null)
-            {
-                return 0;
-            }
-            StationComponent stationComponent = planet.transport.stationPool[stationId];
-            lock (planet.entityMutexs[entityId])
-            {
-                if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
-                {
-                    stationComponent.warperCount += itemCount;
-                    remainInc = 0;
-                    return itemCount;
-                }
-                StationStore[] storage = stationComponent.storage;
-                for (int j = 0; j < array.Length && j < storage.Length; j++)
-                {
-                    if (array[j] == itemId && storage[j].itemId == itemId)
-                    {
-                        storage[j].count += itemCount;
-                        storage[j].inc += itemInc;
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                }
-            }
-            return 0;
-        }
-        int powerGenId = planet.entityPool[entityId].powerGenId;
-        if (powerGenId > 0)
-        {
-            PowerGeneratorComponent[] genPool = planet.powerSystem.genPool;
-            lock (planet.entityMutexs[entityId])
-            {
-                if (itemId == genPool[powerGenId].fuelId)
-                {
-                    if (genPool[powerGenId].fuelCount < 10)
-                    {
-                        ref short fuelCount = ref genPool[powerGenId].fuelCount;
-                        fuelCount += itemCount;
-                        ref short fuelInc = ref genPool[powerGenId].fuelInc;
-                        fuelInc += itemInc;
                         remainInc = 0;
                         return itemCount;
                     }
                     return 0;
                 }
-                if (genPool[powerGenId].fuelId == 0)
+            case EntityType.Assembler:
                 {
-                    array = ItemProto.fuelNeeds[genPool[powerGenId].fuelMask];
-                    if (array == null || array.Length == 0)
+                    int[] array = planet.entityNeeds[entityId];
+                    if (array == null)
                     {
                         return 0;
                     }
-                    for (int k = 0; k < array.Length; k++)
+                    ref AssemblerComponent reference = ref planet.factorySystem.assemblerPool[objectIndex];
+                    int[] requires = reference.requires;
+                    int num = requires.Length;
+                    if (0 < num && requires[0] == itemId)
                     {
-                        if (array[k] == itemId)
+                        Interlocked.Add(ref reference.served[0], itemCount);
+                        Interlocked.Add(ref reference.incServed[0], itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    if (1 < num && requires[1] == itemId)
+                    {
+                        Interlocked.Add(ref reference.served[1], itemCount);
+                        Interlocked.Add(ref reference.incServed[1], itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    if (2 < num && requires[2] == itemId)
+                    {
+                        Interlocked.Add(ref reference.served[2], itemCount);
+                        Interlocked.Add(ref reference.incServed[2], itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    if (3 < num && requires[3] == itemId)
+                    {
+                        Interlocked.Add(ref reference.served[3], itemCount);
+                        Interlocked.Add(ref reference.incServed[3], itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    if (4 < num && requires[4] == itemId)
+                    {
+                        Interlocked.Add(ref reference.served[4], itemCount);
+                        Interlocked.Add(ref reference.incServed[4], itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    if (5 < num && requires[5] == itemId)
+                    {
+                        Interlocked.Add(ref reference.served[5], itemCount);
+                        Interlocked.Add(ref reference.incServed[5], itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    return 0;
+                }
+            case EntityType.Ejector:
+                {
+                    int[] array = planet.entityNeeds[entityId];
+                    if (array == null)
+                    {
+                        return 0;
+                    }
+                    if (array[0] == itemId && planet.factorySystem.ejectorPool[objectIndex].bulletId == itemId)
+                    {
+                        Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletCount, itemCount);
+                        Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletInc, itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    return 0;
+                }
+            case EntityType.Silo:
+                {
+                    int[] array = planet.entityNeeds[entityId];
+                    if (array == null)
+                    {
+                        return 0;
+                    }
+                    if (array[0] == itemId && planet.factorySystem.siloPool[objectIndex].bulletId == itemId)
+                    {
+                        Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletCount, itemCount);
+                        Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletInc, itemInc);
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    return 0;
+                }
+            case EntityType.Lab:
+                {
+                    int[] array = planet.entityNeeds[entityId];
+                    if (array == null)
+                    {
+                        return 0;
+                    }
+                    ref LabComponent reference2 = ref planet.factorySystem.labPool[objectIndex];
+                    if (reference2.researchMode)
+                    {
+                        int[] matrixServed = reference2.matrixServed;
+                        int[] matrixIncServed = reference2.matrixIncServed;
+                        if (matrixServed == null)
                         {
-                            genPool[powerGenId].SetNewFuel(itemId, itemCount, itemInc);
+                            return 0;
+                        }
+                        int num2 = itemId - 6001;
+                        if (num2 >= 0 && num2 < 6)
+                        {
+                            Interlocked.Add(ref matrixServed[num2], 3600 * itemCount);
+                            Interlocked.Add(ref matrixIncServed[num2], 3600 * itemInc);
                             remainInc = 0;
                             return itemCount;
                         }
                     }
+                    else
+                    {
+                        int[] requires2 = reference2.requires;
+                        int[] served = reference2.served;
+                        int[] incServed = reference2.incServed;
+                        if (requires2 == null)
+                        {
+                            return 0;
+                        }
+                        int num3 = requires2.Length;
+                        for (int i = 0; i < num3; i++)
+                        {
+                            if (requires2[i] == itemId)
+                            {
+                                Interlocked.Add(ref served[i], itemCount);
+                                Interlocked.Add(ref incServed[i], itemInc);
+                                remainInc = 0;
+                                return itemCount;
+                            }
+                        }
+                    }
                     return 0;
                 }
-            }
-            return 0;
+            case EntityType.Storage:
+                {
+                    StorageComponent storageComponent = planet.factoryStorage.storagePool[objectIndex];
+                    while (storageComponent != null)
+                    {
+                        lock (planet.entityMutexs[storageComponent.entityId])
+                        {
+                            if (storageComponent.lastFullItem != itemId)
+                            {
+                                int num4 = 0;
+                                num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
+                                remainInc = (byte)remainInc2;
+                                if (num4 == itemCount)
+                                {
+                                    storageComponent.lastFullItem = -1;
+                                }
+                                else
+                                {
+                                    storageComponent.lastFullItem = itemId;
+                                }
+                                if (num4 != 0 || storageComponent.nextStorage == null)
+                                {
+                                    return num4;
+                                }
+                            }
+                            storageComponent = storageComponent.nextStorage;
+                        }
+                    }
+                    return 0;
+                }
+            case EntityType.Station:
+                {
+                    int[] array = planet.entityNeeds[entityId];
+                    if (array == null)
+                    {
+                        return 0;
+                    }
+                    StationComponent stationComponent = planet.transport.stationPool[objectIndex];
+                    if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
+                    {
+                        lock (planet.entityMutexs[entityId])
+                        {
+                            if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
+                            {
+                                stationComponent.warperCount += itemCount;
+                                remainInc = 0;
+                                return itemCount;
+                            }
+                        }
+                    }
+                    StationStore[] storage = stationComponent.storage;
+                    for (int j = 0; j < array.Length && j < storage.Length; j++)
+                    {
+                        if (array[j] == itemId && storage[j].itemId == itemId)
+                        {
+                            Interlocked.Add(ref storage[j].count, itemCount);
+                            Interlocked.Add(ref storage[j].inc, itemInc);
+                            remainInc = 0;
+                            return itemCount;
+                        }
+                    }
+
+                    return 0;
+                }
+            case EntityType.PowerGenerator:
+                {
+                    int[] array = planet.entityNeeds[entityId];
+                    PowerGeneratorComponent[] genPool = planet.powerSystem.genPool;
+                    lock (planet.entityMutexs[entityId])
+                    {
+                        if (itemId == genPool[objectIndex].fuelId)
+                        {
+                            if (genPool[objectIndex].fuelCount < 10)
+                            {
+                                ref short fuelCount = ref genPool[objectIndex].fuelCount;
+                                fuelCount += itemCount;
+                                ref short fuelInc = ref genPool[objectIndex].fuelInc;
+                                fuelInc += itemInc;
+                                remainInc = 0;
+                                return itemCount;
+                            }
+                            return 0;
+                        }
+                        if (genPool[objectIndex].fuelId == 0)
+                        {
+                            array = ItemProto.fuelNeeds[genPool[objectIndex].fuelMask];
+                            if (array == null || array.Length == 0)
+                            {
+                                return 0;
+                            }
+                            for (int k = 0; k < array.Length; k++)
+                            {
+                                if (array[k] == itemId)
+                                {
+                                    genPool[objectIndex].SetNewFuel(itemId, itemCount, itemInc);
+                                    remainInc = 0;
+                                    return itemCount;
+                                }
+                            }
+                            return 0;
+                        }
+                    }
+                    return 0;
+                }
+            case EntityType.Splitter:
+                {
+                    switch (offset)
+                    {
+                        case 0:
+                            if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltA, 0, itemId, itemCount, itemInc))
+                            {
+                                remainInc = 0;
+                                return itemCount;
+                            }
+                            break;
+                        case 1:
+                            if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltB, 0, itemId, itemCount, itemInc))
+                            {
+                                remainInc = 0;
+                                return itemCount;
+                            }
+                            break;
+                        case 2:
+                            if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltC, 0, itemId, itemCount, itemInc))
+                            {
+                                remainInc = 0;
+                                return itemCount;
+                            }
+                            break;
+                        case 3:
+                            if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltD, 0, itemId, itemCount, itemInc))
+                            {
+                                remainInc = 0;
+                                return itemCount;
+                            }
+                            break;
+                    }
+                    return 0;
+                }
+            default:
+                throw new InvalidOperationException($"Invalid object type. Type: {typedObjectIndex.EntityType}");
         }
-        int splitterId = planet.entityPool[entityId].splitterId;
-        if (splitterId > 0)
-        {
-            switch (offset)
-            {
-                case 0:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltA, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-                case 1:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltB, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-                case 2:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltC, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-                case 3:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[splitterId].beltD, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-            }
-            return 0;
-        }
-        return 0;
     }
 
     public static TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
