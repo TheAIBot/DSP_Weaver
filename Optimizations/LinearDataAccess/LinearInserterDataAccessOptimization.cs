@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using UnityEngine;
 using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations.LoadBalance;
@@ -831,6 +832,15 @@ internal sealed class OptimizedInserters
 
     private int[] _inserterNetworkIds;
     private InserterConnections[] _inserterConnections;
+    private AssemblerState[] _assemblerStates;
+
+    private enum AssemblerState
+    {
+        NoAssembler,
+        Active,
+        InactiveOutputFull,
+        InactiveInputMissing
+    }
 
     public static void EnableOptimization()
     {
@@ -932,6 +942,12 @@ internal sealed class OptimizedInserters
 
     public void InitializeData(PlanetFactory planet)
     {
+        InitializeInserters(planet);
+        InitializeAssemblers(planet);
+    }
+
+    public void InitializeInserters(PlanetFactory planet)
+    {
         int[] inserterNetworkIds = new int[planet.factorySystem.inserterCursor];
         InserterConnections[] inserterConnections = new InserterConnections[planet.factorySystem.inserterCursor];
 
@@ -962,6 +978,25 @@ internal sealed class OptimizedInserters
 
         _inserterNetworkIds = inserterNetworkIds;
         _inserterConnections = inserterConnections;
+    }
+
+    public void InitializeAssemblers(PlanetFactory planet)
+    {
+        AssemblerState[] assemblerStates = new AssemblerState[planet.factorySystem.assemblerCursor];
+
+        for (int i = 0; i < planet.factorySystem.assemblerCursor; i++)
+        {
+            ref readonly AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
+            if (assembler.id != i)
+            {
+                assemblerStates[i] = AssemblerState.NoAssembler;
+                continue;
+            }
+
+            assemblerStates[i] = AssemblerState.Active;
+        }
+
+        _assemblerStates = assemblerStates;
     }
 
     public void GameTickInserters(PlanetFactory planet, long time, bool isActive, int _start, int _end)
@@ -1857,6 +1892,270 @@ internal sealed class OptimizedInserters
         }
 
         return 0;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.AssemblerPartExecute))]
+    public static bool AssemblerPartExecute(WorkerThreadExecutor __instance)
+    {
+        if (__instance.assemblerFactories == null)
+        {
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+        for (int i = 0; i < __instance.assemblerFactoryCnt; i++)
+        {
+            bool isActive = __instance.assemblerLocalPlanet == __instance.assemblerFactories[i].planet;
+            try
+            {
+                if (__instance.assemblerFactories[i].factorySystem != null)
+                {
+                    PlanetFactory planet = __instance.assemblerFactories[i];
+                    OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                    optimizedInserters.GameTick(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                }
+            }
+            catch (Exception ex)
+            {
+                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Assembler Factory idx:" + i.ToString() + " Assembler gametick " + ex;
+                __instance.hasErrorMessage = true;
+            }
+            try
+            {
+                if (__instance.assemblerFactories[i].factorySystem != null)
+                {
+                    __instance.assemblerFactories[i].factorySystem.GameTickLabProduceMode(__instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                }
+            }
+            catch (Exception ex2)
+            {
+                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Lab Produce Factory idx:" + i.ToString() + " lab produce gametick " + ex2;
+                __instance.hasErrorMessage = true;
+            }
+        }
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    public void GameTick(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        GameHistoryData history = GameMain.history;
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        PowerSystem powerSystem = planet.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        EntityData[] entityPool = planet.entityPool;
+        VeinData[] veinPool = planet.veinPool;
+        AnimData[] entityAnimPool = planet.entityAnimPool;
+        SignData[] entitySignPool = planet.entitySignPool;
+        int[][] entityNeeds = planet.entityNeeds;
+        FactorySystem factorySystem = planet.factorySystem;
+        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+        float num = 1f / 60f;
+        AstroData[] astroPoses = null;
+        bool flag = isActive || (time + planet.index) % 15 == 0;
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.minerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
+        {
+            float num2;
+            float num3 = (num2 = planet.gameData.gameDesc.resourceMultiplier);
+            if (num2 < 5f / 12f)
+            {
+                num2 = 5f / 12f;
+            }
+            float num4 = history.miningCostRate;
+            float miningSpeedScale = history.miningSpeedScale;
+            float num5 = history.miningCostRate * 0.40111667f / num2;
+            if (num3 > 99.5f)
+            {
+                num4 = 0f;
+                num5 = 0f;
+            }
+            bool flag2 = isActive && num4 > 0f;
+            for (int i = _start; i < _end; i++)
+            {
+                if (factorySystem.minerPool[i].id != i)
+                {
+                    continue;
+                }
+                int entityId = factorySystem.minerPool[i].entityId;
+                int stationId = entityPool[entityId].stationId;
+                float num6 = networkServes[consumerPool[factorySystem.minerPool[i].pcId].networkId];
+                uint num7 = factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num6, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
+                int num8 = (int)Mathf.Floor(entityAnimPool[entityId].time / 10f);
+                entityAnimPool[entityId].time = entityAnimPool[entityId].time % 10f;
+                entityAnimPool[entityId].Step(num7, num * num6);
+                entityAnimPool[entityId].power = num6;
+                if (stationId > 0)
+                {
+                    if (factorySystem.minerPool[i].veinCount > 0)
+                    {
+                        EVeinType veinTypeByItemId = LDB.veins.GetVeinTypeByItemId(veinPool[factorySystem.minerPool[i].veins[0]].productId);
+                        entityAnimPool[entityId].state += (uint)((int)veinTypeByItemId * 100);
+                    }
+                    entityAnimPool[entityId].power += 10f;
+                    entityAnimPool[entityId].power += factorySystem.minerPool[i].speed / 10 * 10;
+                    if (num7 == 1)
+                    {
+                        num8 = 3000;
+                    }
+                    else
+                    {
+                        num8 -= (int)(num * 1000f);
+                        if (num8 < 0)
+                        {
+                            num8 = 0;
+                        }
+                    }
+                    entityAnimPool[entityId].time += num8 * 10;
+                }
+                if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+                {
+                    entitySignPool[entityId].signType = ((factorySystem.minerPool[i].minimumVeinAmount < 1000) ? 7u : 0u);
+                }
+                if (flag2 && factorySystem.minerPool[i].type == EMinerType.Vein)
+                {
+                    if ((long)i % 30L == time % 30)
+                    {
+                        factorySystem.minerPool[i].GetTotalVeinAmount(veinPool);
+                    }
+                    entitySignPool[entityId].count0 = factorySystem.minerPool[i].totalVeinAmount;
+                }
+                else
+                {
+                    entitySignPool[entityId].count0 = 0f;
+                }
+            }
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.assemblerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            if (flag)
+            {
+                for (int j = _start; j < _end; j++)
+                {
+                    if (factorySystem.assemblerPool[j].id == j)
+                    {
+                        ref AssemblerComponent reference = ref factorySystem.assemblerPool[j];
+                        int entityId2 = reference.entityId;
+                        uint num9 = 0u;
+                        float num10 = networkServes[consumerPool[reference.pcId].networkId];
+                        if (reference.recipeId != 0)
+                        {
+                            reference.UpdateNeeds();
+                            num9 = reference.InternalUpdate(num10, productRegister, consumeRegister);
+                        }
+                        if (reference.recipeType == ERecipeType.Chemical)
+                        {
+                            entityAnimPool[entityId2].working_length = 2f;
+                            entityAnimPool[entityId2].Step(num9, num * num10);
+                            entityAnimPool[entityId2].power = num10;
+                            entityAnimPool[entityId2].working_length = reference.recipeId;
+                        }
+                        else
+                        {
+                            entityAnimPool[entityId2].Step(num9, num * num10);
+                            entityAnimPool[entityId2].power = num10;
+                        }
+                        entityNeeds[entityId2] = reference.needs;
+                        if (entitySignPool[entityId2].signType == 0 || entitySignPool[entityId2].signType > 3)
+                        {
+                            entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int k = _start; k < _end; k++)
+                {
+                    if (factorySystem.assemblerPool[k].id == k)
+                    {
+                        int entityId3 = factorySystem.assemblerPool[k].entityId;
+                        float power = networkServes[consumerPool[factorySystem.assemblerPool[k].pcId].networkId];
+                        if (factorySystem.assemblerPool[k].recipeId != 0)
+                        {
+                            factorySystem.assemblerPool[k].UpdateNeeds();
+                            factorySystem.assemblerPool[k].InternalUpdate(power, productRegister, consumeRegister);
+                        }
+                        entityNeeds[entityId3] = factorySystem.assemblerPool[k].needs;
+                    }
+                }
+            }
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            for (int l = _start; l < _end; l++)
+            {
+                if (factorySystem.fractionatorPool[l].id == l)
+                {
+                    int entityId4 = factorySystem.fractionatorPool[l].entityId;
+                    float power2 = networkServes[consumerPool[factorySystem.fractionatorPool[l].pcId].networkId];
+                    uint state = factorySystem.fractionatorPool[l].InternalUpdate(factorySystem.factory, power2, entitySignPool, productRegister, consumeRegister);
+                    entityAnimPool[entityId4].time = Mathf.Sqrt((float)factorySystem.fractionatorPool[l].fluidInputCount * 0.025f);
+                    entityAnimPool[entityId4].state = state;
+                    entityAnimPool[entityId4].power = power2;
+                }
+            }
+        }
+        lock (factorySystem.ejectorPool)
+        {
+            if (factorySystem.ejectorCursor - factorySystem.ejectorRecycleCursor > 1)
+            {
+                astroPoses = factorySystem.planet.galaxy.astrosData;
+            }
+        }
+        DysonSwarm swarm = null;
+        if (factorySystem.factory.dysonSphere != null)
+        {
+            swarm = factorySystem.factory.dysonSphere.swarm;
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.ejectorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            for (int m = _start; m < _end; m++)
+            {
+                if (factorySystem.ejectorPool[m].id == m)
+                {
+                    int entityId5 = factorySystem.ejectorPool[m].entityId;
+                    uint num11 = 0u;
+                    float power3 = networkServes[consumerPool[factorySystem.ejectorPool[m].pcId].networkId];
+                    num11 = factorySystem.ejectorPool[m].InternalUpdate(power3, time, swarm, astroPoses, entityAnimPool, consumeRegister);
+                    entityAnimPool[entityId5].state = num11;
+                    entityNeeds[entityId5] = factorySystem.ejectorPool[m].needs;
+                    if (entitySignPool[entityId5].signType == 0 || entitySignPool[entityId5].signType > 3)
+                    {
+                        entitySignPool[entityId5].signType = ((factorySystem.ejectorPool[m].orbitId <= 0 && !factorySystem.ejectorPool[m].autoOrbit) ? 5u : 0u);
+                    }
+                }
+            }
+        }
+        lock (factorySystem.siloPool)
+        {
+            if (factorySystem.siloCursor - factorySystem.siloRecycleCursor > 1)
+            {
+                astroPoses = factorySystem.planet.galaxy.astrosData;
+            }
+        }
+        DysonSphere dysonSphere = factorySystem.factory.dysonSphere;
+        bool flag3 = dysonSphere != null && dysonSphere.autoNodeCount > 0;
+        if (!WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.siloCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            return;
+        }
+        for (int n = _start; n < _end; n++)
+        {
+            if (factorySystem.siloPool[n].id == n)
+            {
+                int entityId6 = factorySystem.siloPool[n].entityId;
+                uint num12 = 0u;
+                float power4 = networkServes[consumerPool[factorySystem.siloPool[n].pcId].networkId];
+                num12 = factorySystem.siloPool[n].InternalUpdate(power4, dysonSphere, entityAnimPool, consumeRegister);
+                entityAnimPool[entityId6].state = num12;
+                entityNeeds[entityId6] = factorySystem.siloPool[n].needs;
+                if (entitySignPool[entityId6].signType == 0 || entitySignPool[entityId6].signType > 3)
+                {
+                    entitySignPool[entityId6].signType = ((!flag3) ? 9u : 0u);
+                }
+            }
+        }
     }
 
     public static TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
