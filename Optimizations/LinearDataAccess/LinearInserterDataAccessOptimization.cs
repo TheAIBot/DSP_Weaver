@@ -832,10 +832,24 @@ internal sealed class OptimizedInserters
     private static readonly Dictionary<PlanetFactory, OptimizedInserters> _planetToOptimizedInserters = [];
 
     private int[] _inserterNetworkIds;
+    private InserterState[] _inserterStates;
     private InserterConnections[] _inserterConnections;
 
     private int[] _assemblerNetworkIds;
     private AssemblerState[] _assemblerStates;
+
+    [Flags]
+    private enum InserterState
+    {
+        Active
+            = 0b0000,
+        Inactive
+            = 0b1000,
+        InactiveNoInserter
+            = 0b0001 | Inactive,
+        InactiveNotCompletelyConnected
+            = 0b0010 | Inactive
+    }
 
     [Flags]
     private enum AssemblerState
@@ -892,6 +906,7 @@ internal sealed class OptimizedInserters
     public void InitializeInserters(PlanetFactory planet)
     {
         int[] inserterNetworkIds = new int[planet.factorySystem.inserterCursor];
+        InserterState[] inserterStates = new InserterState[planet.factorySystem.inserterCursor];
         InserterConnections[] inserterConnections = new InserterConnections[planet.factorySystem.inserterCursor];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
@@ -899,15 +914,21 @@ internal sealed class OptimizedInserters
             ref readonly InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
             if (inserter.id != i)
             {
+                inserterStates[i] = InserterState.InactiveNoInserter;
                 continue;
             }
 
             inserterNetworkIds[i] = planet.powerSystem.consumerPool[inserter.pcId].networkId;
 
+            InserterState? inserterState = null;
             TypedObjectIndex pickFrom = new TypedObjectIndex(EntityType.None, 0);
             if (inserter.pickTarget != 0)
             {
                 pickFrom = GetAsTypedObjectIndex(inserter.pickTarget, planet.entityPool);
+            }
+            else
+            {
+                inserterState = InserterState.InactiveNotCompletelyConnected;
             }
 
             TypedObjectIndex insertInto = new TypedObjectIndex(EntityType.None, 0);
@@ -915,11 +936,17 @@ internal sealed class OptimizedInserters
             {
                 insertInto = GetAsTypedObjectIndex(inserter.insertTarget, planet.entityPool);
             }
+            else
+            {
+                inserterState = InserterState.InactiveNotCompletelyConnected;
+            }
 
+            inserterStates[i] = inserterState ?? InserterState.Active;
             inserterConnections[i] = new InserterConnections(pickFrom, insertInto);
         }
 
         _inserterNetworkIds = inserterNetworkIds;
+        _inserterStates = inserterStates;
         _inserterConnections = inserterConnections;
     }
 
@@ -1094,10 +1121,13 @@ internal sealed class OptimizedInserters
         }
         for (int j = _start; j < _end; j++)
         {
-            if (planet.factorySystem.inserterPool[j].id != j)
+            InserterState inserterState = _inserterStates[j];
+            if (inserterState == InserterState.InactiveNoInserter ||
+                inserterState == InserterState.InactiveNotCompletelyConnected)
             {
                 continue;
             }
+
             ref InserterComponent reference2 = ref planet.factorySystem.inserterPool[j];
             if (flag)
             {
