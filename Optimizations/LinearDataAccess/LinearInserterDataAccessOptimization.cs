@@ -1173,6 +1173,15 @@ internal sealed class OptimizedInserters
 
                     _inserterStates[j] = InserterState.Active;
                 }
+                else if (inserterState == InserterState.InactiveInsertInto)
+                {
+                    if (!IsObjectInsertIntoActive(j))
+                    {
+                        continue;
+                    }
+
+                    _inserterStates[j] = InserterState.Active;
+                }
             }
 
             ref InserterComponent reference2 = ref planet.factorySystem.inserterPool[j];
@@ -1203,7 +1212,7 @@ internal sealed class OptimizedInserters
             float power2 = networkServes[_inserterNetworkIds[j]];
             if (reference2.bidirectional)
             {
-                _inserterStates[j] = InternalUpdate_Bidirectional(planet, ref reference2, entityNeeds, entityAnimPool, power2, isActive, ref _inserterIdleTicks[j]);
+                InternalUpdate_Bidirectional(planet, ref reference2, entityNeeds, entityAnimPool, power2, isActive, ref _inserterIdleTicks[j]);
             }
             else
             {
@@ -1212,7 +1221,7 @@ internal sealed class OptimizedInserters
         }
     }
 
-    private InserterState InternalUpdate_Bidirectional(PlanetFactory planet, ref InserterComponent inserter, int[][] needsPool, AnimData[] animPool, float power, bool isActive, ref int idleTicks)
+    private void InternalUpdate_Bidirectional(PlanetFactory planet, ref InserterComponent inserter, int[][] needsPool, AnimData[] animPool, float power, bool isActive, ref int idleTicks)
     {
         if (isActive)
         {
@@ -1221,7 +1230,8 @@ internal sealed class OptimizedInserters
         if (power < 0.1f)
         {
             // Not sure it is worth optimizing low power since it should be a rare occurrence in a large factory
-            return InserterState.Active;
+            _inserterStates[inserter.id] = InserterState.Active;
+            return;
         }
         bool flag = false;
         int num = 1;
@@ -1249,7 +1259,7 @@ internal sealed class OptimizedInserters
                         int[] array = needsPool[inserter.insertTarget];
                         if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                         {
-                            (num2, InserterState inserterState) = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.filter, array, out stack, out inc);
+                            num2 = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.filter, array, out stack, out inc);
                             if (num2 > 0)
                             {
                                 inserter.itemId = num2;
@@ -1261,16 +1271,13 @@ internal sealed class OptimizedInserters
                             else
                             {
                                 num = 0;
-                                if (inserterState == InserterState.InactivePickFrom)
-                                {
-                                    return inserterState;
-                                }
                             }
                         }
                         else
                         {
                             idleTicks = 9;
                             num = 0;
+                            // Add InactiveIdle
                         }
                     }
                     else
@@ -1280,7 +1287,7 @@ internal sealed class OptimizedInserters
                 }
                 else
                 {
-                    (num2, InserterState inserterState) = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.filter, null, out stack, out inc);
+                    num2 = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.filter, null, out stack, out inc);
                     if (num2 > 0)
                     {
                         inserter.itemId = num2;
@@ -1292,10 +1299,6 @@ internal sealed class OptimizedInserters
                     else
                     {
                         num = 0;
-                        if (inserterState == InserterState.InactivePickFrom)
-                        {
-                            return inserterState;
-                        }
                     }
                 }
             }
@@ -1314,28 +1317,27 @@ internal sealed class OptimizedInserters
                             int[] array2 = needsPool[inserter.insertTarget];
                             if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
                             {
-                                (int itemId, InserterState inserterState) = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.itemId, array2, out stack, out inc);
+                                int itemId = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.itemId, array2, out stack, out inc);
                                 if (itemId > 0)
                                 {
                                     inserter.itemCount += stack;
                                     inserter.itemInc += inc;
                                     inserter.stackCount++;
                                     flag = true;
+                                    _inserterStates[inserter.id] = InserterState.Active;
                                 }
                                 else
                                 {
                                     num = 0;
-                                    if (inserterState == InserterState.InactivePickFrom)
-                                    {
-                                        return inserterState;
-                                    }
                                 }
                             }
                             else
                             {
                                 idleTicks = 10;
                                 num = 0;
-                                return InserterState.InactiveIdle;
+
+                                _inserterStates[inserter.id] = InserterState.InactiveIdle;
+                                return;
                             }
                         }
                         else
@@ -1343,24 +1345,16 @@ internal sealed class OptimizedInserters
                             num = 0;
                         }
                     }
+                    else if (PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.itemId, null, out stack, out inc) > 0)
+                    {
+                        inserter.itemCount += stack;
+                        inserter.itemInc += inc;
+                        inserter.stackCount++;
+                        flag = true;
+                    }
                     else
                     {
-                        (int itemId, InserterState inserterState) = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.itemId, null, out stack, out inc);
-                        if (itemId > 0)
-                        {
-                            inserter.itemCount += stack;
-                            inserter.itemInc += inc;
-                            inserter.stackCount++;
-                            flag = true;
-                        }
-                        else
-                        {
-                            num = 0;
-                            if (inserterState == InserterState.InactivePickFrom)
-                            {
-                                return inserterState;
-                            }
-                        }
+                        num = 0;
                     }
                 }
                 else
@@ -1389,7 +1383,8 @@ internal sealed class OptimizedInserters
             }
             if (idleTicks-- >= 1)
             {
-                return InserterState.InactiveIdle;
+                _inserterStates[inserter.id] = InserterState.InactiveIdle;
+                return;
             }
             TypedObjectIndex num4 = ((inserter.stackOutput > 1) ? _inserterConnections[inserter.id].InsertInto : default);
             if (num4.EntityType == EntityType.Belt && num4.Index > 0)
@@ -1420,7 +1415,8 @@ internal sealed class OptimizedInserters
                 if (array3 == null || (array3[0] == 0 && array3[1] == 0 && array3[2] == 0 && array3[3] == 0 && array3[4] == 0 && array3[5] == 0))
                 {
                     idleTicks = 10;
-                    return InserterState.InactiveIdle;
+                    _inserterStates[inserter.id] = InserterState.InactiveIdle;
+                    return;
                 }
             }
             int num7 = inserter.itemCount / inserter.stackCount;
@@ -1481,11 +1477,9 @@ internal sealed class OptimizedInserters
                 reference.state = (uint)num10;
             }
         }
-
-        return InserterState.Active;
     }
 
-    private PickFromResult PickFrom(PlanetFactory planet, int inserterId, int entityId, int offset, int filter, int[] needs, out byte stack, out byte inc)
+    private int PickFrom(PlanetFactory planet, int inserterId, int entityId, int offset, int filter, int[] needs, out byte stack, out byte inc)
     {
         stack = 1;
         inc = 0;
@@ -1493,16 +1487,16 @@ internal sealed class OptimizedInserters
         int objectIndex = typedObjectIndex.Index;
         if (objectIndex == 0)
         {
-            return new PickFromResult(0, InserterState.InactiveNotCompletelyConnected);
+            return 0;
         }
 
         if (typedObjectIndex.EntityType == EntityType.Belt)
         {
             if (needs == null)
             {
-                return new PickFromResult(planet.cargoTraffic.TryPickItem(objectIndex, offset, filter, out stack, out inc), InserterState.Active);
+                return planet.cargoTraffic.TryPickItem(objectIndex, offset, filter, out stack, out inc);
             }
-            return new PickFromResult(planet.cargoTraffic.TryPickItem(objectIndex, offset, filter, needs, out stack, out inc), InserterState.Active);
+            return planet.cargoTraffic.TryPickItem(objectIndex, offset, filter, needs, out stack, out inc);
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
@@ -1510,7 +1504,8 @@ internal sealed class OptimizedInserters
             if (assemblerState != AssemblerState.Active &&
                 assemblerState != AssemblerState.InactiveOutputFull)
             {
-                return new PickFromResult(0, InserterState.InactivePickFrom);
+                _inserterStates[inserterId] = InserterState.InactivePickFrom;
+                return 0;
             }
 
             int[] products = planet.factorySystem.assemblerPool[objectIndex].products;
@@ -1529,7 +1524,7 @@ internal sealed class OptimizedInserters
                         if (value >= 0)
                         {
                             _assemblerStates[objectIndex] = AssemblerState.Active;
-                            return new PickFromResult(products[0], InserterState.Active);
+                            return products[0];
                         }
                         else
                         {
@@ -1544,7 +1539,7 @@ internal sealed class OptimizedInserters
                         if (value >= 0)
                         {
                             _assemblerStates[objectIndex] = AssemblerState.Active;
-                            return new PickFromResult(products[0], InserterState.Active);
+                            return products[0];
                         }
                         else
                         {
@@ -1557,7 +1552,7 @@ internal sealed class OptimizedInserters
                         if (value >= 0)
                         {
                             _assemblerStates[objectIndex] = AssemblerState.Active;
-                            return new PickFromResult(products[1], InserterState.Active);
+                            return products[1];
                         }
                         else
                         {
@@ -1575,7 +1570,7 @@ internal sealed class OptimizedInserters
                                 if (value >= 0)
                                 {
                                     _assemblerStates[objectIndex] = AssemblerState.Active;
-                                    return new PickFromResult(products[i], InserterState.Active);
+                                    return products[i];
                                 }
                                 else
                                 {
@@ -1586,7 +1581,7 @@ internal sealed class OptimizedInserters
                         break;
                     }
             }
-            return new PickFromResult(0, InserterState.Active);
+            return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Ejector)
         {
@@ -1597,10 +1592,10 @@ internal sealed class OptimizedInserters
                 if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && (needs == null || needs[0] == bulletId || needs[1] == bulletId || needs[2] == bulletId || needs[3] == bulletId || needs[4] == bulletId || needs[5] == bulletId))
                 {
                     planet.factorySystem.ejectorPool[objectIndex].TakeOneBulletUnsafe(out inc);
-                    return new PickFromResult(bulletId, InserterState.Active);
+                    return bulletId;
                 }
             }
-            return new PickFromResult(0, InserterState.Active);
+            return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Silo)
         {
@@ -1611,10 +1606,10 @@ internal sealed class OptimizedInserters
                 if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && (needs == null || needs[0] == bulletId2 || needs[1] == bulletId2 || needs[2] == bulletId2 || needs[3] == bulletId2 || needs[4] == bulletId2 || needs[5] == bulletId2))
                 {
                     planet.factorySystem.siloPool[objectIndex].TakeOneBulletUnsafe(out inc);
-                    return new PickFromResult(bulletId2, InserterState.Active);
+                    return bulletId2;
                 }
             }
-            return new PickFromResult(0, InserterState.Active);
+            return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Storage)
         {
@@ -1648,7 +1643,7 @@ internal sealed class OptimizedInserters
                             if (count == 1)
                             {
                                 storageComponent.lastEmptyItem = -1;
-                                return new PickFromResult(itemId, InserterState.Active);
+                                return itemId;
                             }
                             if (!flag)
                             {
@@ -1664,7 +1659,7 @@ internal sealed class OptimizedInserters
                     }
                 }
             }
-            return new PickFromResult(0, InserterState.Active);
+            return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Station)
         {
@@ -1688,11 +1683,11 @@ internal sealed class OptimizedInserters
                     }
                     if (_count == 1)
                     {
-                        return new PickFromResult(_itemId, InserterState.Active);
+                        return _itemId;
                     }
                 }
             }
-            return new PickFromResult(0, InserterState.Active);
+            return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Lab)
         {
@@ -1700,7 +1695,7 @@ internal sealed class OptimizedInserters
             int[] produced2 = planet.factorySystem.labPool[objectIndex].produced;
             if (products2 == null || produced2 == null)
             {
-                return new PickFromResult(0, InserterState.Active);
+                return 0;
             }
             for (int j = 0; j < products2.Length; j++)
             {
@@ -1709,7 +1704,7 @@ internal sealed class OptimizedInserters
                     int value = Interlocked.Decrement(ref produced2[j]);
                     if (value >= 0)
                     {
-                        return new PickFromResult(products2[j], InserterState.Active);
+                        return products2[j];
                     }
                     else
                     {
@@ -1717,7 +1712,7 @@ internal sealed class OptimizedInserters
                     }
                 }
             }
-            return new PickFromResult(0, InserterState.Active);
+            return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.PowerGenerator)
         {
@@ -1730,17 +1725,17 @@ internal sealed class OptimizedInserters
                     {
                         int result = planet.powerSystem.genPool[objectIndex].PickFuelFrom(filter, out inc2);
                         inc = (byte)inc2;
-                        return new PickFromResult(result, InserterState.Active);
+                        return result;
                     }
                 }
             }
-            return new PickFromResult(0, InserterState.Active);
+            return 0;
         }
 
-        return new PickFromResult(0, InserterState.Active);
+        return 0;
     }
 
-    public int InsertInto(PlanetFactory planet, int inserterId, int entityId, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
+    private int InsertInto(PlanetFactory planet, int inserterId, int entityId, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
     {
         remainInc = itemInc;
         TypedObjectIndex typedObjectIndex = _inserterConnections[inserterId].InsertInto;
@@ -1761,17 +1756,18 @@ internal sealed class OptimizedInserters
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
-            //AssemblerState assemblerState = _assemblerStates[objectIndex];
-            //if (assemblerState != AssemblerState.Active &&
-            //    assemblerState != AssemblerState.InactiveInputMissing)
-            //{
-            //    return 0;
-            //}
+            AssemblerState assemblerState = _assemblerStates[objectIndex];
+            if (assemblerState != AssemblerState.Active &&
+                assemblerState != AssemblerState.InactiveInputMissing)
+            {
+                _inserterStates[inserterId] = InserterState.InactiveInsertInto;
+                return 0;
+            }
 
             int[] array = planet.entityNeeds[entityId];
             if (array == null)
             {
-                return 0;
+                throw new InvalidOperationException($"Array from {nameof(planet.entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
             }
             ref AssemblerComponent reference = ref planet.factorySystem.assemblerPool[objectIndex];
             int[] requires = reference.requires;
@@ -2059,6 +2055,19 @@ internal sealed class OptimizedInserters
         else
         {
             throw new InvalidOperationException($"Check if pick from is active does currently not support entity type of type: {objectIndex.EntityType}");
+        }
+    }
+
+    private bool IsObjectInsertIntoActive(int inserterId)
+    {
+        TypedObjectIndex objectIndex = _inserterConnections[inserterId].InsertInto;
+        if (objectIndex.EntityType == EntityType.Assembler)
+        {
+            return _assemblerStates[objectIndex.Index] == AssemblerState.Active;
+        }
+        else
+        {
+            throw new InvalidOperationException($"Check if insert into is active does currently not support entity type of type: {objectIndex.EntityType}");
         }
     }
 
@@ -2591,6 +2600,7 @@ internal sealed class OptimizedInserters
     }
 
     private record struct PickFromResult(int ItemId, InserterState InserterState);
+    private record struct InsertIntoResult(int ItemCount, InserterState InserterState);
 }
 
 internal readonly struct TypedObjectIndex
