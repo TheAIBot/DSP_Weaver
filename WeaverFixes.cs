@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LoadBalance;
 using Weaver.Optimizations.Statistics;
 
@@ -49,5 +50,6 @@ public class WeaverFixes : BaseUnityPlugin
         //InserterMultithreadingOptimization.EnableOptimization();
         LinearInserterDataAccessOptimization.EnableOptimization();
         OptimizedInserters.EnableOptimization();
+        GraphStatistics.Enable();
     }
 }

@@ -27,11 +27,11 @@ internal static class Graphifier
 
             var inserterNode = new Node(inserter.entityId, new EntityTypeIndex(EntityType.Inserter, i));
             nodes.Add(inserterNode);
-            entityTypeIndexToNode.Add(new EntityTypeIndex(EntityType.Inserter, i), inserterNode);
+            entityTypeIndexToNode.Add(inserterNode.EntityTypeIndex, inserterNode);
 
             if (inserter.pickTarget != 0)
             {
-                EntityTypeIndex pickEntityTypeIndex = GetEntityTypeIndex(inserter.pickTarget, factorySystem.factory.entityPool);
+                EntityTypeIndex pickEntityTypeIndex = GetEntityTypeIndex(inserter.pickTarget, factorySystem);
                 Node pickNode;
                 if (!entityTypeIndexToNode.TryGetValue(pickEntityTypeIndex, out pickNode))
                 {
@@ -46,7 +46,7 @@ internal static class Graphifier
 
             if (inserter.insertTarget != 0)
             {
-                EntityTypeIndex targetEntityTypeIndex = GetEntityTypeIndex(inserter.insertTarget, factorySystem.factory.entityPool);
+                EntityTypeIndex targetEntityTypeIndex = GetEntityTypeIndex(inserter.insertTarget, factorySystem);
                 Node targetNode;
                 if (!entityTypeIndexToNode.TryGetValue(targetEntityTypeIndex, out targetNode))
                 {
@@ -93,10 +93,10 @@ internal static class Graphifier
             Graph graph = new Graph();
             foreach (var node in seen)
             {
-                if (node.EntityTypeIndex.EntityType != EntityType.Inserter)
-                {
-                    continue;
-                }
+                //if (node.EntityTypeIndex.EntityType != EntityType.Inserter)
+                //{
+                //    continue;
+                //}
                 graph.AddNode(node);
             }
 
@@ -151,12 +151,12 @@ internal static class Graphifier
         graphs.AddRange(combinedGraphs);
     }
 
-    public static EntityTypeIndex GetEntityTypeIndex(int index, EntityData[] entities)
+    public static EntityTypeIndex GetEntityTypeIndex(int index, FactorySystem factory)
     {
-        ref readonly EntityData entity = ref entities[index];
+        ref readonly EntityData entity = ref factory.factory.entityPool[index];
         if (entity.beltId != 0)
         {
-            return new EntityTypeIndex(EntityType.Belt, entity.beltId);
+            return new EntityTypeIndex(EntityType.Belt, factory.traffic.GetCargoPath(factory.traffic.beltPool[entity.beltId].segPathId).id);
         }
         else if (entity.assemblerId != 0)
         {

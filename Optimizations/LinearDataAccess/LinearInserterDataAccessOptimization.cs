@@ -104,12 +104,12 @@ public class LinearInserterDataAccessOptimization
                 int oldAssemblerId = planet.entityPool[inserter.pickTarget].assemblerId;
                 if (oldAssemblerId == 0)
                 {
-                    continue;
+                    goto noPickTarget;
                 }
 
                 if (!seenAssemblerIDs.Add(inserter.pickTarget))
                 {
-                    continue;
+                    goto noPickTarget;
                 }
 
                 AssemblerComponent assemblerCopy = oldAssemblers[oldAssemblerId];
@@ -117,6 +117,7 @@ public class LinearInserterDataAccessOptimization
                 planet.entityPool[inserter.pickTarget].assemblerId = assemblerCopy.id;
                 newAssemblers.Add(assemblerCopy);
             }
+        noPickTarget:
 
             if (inserter.insertTarget != 0)
             {
