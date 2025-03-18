@@ -832,6 +832,8 @@ internal sealed class OptimizedInserters
 
     private int[] _inserterNetworkIds;
     private InserterConnections[] _inserterConnections;
+
+    private int[] _assemblerNetworkIds;
     private AssemblerState[] _assemblerStates;
 
     private enum AssemblerState
@@ -982,6 +984,7 @@ internal sealed class OptimizedInserters
 
     public void InitializeAssemblers(PlanetFactory planet)
     {
+        int[] assemblerNetworkIds = new int[planet.factorySystem.assemblerCursor];
         AssemblerState[] assemblerStates = new AssemblerState[planet.factorySystem.assemblerCursor];
 
         for (int i = 0; i < planet.factorySystem.assemblerCursor; i++)
@@ -993,9 +996,12 @@ internal sealed class OptimizedInserters
                 continue;
             }
 
+            assemblerNetworkIds[i] = planet.powerSystem.consumerPool[assembler.pcId].networkId;
+
             assemblerStates[i] = AssemblerState.Active;
         }
 
+        _assemblerNetworkIds = assemblerNetworkIds;
         _assemblerStates = assemblerStates;
     }
 
@@ -2032,34 +2038,36 @@ internal sealed class OptimizedInserters
             {
                 for (int j = _start; j < _end; j++)
                 {
-                    if (factorySystem.assemblerPool[j].id == j)
+                    if (_assemblerStates[j] == AssemblerState.NoAssembler)
                     {
-                        ref AssemblerComponent reference = ref factorySystem.assemblerPool[j];
-                        int entityId2 = reference.entityId;
-                        uint num9 = 0u;
-                        float num10 = networkServes[consumerPool[reference.pcId].networkId];
-                        if (reference.recipeId != 0)
-                        {
-                            reference.UpdateNeeds();
-                            num9 = reference.InternalUpdate(num10, productRegister, consumeRegister);
-                        }
-                        if (reference.recipeType == ERecipeType.Chemical)
-                        {
-                            entityAnimPool[entityId2].working_length = 2f;
-                            entityAnimPool[entityId2].Step(num9, num * num10);
-                            entityAnimPool[entityId2].power = num10;
-                            entityAnimPool[entityId2].working_length = reference.recipeId;
-                        }
-                        else
-                        {
-                            entityAnimPool[entityId2].Step(num9, num * num10);
-                            entityAnimPool[entityId2].power = num10;
-                        }
-                        entityNeeds[entityId2] = reference.needs;
-                        if (entitySignPool[entityId2].signType == 0 || entitySignPool[entityId2].signType > 3)
-                        {
-                            entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
-                        }
+                        continue;
+                    }
+
+                    ref AssemblerComponent reference = ref factorySystem.assemblerPool[j];
+                    int entityId2 = reference.entityId;
+                    uint num9 = 0u;
+                    float num10 = networkServes[_assemblerNetworkIds[j]];
+                    if (reference.recipeId != 0)
+                    {
+                        reference.UpdateNeeds();
+                        num9 = reference.InternalUpdate(num10, productRegister, consumeRegister);
+                    }
+                    if (reference.recipeType == ERecipeType.Chemical)
+                    {
+                        entityAnimPool[entityId2].working_length = 2f;
+                        entityAnimPool[entityId2].Step(num9, num * num10);
+                        entityAnimPool[entityId2].power = num10;
+                        entityAnimPool[entityId2].working_length = reference.recipeId;
+                    }
+                    else
+                    {
+                        entityAnimPool[entityId2].Step(num9, num * num10);
+                        entityAnimPool[entityId2].power = num10;
+                    }
+                    entityNeeds[entityId2] = reference.needs;
+                    if (entitySignPool[entityId2].signType == 0 || entitySignPool[entityId2].signType > 3)
+                    {
+                        entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
                     }
                 }
             }
@@ -2070,7 +2078,7 @@ internal sealed class OptimizedInserters
                     if (factorySystem.assemblerPool[k].id == k)
                     {
                         int entityId3 = factorySystem.assemblerPool[k].entityId;
-                        float power = networkServes[consumerPool[factorySystem.assemblerPool[k].pcId].networkId];
+                        float power = networkServes[_assemblerNetworkIds[k]];
                         if (factorySystem.assemblerPool[k].recipeId != 0)
                         {
                             factorySystem.assemblerPool[k].UpdateNeeds();
