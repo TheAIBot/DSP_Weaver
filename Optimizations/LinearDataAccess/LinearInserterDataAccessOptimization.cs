@@ -836,12 +836,21 @@ internal sealed class OptimizedInserters
     private int[] _assemblerNetworkIds;
     private AssemblerState[] _assemblerStates;
 
+    [Flags]
     private enum AssemblerState
     {
-        NoAssembler,
-        Active,
-        InactiveOutputFull,
+        Active
+            = 0b0000,
+        Inactive
+            = 0b1000,
+        InactiveNoAssembler
+            = 0b0001 | Inactive,
+        InactiveNoRecipeSet
+            = 0b0010 | Inactive,
+        InactiveOutputFull
+            = 0b0011 | Inactive,
         InactiveInputMissing
+            = 0b0100 | Inactive
     }
 
     public static void EnableOptimization()
@@ -992,13 +1001,24 @@ internal sealed class OptimizedInserters
             ref readonly AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
             if (assembler.id != i)
             {
-                assemblerStates[i] = AssemblerState.NoAssembler;
+                assemblerStates[i] = AssemblerState.InactiveNoAssembler;
                 continue;
             }
 
             assemblerNetworkIds[i] = planet.powerSystem.consumerPool[assembler.pcId].networkId;
 
-            assemblerStates[i] = AssemblerState.Active;
+            if (assembler.recipeId == 0)
+            {
+                assemblerStates[i] = AssemblerState.InactiveNoRecipeSet;
+            }
+            else
+            {
+                assemblerStates[i] = AssemblerState.Active;
+            }
+
+            // set it here so we don't have to set it in the update loop.
+            // Need to remember to update it when the assemblers recipe is changed.
+            planet.entityNeeds[assembler.entityId] = assembler.needs;
         }
 
         _assemblerNetworkIds = assemblerNetworkIds;
@@ -1381,6 +1401,13 @@ internal sealed class OptimizedInserters
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
+            //AssemblerState assemblerState = _assemblerStates[objectIndex];
+            //if (assemblerState != AssemblerState.Active &&
+            //    assemblerState != AssemblerState.InactiveOutputFull)
+            //{
+            //    return 0;
+            //}
+
             int[] products = planet.factorySystem.assemblerPool[objectIndex].products;
             int[] produced = planet.factorySystem.assemblerPool[objectIndex].produced;
             if (products == null)
@@ -1396,6 +1423,7 @@ internal sealed class OptimizedInserters
                         int value = Interlocked.Decrement(ref produced[0]);
                         if (value >= 0)
                         {
+                            _assemblerStates[objectIndex] = AssemblerState.Active;
                             return products[0];
                         }
                         else
@@ -1410,6 +1438,7 @@ internal sealed class OptimizedInserters
                         int value = Interlocked.Decrement(ref produced[0]);
                         if (value >= 0)
                         {
+                            _assemblerStates[objectIndex] = AssemblerState.Active;
                             return products[0];
                         }
                         else
@@ -1422,6 +1451,7 @@ internal sealed class OptimizedInserters
                         int value = Interlocked.Decrement(ref produced[1]);
                         if (value >= 0)
                         {
+                            _assemblerStates[objectIndex] = AssemblerState.Active;
                             return products[1];
                         }
                         else
@@ -1439,6 +1469,7 @@ internal sealed class OptimizedInserters
                                 int value = Interlocked.Decrement(ref produced[i]);
                                 if (value >= 0)
                                 {
+                                    _assemblerStates[objectIndex] = AssemblerState.Active;
                                     return products[i];
                                 }
                                 else
@@ -1625,6 +1656,13 @@ internal sealed class OptimizedInserters
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
+            //AssemblerState assemblerState = _assemblerStates[objectIndex];
+            //if (assemblerState != AssemblerState.Active &&
+            //    assemblerState != AssemblerState.InactiveInputMissing)
+            //{
+            //    return 0;
+            //}
+
             int[] array = planet.entityNeeds[entityId];
             if (array == null)
             {
@@ -1638,6 +1676,7 @@ internal sealed class OptimizedInserters
                 Interlocked.Add(ref reference.served[0], itemCount);
                 Interlocked.Add(ref reference.incServed[0], itemInc);
                 remainInc = 0;
+                _assemblerStates[objectIndex] = AssemblerState.Active;
                 return itemCount;
             }
             if (1 < num && requires[1] == itemId)
@@ -1645,6 +1684,7 @@ internal sealed class OptimizedInserters
                 Interlocked.Add(ref reference.served[1], itemCount);
                 Interlocked.Add(ref reference.incServed[1], itemInc);
                 remainInc = 0;
+                _assemblerStates[objectIndex] = AssemblerState.Active;
                 return itemCount;
             }
             if (2 < num && requires[2] == itemId)
@@ -1652,6 +1692,7 @@ internal sealed class OptimizedInserters
                 Interlocked.Add(ref reference.served[2], itemCount);
                 Interlocked.Add(ref reference.incServed[2], itemInc);
                 remainInc = 0;
+                _assemblerStates[objectIndex] = AssemblerState.Active;
                 return itemCount;
             }
             if (3 < num && requires[3] == itemId)
@@ -1659,6 +1700,7 @@ internal sealed class OptimizedInserters
                 Interlocked.Add(ref reference.served[3], itemCount);
                 Interlocked.Add(ref reference.incServed[3], itemInc);
                 remainInc = 0;
+                _assemblerStates[objectIndex] = AssemblerState.Active;
                 return itemCount;
             }
             if (4 < num && requires[4] == itemId)
@@ -1666,6 +1708,7 @@ internal sealed class OptimizedInserters
                 Interlocked.Add(ref reference.served[4], itemCount);
                 Interlocked.Add(ref reference.incServed[4], itemInc);
                 remainInc = 0;
+                _assemblerStates[objectIndex] = AssemblerState.Active;
                 return itemCount;
             }
             if (5 < num && requires[5] == itemId)
@@ -1673,6 +1716,7 @@ internal sealed class OptimizedInserters
                 Interlocked.Add(ref reference.served[5], itemCount);
                 Interlocked.Add(ref reference.incServed[5], itemInc);
                 remainInc = 0;
+                _assemblerStates[objectIndex] = AssemblerState.Active;
                 return itemCount;
             }
             return 0;
@@ -2038,7 +2082,7 @@ internal sealed class OptimizedInserters
             {
                 for (int j = _start; j < _end; j++)
                 {
-                    if (_assemblerStates[j] == AssemblerState.NoAssembler)
+                    if (_assemblerStates[j] != AssemblerState.Active)
                     {
                         continue;
                     }
@@ -2064,7 +2108,6 @@ internal sealed class OptimizedInserters
                         entityAnimPool[entityId2].Step(num9, num * num10);
                         entityAnimPool[entityId2].power = num10;
                     }
-                    entityNeeds[entityId2] = reference.needs;
                     if (entitySignPool[entityId2].signType == 0 || entitySignPool[entityId2].signType > 3)
                     {
                         entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
@@ -2075,17 +2118,14 @@ internal sealed class OptimizedInserters
             {
                 for (int k = _start; k < _end; k++)
                 {
-                    if (factorySystem.assemblerPool[k].id == k)
+                    if (_assemblerStates[k] != AssemblerState.Active)
                     {
-                        int entityId3 = factorySystem.assemblerPool[k].entityId;
-                        float power = networkServes[_assemblerNetworkIds[k]];
-                        if (factorySystem.assemblerPool[k].recipeId != 0)
-                        {
-                            factorySystem.assemblerPool[k].UpdateNeeds();
-                            factorySystem.assemblerPool[k].InternalUpdate(power, productRegister, consumeRegister);
-                        }
-                        entityNeeds[entityId3] = factorySystem.assemblerPool[k].needs;
+                        continue;
                     }
+
+                    float power = networkServes[_assemblerNetworkIds[k]];
+                    factorySystem.assemblerPool[k].UpdateNeeds();
+                    _assemblerStates[k] = AssemblerInternalUpdate(ref factorySystem.assemblerPool[k], power, productRegister, consumeRegister);
                 }
             }
         }
@@ -2164,6 +2204,213 @@ internal sealed class OptimizedInserters
                 }
             }
         }
+    }
+
+    private AssemblerState AssemblerInternalUpdate(ref AssemblerComponent assembler, float power, int[] productRegister, int[] consumeRegister)
+    {
+        if (power < 0.1f)
+        {
+            // Lets not deal with missing power for now. Just check every tick.
+            return AssemblerState.Active;
+        }
+
+        if (assembler.extraTime >= assembler.extraTimeSpend)
+        {
+            int num = assembler.products.Length;
+            if (num == 1)
+            {
+                assembler.produced[0] += assembler.productCounts[0];
+                lock (productRegister)
+                {
+                    productRegister[assembler.products[0]] += assembler.productCounts[0];
+                }
+            }
+            else
+            {
+                for (int i = 0; i < num; i++)
+                {
+                    assembler.produced[i] += assembler.productCounts[i];
+                    lock (productRegister)
+                    {
+                        productRegister[assembler.products[i]] += assembler.productCounts[i];
+                    }
+                }
+            }
+            assembler.extraCycleCount++;
+            assembler.extraTime -= assembler.extraTimeSpend;
+        }
+        if (assembler.time >= assembler.timeSpend)
+        {
+            assembler.replicating = false;
+            if (assembler.products.Length == 1)
+            {
+                switch (assembler.recipeType)
+                {
+                    case ERecipeType.Smelt:
+                        if (assembler.produced[0] + assembler.productCounts[0] > 100)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                        break;
+                    case ERecipeType.Assemble:
+                        if (assembler.produced[0] > assembler.productCounts[0] * 9)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                        break;
+                    default:
+                        if (assembler.produced[0] > assembler.productCounts[0] * 19)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                        break;
+                }
+                assembler.produced[0] += assembler.productCounts[0];
+                lock (productRegister)
+                {
+                    productRegister[assembler.products[0]] += assembler.productCounts[0];
+                }
+            }
+            else
+            {
+                int num2 = assembler.products.Length;
+                if (assembler.recipeType == ERecipeType.Refine)
+                {
+                    for (int j = 0; j < num2; j++)
+                    {
+                        if (assembler.produced[j] > assembler.productCounts[j] * 19)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                    }
+                }
+                else if (assembler.recipeType == ERecipeType.Particle)
+                {
+                    for (int k = 0; k < num2; k++)
+                    {
+                        if (assembler.produced[k] > assembler.productCounts[k] * 19)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                    }
+                }
+                else if (assembler.recipeType == ERecipeType.Chemical)
+                {
+                    for (int l = 0; l < num2; l++)
+                    {
+                        if (assembler.produced[l] > assembler.productCounts[l] * 19)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                    }
+                }
+                else if (assembler.recipeType == ERecipeType.Smelt)
+                {
+                    for (int m = 0; m < num2; m++)
+                    {
+                        if (assembler.produced[m] + assembler.productCounts[m] > 100)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                    }
+                }
+                else if (assembler.recipeType == ERecipeType.Assemble)
+                {
+                    for (int n = 0; n < num2; n++)
+                    {
+                        if (assembler.produced[n] > assembler.productCounts[n] * 9)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                    }
+                }
+                else
+                {
+                    for (int num3 = 0; num3 < num2; num3++)
+                    {
+                        if (assembler.produced[num3] > assembler.productCounts[num3] * 19)
+                        {
+                            return AssemblerState.InactiveOutputFull;
+                        }
+                    }
+                }
+                for (int num4 = 0; num4 < num2; num4++)
+                {
+                    assembler.produced[num4] += assembler.productCounts[num4];
+                    lock (productRegister)
+                    {
+                        productRegister[assembler.products[num4]] += assembler.productCounts[num4];
+                    }
+                }
+            }
+            assembler.extraSpeed = 0;
+            assembler.speedOverride = assembler.speed;
+            assembler.extraPowerRatio = 0;
+            assembler.cycleCount++;
+            assembler.time -= assembler.timeSpend;
+        }
+        if (!assembler.replicating)
+        {
+            int num5 = assembler.requireCounts.Length;
+            for (int num6 = 0; num6 < num5; num6++)
+            {
+                if (assembler.incServed[num6] <= 0)
+                {
+                    assembler.incServed[num6] = 0;
+                }
+                if (assembler.served[num6] < assembler.requireCounts[num6] || assembler.served[num6] == 0)
+                {
+                    assembler.time = 0;
+                    return AssemblerState.InactiveInputMissing;
+                }
+            }
+            int num7 = ((num5 > 0) ? 10 : 0);
+            for (int num8 = 0; num8 < num5; num8++)
+            {
+                int num9 = assembler.split_inc_level(ref assembler.served[num8], ref assembler.incServed[num8], assembler.requireCounts[num8]);
+                num7 = ((num7 < num9) ? num7 : num9);
+                if (!assembler.incUsed)
+                {
+                    assembler.incUsed = num9 > 0;
+                }
+                if (assembler.served[num8] == 0)
+                {
+                    assembler.incServed[num8] = 0;
+                }
+                lock (consumeRegister)
+                {
+                    consumeRegister[assembler.requires[num8]] += assembler.requireCounts[num8];
+                }
+            }
+            if (num7 < 0)
+            {
+                num7 = 0;
+            }
+            if (assembler.productive && !assembler.forceAccMode)
+            {
+                assembler.extraSpeed = (int)((double)assembler.speed * Cargo.incTableMilli[num7] * 10.0 + 0.1);
+                assembler.speedOverride = assembler.speed;
+                assembler.extraPowerRatio = Cargo.powerTable[num7];
+            }
+            else
+            {
+                assembler.extraSpeed = 0;
+                assembler.speedOverride = (int)((double)assembler.speed * (1.0 + Cargo.accTableMilli[num7]) + 0.1);
+                assembler.extraPowerRatio = Cargo.powerTable[num7];
+            }
+            assembler.replicating = true;
+        }
+        if (assembler.replicating && assembler.time < assembler.timeSpend && assembler.extraTime < assembler.extraTimeSpend)
+        {
+            assembler.time += (int)(power * (float)assembler.speedOverride);
+            assembler.extraTime += (int)(power * (float)assembler.extraSpeed);
+        }
+        if (!assembler.replicating)
+        {
+            throw new InvalidOperationException("I do not think this is possible. Not sure why it is in the game.");
+            //return 0u;
+        }
+        return AssemblerState.Active;
     }
 
     public static TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
