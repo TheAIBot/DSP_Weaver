@@ -883,75 +883,6 @@ internal sealed class OptimizedInserters
         }
     }
 
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.InserterPartExecute))]
-    public static bool InserterPartExecute(WorkerThreadExecutor __instance)
-    {
-        if (__instance.inserterFactories == null)
-        {
-            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-        }
-        int num = 0;
-        for (int i = 0; i < __instance.inserterFactoryCnt; i++)
-        {
-            num += __instance.inserterFactories[i].factorySystem.inserterCursor;
-        }
-        int minimumMissionCnt = 64;
-        if (!WorkerThreadExecutor.CalculateMissionIndex(num, __instance.usedThreadCnt, __instance.curThreadIdx, minimumMissionCnt, out var _start, out var _end))
-        {
-            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-        }
-        int num2 = 0;
-        int num3 = 0;
-        for (int j = 0; j < __instance.inserterFactoryCnt; j++)
-        {
-            int num4 = num3 + __instance.inserterFactories[j].factorySystem.inserterCursor;
-            if (num4 <= _start)
-            {
-                num3 = num4;
-                continue;
-            }
-            num2 = j;
-            break;
-        }
-        for (int k = num2; k < __instance.inserterFactoryCnt; k++)
-        {
-            bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[k].planet;
-            int num5 = _start - num3;
-            int num6 = _end - num3;
-            if (_end - _start > __instance.inserterFactories[k].factorySystem.inserterCursor - num5)
-            {
-                try
-                {
-                    PlanetFactory planet = __instance.inserterFactories[k];
-                    OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
-                    optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, __instance.inserterFactories[k].factorySystem.inserterCursor);
-                    num3 += __instance.inserterFactories[k].factorySystem.inserterCursor;
-                    _start = num3;
-                }
-                catch (Exception ex)
-                {
-                    __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + k.ToString() + " Inserter first gametick total cursor: " + __instance.inserterFactories[k].factorySystem.inserterCursor + "  Start & End: " + num5 + "/" + __instance.inserterFactories[k].factorySystem.inserterCursor + "  " + ex;
-                    __instance.hasErrorMessage = true;
-                }
-                continue;
-            }
-            try
-            {
-                __instance.inserterFactories[k].factorySystem.GameTickInserters(__instance.inserterTime, isActive, num5, num6);
-                break;
-            }
-            catch (Exception ex2)
-            {
-                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + k.ToString() + " Inserter second gametick total cursor: " + __instance.inserterFactories[k].factorySystem.inserterCursor + "  Start & End: " + num5 + "/" + num6 + "  " + ex2;
-                __instance.hasErrorMessage = true;
-                break;
-            }
-        }
-
-        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-    }
-
     public void InitializeData(PlanetFactory planet)
     {
         InitializeInserters(planet);
@@ -1024,6 +955,77 @@ internal sealed class OptimizedInserters
 
         _assemblerNetworkIds = assemblerNetworkIds;
         _assemblerStates = assemblerStates;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.InserterPartExecute))]
+    public static bool InserterPartExecute(WorkerThreadExecutor __instance)
+    {
+        if (__instance.inserterFactories == null)
+        {
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+        int num = 0;
+        for (int i = 0; i < __instance.inserterFactoryCnt; i++)
+        {
+            num += __instance.inserterFactories[i].factorySystem.inserterCursor;
+        }
+        int minimumMissionCnt = 64;
+        if (!WorkerThreadExecutor.CalculateMissionIndex(num, __instance.usedThreadCnt, __instance.curThreadIdx, minimumMissionCnt, out var _start, out var _end))
+        {
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+        int num2 = 0;
+        int num3 = 0;
+        for (int j = 0; j < __instance.inserterFactoryCnt; j++)
+        {
+            int num4 = num3 + __instance.inserterFactories[j].factorySystem.inserterCursor;
+            if (num4 <= _start)
+            {
+                num3 = num4;
+                continue;
+            }
+            num2 = j;
+            break;
+        }
+        for (int k = num2; k < __instance.inserterFactoryCnt; k++)
+        {
+            bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[k].planet;
+            int num5 = _start - num3;
+            int num6 = _end - num3;
+            if (_end - _start > __instance.inserterFactories[k].factorySystem.inserterCursor - num5)
+            {
+                try
+                {
+                    PlanetFactory planet = __instance.inserterFactories[k];
+                    OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                    optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, __instance.inserterFactories[k].factorySystem.inserterCursor);
+                    num3 += __instance.inserterFactories[k].factorySystem.inserterCursor;
+                    _start = num3;
+                }
+                catch (Exception ex)
+                {
+                    __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + k.ToString() + " Inserter first gametick total cursor: " + __instance.inserterFactories[k].factorySystem.inserterCursor + "  Start & End: " + num5 + "/" + __instance.inserterFactories[k].factorySystem.inserterCursor + "  " + ex;
+                    __instance.hasErrorMessage = true;
+                }
+                continue;
+            }
+            try
+            {
+                PlanetFactory planet = __instance.inserterFactories[k];
+                OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, num6);
+                break;
+            }
+            catch (Exception ex2)
+            {
+                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + k.ToString() + " Inserter second gametick total cursor: " + __instance.inserterFactories[k].factorySystem.inserterCursor + "  Start & End: " + num5 + "/" + num6 + "  " + ex2;
+                __instance.hasErrorMessage = true;
+                break;
+            }
+        }
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
     public void GameTickInserters(PlanetFactory planet, long time, bool isActive, int _start, int _end)
