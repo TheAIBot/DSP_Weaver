@@ -1277,7 +1277,9 @@ internal sealed class OptimizedInserters
                         {
                             idleTicks = 9;
                             num = 0;
-                            // Add InactiveIdle
+
+                            _inserterStates[inserter.id] = InserterState.InactiveIdle;
+                            return;
                         }
                     }
                     else
