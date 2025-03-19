@@ -25,7 +25,21 @@ public class ProductionStatisticsPatches
         };
 
         // No idea if i can replace this with Parallel.ForEach
-        Parallel.For(0, __instance.gameData.factoryCount, parallelOptions, i => __instance.factoryStatPool[i].PrepareTick());
+        Parallel.For(0, __instance.gameData.factoryCount, parallelOptions, i =>
+        {
+            FactorySystem factory = GameMain.data.factories[i].factorySystem;
+            if (factory != null &&
+                factory.labCursor <= 1 &&
+                factory.assemblerCursor <= 1 &&
+                factory.minerCursor <= 1 &&
+                factory.fractionatorCursor <= 1 &&
+                factory.ejectorCursor <= 1 &&
+                factory.siloCursor <= 1)
+            {
+                return;
+            }
+            __instance.factoryStatPool[i].PrepareTick();
+        });
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
@@ -48,6 +62,18 @@ public class ProductionStatisticsPatches
 
         Parallel.For(0, __instance.gameData.factoryCount, i =>
         {
+            FactorySystem factory = GameMain.data.factories[i].factorySystem;
+            if (factory != null &&
+                factory.labCursor <= 1 &&
+                factory.assemblerCursor <= 1 &&
+                factory.minerCursor <= 1 &&
+                factory.fractionatorCursor <= 1 &&
+                factory.ejectorCursor <= 1 &&
+                factory.siloCursor <= 1)
+            {
+                return;
+            }
+
             __instance.factoryStatPool[i].GameTick(time);
             if (!__instance.factoryStatPool[i].itemChanged)
             {
