@@ -839,6 +839,8 @@ internal sealed class OptimizedInserters
     private int[] _assemblerNetworkIds;
     private AssemblerState[] _assemblerStates;
 
+    private int[] _minerNetworkIds;
+
     [Flags]
     private enum InserterState
     {
@@ -929,6 +931,7 @@ internal sealed class OptimizedInserters
     {
         InitializeInserters(planet);
         InitializeAssemblers(planet);
+        InitializeMiners(planet);
     }
 
     private void InitializeInserters(PlanetFactory planet)
@@ -1021,6 +1024,25 @@ internal sealed class OptimizedInserters
 
         _assemblerNetworkIds = assemblerNetworkIds;
         _assemblerStates = assemblerStates;
+    }
+
+    private void InitializeMiners(PlanetFactory planet)
+    {
+        int[] minerNetworkIds = new int[planet.factorySystem.minerCursor];
+
+        for (int i = 0; i < planet.factorySystem.minerCursor; i++)
+        {
+            ref readonly MinerComponent miner = ref planet.factorySystem.minerPool[i];
+            if (miner.id != i)
+            {
+                continue;
+            }
+
+            minerNetworkIds[i] = planet.powerSystem.consumerPool[miner.pcId].networkId;
+
+        }
+
+        _minerNetworkIds = minerNetworkIds;
     }
 
     public void Save(PlanetFactory planet)
@@ -2157,6 +2179,10 @@ internal sealed class OptimizedInserters
                     continue;
                 }
                 int entityId = factorySystem.minerPool[i].entityId;
+                float num6 = networkServes[_minerNetworkIds[i]];
+                uint num7 = factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num6, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
+                if (isActive)
+                {
                 int stationId = entityPool[entityId].stationId;
                 float num6 = networkServes[consumerPool[factorySystem.minerPool[i].pcId].networkId];
                 uint num7 = factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num6, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
@@ -2191,19 +2217,26 @@ internal sealed class OptimizedInserters
                 {
                     entitySignPool[entityId].signType = ((factorySystem.minerPool[i].minimumVeinAmount < 1000) ? 7u : 0u);
                 }
+                }
                 if (flag2 && factorySystem.minerPool[i].type == EMinerType.Vein)
                 {
                     if ((long)i % 30L == time % 30)
                     {
                         factorySystem.minerPool[i].GetTotalVeinAmount(veinPool);
                     }
+                    if (isActive)
+                    {
                     entitySignPool[entityId].count0 = factorySystem.minerPool[i].totalVeinAmount;
+                }
                 }
                 else
                 {
+                    if (isActive)
+                    {
                     entitySignPool[entityId].count0 = 0f;
                 }
             }
+        }
         }
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.assemblerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
