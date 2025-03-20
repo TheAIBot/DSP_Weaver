@@ -841,6 +841,8 @@ internal sealed class OptimizedInserters
 
     private int[] _minerNetworkIds;
 
+    private int[] _ejectorNetworkIds;
+
     [Flags]
     private enum InserterState
     {
@@ -932,6 +934,7 @@ internal sealed class OptimizedInserters
         InitializeInserters(planet);
         InitializeAssemblers(planet);
         InitializeMiners(planet);
+        InitializeEjectors(planet);
     }
 
     private void InitializeInserters(PlanetFactory planet)
@@ -1043,6 +1046,29 @@ internal sealed class OptimizedInserters
         }
 
         _minerNetworkIds = minerNetworkIds;
+    }
+
+    private void InitializeEjectors(PlanetFactory planet)
+    {
+        int[] ejectorNetworkIds = new int[planet.factorySystem.ejectorCursor];
+
+        for (int i = 0; i < planet.factorySystem.ejectorCursor; i++)
+        {
+            ref readonly EjectorComponent ejector = ref planet.factorySystem.ejectorPool[i];
+            if (ejector.id != i)
+            {
+                continue;
+            }
+
+            ejectorNetworkIds[i] = planet.powerSystem.consumerPool[ejector.pcId].networkId;
+
+            // set it here so we don't have to set it in the update loop.
+            // Need to investigate when i need to update it.
+            planet.factorySystem.ejectorPool[i].needs ??= new int[6];
+            planet.entityNeeds[ejector.entityId] = planet.factorySystem.ejectorPool[i].needs;
+        }
+
+        _ejectorNetworkIds = ejectorNetworkIds;
     }
 
     public void Save(PlanetFactory planet)
@@ -2322,19 +2348,23 @@ internal sealed class OptimizedInserters
         }
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.ejectorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
+            int[] ejectorNetworkIds = _ejectorNetworkIds;
             for (int m = _start; m < _end; m++)
             {
                 if (factorySystem.ejectorPool[m].id == m)
                 {
-                    int entityId5 = factorySystem.ejectorPool[m].entityId;
-                    uint num11 = 0u;
-                    float power3 = networkServes[consumerPool[factorySystem.ejectorPool[m].pcId].networkId];
-                    num11 = factorySystem.ejectorPool[m].InternalUpdate(power3, time, swarm, astroPoses, entityAnimPool, consumeRegister);
-                    entityAnimPool[entityId5].state = num11;
-                    entityNeeds[entityId5] = factorySystem.ejectorPool[m].needs;
-                    if (entitySignPool[entityId5].signType == 0 || entitySignPool[entityId5].signType > 3)
+                    float power3 = networkServes[ejectorNetworkIds[m]];
+                    uint num11 = factorySystem.ejectorPool[m].InternalUpdate(power3, time, swarm, astroPoses, entityAnimPool, consumeRegister);
+
+                    if (isActive)
                     {
-                        entitySignPool[entityId5].signType = ((factorySystem.ejectorPool[m].orbitId <= 0 && !factorySystem.ejectorPool[m].autoOrbit) ? 5u : 0u);
+                        int entityId5 = factorySystem.ejectorPool[m].entityId;
+                        entityAnimPool[entityId5].state = num11;
+
+                        if (entitySignPool[entityId5].signType == 0 || entitySignPool[entityId5].signType > 3)
+                        {
+                            entitySignPool[entityId5].signType = ((factorySystem.ejectorPool[m].orbitId <= 0 && !factorySystem.ejectorPool[m].autoOrbit) ? 5u : 0u);
+                        }
                     }
                 }
             }
