@@ -833,7 +833,6 @@ internal sealed class OptimizedInserters
 
     private int[] _inserterNetworkIds;
     private InserterState[] _inserterStates;
-    private int[] _inserterIdleTicks;
     private InserterConnections[] _inserterConnections;
 
     private int[] _assemblerNetworkIds;
@@ -856,8 +855,6 @@ internal sealed class OptimizedInserters
             = 0b0001 | Inactive,
         InactiveNotCompletelyConnected
             = 0b0010 | Inactive,
-        InactiveIdle
-            = 0b0011 | Inactive,
         InactivePickFrom
             = 0b0100 | Inactive,
         InactiveInsertInto
@@ -945,7 +942,7 @@ internal sealed class OptimizedInserters
 
             if (_planetToOptimizedInserters.TryGetValue(planet, out OptimizedInserters optimizedInserters))
             {
-                optimizedInserters.SaveInserters(planet);
+                optimizedInserters.Save(planet);
             }
         }
     }
@@ -963,7 +960,6 @@ internal sealed class OptimizedInserters
     {
         int[] inserterNetworkIds = new int[planet.factorySystem.inserterCursor];
         InserterState[] inserterStates = new InserterState[planet.factorySystem.inserterCursor];
-        int[] inserterIdleTicks = new int[planet.factorySystem.inserterCursor];
         InserterConnections[] inserterConnections = new InserterConnections[planet.factorySystem.inserterCursor];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
@@ -1007,7 +1003,6 @@ internal sealed class OptimizedInserters
             }
 
             inserterStates[i] = inserterState ?? InserterState.Active;
-            inserterIdleTicks[i] = inserter.idleTick;
             inserterConnections[i] = new InserterConnections(pickFrom, insertInto);
 
             // Need to check when i need to update this again.
@@ -1045,7 +1040,6 @@ internal sealed class OptimizedInserters
 
         _inserterNetworkIds = inserterNetworkIds;
         _inserterStates = inserterStates;
-        _inserterIdleTicks = inserterIdleTicks;
         _inserterConnections = inserterConnections;
     }
 
@@ -1160,21 +1154,6 @@ internal sealed class OptimizedInserters
 
     public void Save(PlanetFactory planet)
     {
-        SaveInserters(planet);
-    }
-
-    private void SaveInserters(PlanetFactory planet)
-    {
-        for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
-        {
-            ref InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
-            if (inserter.id != i)
-            {
-                continue;
-            }
-
-            inserter.idleTick = _inserterIdleTicks[i];
-        }
     }
 
     [HarmonyPrefix]
@@ -1283,15 +1262,6 @@ internal sealed class OptimizedInserters
                 {
                     continue;
                 }
-                else if (inserterState == InserterState.InactiveIdle)
-                {
-                    if (_inserterIdleTicks[j]-- > 0)
-                    {
-                        continue;
-                    }
-
-                    _inserterStates[j] = InserterState.Active;
-                }
                 else if (inserterState == InserterState.InactivePickFrom)
                 {
                     if (!IsObjectPickFromActive(j))
@@ -1316,7 +1286,7 @@ internal sealed class OptimizedInserters
             float power2 = networkServes[_inserterNetworkIds[j]];
             if (reference2.bidirectional)
             {
-                InternalUpdate_Bidirectional(planet, ref reference2, entityNeeds, entityAnimPool, power2, isActive, ref _inserterIdleTicks[j]);
+                InternalUpdate_Bidirectional(planet, ref reference2, entityNeeds, entityAnimPool, power2, isActive);
             }
             else
             {
@@ -1325,7 +1295,7 @@ internal sealed class OptimizedInserters
         }
     }
 
-    private void InternalUpdate_Bidirectional(PlanetFactory planet, ref InserterComponent inserter, int[][] needsPool, AnimData[] animPool, float power, bool isActive, ref int idleTicks)
+    private void InternalUpdate_Bidirectional(PlanetFactory planet, ref InserterComponent inserter, int[][] needsPool, AnimData[] animPool, float power, bool isActive)
     {
         if (isActive)
         {
@@ -1358,7 +1328,7 @@ internal sealed class OptimizedInserters
                 int num2 = 0;
                 if (inserter.careNeeds)
                 {
-                    if (idleTicks-- < 1)
+                    if (inserter.idleTick-- < 1)
                     {
                         int[] array = needsPool[inserter.insertTarget];
                         if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
@@ -1379,11 +1349,8 @@ internal sealed class OptimizedInserters
                         }
                         else
                         {
-                            idleTicks = 9;
+                            inserter.idleTick = 9;
                             num = 0;
-
-                            _inserterStates[inserter.id] = InserterState.InactiveIdle;
-                            return;
                         }
                     }
                     else
@@ -1418,7 +1385,7 @@ internal sealed class OptimizedInserters
                 {
                     if (inserter.careNeeds)
                     {
-                        if (idleTicks-- < 1)
+                        if (inserter.idleTick-- < 1)
                         {
                             int[] array2 = needsPool[inserter.insertTarget];
                             if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
@@ -1439,11 +1406,8 @@ internal sealed class OptimizedInserters
                             }
                             else
                             {
-                                idleTicks = 10;
+                                inserter.idleTick = 10;
                                 num = 0;
-
-                                _inserterStates[inserter.id] = InserterState.InactiveIdle;
-                                return;
                             }
                         }
                         else
@@ -1487,10 +1451,9 @@ internal sealed class OptimizedInserters
                 inserter.itemInc = 0;
                 break;
             }
-            if (idleTicks-- >= 1)
+            if (inserter.idleTick-- >= 1)
             {
-                _inserterStates[inserter.id] = InserterState.InactiveIdle;
-                return;
+                break;
             }
             TypedObjectIndex num4 = ((inserter.stackOutput > 1) ? _inserterConnections[inserter.id].InsertInto : default);
             if (num4.EntityType == EntityType.Belt && num4.Index > 0)
@@ -1520,9 +1483,8 @@ internal sealed class OptimizedInserters
                 int[] array3 = needsPool[inserter.insertTarget];
                 if (array3 == null || (array3[0] == 0 && array3[1] == 0 && array3[2] == 0 && array3[3] == 0 && array3[4] == 0 && array3[5] == 0))
                 {
-                    idleTicks = 10;
-                    _inserterStates[inserter.id] = InserterState.InactiveIdle;
-                    return;
+                    inserter.idleTick = 10;
+                    break;
                 }
             }
             int num7 = inserter.itemCount / inserter.stackCount;
