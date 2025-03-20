@@ -2184,8 +2184,6 @@ internal sealed class OptimizedInserters
                 if (isActive)
                 {
                 int stationId = entityPool[entityId].stationId;
-                float num6 = networkServes[consumerPool[factorySystem.minerPool[i].pcId].networkId];
-                uint num7 = factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num6, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
                 int num8 = (int)Mathf.Floor(entityAnimPool[entityId].time / 10f);
                 entityAnimPool[entityId].time = entityAnimPool[entityId].time % 10f;
                 entityAnimPool[entityId].Step(num7, num * num6);
@@ -2250,7 +2248,6 @@ internal sealed class OptimizedInserters
                     }
 
                     ref AssemblerComponent reference = ref factorySystem.assemblerPool[j];
-                    int entityId2 = reference.entityId;
                     uint num9 = 0u;
                     float num10 = networkServes[_assemblerNetworkIds[j]];
                     if (reference.recipeId != 0)
@@ -2258,6 +2255,10 @@ internal sealed class OptimizedInserters
                         reference.UpdateNeeds();
                         num9 = reference.InternalUpdate(num10, productRegister, consumeRegister);
                     }
+
+                    if (isActive)
+                    {
+                        int entityId2 = reference.entityId;
                     if (reference.recipeType == ERecipeType.Chemical)
                     {
                         entityAnimPool[entityId2].working_length = 2f;
@@ -2275,6 +2276,7 @@ internal sealed class OptimizedInserters
                         entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
                     }
                 }
+            }
             }
             else
             {
