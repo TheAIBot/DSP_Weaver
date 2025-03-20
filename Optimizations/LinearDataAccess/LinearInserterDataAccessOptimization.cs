@@ -2137,9 +2137,17 @@ internal sealed class OptimizedInserters
             {
                 if (__instance.assemblerFactories[i].factorySystem != null)
                 {
-                    PlanetFactory planet = __instance.assemblerFactories[i];
-                    OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
-                    optimizedInserters.GameTick(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                    if (!isActive)
+                    {
+                        PlanetFactory planet = __instance.assemblerFactories[i];
+                        OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                        optimizedInserters.GameTick(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                    }
+                    else
+                    {
+                        __instance.assemblerFactories[i].factorySystem.GameTick(__instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                    }
+
                 }
             }
             catch (Exception ex)
@@ -2181,7 +2189,6 @@ internal sealed class OptimizedInserters
         PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
         float num = 1f / 60f;
         AstroData[] astroPoses = null;
-        bool flag = isActive || (time + planet.index) % 15 == 0;
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.minerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
         {
             float num2;
@@ -2265,59 +2272,16 @@ internal sealed class OptimizedInserters
         }
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.assemblerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
-            if (flag)
+            for (int k = _start; k < _end; k++)
             {
-                for (int j = _start; j < _end; j++)
+                if (_assemblerStates[k] != AssemblerState.Active)
                 {
-                    if (_assemblerStates[j] != AssemblerState.Active)
-                    {
-                        continue;
-                    }
-
-                    ref AssemblerComponent reference = ref factorySystem.assemblerPool[j];
-                    uint num9 = 0u;
-                    float num10 = networkServes[_assemblerNetworkIds[j]];
-                    if (reference.recipeId != 0)
-                    {
-                        reference.UpdateNeeds();
-                        num9 = reference.InternalUpdate(num10, productRegister, consumeRegister);
-                    }
-
-                    if (isActive)
-                    {
-                        int entityId2 = reference.entityId;
-                        if (reference.recipeType == ERecipeType.Chemical)
-                        {
-                            entityAnimPool[entityId2].working_length = 2f;
-                            entityAnimPool[entityId2].Step(num9, num * num10);
-                            entityAnimPool[entityId2].power = num10;
-                            entityAnimPool[entityId2].working_length = reference.recipeId;
-                        }
-                        else
-                        {
-                            entityAnimPool[entityId2].Step(num9, num * num10);
-                            entityAnimPool[entityId2].power = num10;
-                        }
-                        if (entitySignPool[entityId2].signType == 0 || entitySignPool[entityId2].signType > 3)
-                        {
-                            entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
-                        }
-                    }
+                    continue;
                 }
-            }
-            else
-            {
-                for (int k = _start; k < _end; k++)
-                {
-                    if (_assemblerStates[k] != AssemblerState.Active)
-                    {
-                        continue;
-                    }
 
-                    float power = networkServes[_assemblerNetworkIds[k]];
-                    factorySystem.assemblerPool[k].UpdateNeeds();
-                    _assemblerStates[k] = AssemblerInternalUpdate(ref factorySystem.assemblerPool[k], power, productRegister, consumeRegister);
-                }
+                float power = networkServes[_assemblerNetworkIds[k]];
+                factorySystem.assemblerPool[k].UpdateNeeds();
+                _assemblerStates[k] = AssemblerInternalUpdate(ref factorySystem.assemblerPool[k], power, productRegister, consumeRegister);
             }
         }
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
