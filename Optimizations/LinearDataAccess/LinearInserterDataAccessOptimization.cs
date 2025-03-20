@@ -843,7 +843,7 @@ internal sealed class OptimizedInserters
 
     private int[] _ejectorNetworkIds;
 
-    private int[] _labAssemblerNetworkIds;
+    private NetworkIdAndState<LabState>[] _labNetworkIdAndStates;
 
     [Flags]
     private enum InserterState
@@ -879,6 +879,25 @@ internal sealed class OptimizedInserters
             = 0b0011 | Inactive,
         InactiveInputMissing
             = 0b0100 | Inactive
+    }
+
+    [Flags]
+    private enum LabState
+    {
+        Active
+            = 0b00000,
+        Inactive
+            = 0b01000,
+        InactiveNoAssembler
+            = 0b00001 | Inactive,
+        InactiveNoRecipeSet
+            = 0b00010 | Inactive,
+        InactiveOutputFull
+            = 0b00011 | Inactive,
+        InactiveInputMissing
+            = 0b00100 | Inactive,
+        ResearchMode
+            = 0b10000
     }
 
     public static void EnableOptimization()
@@ -1108,24 +1127,35 @@ internal sealed class OptimizedInserters
 
     private void InitializeLabAssemblers(PlanetFactory planet)
     {
-        int[] labAssemblerNetworkIds = new int[planet.factorySystem.labCursor];
+        NetworkIdAndState<LabState>[] labNetworkIdAndStates = new NetworkIdAndState<LabState>[planet.factorySystem.labCursor];
 
         for (int i = 0; i < planet.factorySystem.labCursor; i++)
         {
             ref LabComponent lab = ref planet.factorySystem.labPool[i];
-            if (lab.id != i || lab.researchMode)
+            if (lab.id != i)
             {
+                labNetworkIdAndStates[i] = new NetworkIdAndState<LabState>((int)LabState.InactiveNoAssembler, 0);
                 continue;
             }
 
-            labAssemblerNetworkIds[i] = planet.powerSystem.consumerPool[lab.pcId].networkId;
+            LabState state = LabState.Active;
+            if (lab.recipeId == 0)
+            {
+                state = LabState.InactiveNoRecipeSet;
+            }
+            if (lab.researchMode)
+            {
+                state = state | LabState.ResearchMode;
+            }
+
+            labNetworkIdAndStates[i] = new NetworkIdAndState<LabState>((int)state, planet.powerSystem.consumerPool[lab.pcId].networkId);
 
             // set it here so we don't have to set it in the update loop.
             // Need to investigate when i need to update it.
             planet.entityNeeds[lab.entityId] = lab.needs;
         }
 
-        _labAssemblerNetworkIds = labAssemblerNetworkIds;
+        _labNetworkIdAndStates = labNetworkIdAndStates;
     }
 
     public void Save(PlanetFactory planet)
@@ -2619,27 +2649,23 @@ internal sealed class OptimizedInserters
         float[] networkServes = planet.powerSystem.networkServes;
         for (int i = _start; i < _end; i++)
         {
+            NetworkIdAndState<LabState> networkIdAndState = _labNetworkIdAndStates[i];
+            if (((LabState)networkIdAndState.State & LabState.Inactive) == LabState.Inactive)
+            {
+                continue;
+            }
+            if (((LabState)networkIdAndState.State & LabState.ResearchMode) == LabState.ResearchMode)
+            {
+                continue;
+            }
+
             ref LabComponent lab = ref planet.factorySystem.labPool[i];
+            lab.UpdateNeedsAssemble();
 
-            if (lab.id != i)
-            {
-                continue;
-            }
-            if (lab.researchMode)
-            {
-                continue;
-            }
-
-            float power = networkServes[_labAssemblerNetworkIds[i]];
-
-            if (lab.recipeId > 0)
-            {
-                lab.UpdateNeedsAssemble();
-                lab.InternalUpdateAssemble(power, productRegister, consumeRegister);
-            }
+            float power = networkServes[networkIdAndState.Index];
+            lab.InternalUpdateAssemble(power, productRegister, consumeRegister);
         }
     }
-
     private static TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
     {
         ref readonly EntityData entity = ref entities[index];
@@ -2713,5 +2739,22 @@ internal readonly struct TypedObjectIndex
     public TypedObjectIndex(EntityType entityType, int index)
     {
         _value = ((uint)entityType << 24) | (uint)index;
+    }
+}
+
+internal struct NetworkIdAndState<T> where T : Enum
+{
+    private uint _value;
+
+    public int State
+    {
+        get { return (int)(_value >> 24); }
+        set { _value = (_value & 0x00_ff_ff_ff) | ((uint)value << 24); }
+    }
+    public readonly int Index => (int)(0x00_ff_ff_ff & _value);
+
+    public NetworkIdAndState(int state, int index)
+    {
+        _value = ((uint)state << 24) | (uint)index;
     }
 }
