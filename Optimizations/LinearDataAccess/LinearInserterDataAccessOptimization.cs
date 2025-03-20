@@ -946,7 +946,7 @@ internal sealed class OptimizedInserters
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
-            ref readonly InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
+            ref InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
             if (inserter.id != i)
             {
                 inserterStates[i] = InserterState.InactiveNoInserter;
@@ -987,6 +987,38 @@ internal sealed class OptimizedInserters
             inserterStates[i] = inserterState ?? InserterState.Active;
             inserterIdleTicks[i] = inserter.idleTick;
             inserterConnections[i] = new InserterConnections(pickFrom, insertInto);
+
+            // Need to check when i need to update this again.
+            // Probably bi direction is related to some research.
+            // Probably the same for stack output.
+            byte b = (byte)GameMain.history.inserterStackCountObsolete;
+            byte b2 = (byte)GameMain.history.inserterStackInput;
+            byte stackOutput = (byte)GameMain.history.inserterStackOutput;
+            bool inserterBidirectional = GameMain.history.inserterBidirectional;
+            int delay = ((b > 1) ? 110000 : 0);
+            int delay2 = ((b2 > 1) ? 40000 : 0);
+
+            if (inserter.grade == 3)
+            {
+                inserter.delay = delay;
+                inserter.stackInput = b;
+                inserter.stackOutput = 1;
+                inserter.bidirectional = false;
+            }
+            else if (inserter.grade == 4)
+            {
+                inserter.delay = delay2;
+                inserter.stackInput = b2;
+                inserter.stackOutput = stackOutput;
+                inserter.bidirectional = inserterBidirectional;
+            }
+            else
+            {
+                inserter.delay = 0;
+                inserter.stackInput = 1;
+                inserter.stackOutput = 1;
+                inserter.bidirectional = false;
+            }
         }
 
         _inserterNetworkIds = inserterNetworkIds;
@@ -1184,13 +1216,6 @@ internal sealed class OptimizedInserters
         PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
         EntityData[] entityPool = planet.entityPool;
         BeltComponent[] beltPool = planet.cargoTraffic.beltPool;
-        byte b = (byte)GameMain.history.inserterStackCountObsolete;
-        byte b2 = (byte)GameMain.history.inserterStackInput;
-        byte stackOutput = (byte)GameMain.history.inserterStackOutput;
-        bool inserterBidirectional = GameMain.history.inserterBidirectional;
-        int delay = ((b > 1) ? 110000 : 0);
-        int delay2 = ((b2 > 1) ? 40000 : 0);
-        bool flag = time % 60 == 0;
         _start = ((_start == 0) ? 1 : _start);
         _end = ((_end > planet.factorySystem.inserterCursor) ? planet.factorySystem.inserterCursor : _end);
         for (int j = _start; j < _end; j++)
@@ -1233,30 +1258,6 @@ internal sealed class OptimizedInserters
             }
 
             ref InserterComponent reference2 = ref planet.factorySystem.inserterPool[j];
-            if (flag)
-            {
-                if (reference2.grade == 3)
-                {
-                    reference2.delay = delay;
-                    reference2.stackInput = b;
-                    reference2.stackOutput = 1;
-                    reference2.bidirectional = false;
-                }
-                else if (reference2.grade == 4)
-                {
-                    reference2.delay = delay2;
-                    reference2.stackInput = b2;
-                    reference2.stackOutput = stackOutput;
-                    reference2.bidirectional = inserterBidirectional;
-                }
-                else
-                {
-                    reference2.delay = 0;
-                    reference2.stackInput = 1;
-                    reference2.stackOutput = 1;
-                    reference2.bidirectional = false;
-                }
-            }
             float power2 = networkServes[_inserterNetworkIds[j]];
             if (reference2.bidirectional)
             {
