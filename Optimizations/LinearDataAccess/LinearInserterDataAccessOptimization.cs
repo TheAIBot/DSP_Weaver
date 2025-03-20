@@ -2183,38 +2183,38 @@ internal sealed class OptimizedInserters
                 uint num7 = factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num6, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
                 if (isActive)
                 {
-                int stationId = entityPool[entityId].stationId;
-                int num8 = (int)Mathf.Floor(entityAnimPool[entityId].time / 10f);
-                entityAnimPool[entityId].time = entityAnimPool[entityId].time % 10f;
-                entityAnimPool[entityId].Step(num7, num * num6);
-                entityAnimPool[entityId].power = num6;
-                if (stationId > 0)
-                {
-                    if (factorySystem.minerPool[i].veinCount > 0)
+                    int stationId = entityPool[entityId].stationId;
+                    int num8 = (int)Mathf.Floor(entityAnimPool[entityId].time / 10f);
+                    entityAnimPool[entityId].time = entityAnimPool[entityId].time % 10f;
+                    entityAnimPool[entityId].Step(num7, num * num6);
+                    entityAnimPool[entityId].power = num6;
+                    if (stationId > 0)
                     {
-                        EVeinType veinTypeByItemId = LDB.veins.GetVeinTypeByItemId(veinPool[factorySystem.minerPool[i].veins[0]].productId);
-                        entityAnimPool[entityId].state += (uint)((int)veinTypeByItemId * 100);
-                    }
-                    entityAnimPool[entityId].power += 10f;
-                    entityAnimPool[entityId].power += factorySystem.minerPool[i].speed / 10 * 10;
-                    if (num7 == 1)
-                    {
-                        num8 = 3000;
-                    }
-                    else
-                    {
-                        num8 -= (int)(num * 1000f);
-                        if (num8 < 0)
+                        if (factorySystem.minerPool[i].veinCount > 0)
                         {
-                            num8 = 0;
+                            EVeinType veinTypeByItemId = LDB.veins.GetVeinTypeByItemId(veinPool[factorySystem.minerPool[i].veins[0]].productId);
+                            entityAnimPool[entityId].state += (uint)((int)veinTypeByItemId * 100);
                         }
+                        entityAnimPool[entityId].power += 10f;
+                        entityAnimPool[entityId].power += factorySystem.minerPool[i].speed / 10 * 10;
+                        if (num7 == 1)
+                        {
+                            num8 = 3000;
+                        }
+                        else
+                        {
+                            num8 -= (int)(num * 1000f);
+                            if (num8 < 0)
+                            {
+                                num8 = 0;
+                            }
+                        }
+                        entityAnimPool[entityId].time += num8 * 10;
                     }
-                    entityAnimPool[entityId].time += num8 * 10;
-                }
-                if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
-                {
-                    entitySignPool[entityId].signType = ((factorySystem.minerPool[i].minimumVeinAmount < 1000) ? 7u : 0u);
-                }
+                    if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+                    {
+                        entitySignPool[entityId].signType = ((factorySystem.minerPool[i].minimumVeinAmount < 1000) ? 7u : 0u);
+                    }
                 }
                 if (flag2 && factorySystem.minerPool[i].type == EMinerType.Vein)
                 {
@@ -2224,17 +2224,17 @@ internal sealed class OptimizedInserters
                     }
                     if (isActive)
                     {
-                    entitySignPool[entityId].count0 = factorySystem.minerPool[i].totalVeinAmount;
-                }
+                        entitySignPool[entityId].count0 = factorySystem.minerPool[i].totalVeinAmount;
+                    }
                 }
                 else
                 {
                     if (isActive)
                     {
-                    entitySignPool[entityId].count0 = 0f;
+                        entitySignPool[entityId].count0 = 0f;
+                    }
                 }
             }
-        }
         }
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.assemblerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
@@ -2259,24 +2259,24 @@ internal sealed class OptimizedInserters
                     if (isActive)
                     {
                         int entityId2 = reference.entityId;
-                    if (reference.recipeType == ERecipeType.Chemical)
-                    {
-                        entityAnimPool[entityId2].working_length = 2f;
-                        entityAnimPool[entityId2].Step(num9, num * num10);
-                        entityAnimPool[entityId2].power = num10;
-                        entityAnimPool[entityId2].working_length = reference.recipeId;
-                    }
-                    else
-                    {
-                        entityAnimPool[entityId2].Step(num9, num * num10);
-                        entityAnimPool[entityId2].power = num10;
-                    }
-                    if (entitySignPool[entityId2].signType == 0 || entitySignPool[entityId2].signType > 3)
-                    {
-                        entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
+                        if (reference.recipeType == ERecipeType.Chemical)
+                        {
+                            entityAnimPool[entityId2].working_length = 2f;
+                            entityAnimPool[entityId2].Step(num9, num * num10);
+                            entityAnimPool[entityId2].power = num10;
+                            entityAnimPool[entityId2].working_length = reference.recipeId;
+                        }
+                        else
+                        {
+                            entityAnimPool[entityId2].Step(num9, num * num10);
+                            entityAnimPool[entityId2].power = num10;
+                        }
+                        if (entitySignPool[entityId2].signType == 0 || entitySignPool[entityId2].signType > 3)
+                        {
+                            entitySignPool[entityId2].signType = ((reference.recipeId == 0) ? 4u : ((num9 == 0) ? 6u : 0u));
+                        }
                     }
                 }
-            }
             }
             else
             {
