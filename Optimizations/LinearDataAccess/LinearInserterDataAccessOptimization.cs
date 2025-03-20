@@ -843,6 +843,8 @@ internal sealed class OptimizedInserters
 
     private int[] _ejectorNetworkIds;
 
+    private int[] _labAssemblerNetworkIds;
+
     [Flags]
     private enum InserterState
     {
@@ -935,6 +937,7 @@ internal sealed class OptimizedInserters
         InitializeAssemblers(planet);
         InitializeMiners(planet);
         InitializeEjectors(planet);
+        InitializeLabAssemblers(planet);
     }
 
     private void InitializeInserters(PlanetFactory planet)
@@ -1086,7 +1089,7 @@ internal sealed class OptimizedInserters
 
         for (int i = 0; i < planet.factorySystem.ejectorCursor; i++)
         {
-            ref readonly EjectorComponent ejector = ref planet.factorySystem.ejectorPool[i];
+            ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[i];
             if (ejector.id != i)
             {
                 continue;
@@ -1096,11 +1099,33 @@ internal sealed class OptimizedInserters
 
             // set it here so we don't have to set it in the update loop.
             // Need to investigate when i need to update it.
-            planet.factorySystem.ejectorPool[i].needs ??= new int[6];
-            planet.entityNeeds[ejector.entityId] = planet.factorySystem.ejectorPool[i].needs;
+            ejector.needs ??= new int[6];
+            planet.entityNeeds[ejector.entityId] = ejector.needs;
         }
 
         _ejectorNetworkIds = ejectorNetworkIds;
+    }
+
+    private void InitializeLabAssemblers(PlanetFactory planet)
+    {
+        int[] labAssemblerNetworkIds = new int[planet.factorySystem.labCursor];
+
+        for (int i = 0; i < planet.factorySystem.labCursor; i++)
+        {
+            ref LabComponent lab = ref planet.factorySystem.labPool[i];
+            if (lab.id != i || lab.researchMode)
+            {
+                continue;
+            }
+
+            labAssemblerNetworkIds[i] = planet.powerSystem.consumerPool[lab.pcId].networkId;
+
+            // set it here so we don't have to set it in the update loop.
+            // Need to investigate when i need to update it.
+            planet.entityNeeds[lab.entityId] = lab.needs;
+        }
+
+        _labAssemblerNetworkIds = labAssemblerNetworkIds;
     }
 
     public void Save(PlanetFactory planet)
@@ -2159,7 +2184,16 @@ internal sealed class OptimizedInserters
             {
                 if (__instance.assemblerFactories[i].factorySystem != null)
                 {
-                    __instance.assemblerFactories[i].factorySystem.GameTickLabProduceMode(__instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                    if (!isActive)
+                    {
+                        PlanetFactory planet = __instance.assemblerFactories[i];
+                        OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                        optimizedInserters.GameTickLabProduceMode(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                    }
+                    else
+                    {
+                        __instance.assemblerFactories[i].factorySystem.GameTickLabProduceMode(__instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                    }
                 }
             }
             catch (Exception ex2)
@@ -2172,7 +2206,7 @@ internal sealed class OptimizedInserters
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
-    public void GameTick(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    private void GameTick(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         GameHistoryData history = GameMain.history;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
@@ -2572,7 +2606,41 @@ internal sealed class OptimizedInserters
         return AssemblerState.Active;
     }
 
-    public static TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
+    private void GameTickLabProduceMode(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        if (!WorkerThreadExecutor.CalculateMissionIndex(1, planet.factorySystem.labCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
+        {
+            return;
+        }
+
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        float[] networkServes = planet.powerSystem.networkServes;
+        for (int i = _start; i < _end; i++)
+        {
+            ref LabComponent lab = ref planet.factorySystem.labPool[i];
+
+            if (lab.id != i)
+            {
+                continue;
+            }
+            if (lab.researchMode)
+            {
+                continue;
+            }
+
+            float power = networkServes[_labAssemblerNetworkIds[i]];
+
+            if (lab.recipeId > 0)
+            {
+                lab.UpdateNeedsAssemble();
+                lab.InternalUpdateAssemble(power, productRegister, consumeRegister);
+            }
+        }
+    }
+
+    private static TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
     {
         ref readonly EntityData entity = ref entities[index];
         if (entity.beltId != 0)
