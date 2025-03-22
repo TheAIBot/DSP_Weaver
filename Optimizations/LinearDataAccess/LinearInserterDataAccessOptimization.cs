@@ -833,6 +833,7 @@ internal sealed class OptimizedEntityLogic
 
     private NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates;
     private InserterConnections[] _inserterConnections;
+    private int[][] _inserterConnectionNeeds;
 
     private int[] _assemblerNetworkIds;
     private AssemblerState[] _assemblerStates;
@@ -959,6 +960,7 @@ internal sealed class OptimizedEntityLogic
     {
         NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = new NetworkIdAndState<InserterState>[planet.factorySystem.inserterCursor];
         InserterConnections[] inserterConnections = new InserterConnections[planet.factorySystem.inserterCursor];
+        int[][] inserterConnectionNeeds = new int[planet.factorySystem.inserterCursor][];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
@@ -985,9 +987,11 @@ internal sealed class OptimizedEntityLogic
             }
 
             TypedObjectIndex insertInto = new TypedObjectIndex(EntityType.None, 0);
+            int[]? insertIntoNeeds = null;
             if (inserter.insertTarget != 0)
             {
                 insertInto = GetAsTypedObjectIndex(inserter.insertTarget, planet.entityPool);
+                insertIntoNeeds = GetEntityNeeds(planet, inserter.insertTarget);
             }
             else
             {
@@ -1000,6 +1004,7 @@ internal sealed class OptimizedEntityLogic
 
             inserterNetworkIdAndStates[i] = new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), planet.powerSystem.consumerPool[inserter.pcId].networkId);
             inserterConnections[i] = new InserterConnections(pickFrom, insertInto);
+            inserterConnectionNeeds[i] = insertIntoNeeds;
 
             // Need to check when i need to update this again.
             // Probably bi direction is related to some research.
@@ -1036,6 +1041,7 @@ internal sealed class OptimizedEntityLogic
 
         _inserterNetworkIdAndStates = inserterNetworkIdAndStates;
         _inserterConnections = inserterConnections;
+        _inserterConnectionNeeds = inserterConnectionNeeds;
     }
 
     private void InitializeAssemblers(PlanetFactory planet)
@@ -1195,7 +1201,7 @@ internal sealed class OptimizedEntityLogic
                     {
                         PlanetFactory planet = __instance.inserterFactories[k];
                         OptimizedEntityLogic optimizedInserters = _planetToOptimizedEntities[planet];
-                        optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, __instance.inserterFactories[k].factorySystem.inserterCursor);
+                        optimizedInserters.GameTickInserters(planet, __instance.inserterTime, num5, __instance.inserterFactories[k].factorySystem.inserterCursor);
                     }
                     else
                     {
@@ -1217,7 +1223,7 @@ internal sealed class OptimizedEntityLogic
                 {
                     PlanetFactory planet = __instance.inserterFactories[k];
                     OptimizedEntityLogic optimizedInserters = _planetToOptimizedEntities[planet];
-                    optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, num6);
+                    optimizedInserters.GameTickInserters(planet, __instance.inserterTime, num5, num6);
                 }
                 else
                 {
@@ -1236,7 +1242,7 @@ internal sealed class OptimizedEntityLogic
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
-    public void GameTickInserters(PlanetFactory planet, long time, bool isActive, int _start, int _end)
+    public void GameTickInserters(PlanetFactory planet, long time, int _start, int _end)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
@@ -1282,7 +1288,7 @@ internal sealed class OptimizedEntityLogic
             float power2 = networkServes[networkIdAndState.Index];
             if (reference2.bidirectional)
             {
-                InternalUpdate_Bidirectional(planet, ref reference2, entityNeeds, entityAnimPool, power2, isActive);
+                InternalUpdate_Bidirectional(planet, ref reference2, power2);
             }
             else
             {
@@ -1291,12 +1297,8 @@ internal sealed class OptimizedEntityLogic
         }
     }
 
-    private void InternalUpdate_Bidirectional(PlanetFactory planet, ref InserterComponent inserter, int[][] needsPool, AnimData[] animPool, float power, bool isActive)
+    private void InternalUpdate_Bidirectional(PlanetFactory planet, ref InserterComponent inserter, float power)
     {
-        if (isActive)
-        {
-            animPool[inserter.entityId].power = power;
-        }
         if (power < 0.1f)
         {
             // Not sure it is worth optimizing low power since it should be a rare occurrence in a large factory
@@ -1326,7 +1328,7 @@ internal sealed class OptimizedEntityLogic
                 {
                     if (inserter.idleTick-- < 1)
                     {
-                        int[] array = needsPool[inserter.insertTarget];
+                        int[] array = _inserterConnectionNeeds[inserter.id];
                         if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                         {
                             num2 = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.filter, array, out stack, out inc);
@@ -1383,7 +1385,7 @@ internal sealed class OptimizedEntityLogic
                     {
                         if (inserter.idleTick-- < 1)
                         {
-                            int[] array2 = needsPool[inserter.insertTarget];
+                            int[] array2 = _inserterConnectionNeeds[inserter.id];
                             if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
                             {
                                 int itemId = PickFrom(planet, inserter.id, inserter.pickTarget, inserter.pickOffset, inserter.itemId, array2, out stack, out inc);
@@ -1474,10 +1476,12 @@ internal sealed class OptimizedEntityLogic
                 num = 0;
                 continue;
             }
+
+            int[]? insertIntoNeeds = _inserterConnectionNeeds[inserter.id];
             if (inserter.careNeeds)
             {
-                int[] array3 = needsPool[inserter.insertTarget];
-                if (array3 == null || (array3[0] == 0 && array3[1] == 0 && array3[2] == 0 && array3[3] == 0 && array3[4] == 0 && array3[5] == 0))
+
+                if (insertIntoNeeds == null || (insertIntoNeeds[0] == 0 && insertIntoNeeds[1] == 0 && insertIntoNeeds[2] == 0 && insertIntoNeeds[3] == 0 && insertIntoNeeds[4] == 0 && insertIntoNeeds[5] == 0))
                 {
                     inserter.idleTick = 10;
                     break;
@@ -1486,7 +1490,7 @@ internal sealed class OptimizedEntityLogic
             int num7 = inserter.itemCount / inserter.stackCount;
             int num8 = (int)((float)inserter.itemInc / (float)inserter.itemCount * (float)num7 + 0.5f);
             byte remainInc = (byte)num8;
-            int num9 = InsertInto(planet, inserter.id, inserter.insertTarget, inserter.insertOffset, inserter.itemId, (byte)num7, (byte)num8, out remainInc);
+            int num9 = InsertInto(planet, inserter.id, inserter.insertTarget, insertIntoNeeds, inserter.insertOffset, inserter.itemId, (byte)num7, (byte)num8, out remainInc);
             if (num9 <= 0)
             {
                 break;
@@ -1518,28 +1522,6 @@ internal sealed class OptimizedEntityLogic
         else
         {
             inserter.stage = ((inserter.stage == EInserterStage.Sending) ? EInserterStage.Returning : EInserterStage.Picking);
-        }
-        if (isActive)
-        {
-            ref AnimData reference = ref animPool[inserter.entityId];
-            if (num3 > 0)
-            {
-                reference.prepare_length = 1f;
-            }
-            else
-            {
-                reference.prepare_length *= 0.7f;
-            }
-            reference.time += power * 0.125f * reference.prepare_length;
-            if (reference.time > 0.5f)
-            {
-                reference.time -= 0.5f;
-            }
-            int num10 = ((inserter.itemId > 0) ? inserter.itemId : num3);
-            if (num10 > 0 || reference.prepare_length < 0.5f)
-            {
-                reference.state = (uint)num10;
-            }
         }
     }
 
@@ -1799,7 +1781,7 @@ internal sealed class OptimizedEntityLogic
         return 0;
     }
 
-    private int InsertInto(PlanetFactory planet, int inserterId, int entityId, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
+    private int InsertInto(PlanetFactory planet, int inserterId, int entityId, int[]? entityNeeds, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
     {
         remainInc = itemInc;
         TypedObjectIndex typedObjectIndex = _inserterConnections[inserterId].InsertInto;
@@ -1828,10 +1810,9 @@ internal sealed class OptimizedEntityLogic
                 return 0;
             }
 
-            int[] array = planet.entityNeeds[entityId];
-            if (array == null)
+            if (entityNeeds == null)
             {
-                throw new InvalidOperationException($"Array from {nameof(planet.entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
+                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
             }
             ref AssemblerComponent reference = ref planet.factorySystem.assemblerPool[objectIndex];
             int[] requires = reference.requires;
@@ -1888,12 +1869,11 @@ internal sealed class OptimizedEntityLogic
         }
         else if (typedObjectIndex.EntityType == EntityType.Ejector)
         {
-            int[] array = planet.entityNeeds[entityId];
-            if (array == null)
+            if (entityNeeds == null)
             {
                 return 0;
             }
-            if (array[0] == itemId && planet.factorySystem.ejectorPool[objectIndex].bulletId == itemId)
+            if (entityNeeds[0] == itemId && planet.factorySystem.ejectorPool[objectIndex].bulletId == itemId)
             {
                 Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletCount, itemCount);
                 Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletInc, itemInc);
@@ -1904,12 +1884,11 @@ internal sealed class OptimizedEntityLogic
         }
         else if (typedObjectIndex.EntityType == EntityType.Silo)
         {
-            int[] array = planet.entityNeeds[entityId];
-            if (array == null)
+            if (entityNeeds == null)
             {
                 return 0;
             }
-            if (array[0] == itemId && planet.factorySystem.siloPool[objectIndex].bulletId == itemId)
+            if (entityNeeds[0] == itemId && planet.factorySystem.siloPool[objectIndex].bulletId == itemId)
             {
                 Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletCount, itemCount);
                 Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletInc, itemInc);
@@ -1920,8 +1899,7 @@ internal sealed class OptimizedEntityLogic
         }
         else if (typedObjectIndex.EntityType == EntityType.Lab)
         {
-            int[] array = planet.entityNeeds[entityId];
-            if (array == null)
+            if (entityNeeds == null)
             {
                 return 0;
             }
@@ -1998,8 +1976,7 @@ internal sealed class OptimizedEntityLogic
         }
         else if (typedObjectIndex.EntityType == EntityType.Station)
         {
-            int[] array = planet.entityNeeds[entityId];
-            if (array == null)
+            if (entityNeeds == null)
             {
                 return 0;
             }
@@ -2017,9 +1994,9 @@ internal sealed class OptimizedEntityLogic
                 }
             }
             StationStore[] storage = stationComponent.storage;
-            for (int j = 0; j < array.Length && j < storage.Length; j++)
+            for (int j = 0; j < entityNeeds.Length && j < storage.Length; j++)
             {
-                if (array[j] == itemId && storage[j].itemId == itemId)
+                if (entityNeeds[j] == itemId && storage[j].itemId == itemId)
                 {
                     Interlocked.Add(ref storage[j].count, itemCount);
                     Interlocked.Add(ref storage[j].inc, itemInc);
@@ -2032,7 +2009,6 @@ internal sealed class OptimizedEntityLogic
         }
         else if (typedObjectIndex.EntityType == EntityType.PowerGenerator)
         {
-            int[] array = planet.entityNeeds[entityId];
             PowerGeneratorComponent[] genPool = planet.powerSystem.genPool;
             lock (planet.entityMutexs[entityId])
             {
@@ -2051,7 +2027,7 @@ internal sealed class OptimizedEntityLogic
                 }
                 if (genPool[objectIndex].fuelId == 0)
                 {
-                    array = ItemProto.fuelNeeds[genPool[objectIndex].fuelMask];
+                    int[] array = ItemProto.fuelNeeds[genPool[objectIndex].fuelMask];
                     if (array == null || array.Length == 0)
                     {
                         return 0;
@@ -2666,6 +2642,53 @@ internal sealed class OptimizedEntityLogic
         else if (entity.inserterId != 0)
         {
             return new TypedObjectIndex(EntityType.Inserter, entity.inserterId);
+        }
+
+        throw new InvalidOperationException("Unknown entity type.");
+    }
+
+    private static int[]? GetEntityNeeds(PlanetFactory planet, int entityIndex)
+    {
+        ref readonly EntityData entity = ref planet.entityPool[entityIndex];
+        if (entity.beltId != 0)
+        {
+            return null;
+        }
+        else if (entity.assemblerId != 0)
+        {
+            return planet.factorySystem.assemblerPool[entity.assemblerId].needs;
+        }
+        else if (entity.ejectorId != 0)
+        {
+            return planet.factorySystem.ejectorPool[entity.ejectorId].needs;
+        }
+        else if (entity.siloId != 0)
+        {
+            return planet.factorySystem.siloPool[entity.siloId].needs;
+        }
+        else if (entity.labId != 0)
+        {
+            return planet.factorySystem.labPool[entity.labId].needs;
+        }
+        else if (entity.storageId != 0)
+        {
+            return null;
+        }
+        else if (entity.stationId != 0)
+        {
+            return planet.transport.stationPool[entity.stationId].needs;
+        }
+        else if (entity.powerGenId != 0)
+        {
+            return null;
+        }
+        else if (entity.splitterId != 0)
+        {
+            return null;
+        }
+        else if (entity.inserterId != 0)
+        {
+            return null;
         }
 
         throw new InvalidOperationException("Unknown entity type.");
