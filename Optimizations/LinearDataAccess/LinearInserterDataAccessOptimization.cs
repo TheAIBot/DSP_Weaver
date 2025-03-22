@@ -827,12 +827,11 @@ public class LinearInserterDataAccessOptimization
     private record struct EntityIndexAndPowerIndex(EntityType EntityType, int EntityIndex, int PowerConsumerIndex);
 }
 
-internal sealed class OptimizedInserters
+internal sealed class OptimizedEntityLogic
 {
-    private static readonly Dictionary<PlanetFactory, OptimizedInserters> _planetToOptimizedInserters = [];
+    private static readonly Dictionary<PlanetFactory, OptimizedEntityLogic> _planetToOptimizedEntities = [];
 
-    private int[] _inserterNetworkIds;
-    private InserterState[] _inserterStates;
+    private NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates;
     private InserterConnections[] _inserterConnections;
 
     private int[] _assemblerNetworkIds;
@@ -899,7 +898,7 @@ internal sealed class OptimizedInserters
 
     public static void EnableOptimization()
     {
-        Harmony.CreateAndPatchAll(typeof(OptimizedInserters));
+        Harmony.CreateAndPatchAll(typeof(OptimizedEntityLogic));
     }
 
     [HarmonyPriority(1)]
@@ -907,9 +906,9 @@ internal sealed class OptimizedInserters
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
-        WeaverFixes.Logger.LogMessage($"Initializing {nameof(OptimizedInserters)}");
+        WeaverFixes.Logger.LogMessage($"Initializing {nameof(OptimizedEntityLogic)}");
 
-        _planetToOptimizedInserters.Clear();
+        _planetToOptimizedEntities.Clear();
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
@@ -920,9 +919,9 @@ internal sealed class OptimizedInserters
                 continue;
             }
 
-            var optimizedInserters = new OptimizedInserters();
+            var optimizedInserters = new OptimizedEntityLogic();
             optimizedInserters.InitializeData(planet);
-            _planetToOptimizedInserters.Add(planet, optimizedInserters);
+            _planetToOptimizedEntities.Add(planet, optimizedInserters);
         }
     }
 
@@ -930,7 +929,7 @@ internal sealed class OptimizedInserters
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.SaveCurrentGame))]
     private static void SaveCurrentGame_Prefix()
     {
-        WeaverFixes.Logger.LogMessage($"Saving {nameof(OptimizedInserters)}");
+        WeaverFixes.Logger.LogMessage($"Saving {nameof(OptimizedEntityLogic)}");
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
@@ -940,7 +939,7 @@ internal sealed class OptimizedInserters
                 continue;
             }
 
-            if (_planetToOptimizedInserters.TryGetValue(planet, out OptimizedInserters optimizedInserters))
+            if (_planetToOptimizedEntities.TryGetValue(planet, out OptimizedEntityLogic optimizedInserters))
             {
                 optimizedInserters.Save(planet);
             }
@@ -958,8 +957,7 @@ internal sealed class OptimizedInserters
 
     private void InitializeInserters(PlanetFactory planet)
     {
-        int[] inserterNetworkIds = new int[planet.factorySystem.inserterCursor];
-        InserterState[] inserterStates = new InserterState[planet.factorySystem.inserterCursor];
+        NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = new NetworkIdAndState<InserterState>[planet.factorySystem.inserterCursor];
         InserterConnections[] inserterConnections = new InserterConnections[planet.factorySystem.inserterCursor];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
@@ -967,11 +965,9 @@ internal sealed class OptimizedInserters
             ref InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
             if (inserter.id != i)
             {
-                inserterStates[i] = InserterState.InactiveNoInserter;
+                inserterNetworkIdAndStates[i] = new NetworkIdAndState<InserterState>((int)InserterState.InactiveNoInserter, 0);
                 continue;
             }
-
-            inserterNetworkIds[i] = planet.powerSystem.consumerPool[inserter.pcId].networkId;
 
             InserterState? inserterState = null;
             TypedObjectIndex pickFrom = new TypedObjectIndex(EntityType.None, 0);
@@ -1002,7 +998,7 @@ internal sealed class OptimizedInserters
                 planet.entitySignPool[inserter.entityId].signType = 10u;
             }
 
-            inserterStates[i] = inserterState ?? InserterState.Active;
+            inserterNetworkIdAndStates[i] = new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), planet.powerSystem.consumerPool[inserter.pcId].networkId);
             inserterConnections[i] = new InserterConnections(pickFrom, insertInto);
 
             // Need to check when i need to update this again.
@@ -1038,8 +1034,7 @@ internal sealed class OptimizedInserters
             }
         }
 
-        _inserterNetworkIds = inserterNetworkIds;
-        _inserterStates = inserterStates;
+        _inserterNetworkIdAndStates = inserterNetworkIdAndStates;
         _inserterConnections = inserterConnections;
     }
 
@@ -1199,7 +1194,7 @@ internal sealed class OptimizedInserters
                     if (!isActive)
                     {
                         PlanetFactory planet = __instance.inserterFactories[k];
-                        OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                        OptimizedEntityLogic optimizedInserters = _planetToOptimizedEntities[planet];
                         optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, __instance.inserterFactories[k].factorySystem.inserterCursor);
                     }
                     else
@@ -1221,7 +1216,7 @@ internal sealed class OptimizedInserters
                 if (!isActive)
                 {
                     PlanetFactory planet = __instance.inserterFactories[k];
-                    OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                    OptimizedEntityLogic optimizedInserters = _planetToOptimizedEntities[planet];
                     optimizedInserters.GameTickInserters(planet, __instance.inserterTime, isActive, num5, num6);
                 }
                 else
@@ -1254,7 +1249,8 @@ internal sealed class OptimizedInserters
         _end = ((_end > planet.factorySystem.inserterCursor) ? planet.factorySystem.inserterCursor : _end);
         for (int j = _start; j < _end; j++)
         {
-            InserterState inserterState = _inserterStates[j];
+            NetworkIdAndState<InserterState> networkIdAndState = _inserterNetworkIdAndStates[j];
+            InserterState inserterState = (InserterState)networkIdAndState.State;
             if (inserterState != InserterState.Active)
             {
                 if (inserterState == InserterState.InactiveNoInserter ||
@@ -1269,7 +1265,7 @@ internal sealed class OptimizedInserters
                         continue;
                     }
 
-                    _inserterStates[j] = InserterState.Active;
+                    _inserterNetworkIdAndStates[j].State = (int)InserterState.Active;
                 }
                 else if (inserterState == InserterState.InactiveInsertInto)
                 {
@@ -1278,12 +1274,12 @@ internal sealed class OptimizedInserters
                         continue;
                     }
 
-                    _inserterStates[j] = InserterState.Active;
+                    _inserterNetworkIdAndStates[j].State = (int)InserterState.Active;
                 }
             }
 
             ref InserterComponent reference2 = ref planet.factorySystem.inserterPool[j];
-            float power2 = networkServes[_inserterNetworkIds[j]];
+            float power2 = networkServes[networkIdAndState.Index];
             if (reference2.bidirectional)
             {
                 InternalUpdate_Bidirectional(planet, ref reference2, entityNeeds, entityAnimPool, power2, isActive);
@@ -1304,7 +1300,7 @@ internal sealed class OptimizedInserters
         if (power < 0.1f)
         {
             // Not sure it is worth optimizing low power since it should be a rare occurrence in a large factory
-            _inserterStates[inserter.id] = InserterState.Active;
+            _inserterNetworkIdAndStates[inserter.id].State = (int)InserterState.Active;
             return;
         }
         bool flag = false;
@@ -1397,7 +1393,7 @@ internal sealed class OptimizedInserters
                                     inserter.itemInc += inc;
                                     inserter.stackCount++;
                                     flag = true;
-                                    _inserterStates[inserter.id] = InserterState.Active;
+                                    _inserterNetworkIdAndStates[inserter.id].State = (int)InserterState.Active;
                                 }
                                 else
                                 {
@@ -1572,7 +1568,7 @@ internal sealed class OptimizedInserters
             if (assemblerState != AssemblerState.Active &&
                 assemblerState != AssemblerState.InactiveOutputFull)
             {
-                _inserterStates[inserterId] = InserterState.InactivePickFrom;
+                _inserterNetworkIdAndStates[inserterId].State = (int)InserterState.InactivePickFrom;
                 return 0;
             }
 
@@ -1828,7 +1824,7 @@ internal sealed class OptimizedInserters
             if (assemblerState != AssemblerState.Active &&
                 assemblerState != AssemblerState.InactiveInputMissing)
             {
-                _inserterStates[inserterId] = InserterState.InactiveInsertInto;
+                _inserterNetworkIdAndStates[inserterId].State = (int)InserterState.InactiveInsertInto;
                 return 0;
             }
 
@@ -2157,7 +2153,7 @@ internal sealed class OptimizedInserters
                     if (!isActive)
                     {
                         PlanetFactory planet = __instance.assemblerFactories[i];
-                        OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                        OptimizedEntityLogic optimizedInserters = _planetToOptimizedEntities[planet];
                         optimizedInserters.GameTick(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
                     }
                     else
@@ -2179,7 +2175,7 @@ internal sealed class OptimizedInserters
                     if (!isActive)
                     {
                         PlanetFactory planet = __instance.assemblerFactories[i];
-                        OptimizedInserters optimizedInserters = _planetToOptimizedInserters[planet];
+                        OptimizedEntityLogic optimizedInserters = _planetToOptimizedEntities[planet];
                         optimizedInserters.GameTickLabProduceMode(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
                     }
                     else
