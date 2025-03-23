@@ -49,7 +49,7 @@ public class WeaverFixes : BaseUnityPlugin
         //InserterThreadLoadBalance.EnableOptimization();
         //InserterMultithreadingOptimization.EnableOptimization();
         LinearInserterDataAccessOptimization.EnableOptimization();
-        OptimizedEntityLogic.EnableOptimization();
+        OptimizedPlanet.EnableOptimization();
         GraphStatistics.Enable();
     }
 }

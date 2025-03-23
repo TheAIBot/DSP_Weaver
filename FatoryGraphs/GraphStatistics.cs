@@ -20,6 +20,8 @@ internal static class GraphStatistics
 
         List<Graph> allGraphs = [];
 
+        Dictionary<int, int> gradeToCount = [];
+
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
             PlanetFactory planet = GameMain.data.factories[i];
@@ -39,6 +41,24 @@ internal static class GraphStatistics
             {
                 WeaverFixes.Logger.LogMessage($"\t\t{item.Key:N0}: {item.Count():N0}");
             }
+
+            for (int inserterIndex = 1; inserterIndex < factory.inserterCursor; inserterIndex++)
+            {
+                ref readonly InserterComponent inserter = ref factory.inserterPool[inserterIndex];
+                if (inserter.id != inserterIndex)
+                {
+                    continue;
+                }
+
+                if (gradeToCount.TryGetValue(inserter.grade, out int count))
+                {
+                    gradeToCount[inserter.grade]++;
+                }
+                else
+                {
+                    gradeToCount.Add(inserter.grade, 1);
+                }
+            }
         }
 
         WeaverFixes.Logger.LogMessage($"Entity type counts");
@@ -47,7 +67,18 @@ internal static class GraphStatistics
             int entityTypeCount = allGraphs.SelectMany(x => x.GetAllNodes())
                                            .Where(x => x.EntityTypeIndex.EntityType == entityType)
                                            .Count();
-            WeaverFixes.Logger.LogMessage($"\t{entityType}: {entityTypeCount:N0}");
+            if (entityType == EntityType.Inserter)
+            {
+                WeaverFixes.Logger.LogMessage($"\t{entityType}: {entityTypeCount:N0}");
+                foreach (KeyValuePair<int, int> inserterGradeCount in gradeToCount.OrderBy(x => x.Key))
+                {
+                    WeaverFixes.Logger.LogMessage($"\t\t{inserterGradeCount.Key}: {inserterGradeCount.Value:N0}");
+                }
+            }
+            else
+            {
+                WeaverFixes.Logger.LogMessage($"\t{entityType}: {entityTypeCount:N0}");
+            }
         }
     }
 }
