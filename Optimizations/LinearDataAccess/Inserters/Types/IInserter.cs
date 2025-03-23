@@ -13,5 +13,6 @@ internal interface IInserter<T>
                 ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                 ref readonly InserterConnections inserterConnections,
                 ref readonly int[] inserterConnectionNeeds,
+                PickFromProducingPlant[] pickFromProducingPlants,
                 InserterGrade inserterGrade);
 }

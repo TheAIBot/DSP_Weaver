@@ -54,6 +54,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                        ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                        ref readonly InserterConnections inserterConnections,
                        ref readonly int[] inserterConnectionNeeds,
+                       PickFromProducingPlant[] pickFromProducingPlants,
                        InserterGrade inserterGrade)
     {
         if (power < 0.1f)
@@ -76,7 +77,17 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                                 int[] array = inserterConnectionNeeds;
                                 if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                                 {
-                                    num = OptimizedPlanet.PickFrom(planet, optimizedPlanet, ref inserterNetworkIdAndState, in inserterConnections, pickOffset, filter, array, out stack, out inc);
+                                    num = OptimizedPlanet.PickFrom(planet,
+                                                                   optimizedPlanet,
+                                                                   ref inserterNetworkIdAndState,
+                                                                   in inserterConnections,
+                                                                   inserterIndex,
+                                                                   pickFromProducingPlants,
+                                                                   pickOffset,
+                                                                   filter,
+                                                                   array,
+                                                                   out stack,
+                                                                   out inc);
                                     if (num > 0)
                                     {
                                         itemId = num;
@@ -94,7 +105,17 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         }
                         else
                         {
-                            num = OptimizedPlanet.PickFrom(planet, optimizedPlanet, ref inserterNetworkIdAndState, in inserterConnections, pickOffset, filter, null, out stack, out inc);
+                            num = OptimizedPlanet.PickFrom(planet,
+                                                           optimizedPlanet,
+                                                           ref inserterNetworkIdAndState,
+                                                           in inserterConnections,
+                                                           inserterIndex,
+                                                           pickFromProducingPlants,
+                                                           pickOffset,
+                                                           filter,
+                                                           null,
+                                                           out stack,
+                                                           out inc);
                             if (num > 0)
                             {
                                 itemId = num;
@@ -114,7 +135,17 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                                 int[] array2 = inserterConnectionNeeds;
                                 if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
                                 {
-                                    if (OptimizedPlanet.PickFrom(planet, optimizedPlanet, ref inserterNetworkIdAndState, in inserterConnections, pickOffset, itemId, array2, out stack, out inc) > 0)
+                                    if (OptimizedPlanet.PickFrom(planet,
+                                                                 optimizedPlanet,
+                                                                 ref inserterNetworkIdAndState,
+                                                                 in inserterConnections,
+                                                                 inserterIndex,
+                                                                 pickFromProducingPlants,
+                                                                 pickOffset,
+                                                                 itemId,
+                                                                 array2,
+                                                                 out stack,
+                                                                 out inc) > 0)
                                     {
                                         itemCount += stack;
                                         itemInc += inc;
@@ -128,7 +159,17 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                                 }
                             }
                         }
-                        else if (OptimizedPlanet.PickFrom(planet, optimizedPlanet, ref inserterNetworkIdAndState, in inserterConnections, pickOffset, itemId, null, out stack, out inc) > 0)
+                        else if (OptimizedPlanet.PickFrom(planet,
+                                                          optimizedPlanet,
+                                                          ref inserterNetworkIdAndState,
+                                                          in inserterConnections,
+                                                          inserterIndex,
+                                                          pickFromProducingPlants,
+                                                          pickOffset,
+                                                          itemId,
+                                                          null,
+                                                          out stack,
+                                                          out inc) > 0)
                         {
                             itemCount += stack;
                             itemInc += inc;

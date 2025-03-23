@@ -5,6 +5,8 @@ using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;
 
+internal record struct PickFromProducingPlant(int[] Products, int[] Produced);
+
 internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     where T : struct, IInserter<T>
 {
@@ -14,6 +16,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     public InserterConnections[] _inserterConnections;
     public int[][] _inserterConnectionNeeds;
     public int[] _optimizedInserterToInserterIndex;
+    public PickFromProducingPlant[] _pickFromProducingPlants;
 
     public int inserterCount => _optimizedInserters.Length;
 
@@ -25,7 +28,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
          List<InserterGrade> inserterGrades,
          Dictionary<InserterGrade, int> inserterGradeToIndex,
          List<T> optimizedInserters,
-         List<int> optimizedInserterToInserterIndex)
+         List<int> optimizedInserterToInserterIndex,
+         List<PickFromProducingPlant> pickFromProducingPlants)
             = InitializeInserters<T>(planet, inserterSelector);
 
         _inserterNetworkIdAndStates = inserterNetworkIdAndStates.ToArray();
@@ -34,6 +38,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         _inserterGrades = inserterGrades.ToArray();
         _optimizedInserters = optimizedInserters.ToArray();
         _optimizedInserterToInserterIndex = optimizedInserterToInserterIndex.ToArray();
+        _pickFromProducingPlants = pickFromProducingPlants.ToArray();
     }
 
     public T Create(ref readonly InserterComponent inserter, int grade)
@@ -94,6 +99,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                                      ref networkIdAndState,
                                      in _inserterConnections[inserterIndex],
                                      in _inserterConnectionNeeds[inserterIndex],
+                                     _pickFromProducingPlants,
                                      inserterGrade);
         }
     }
@@ -130,7 +136,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                     List<InserterGrade> inserterGrades,
                     Dictionary<InserterGrade, int> inserterGradeToIndex,
                     List<TInserter> optimizedInserters,
-                    List<int> optimizedInserterToInserterIndex)
+                    List<int> optimizedInserterToInserterIndex,
+                    List<PickFromProducingPlant> pickFromProducingPlants)
         InitializeInserters<TInserter>(PlanetFactory planet, Func<InserterComponent, bool> inserterSelector)
         where TInserter : struct, IInserter<TInserter>
     {
@@ -141,6 +148,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         Dictionary<InserterGrade, int> inserterGradeToIndex = [];
         List<TInserter> optimizedInserters = [];
         List<int> optimizedInserterToInserterIndex = [];
+        List<PickFromProducingPlant> pickFromProducingPlants = [];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
@@ -219,6 +227,21 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
 
             optimizedInserters.Add(default(TInserter).Create(in inserter, inserterGradeIndex));
             optimizedInserterToInserterIndex.Add(i);
+
+            if (pickFrom.EntityType == EntityType.Assembler)
+            {
+                ref readonly AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[pickFrom.Index];
+                pickFromProducingPlants.Add(new PickFromProducingPlant(assembler.products, assembler.produced));
+            }
+            else if (pickFrom.EntityType == EntityType.Lab && !planet.factorySystem.labPool[pickFrom.Index].researchMode)
+            {
+                ref readonly LabComponent lab = ref planet.factorySystem.labPool[pickFrom.Index];
+                pickFromProducingPlants.Add(new PickFromProducingPlant(lab.products, lab.produced));
+            }
+            else
+            {
+                pickFromProducingPlants.Add(default);
+            }
         }
 
         return (inserterNetworkIdAndStates,
@@ -227,6 +250,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 inserterGrades,
                 inserterGradeToIndex,
                 optimizedInserters,
-                optimizedInserterToInserterIndex);
+                optimizedInserterToInserterIndex,
+                pickFromProducingPlants);
     }
 }

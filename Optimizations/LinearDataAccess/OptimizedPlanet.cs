@@ -313,6 +313,8 @@ internal sealed class OptimizedPlanet
                                OptimizedPlanet optimizedPlanet,
                                ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                                ref readonly InserterConnections inserterConnections,
+                               int inserterIndex,
+                               PickFromProducingPlant[] pickFromProducingPlants,
                                int offset,
                                int filter,
                                int[] needs,
@@ -346,12 +348,10 @@ internal sealed class OptimizedPlanet
                 return 0;
             }
 
-            int[] products = planet.factorySystem.assemblerPool[objectIndex].products;
-            int[] produced = planet.factorySystem.assemblerPool[objectIndex].produced;
-            if (products == null)
-            {
-                throw new InvalidOperationException($"{nameof(products)} should only be null if assembler is inactive which the above if statement should have caught.");
-            }
+            PickFromProducingPlant producingPlant = pickFromProducingPlants[inserterIndex];
+            int[] products = producingPlant.Products;
+            int[] produced = producingPlant.Produced;
+
             int num = products.Length;
             switch (num)
             {
@@ -531,8 +531,9 @@ internal sealed class OptimizedPlanet
         }
         else if (typedObjectIndex.EntityType == EntityType.Lab)
         {
-            int[] products2 = planet.factorySystem.labPool[objectIndex].products;
-            int[] produced2 = planet.factorySystem.labPool[objectIndex].produced;
+            PickFromProducingPlant producingPlant = pickFromProducingPlants[inserterIndex];
+            int[] products2 = producingPlant.Products;
+            int[] produced2 = producingPlant.Produced;
             if (products2 == null || produced2 == null)
             {
                 return 0;
