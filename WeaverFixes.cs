@@ -2,7 +2,7 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.LoadBalance;
+using Weaver.Optimizations.LinearDataAccess;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver;
