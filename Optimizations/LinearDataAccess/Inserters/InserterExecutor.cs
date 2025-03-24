@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;
@@ -20,7 +21,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
 
     public int inserterCount => _optimizedInserters.Length;
 
-    public void Initialize(PlanetFactory planet, Func<InserterComponent, bool> inserterSelector)
+    public void Initialize(PlanetFactory planet, OptimizedPlanet optimizedPlanet, Func<InserterComponent, bool> inserterSelector)
     {
         (List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates,
          List<InserterConnections> inserterConnections,
@@ -30,7 +31,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
          List<T> optimizedInserters,
          List<int> optimizedInserterToInserterIndex,
          List<PickFromProducingPlant> pickFromProducingPlants)
-            = InitializeInserters<T>(planet, inserterSelector);
+            = InitializeInserters<T>(planet, optimizedPlanet, inserterSelector);
 
         _inserterNetworkIdAndStates = inserterNetworkIdAndStates.ToArray();
         _inserterConnections = inserterConnections.ToArray();
@@ -138,7 +139,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                     List<TInserter> optimizedInserters,
                     List<int> optimizedInserterToInserterIndex,
                     List<PickFromProducingPlant> pickFromProducingPlants)
-        InitializeInserters<TInserter>(PlanetFactory planet, Func<InserterComponent, bool> inserterSelector)
+        InitializeInserters<TInserter>(PlanetFactory planet, OptimizedPlanet optimizedPlanet, Func<InserterComponent, bool> inserterSelector)
         where TInserter : struct, IInserter<TInserter>
     {
         List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates = [];
@@ -162,7 +163,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             TypedObjectIndex pickFrom = new TypedObjectIndex(EntityType.None, 0);
             if (inserter.pickTarget != 0)
             {
-                pickFrom = OptimizedPlanet.GetAsTypedObjectIndex(inserter.pickTarget, planet.entityPool);
+                pickFrom = optimizedPlanet.GetAsTypedObjectIndex(inserter.pickTarget, planet.entityPool);
             }
             else
             {
@@ -171,13 +172,14 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 // Done in inserter update so doing it here for the same condition since
                 // inserter will not run when inactive
                 planet.entitySignPool[inserter.entityId].signType = 10u;
+                continue;
             }
 
             TypedObjectIndex insertInto = new TypedObjectIndex(EntityType.None, 0);
             int[] insertIntoNeeds = null;
             if (inserter.insertTarget != 0)
             {
-                insertInto = OptimizedPlanet.GetAsTypedObjectIndex(inserter.insertTarget, planet.entityPool);
+                insertInto = optimizedPlanet.GetAsTypedObjectIndex(inserter.insertTarget, planet.entityPool);
                 insertIntoNeeds = OptimizedPlanet.GetEntityNeeds(planet, inserter.insertTarget);
             }
             else
@@ -187,6 +189,12 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 // Done in inserter update so doing it here for the same condition since
                 // inserter will not run when inactive
                 planet.entitySignPool[inserter.entityId].signType = 10u;
+                continue;
+            }
+
+            if (pickFrom.EntityType == EntityType.None || insertInto.EntityType == EntityType.None)
+            {
+                continue;
             }
 
             inserterNetworkIdAndStates.Add(new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), planet.powerSystem.consumerPool[inserter.pcId].networkId));
@@ -230,8 +238,9 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
 
             if (pickFrom.EntityType == EntityType.Assembler)
             {
-                ref readonly AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[pickFrom.Index];
-                pickFromProducingPlants.Add(new PickFromProducingPlant(assembler.products, assembler.produced));
+                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._optimizedAssemblers[pickFrom.Index];
+                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerRecipes[assembler.assemblerRecipeIndex];
+                pickFromProducingPlants.Add(new PickFromProducingPlant(assemblerRecipe.Products, assembler.produced));
             }
             else if (pickFrom.EntityType == EntityType.Lab && !planet.factorySystem.labPool[pickFrom.Index].researchMode)
             {

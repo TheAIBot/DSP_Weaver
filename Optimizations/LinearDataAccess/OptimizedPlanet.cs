@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
@@ -16,8 +17,12 @@ internal sealed class OptimizedPlanet
     InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
     InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
 
-    private int[] _assemblerNetworkIds;
+    public int[] _assemblerNetworkIds;
     public AssemblerState[] _assemblerStates;
+    public OptimizedAssembler[] _optimizedAssemblers;
+    public AssemblerRecipe[] _assemblerRecipes;
+    public Dictionary<int, int> _assemblerIdToOptimizedIndex;
+    public AssemblerExecutor _assemblerExecutor;
 
     private int[] _minerNetworkIds;
 
@@ -77,8 +82,8 @@ internal sealed class OptimizedPlanet
 
     public void InitializeData(PlanetFactory planet)
     {
-        InitializeInserters(planet);
         InitializeAssemblers(planet);
+        InitializeInserters(planet);
         InitializeMiners(planet);
         InitializeEjectors(planet);
         InitializeLabAssemblers(planet);
@@ -87,44 +92,88 @@ internal sealed class OptimizedPlanet
     private void InitializeInserters(PlanetFactory planet)
     {
         _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>();
-        _optimizedBiInserterExecutor.Initialize(planet, x => x.bidirectional);
+        _optimizedBiInserterExecutor.Initialize(planet, this, x => x.bidirectional);
 
         _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>();
-        _optimizedInserterExecutor.Initialize(planet, x => !x.bidirectional);
+        _optimizedInserterExecutor.Initialize(planet, this, x => !x.bidirectional);
     }
 
     private void InitializeAssemblers(PlanetFactory planet)
     {
-        int[] assemblerNetworkIds = new int[planet.factorySystem.assemblerCursor];
-        AssemblerState[] assemblerStates = new AssemblerState[planet.factorySystem.assemblerCursor];
+        _assemblerExecutor = new AssemblerExecutor();
+
+        List<int> assemblerNetworkIds = [];
+        List<AssemblerState> assemblerStates = [];
+        List<OptimizedAssembler> optimizedAssemblers = [];
+        Dictionary<AssemblerRecipe, int> assemblerRecipeToIndex = [];
+        List<AssemblerRecipe> assemblerRecipes = [];
+        Dictionary<int, int> assemblerIdToOptimizedIndex = [];
 
         for (int i = 0; i < planet.factorySystem.assemblerCursor; i++)
         {
-            ref readonly AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
+            ref AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
             if (assembler.id != i)
             {
-                assemblerStates[i] = AssemblerState.InactiveNoAssembler;
                 continue;
             }
 
-            assemblerNetworkIds[i] = planet.powerSystem.consumerPool[assembler.pcId].networkId;
-
             if (assembler.recipeId == 0)
             {
-                assemblerStates[i] = AssemblerState.InactiveNoRecipeSet;
+                continue;
             }
-            else
+
+            AssemblerRecipe assemblerRecipe = new AssemblerRecipe(assembler.recipeId,
+                                                                  assembler.recipeType,
+                                                                  assembler.timeSpend,
+                                                                  assembler.extraTimeSpend,
+                                                                  assembler.productive,
+                                                                  assembler.requires,
+                                                                  assembler.requireCounts,
+                                                                  assembler.products,
+                                                                  assembler.productCounts);
+            if (!assemblerRecipeToIndex.TryGetValue(assemblerRecipe, out int assemblerRecipeIndex))
             {
-                assemblerStates[i] = AssemblerState.Active;
+                assemblerRecipeIndex = assemblerRecipeToIndex.Count;
+                assemblerRecipeToIndex.Add(assemblerRecipe, assemblerRecipeIndex);
+                assemblerRecipes.Add(assemblerRecipe);
+                //WeaverFixes.Logger.LogMessage("");
+                //assemblerRecipe.Print();
             }
+
+            assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
+            assemblerNetworkIds.Add(planet.powerSystem.consumerPool[assembler.pcId].networkId);
+            assemblerStates.Add(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active);
+            optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex,
+                                                           assembler.pcId,
+                                                           assembler.forceAccMode,
+                                                           assembler.speed,
+                                                           assembler.served,
+                                                           assembler.incServed,
+                                                           assembler.needs,
+                                                           assembler.produced,
+                                                           assembler.replicating,
+                                                           assembler.incUsed,
+                                                           assembler.speedOverride,
+                                                           assembler.time,
+                                                           assembler.extraTime,
+                                                           assembler.cycleCount,
+                                                           assembler.extraCycleCount,
+                                                           assembler.extraSpeed,
+                                                           assembler.extraPowerRatio));
+
 
             // set it here so we don't have to set it in the update loop.
             // Need to remember to update it when the assemblers recipe is changed.
             planet.entityNeeds[assembler.entityId] = assembler.needs;
         }
 
-        _assemblerNetworkIds = assemblerNetworkIds;
-        _assemblerStates = assemblerStates;
+        _assemblerNetworkIds = assemblerNetworkIds.ToArray();
+        _assemblerStates = assemblerStates.ToArray();
+        _assemblerRecipes = assemblerRecipes.ToArray();
+        _optimizedAssemblers = optimizedAssemblers.ToArray();
+        _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
+
+        WeaverFixes.Logger.LogMessage($"Assembler Recipes: {_assemblerRecipes.Length}");
     }
 
     private void InitializeMiners(PlanetFactory planet)
@@ -619,8 +668,9 @@ internal sealed class OptimizedPlanet
             {
                 throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
             }
-            ref AssemblerComponent reference = ref planet.factorySystem.assemblerPool[objectIndex];
-            int[] requires = reference.requires;
+            OptimizedAssembler reference = optimizedPlanet._optimizedAssemblers[objectIndex];
+            AssemblerRecipe assemblerRecipe = optimizedPlanet._assemblerRecipes[reference.assemblerRecipeIndex];
+            int[] requires = assemblerRecipe.Requires;
             int num = requires.Length;
             if (0 < num && requires[0] == itemId)
             {
@@ -1048,20 +1098,9 @@ internal sealed class OptimizedPlanet
                 }
             }
         }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.assemblerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int k = _start; k < _end; k++)
-            {
-                if (_assemblerStates[k] != AssemblerState.Active)
-                {
-                    continue;
-                }
 
-                float power = networkServes[_assemblerNetworkIds[k]];
-                factorySystem.assemblerPool[k].UpdateNeeds();
-                _assemblerStates[k] = AssemblerInternalUpdate(ref factorySystem.assemblerPool[k], power, productRegister, consumeRegister);
-            }
-        }
+        _assemblerExecutor.GameTick(planet, this, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
             for (int l = _start; l < _end; l++)
@@ -1143,213 +1182,6 @@ internal sealed class OptimizedPlanet
         }
     }
 
-    private AssemblerState AssemblerInternalUpdate(ref AssemblerComponent assembler, float power, int[] productRegister, int[] consumeRegister)
-    {
-        if (power < 0.1f)
-        {
-            // Lets not deal with missing power for now. Just check every tick.
-            return AssemblerState.Active;
-        }
-
-        if (assembler.extraTime >= assembler.extraTimeSpend)
-        {
-            int num = assembler.products.Length;
-            if (num == 1)
-            {
-                assembler.produced[0] += assembler.productCounts[0];
-                lock (productRegister)
-                {
-                    productRegister[assembler.products[0]] += assembler.productCounts[0];
-                }
-            }
-            else
-            {
-                for (int i = 0; i < num; i++)
-                {
-                    assembler.produced[i] += assembler.productCounts[i];
-                    lock (productRegister)
-                    {
-                        productRegister[assembler.products[i]] += assembler.productCounts[i];
-                    }
-                }
-            }
-            assembler.extraCycleCount++;
-            assembler.extraTime -= assembler.extraTimeSpend;
-        }
-        if (assembler.time >= assembler.timeSpend)
-        {
-            assembler.replicating = false;
-            if (assembler.products.Length == 1)
-            {
-                switch (assembler.recipeType)
-                {
-                    case ERecipeType.Smelt:
-                        if (assembler.produced[0] + assembler.productCounts[0] > 100)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                        break;
-                    case ERecipeType.Assemble:
-                        if (assembler.produced[0] > assembler.productCounts[0] * 9)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                        break;
-                    default:
-                        if (assembler.produced[0] > assembler.productCounts[0] * 19)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                        break;
-                }
-                assembler.produced[0] += assembler.productCounts[0];
-                lock (productRegister)
-                {
-                    productRegister[assembler.products[0]] += assembler.productCounts[0];
-                }
-            }
-            else
-            {
-                int num2 = assembler.products.Length;
-                if (assembler.recipeType == ERecipeType.Refine)
-                {
-                    for (int j = 0; j < num2; j++)
-                    {
-                        if (assembler.produced[j] > assembler.productCounts[j] * 19)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                    }
-                }
-                else if (assembler.recipeType == ERecipeType.Particle)
-                {
-                    for (int k = 0; k < num2; k++)
-                    {
-                        if (assembler.produced[k] > assembler.productCounts[k] * 19)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                    }
-                }
-                else if (assembler.recipeType == ERecipeType.Chemical)
-                {
-                    for (int l = 0; l < num2; l++)
-                    {
-                        if (assembler.produced[l] > assembler.productCounts[l] * 19)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                    }
-                }
-                else if (assembler.recipeType == ERecipeType.Smelt)
-                {
-                    for (int m = 0; m < num2; m++)
-                    {
-                        if (assembler.produced[m] + assembler.productCounts[m] > 100)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                    }
-                }
-                else if (assembler.recipeType == ERecipeType.Assemble)
-                {
-                    for (int n = 0; n < num2; n++)
-                    {
-                        if (assembler.produced[n] > assembler.productCounts[n] * 9)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                    }
-                }
-                else
-                {
-                    for (int num3 = 0; num3 < num2; num3++)
-                    {
-                        if (assembler.produced[num3] > assembler.productCounts[num3] * 19)
-                        {
-                            return AssemblerState.InactiveOutputFull;
-                        }
-                    }
-                }
-                for (int num4 = 0; num4 < num2; num4++)
-                {
-                    assembler.produced[num4] += assembler.productCounts[num4];
-                    lock (productRegister)
-                    {
-                        productRegister[assembler.products[num4]] += assembler.productCounts[num4];
-                    }
-                }
-            }
-            assembler.extraSpeed = 0;
-            assembler.speedOverride = assembler.speed;
-            assembler.extraPowerRatio = 0;
-            assembler.cycleCount++;
-            assembler.time -= assembler.timeSpend;
-        }
-        if (!assembler.replicating)
-        {
-            int num5 = assembler.requireCounts.Length;
-            for (int num6 = 0; num6 < num5; num6++)
-            {
-                if (assembler.incServed[num6] <= 0)
-                {
-                    assembler.incServed[num6] = 0;
-                }
-                if (assembler.served[num6] < assembler.requireCounts[num6] || assembler.served[num6] == 0)
-                {
-                    assembler.time = 0;
-                    return AssemblerState.InactiveInputMissing;
-                }
-            }
-            int num7 = ((num5 > 0) ? 10 : 0);
-            for (int num8 = 0; num8 < num5; num8++)
-            {
-                int num9 = assembler.split_inc_level(ref assembler.served[num8], ref assembler.incServed[num8], assembler.requireCounts[num8]);
-                num7 = ((num7 < num9) ? num7 : num9);
-                if (!assembler.incUsed)
-                {
-                    assembler.incUsed = num9 > 0;
-                }
-                if (assembler.served[num8] == 0)
-                {
-                    assembler.incServed[num8] = 0;
-                }
-                lock (consumeRegister)
-                {
-                    consumeRegister[assembler.requires[num8]] += assembler.requireCounts[num8];
-                }
-            }
-            if (num7 < 0)
-            {
-                num7 = 0;
-            }
-            if (assembler.productive && !assembler.forceAccMode)
-            {
-                assembler.extraSpeed = (int)((double)assembler.speed * Cargo.incTableMilli[num7] * 10.0 + 0.1);
-                assembler.speedOverride = assembler.speed;
-                assembler.extraPowerRatio = Cargo.powerTable[num7];
-            }
-            else
-            {
-                assembler.extraSpeed = 0;
-                assembler.speedOverride = (int)((double)assembler.speed * (1.0 + Cargo.accTableMilli[num7]) + 0.1);
-                assembler.extraPowerRatio = Cargo.powerTable[num7];
-            }
-            assembler.replicating = true;
-        }
-        if (assembler.replicating && assembler.time < assembler.timeSpend && assembler.extraTime < assembler.extraTimeSpend)
-        {
-            assembler.time += (int)(power * (float)assembler.speedOverride);
-            assembler.extraTime += (int)(power * (float)assembler.extraSpeed);
-        }
-        if (!assembler.replicating)
-        {
-            throw new InvalidOperationException("I do not think this is possible. Not sure why it is in the game.");
-            //return 0u;
-        }
-        return AssemblerState.Active;
-    }
-
     private void GameTickLabProduceMode(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         if (!WorkerThreadExecutor.CalculateMissionIndex(1, planet.factorySystem.labCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
@@ -1380,7 +1212,8 @@ internal sealed class OptimizedPlanet
             lab.InternalUpdateAssemble(power, productRegister, consumeRegister);
         }
     }
-    public static TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
+
+    public TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
     {
         ref readonly EntityData entity = ref entities[index];
         if (entity.beltId != 0)
@@ -1389,7 +1222,12 @@ internal sealed class OptimizedPlanet
         }
         else if (entity.assemblerId != 0)
         {
-            return new TypedObjectIndex(EntityType.Assembler, entity.assemblerId);
+            if (!_assemblerIdToOptimizedIndex.TryGetValue(entity.assemblerId, out int optimizedAssemblerIndex))
+            {
+                return new TypedObjectIndex(EntityType.None, entity.assemblerId);
+            }
+
+            return new TypedObjectIndex(EntityType.Assembler, optimizedAssemblerIndex);
         }
         else if (entity.ejectorId != 0)
         {

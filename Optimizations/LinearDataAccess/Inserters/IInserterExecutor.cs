@@ -7,7 +7,7 @@ internal interface IInserterExecutor
 {
     int inserterCount { get; }
 
-    void Initialize(PlanetFactory planet, Func<InserterComponent, bool> inserterSelector);
+    void Initialize(PlanetFactory planet, OptimizedPlanet optimizedPlanet, Func<InserterComponent, bool> inserterSelector);
 
     int GetUnoptimizedInserterIndex(int optimizedInserterIndex);
 
