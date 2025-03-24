@@ -1,4 +1,11 @@
-﻿# Optimizations
+﻿# Mod compatibility
+
+The following is a non exhaustive list of compatible mods:
+* SphereOpt
+* DSPOptimizations
+
+
+# Optimizations
 
 The games performance seems to be hamstrung by the following two issues.
 	* Memory bandwith
@@ -62,6 +69,13 @@ On my own machine the game would not scale beyond 8 threads without this mod. Wi
 7. Statistics
 	* Statistics are not computed for planets that have nothing built on them.
 	* Statistics arrays are not cleared on each tick for planets where nothing is built.
+
+# How it works
+
+Upon loading a save the mod converts the game internal represenation of the factory on each planet into a new optimized format.
+The mod then hijacks the games simulation for select entities and replaces it with its own optimized simulation.
+The optimized format lacks all information related to rendering and player interaction so when a player descends onto a planet the mod reverts the simulation logic that planet back the the games original logic.
+Once a player leaves again the mod will recreate the optimized format of that planet and use its optimized simulation for it again. This process may cause a brief lag spike when leaving a planet with a lot of entities.
 
 
 # Issues
