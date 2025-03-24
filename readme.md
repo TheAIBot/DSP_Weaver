@@ -48,9 +48,9 @@ On my own machine the game would not scale beyond 8 threads without this mod. Wi
 		* Optimizations
 			* Which type of entity and its id it is picking items from.
 			* Which type of entity and its id it is inserting items into.
-		* Replaces random indirect data access with linear direct data access, reduces memory bandwith required.
+		* Replaces random indirect data access with linear direct data access, reduces memory bandwidth required.
 	* When picking items from assemblers the inserter no longer has to read the assembler itself. Instead it reads from an array that contains the exact data required.
-		* Replaces random indirect data access with linear direct data access, reduces memory bandwith required.
+		* Replaces random indirect data access with linear direct data access, reduces memory bandwidth required.
 3. Labs
 	* State and network id of item producing labs is stored in a separate compact `int` array.
 		* States
@@ -60,10 +60,10 @@ On my own machine the game would not scale beyond 8 threads without this mod. Wi
 		* Reduce computation and memory bandwith required of inserters that can not do anything.
 4. Miners
 	* Network id that miner siphons power from is stored in separate array.
-		* Replaces random indirect data access with linear direct data access, reduces memory bandwith required.
+		* Replaces random indirect data access with linear direct data access, reduces memory bandwidth required.
 5. Ejectors
 	* Network id that ejector siphons power from is stored in separate array.
-		* Replaces random indirect data access with linear direct data access, reduces memory bandwith required.
+		* Replaces random indirect data access with linear direct data access, reduces memory bandwidth required.
 6. Use `[StructLayout(LayoutKind.Auto)]` to reduce size of new structs.
 	* Reduces memory bandwith required.
 7. Statistics
@@ -85,3 +85,8 @@ Once a player leaves again the mod will recreate the optimized format of that pl
 3. Some things are being consumed too fast for some odd reason. Assume it's because of ordering inserters or assemblers. Not sure though.
 4. Mod ignores anything created/destroyed on a planet when the player is not on that planet.
 5. Some wierd random divide by zero exception in assemblers. Perhaps due to ordering inserters or assemblers. Not sure though.
+
+# Why not use Patching transpiler
+
+Frankly i don't know how to do that. I do believe i can make use of it in some cases but i am quite sure it isn't possible in all cases due to the size of changes this mod has to make to the existing code.
+I will probably get to it in the future but right now i am having fun optimizing the game. Using the transpiler will probably come after i've fixed all issues with the mod.
