@@ -105,6 +105,24 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         }
     }
 
+    public void UpdatePower(PlanetFactory planet,
+                            int _usedThreadCnt,
+                            int _curThreadIdx,
+                            int _minimumMissionCnt)
+    {
+        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedInserters.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
+        {
+            return;
+        }
+
+        PowerConsumerComponent[] consumerPool = planet.powerSystem.consumerPool;
+        T[] optimizedInserters = _optimizedInserters;
+        for (int num5 = _start; num5 < _end; num5++)
+        {
+            optimizedInserters[num5].SetPCState(consumerPool);
+        }
+    }
+
     private bool IsObjectPickFromActive(OptimizedPlanet optimizedPlanet, int inserterIndex)
     {
         TypedObjectIndex objectIndex = _inserterConnections[inserterIndex].PickFrom;

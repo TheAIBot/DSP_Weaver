@@ -302,6 +302,11 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         }
     }
 
+    public void SetPCState(PowerConsumerComponent[] pcPool)
+    {
+        pcPool[pcId].SetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
+    }
+
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch
     {
         EInserterStage.Picking => OptimizedInserterStage.Picking,

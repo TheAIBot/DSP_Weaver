@@ -12,6 +12,11 @@ internal interface IInserterExecutor
     int GetUnoptimizedInserterIndex(int optimizedInserterIndex);
 
     void GameTickInserters(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, int _start, int _end);
+
+    void UpdatePower(PlanetFactory planet,
+                     int _usedThreadCnt,
+                     int _curThreadIdx,
+                     int _minimumMissionCnt);
 }
 
 internal interface IInserterExecutor<T> : IInserterExecutor

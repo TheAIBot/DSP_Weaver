@@ -15,4 +15,6 @@ internal interface IInserter<T>
                 ref readonly int[] inserterConnectionNeeds,
                 PickFromProducingPlant[] pickFromProducingPlants,
                 InserterGrade inserterGrade);
+
+    void SetPCState(PowerConsumerComponent[] pcPool);
 }

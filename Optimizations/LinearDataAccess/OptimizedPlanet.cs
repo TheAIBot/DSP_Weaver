@@ -1213,6 +1213,101 @@ internal sealed class OptimizedPlanet
         }
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.ParallelGameTickBeforePower))]
+    public static bool ParallelGameTickBeforePower(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        PlanetFactory planet = __instance.planet.factory;
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
+        EntityData[] entityPool = planet.entityPool;
+        StationComponent[] stationPool = planet.transport.stationPool;
+        PowerConsumerComponent[] consumerPool = planet.powerSystem.consumerPool;
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.minerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
+        {
+            for (int i = _start; i < _end; i++)
+            {
+                if (__instance.minerPool[i].id == i)
+                {
+                    int stationId = entityPool[__instance.minerPool[i].entityId].stationId;
+                    if (stationId > 0)
+                    {
+                        StationStore[] array = stationPool[stationId].storage;
+                        int count = array[0].count;
+                        int max = array[0].max;
+                        max = ((max < 2000) ? 2000 : max);
+                        float num = (float)count / (float)max;
+                        num = ((num > 1f) ? 1f : num);
+                        float num2 = -2.45f * num + 2.47f;
+                        num2 = ((num2 > 1f) ? 1f : num2);
+                        __instance.minerPool[i].speedDamper = num2;
+                    }
+                    else
+                    {
+                        float num3 = (float)__instance.minerPool[i].productCount / 50f;
+                        num3 = ((num3 > 1f) ? 1f : num3);
+                        float num4 = -2.45f * num3 + 2.47f;
+                        num4 = ((num4 > 1f) ? 1f : num4);
+                        __instance.minerPool[i].speedDamper = num4;
+                    }
+                    __instance.minerPool[i].SetPCState(consumerPool);
+                }
+            }
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, optimizedPlanet._optimizedAssemblers.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            OptimizedAssembler[] optimizedAssemblers = optimizedPlanet._optimizedAssemblers;
+            for (int j = _start; j < _end; j++)
+            {
+                optimizedAssemblers[j].SetPCState(consumerPool);
+            }
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            for (int k = _start; k < _end; k++)
+            {
+                if (__instance.fractionatorPool[k].id == k)
+                {
+                    __instance.fractionatorPool[k].SetPCState(consumerPool);
+                }
+            }
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.ejectorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            for (int l = _start; l < _end; l++)
+            {
+                if (__instance.ejectorPool[l].id == l)
+                {
+                    __instance.ejectorPool[l].SetPCState(consumerPool);
+                }
+            }
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.siloCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            for (int m = _start; m < _end; m++)
+            {
+                if (__instance.siloPool[m].id == m)
+                {
+                    __instance.siloPool[m].SetPCState(consumerPool);
+                }
+            }
+        }
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.labCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            for (int n = _start; n < _end; n++)
+            {
+                if (__instance.labPool[n].id == n)
+                {
+                    __instance.labPool[n].SetPCState(consumerPool);
+                }
+            }
+        }
+
+        optimizedPlanet._optimizedBiInserterExecutor.UpdatePower(planet, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+        optimizedPlanet._optimizedInserterExecutor.UpdatePower(planet, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
     public TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
     {
         ref readonly EntityData entity = ref entities[index];

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Weaver.Optimizations.LinearDataAccess;
+namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
 [Flags]
 internal enum AssemblerState

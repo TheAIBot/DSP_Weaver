@@ -287,6 +287,11 @@ internal struct OptimizedAssembler
         return AssemblerState.Active;
     }
 
+    public void SetPCState(PowerConsumerComponent[] pcPool)
+    {
+        pcPool[pcId].SetRequiredEnergy(replicating, 1000 + extraPowerRatio);
+    }
+
     private int split_inc_level(ref int n, ref int m, int p)
     {
         int num = m / n;
