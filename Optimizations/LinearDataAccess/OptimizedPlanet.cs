@@ -1308,6 +1308,563 @@ internal sealed class OptimizedPlanet
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(PowerSystem), nameof(PowerSystem.GameTick))]
+    public static bool GameTick(PowerSystem __instance, long time, bool isActive, bool isMultithreadMode = false)
+    {
+        FactoryProductionStat factoryProductionStat = GameMain.statistics.production.factoryStatPool[__instance.factory.index];
+        int[] productRegister = factoryProductionStat.productRegister;
+        int[] consumeRegister = factoryProductionStat.consumeRegister;
+        long num = 0L;
+        long num2 = 0L;
+        long num3 = 0L;
+        long num4 = 0L;
+        long num5 = 0L;
+        float num6 = 1f / 60f;
+        PlanetData planetData = __instance.factory.planet;
+        float windStrength = planetData.windStrength;
+        float luminosity = planetData.luminosity;
+        Vector3 normalized = planetData.runtimeLocalSunDirection.normalized;
+        AnimData[] entityAnimPool = __instance.factory.entityAnimPool;
+        SignData[] entitySignPool = __instance.factory.entitySignPool;
+        if (__instance.networkServes == null || __instance.networkServes.Length != __instance.netPool.Length)
+        {
+            __instance.networkServes = new float[__instance.netPool.Length];
+        }
+        if (__instance.networkGenerates == null || __instance.networkGenerates.Length != __instance.netPool.Length)
+        {
+            __instance.networkGenerates = new float[__instance.netPool.Length];
+        }
+        bool useIonLayer = GameMain.history.useIonLayer;
+        bool useCata = time % 10 == 0;
+        Array.Clear(__instance.currentGeneratorCapacities, 0, __instance.currentGeneratorCapacities.Length);
+        Player mainPlayer = GameMain.mainPlayer;
+        Vector3 zero = Vector3.zero;
+        Vector3 vector = Vector3.zero;
+        float num7 = 0f;
+        bool flag;
+        if (mainPlayer.mecha.coreEnergyCap - mainPlayer.mecha.coreEnergy > 0.0 && mainPlayer.isAlive && mainPlayer.planetId == planetData.id)
+        {
+            float num8 = __instance.factory.planet.realRadius + 0.2f;
+            zero = (isMultithreadMode ? __instance.multithreadPlayerPos : mainPlayer.position);
+            float magnitude = zero.magnitude;
+            if (magnitude > 0f)
+            {
+                vector = zero * (num8 / magnitude);
+            }
+            flag = magnitude > num8 - 30f && magnitude < num8 + 50f;
+        }
+        else
+        {
+            flag = false;
+        }
+        lock (mainPlayer.mecha)
+        {
+            num7 = Mathf.Pow(Mathf.Clamp01((float)(1.0 - mainPlayer.mecha.coreEnergy / mainPlayer.mecha.coreEnergyCap) * 10f), 0.75f);
+        }
+        float response = ((__instance.dysonSphere != null) ? __instance.dysonSphere.energyRespCoef : 0f);
+        int num9 = (int)((float)Math.Min(Math.Abs(__instance.factory.planet.rotationPeriod), Math.Abs(__instance.factory.planet.orbitalPeriod)) * 60f / 2160f);
+        if (num9 < 1)
+        {
+            num9 = 1;
+        }
+        else if (num9 > 60)
+        {
+            num9 = 60;
+        }
+        if (__instance.factory.planet.singularity == EPlanetSingularity.TidalLocked)
+        {
+            num9 = 60;
+        }
+        bool flag2 = time % num9 == 0L || GameMain.onceGameTick <= 2;
+        int num10 = (int)(time % 90);
+        EntityData[] entityPool = __instance.factory.entityPool;
+        for (int i = 1; i < __instance.netCursor; i++)
+        {
+            PowerNetwork powerNetwork = __instance.netPool[i];
+            if (powerNetwork == null || powerNetwork.id != i)
+            {
+                continue;
+            }
+            List<int> consumers = powerNetwork.consumers;
+            int count = consumers.Count;
+            long num11 = 0L;
+            for (int j = 0; j < count; j++)
+            {
+                long requiredEnergy = __instance.consumerPool[consumers[j]].requiredEnergy;
+                num11 += requiredEnergy;
+                num2 += requiredEnergy;
+            }
+            foreach (PowerNetworkStructures.Node node in powerNetwork.nodes)
+            {
+                int id = node.id;
+                if (__instance.nodePool[id].id != id || !__instance.nodePool[id].isCharger)
+                {
+                    continue;
+                }
+                if (__instance.nodePool[id].coverRadius <= 20f)
+                {
+                    double num12 = 0.0;
+                    if (flag)
+                    {
+                        float num13 = __instance.nodePool[id].powerPoint.x * 0.988f - vector.x;
+                        float num14 = __instance.nodePool[id].powerPoint.y * 0.988f - vector.y;
+                        float num15 = __instance.nodePool[id].powerPoint.z * 0.988f - vector.z;
+                        float num16 = __instance.nodePool[id].coverRadius;
+                        if (num16 < 9f)
+                        {
+                            num16 += 2.01f;
+                        }
+                        else if (num16 > 20f)
+                        {
+                            num16 += 0.5f;
+                        }
+                        float num17 = num13 * num13 + num14 * num14 + num15 * num15;
+                        float num18 = num16 * num16;
+                        if (num17 <= num18)
+                        {
+                            double consumerRatio = powerNetwork.consumerRatio;
+                            float num19 = (num18 - num17) / (3f * num16);
+                            if (num19 > 1f)
+                            {
+                                num19 = 1f;
+                            }
+                            num12 = (double)num7 * consumerRatio * consumerRatio * (double)num19;
+                        }
+                    }
+                    double num20 = (double)__instance.nodePool[id].idleEnergyPerTick * (1.0 - num12) + (double)__instance.nodePool[id].workEnergyPerTick * num12;
+                    if (__instance.nodePool[id].requiredEnergy < __instance.nodePool[id].idleEnergyPerTick)
+                    {
+                        __instance.nodePool[id].requiredEnergy = __instance.nodePool[id].idleEnergyPerTick;
+                    }
+                    if ((double)__instance.nodePool[id].requiredEnergy < num20 - 0.01)
+                    {
+                        num20 = num20 * 0.02 + (double)__instance.nodePool[id].requiredEnergy * 0.98;
+                        __instance.nodePool[id].requiredEnergy = (int)(num20 + 0.9999);
+                    }
+                    else if ((double)__instance.nodePool[id].requiredEnergy > num20 + 0.01)
+                    {
+                        num20 = num20 * 0.2 + (double)__instance.nodePool[id].requiredEnergy * 0.8;
+                        __instance.nodePool[id].requiredEnergy = (int)num20;
+                    }
+                }
+                else
+                {
+                    __instance.nodePool[id].requiredEnergy = __instance.nodePool[id].idleEnergyPerTick;
+                }
+                long num21 = __instance.nodePool[id].requiredEnergy;
+                num11 += num21;
+                num2 += num21;
+            }
+            long num22 = 0L;
+            List<int> exchangers = powerNetwork.exchangers;
+            int count2 = exchangers.Count;
+            long num23 = 0L;
+            long num24 = 0L;
+            int num25 = 0;
+            long num26 = 0L;
+            long num27 = 0L;
+            bool flag3 = false;
+            bool flag4 = false;
+            for (int k = 0; k < count2; k++)
+            {
+                num25 = exchangers[k];
+                __instance.excPool[num25].StateUpdate();
+                __instance.excPool[num25].BeltUpdate(__instance.factory);
+                flag3 = __instance.excPool[num25].state >= 1f;
+                flag4 = __instance.excPool[num25].state <= -1f;
+                if (!flag3 && !flag4)
+                {
+                    __instance.excPool[num25].capsCurrentTick = 0L;
+                    __instance.excPool[num25].currEnergyPerTick = 0L;
+                }
+                int entityId = __instance.excPool[num25].entityId;
+                float num28 = (__instance.excPool[num25].state + 1f) * entityAnimPool[entityId].working_length * 0.5f;
+                if (num28 >= 3.99f)
+                {
+                    num28 = 3.99f;
+                }
+                entityAnimPool[entityId].time = num28;
+                entityAnimPool[entityId].state = 0u;
+                entityAnimPool[entityId].power = (float)__instance.excPool[num25].currPoolEnergy / (float)__instance.excPool[num25].maxPoolEnergy;
+                if (flag4)
+                {
+                    long num29 = __instance.excPool[num25].OutputCaps();
+                    num26 += num29;
+                    num22 = num26;
+                    __instance.currentGeneratorCapacities[__instance.excPool[num25].subId] += num29;
+                }
+                else if (flag3)
+                {
+                    num27 += __instance.excPool[num25].InputCaps();
+                }
+            }
+            List<int> generators = powerNetwork.generators;
+            int count3 = generators.Count;
+            int num30 = 0;
+            long num31 = 0L;
+            for (int l = 0; l < count3; l++)
+            {
+                num30 = generators[l];
+                if (__instance.genPool[num30].wind)
+                {
+                    num31 = __instance.genPool[num30].EnergyCap_Wind(windStrength);
+                    num22 += num31;
+                }
+                else if (__instance.genPool[num30].photovoltaic)
+                {
+                    if (flag2)
+                    {
+                        num31 = __instance.genPool[num30].EnergyCap_PV(normalized.x, normalized.y, normalized.z, luminosity);
+                        num22 += num31;
+                    }
+                    else
+                    {
+                        num31 = __instance.genPool[num30].capacityCurrentTick;
+                        num22 += num31;
+                    }
+                }
+                else if (__instance.genPool[num30].gamma)
+                {
+                    num31 = __instance.genPool[num30].EnergyCap_Gamma(response);
+                    num22 += num31;
+                }
+                else if (__instance.genPool[num30].geothermal)
+                {
+                    num31 = __instance.genPool[num30].EnergyCap_GTH();
+                    num22 += num31;
+                }
+                else
+                {
+                    num31 = __instance.genPool[num30].EnergyCap_Fuel();
+                    num22 += num31;
+                    entitySignPool[__instance.genPool[num30].entityId].signType = ((num31 <= 30) ? 8u : 0u);
+                }
+                __instance.currentGeneratorCapacities[__instance.genPool[num30].subId] += num31;
+            }
+            num += num22 - num26;
+            long num32 = num22 - num11;
+            long num33 = 0L;
+            if (num32 > 0 && powerNetwork.exportDemandRatio > 0.0)
+            {
+                if (powerNetwork.exportDemandRatio > 1.0)
+                {
+                    powerNetwork.exportDemandRatio = 1.0;
+                }
+                num33 = (long)((double)num32 * powerNetwork.exportDemandRatio + 0.5);
+                num32 -= num33;
+                num11 += num33;
+            }
+            powerNetwork.exportDemandRatio = 0.0;
+            powerNetwork.energyStored = 0L;
+            List<int> accumulators = powerNetwork.accumulators;
+            int count4 = accumulators.Count;
+            long num34 = 0L;
+            long num35 = 0L;
+            int num36 = 0;
+            if (num32 >= 0)
+            {
+                for (int m = 0; m < count4; m++)
+                {
+                    num36 = accumulators[m];
+                    __instance.accPool[num36].curPower = 0L;
+                    long num37 = __instance.accPool[num36].InputCap();
+                    if (num37 > 0)
+                    {
+                        num37 = ((num37 < num32) ? num37 : num32);
+                        __instance.accPool[num36].curEnergy += num37;
+                        __instance.accPool[num36].curPower = num37;
+                        num32 -= num37;
+                        num34 += num37;
+                        num4 += num37;
+                    }
+                    powerNetwork.energyStored += __instance.accPool[num36].curEnergy;
+                    int entityId2 = __instance.accPool[num36].entityId;
+                    entityAnimPool[entityId2].state = ((__instance.accPool[num36].curEnergy > 0) ? 1u : 0u);
+                    entityAnimPool[entityId2].power = (float)((double)__instance.accPool[num36].curEnergy / (double)__instance.accPool[num36].maxEnergy);
+                }
+            }
+            else
+            {
+                long num38 = -num32;
+                for (int n = 0; n < count4; n++)
+                {
+                    num36 = accumulators[n];
+                    __instance.accPool[num36].curPower = 0L;
+                    long num39 = __instance.accPool[num36].OutputCap();
+                    if (num39 > 0)
+                    {
+                        num39 = ((num39 < num38) ? num39 : num38);
+                        __instance.accPool[num36].curEnergy -= num39;
+                        __instance.accPool[num36].curPower = -num39;
+                        num38 -= num39;
+                        num35 += num39;
+                        num3 += num39;
+                    }
+                    powerNetwork.energyStored += __instance.accPool[num36].curEnergy;
+                    int entityId3 = __instance.accPool[num36].entityId;
+                    entityAnimPool[entityId3].state = ((__instance.accPool[num36].curEnergy > 0) ? 2u : 0u);
+                    entityAnimPool[entityId3].power = (float)((double)__instance.accPool[num36].curEnergy / (double)__instance.accPool[num36].maxEnergy);
+                }
+            }
+            double num40 = ((num32 < num27) ? ((double)num32 / (double)num27) : 1.0);
+            for (int num41 = 0; num41 < count2; num41++)
+            {
+                num25 = exchangers[num41];
+                if (__instance.excPool[num25].state >= 1f && num40 >= 0.0)
+                {
+                    long num42 = (long)(num40 * (double)__instance.excPool[num25].capsCurrentTick + 0.99999);
+                    long remaining = ((num32 < num42) ? num32 : num42);
+                    long num43 = __instance.excPool[num25].InputUpdate(remaining, entityAnimPool, productRegister, consumeRegister);
+                    num32 -= num43;
+                    num23 += num43;
+                    num4 += num43;
+                }
+                else
+                {
+                    __instance.excPool[num25].currEnergyPerTick = 0L;
+                }
+            }
+            long num44 = ((num22 < num11 + num23) ? (num22 + num34 + num23) : (num11 + num34 + num23));
+            double num45 = ((num44 < num26) ? ((double)num44 / (double)num26) : 1.0);
+            for (int num46 = 0; num46 < count2; num46++)
+            {
+                num25 = exchangers[num46];
+                if (__instance.excPool[num25].state <= -1f)
+                {
+                    long num47 = (long)(num45 * (double)__instance.excPool[num25].capsCurrentTick + 0.99999);
+                    long energyPay = ((num44 < num47) ? num44 : num47);
+                    long num48 = __instance.excPool[num25].OutputUpdate(energyPay, entityAnimPool, productRegister, consumeRegister);
+                    num24 += num48;
+                    num3 += num48;
+                    num44 -= num48;
+                }
+            }
+            powerNetwork.energyCapacity = num22 - num26;
+            powerNetwork.energyRequired = num11 - num33;
+            powerNetwork.energyExport = num33;
+            powerNetwork.energyServed = ((num22 + num35 < num11) ? (num22 + num35) : num11);
+            powerNetwork.energyAccumulated = num34 - num35;
+            powerNetwork.energyExchanged = num23 - num24;
+            powerNetwork.energyExchangedInputTotal = num23;
+            powerNetwork.energyExchangedOutputTotal = num24;
+            if (num33 > 0)
+            {
+                PlanetATField planetATField = __instance.factory.planetATField;
+                planetATField.energy += num33;
+                planetATField.atFieldRechargeCurrent = num33 * 60;
+            }
+            num22 += num35;
+            num11 += num34;
+            num5 += ((num22 >= num11) ? (num2 + num33) : num22);
+            long num49 = ((num24 - num11 > 0) ? (num24 - num11) : 0);
+            double num50 = ((num22 >= num11) ? 1.0 : ((double)num22 / (double)num11));
+            num11 += num23 - num49;
+            num22 -= num24;
+            double num51 = ((num22 > num11) ? ((double)num11 / (double)num22) : 1.0);
+            powerNetwork.consumerRatio = num50;
+            powerNetwork.generaterRatio = num51;
+            powerNetwork.energyDischarge = num35 + num24;
+            powerNetwork.energyCharge = num34 + num23;
+            float num52 = ((num22 > 0 || powerNetwork.energyStored > 0 || num24 > 0) ? ((float)num50) : 0f);
+            float num53 = ((num22 > 0 || powerNetwork.energyStored > 0 || num24 > 0) ? ((float)num51) : 0f);
+            __instance.networkServes[i] = num52;
+            __instance.networkGenerates[i] = num53;
+            float num54 = 0f;
+            for (int num55 = 0; num55 < count3; num55++)
+            {
+                num30 = generators[num55];
+                long num56 = 0L;
+                float speed = 1f;
+                bool flag5 = !__instance.genPool[num30].wind && !__instance.genPool[num30].photovoltaic && !__instance.genPool[num30].gamma && !__instance.genPool[num30].geothermal;
+                if (flag5)
+                {
+                    __instance.genPool[num30].currentStrength = ((num44 > 0 && __instance.genPool[num30].capacityCurrentTick > 0) ? 1 : 0);
+                }
+                if (num44 > 0 && __instance.genPool[num30].productId == 0)
+                {
+                    long num57 = (long)(num51 * (double)__instance.genPool[num30].capacityCurrentTick + 0.99999);
+                    num56 = ((num44 < num57) ? num44 : num57);
+                    if (num56 > 0)
+                    {
+                        num44 -= num56;
+                        if (flag5)
+                        {
+                            __instance.genPool[num30].GenEnergyByFuel(num56, consumeRegister);
+                            speed = 2f;
+                        }
+                    }
+                }
+                __instance.genPool[num30].generateCurrentTick = num56;
+                int entityId4 = __instance.genPool[num30].entityId;
+                if (__instance.genPool[num30].wind)
+                {
+                    speed = 0.7f;
+                    entityAnimPool[entityId4].Step2((entityAnimPool[entityId4].power > 0.1f || num56 > 0) ? 1u : 0u, num6, windStrength, speed);
+                }
+                else if (__instance.genPool[num30].gamma)
+                {
+                    bool keyFrame = (num30 + num10) % 90 == 0;
+                    __instance.genPool[num30].GameTick_Gamma(useIonLayer, useCata, keyFrame, __instance.factory, productRegister, consumeRegister);
+                    entityAnimPool[entityId4].time += num6;
+                    if (entityAnimPool[entityId4].time > 1f)
+                    {
+                        entityAnimPool[entityId4].time -= 1f;
+                    }
+                    entityAnimPool[entityId4].power = (float)((double)__instance.genPool[num30].capacityCurrentTick / (double)__instance.genPool[num30].genEnergyPerTick);
+                    entityAnimPool[entityId4].state = (uint)((__instance.genPool[num30].productId > 0) ? 2 : 0) + ((__instance.genPool[num30].catalystPoint > 0) ? 1u : 0u);
+                    entityAnimPool[entityId4].working_length = entityAnimPool[entityId4].working_length * 0.99f + ((__instance.genPool[num30].catalystPoint > 0) ? 0.01f : 0f);
+                    if (isActive)
+                    {
+                        if (__instance.genPool[num30].productCount >= 20f)
+                        {
+                            entitySignPool[entityId4].signType = 6u;
+                        }
+                        else
+                        {
+                            entitySignPool[entityId4].signType = 0u;
+                        }
+                    }
+                }
+                else if (__instance.genPool[num30].fuelMask > 1)
+                {
+                    num54 = (float)((double)entityAnimPool[entityId4].power * 0.98 + 0.02 * (double)((num56 > 0) ? 1 : 0));
+                    if (num56 > 0 && num54 < 0f)
+                    {
+                        num54 = 0f;
+                    }
+                    entityAnimPool[entityId4].Step2((entityAnimPool[entityId4].power > 0.1f || num56 > 0) ? 1u : 0u, num6, num54, speed);
+                }
+                else if (__instance.genPool[num30].geothermal)
+                {
+                    float num58 = __instance.genPool[num30].warmup + __instance.genPool[num30].warmupSpeed;
+                    __instance.genPool[num30].warmup = ((num58 > 1f) ? 1f : ((num58 < 0f) ? 0f : num58));
+                    entityAnimPool[entityId4].state = ((num56 > 0) ? 1u : 0u);
+                    entityAnimPool[entityId4].Step(entityAnimPool[entityId4].state, num6, 2f, 0f);
+                    entityAnimPool[entityId4].working_length = __instance.genPool[num30].warmup;
+                    if (num56 > 0)
+                    {
+                        if (entityAnimPool[entityId4].power < 1f)
+                        {
+                            entityAnimPool[entityId4].power += num6 / 6f;
+                        }
+                    }
+                    else if (entityAnimPool[entityId4].power > 0f)
+                    {
+                        entityAnimPool[entityId4].power -= num6 / 6f;
+                    }
+                    entityAnimPool[entityId4].prepare_length += (float)Math.PI * num6 / 8f;
+                    if (entityAnimPool[entityId4].prepare_length > (float)Math.PI * 2f)
+                    {
+                        entityAnimPool[entityId4].prepare_length -= (float)Math.PI * 2f;
+                    }
+                }
+                else
+                {
+                    num54 = (float)((double)entityAnimPool[entityId4].power * 0.98 + 0.02 * (double)num56 / (double)__instance.genPool[num30].genEnergyPerTick);
+                    if (num56 > 0 && num54 < 0.2f)
+                    {
+                        num54 = 0.2f;
+                    }
+                    entityAnimPool[entityId4].Step2((entityAnimPool[entityId4].power > 0.1f || num56 > 0) ? 1u : 0u, num6, num54, speed);
+                }
+            }
+        }
+        lock (factoryProductionStat)
+        {
+            factoryProductionStat.powerGenRegister = num;
+            factoryProductionStat.powerConRegister = num2;
+            factoryProductionStat.powerDisRegister = num3;
+            factoryProductionStat.powerChaRegister = num4;
+            factoryProductionStat.energyConsumption += num5;
+        }
+        if (isActive)
+        {
+            for (int num59 = 0; num59 < __instance.netCursor; num59++)
+            {
+                PowerNetwork powerNetwork2 = __instance.netPool[num59];
+                if (powerNetwork2 == null || powerNetwork2.id != num59)
+                {
+                    continue;
+                }
+                List<int> consumers2 = powerNetwork2.consumers;
+                int count5 = consumers2.Count;
+                if (num59 == 0)
+                {
+                    for (int num60 = 0; num60 < count5; num60++)
+                    {
+                        entitySignPool[__instance.consumerPool[consumers2[num60]].entityId].signType = 1u;
+                    }
+                }
+                else if (powerNetwork2.consumerRatio < 0.10000000149011612)
+                {
+                    for (int num61 = 0; num61 < count5; num61++)
+                    {
+                        entitySignPool[__instance.consumerPool[consumers2[num61]].entityId].signType = 2u;
+                    }
+                }
+                else if (powerNetwork2.consumerRatio < 0.5)
+                {
+                    for (int num62 = 0; num62 < count5; num62++)
+                    {
+                        entitySignPool[__instance.consumerPool[consumers2[num62]].entityId].signType = 3u;
+                    }
+                }
+                else
+                {
+                    for (int num63 = 0; num63 < count5; num63++)
+                    {
+                        entitySignPool[__instance.consumerPool[consumers2[num63]].entityId].signType = 0u;
+                    }
+                }
+            }
+        }
+        for (int num64 = 1; num64 < __instance.nodeCursor; num64++)
+        {
+            if (__instance.nodePool[num64].id != num64)
+            {
+                continue;
+            }
+            int entityId5 = __instance.nodePool[num64].entityId;
+            int networkId = __instance.nodePool[num64].networkId;
+            if (__instance.nodePool[num64].isCharger)
+            {
+                float num65 = __instance.networkServes[networkId];
+                int num66 = __instance.nodePool[num64].requiredEnergy - __instance.nodePool[num64].idleEnergyPerTick;
+                if (__instance.nodePool[num64].coverRadius < 20f)
+                {
+                    entityAnimPool[entityId5].StepPoweredClamped(num65, num6, (num66 <= 0) ? 1u : 2u);
+                }
+                else
+                {
+                    entityAnimPool[entityId5].StepPoweredClamped2(num65, num6, (num66 <= 0) ? 1u : 2u);
+                }
+                if (num66 <= 0 || entityAnimPool[entityId5].state != 2)
+                {
+                    continue;
+                }
+                lock (mainPlayer.mecha)
+                {
+                    num66 = (int)((float)num66 * num65);
+                    mainPlayer.mecha.coreEnergy += num66;
+                    mainPlayer.mecha.MarkEnergyChange(2, num66);
+                    mainPlayer.mecha.AddChargerDevice(entityId5);
+                    if (mainPlayer.mecha.coreEnergy > mainPlayer.mecha.coreEnergyCap)
+                    {
+                        mainPlayer.mecha.coreEnergy = mainPlayer.mecha.coreEnergyCap;
+                    }
+                }
+            }
+            else if (entityPool[entityId5].powerGenId == 0 && entityPool[entityId5].powerAccId == 0 && entityPool[entityId5].powerExcId == 0)
+            {
+                float num67 = __instance.networkServes[networkId];
+                entityAnimPool[entityId5].Step2((num67 > 0.1f) ? 1u : 0u, num6, (float)((double)entityAnimPool[entityId5].power * 0.97 + 0.03 * (double)num67), 0.4f);
+            }
+        }
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
     public TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
     {
         ref readonly EntityData entity = ref entities[index];
