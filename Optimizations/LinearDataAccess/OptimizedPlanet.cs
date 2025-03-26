@@ -17,8 +17,7 @@ internal sealed class OptimizedPlanet
     InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
     InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
 
-    public int[] _assemblerNetworkIds;
-    public AssemblerState[] _assemblerStates;
+    public NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
     public OptimizedAssembler[] _optimizedAssemblers;
     public AssemblerRecipe[] _assemblerRecipes;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex;
@@ -28,7 +27,7 @@ internal sealed class OptimizedPlanet
 
     private int[] _ejectorNetworkIds;
 
-    private NetworkIdAndState<LabState>[] _labNetworkIdAndStates;
+    private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
 
     public static void EnableOptimization()
     {
@@ -102,8 +101,7 @@ internal sealed class OptimizedPlanet
     {
         _assemblerExecutor = new AssemblerExecutor();
 
-        List<int> assemblerNetworkIds = [];
-        List<AssemblerState> assemblerStates = [];
+        List<NetworkIdAndState<AssemblerState>> assemblerNetworkIdAndStates = [];
         List<OptimizedAssembler> optimizedAssemblers = [];
         Dictionary<AssemblerRecipe, int> assemblerRecipeToIndex = [];
         List<AssemblerRecipe> assemblerRecipes = [];
@@ -136,13 +134,11 @@ internal sealed class OptimizedPlanet
                 assemblerRecipeIndex = assemblerRecipeToIndex.Count;
                 assemblerRecipeToIndex.Add(assemblerRecipe, assemblerRecipeIndex);
                 assemblerRecipes.Add(assemblerRecipe);
-                //WeaverFixes.Logger.LogMessage("");
-                //assemblerRecipe.Print();
             }
 
             assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
-            assemblerNetworkIds.Add(planet.powerSystem.consumerPool[assembler.pcId].networkId);
-            assemblerStates.Add(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active);
+            assemblerNetworkIdAndStates.Add(new NetworkIdAndState<AssemblerState>((int)(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active),
+                                                                                  planet.powerSystem.consumerPool[assembler.pcId].networkId));
             optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex,
                                                            assembler.pcId,
                                                            assembler.forceAccMode,
@@ -167,13 +163,10 @@ internal sealed class OptimizedPlanet
             planet.entityNeeds[assembler.entityId] = assembler.needs;
         }
 
-        _assemblerNetworkIds = assemblerNetworkIds.ToArray();
-        _assemblerStates = assemblerStates.ToArray();
+        _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates.ToArray();
         _assemblerRecipes = assemblerRecipes.ToArray();
         _optimizedAssemblers = optimizedAssemblers.ToArray();
         _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
-
-        WeaverFixes.Logger.LogMessage($"Assembler Recipes: {_assemblerRecipes.Length}");
     }
 
     private void InitializeMiners(PlanetFactory planet)
@@ -248,7 +241,7 @@ internal sealed class OptimizedPlanet
             planet.entityNeeds[lab.entityId] = lab.needs;
         }
 
-        _labNetworkIdAndStates = labNetworkIdAndStates;
+        _labProduceNetworkIdAndStates = labNetworkIdAndStates;
     }
 
     public void Save(PlanetFactory planet)
@@ -389,7 +382,7 @@ internal sealed class OptimizedPlanet
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
-            AssemblerState assemblerState = optimizedPlanet._assemblerStates[objectIndex];
+            AssemblerState assemblerState = (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State;
             if (assemblerState != AssemblerState.Active &&
                 assemblerState != AssemblerState.InactiveOutputFull)
             {
@@ -410,7 +403,7 @@ internal sealed class OptimizedPlanet
                         int value = Interlocked.Decrement(ref produced[0]);
                         if (value >= 0)
                         {
-                            optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                            optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                             return products[0];
                         }
                         else
@@ -425,7 +418,7 @@ internal sealed class OptimizedPlanet
                         int value = Interlocked.Decrement(ref produced[0]);
                         if (value >= 0)
                         {
-                            optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                            optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                             return products[0];
                         }
                         else
@@ -438,7 +431,7 @@ internal sealed class OptimizedPlanet
                         int value = Interlocked.Decrement(ref produced[1]);
                         if (value >= 0)
                         {
-                            optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                            optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                             return products[1];
                         }
                         else
@@ -456,7 +449,7 @@ internal sealed class OptimizedPlanet
                                 int value = Interlocked.Decrement(ref produced[i]);
                                 if (value >= 0)
                                 {
-                                    optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                                    optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                                     return products[i];
                                 }
                                 else
@@ -656,7 +649,7 @@ internal sealed class OptimizedPlanet
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
-            AssemblerState assemblerState = optimizedPlanet._assemblerStates[objectIndex];
+            AssemblerState assemblerState = (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State;
             if (assemblerState != AssemblerState.Active &&
                 assemblerState != AssemblerState.InactiveInputMissing)
             {
@@ -677,7 +670,7 @@ internal sealed class OptimizedPlanet
                 Interlocked.Add(ref reference.served[0], itemCount);
                 Interlocked.Add(ref reference.incServed[0], itemInc);
                 remainInc = 0;
-                optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (1 < num && requires[1] == itemId)
@@ -685,7 +678,7 @@ internal sealed class OptimizedPlanet
                 Interlocked.Add(ref reference.served[1], itemCount);
                 Interlocked.Add(ref reference.incServed[1], itemInc);
                 remainInc = 0;
-                optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (2 < num && requires[2] == itemId)
@@ -693,7 +686,7 @@ internal sealed class OptimizedPlanet
                 Interlocked.Add(ref reference.served[2], itemCount);
                 Interlocked.Add(ref reference.incServed[2], itemInc);
                 remainInc = 0;
-                optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (3 < num && requires[3] == itemId)
@@ -701,7 +694,7 @@ internal sealed class OptimizedPlanet
                 Interlocked.Add(ref reference.served[3], itemCount);
                 Interlocked.Add(ref reference.incServed[3], itemInc);
                 remainInc = 0;
-                optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (4 < num && requires[4] == itemId)
@@ -709,7 +702,7 @@ internal sealed class OptimizedPlanet
                 Interlocked.Add(ref reference.served[4], itemCount);
                 Interlocked.Add(ref reference.incServed[4], itemInc);
                 remainInc = 0;
-                optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (5 < num && requires[5] == itemId)
@@ -717,7 +710,7 @@ internal sealed class OptimizedPlanet
                 Interlocked.Add(ref reference.served[5], itemCount);
                 Interlocked.Add(ref reference.incServed[5], itemInc);
                 remainInc = 0;
-                optimizedPlanet._assemblerStates[objectIndex] = AssemblerState.Active;
+                optimizedPlanet._assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             return 0;
@@ -1195,7 +1188,7 @@ internal sealed class OptimizedPlanet
         float[] networkServes = planet.powerSystem.networkServes;
         for (int i = _start; i < _end; i++)
         {
-            NetworkIdAndState<LabState> networkIdAndState = _labNetworkIdAndStates[i];
+            NetworkIdAndState<LabState> networkIdAndState = _labProduceNetworkIdAndStates[i];
             if (((LabState)networkIdAndState.State & LabState.Inactive) == LabState.Inactive)
             {
                 continue;

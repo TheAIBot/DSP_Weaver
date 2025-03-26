@@ -20,16 +20,17 @@ internal sealed class AssemblerExecutor
 
         for (int k = _start; k < _end; k++)
         {
-            if (optimizedPlanet._assemblerStates[k] != AssemblerState.Active)
+            ref NetworkIdAndState<AssemblerState> assemblerNetworkIdAndState = ref optimizedPlanet._assemblerNetworkIdAndStates[k];
+            if ((AssemblerState)assemblerNetworkIdAndState.State != AssemblerState.Active)
             {
                 continue;
             }
 
-            float power = networkServes[optimizedPlanet._assemblerNetworkIds[k]];
+            float power = networkServes[assemblerNetworkIdAndState.Index];
             ref OptimizedAssembler assembler = ref optimizedAssemblers[k];
             ref AssemblerRecipe recipeData = ref assemblerRecipes[assembler.assemblerRecipeIndex];
             assembler.UpdateNeeds(ref recipeData);
-            optimizedPlanet._assemblerStates[k] = assembler.Update(power, productRegister, consumeRegister, ref recipeData);
+            assemblerNetworkIdAndState.State = (int)assembler.Update(power, productRegister, consumeRegister, ref recipeData);
         }
     }
 }

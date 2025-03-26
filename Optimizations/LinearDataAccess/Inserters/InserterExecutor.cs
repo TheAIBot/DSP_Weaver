@@ -128,7 +128,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         TypedObjectIndex objectIndex = _inserterConnections[inserterIndex].PickFrom;
         if (objectIndex.EntityType == EntityType.Assembler)
         {
-            return optimizedPlanet._assemblerStates[objectIndex.Index] == AssemblerState.Active;
+            return (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
         }
         else
         {
@@ -141,7 +141,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         TypedObjectIndex objectIndex = _inserterConnections[inserterIndex].InsertInto;
         if (objectIndex.EntityType == EntityType.Assembler)
         {
-            return optimizedPlanet._assemblerStates[objectIndex.Index] == AssemblerState.Active;
+            return (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
         }
         else
         {
