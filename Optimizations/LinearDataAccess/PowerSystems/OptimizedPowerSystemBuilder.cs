@@ -24,13 +24,17 @@ internal sealed class OptimizedPowerSystemBuilder
         PowerConsumerType powerConsumerType = new PowerConsumerType(powerConsumerComponent.workEnergyPerTick, powerConsumerComponent.idleEnergyPerTick);
         _assemblerPowerConsumerTypeIndexes.Add(GetOrAddPowerConsumerType(powerConsumerType));
 
-        if (!_networkIndexToOptimizedConsumerIndexes.TryGetValue(networkIndex, out HashSet<int> optimizedConsumerIndexes))
-        {
-            optimizedConsumerIndexes = [];
-            _networkIndexToOptimizedConsumerIndexes.Add(networkIndex, optimizedConsumerIndexes);
-        }
+        AddPowerConsumerIndexToNetwork(assembler.pcId, networkIndex);
+    }
 
-        optimizedConsumerIndexes.Add(assembler.pcId);
+    public OptimizedPowerSystemInserterBuilder CreateBiInserterBuilder()
+    {
+        return new OptimizedPowerSystemInserterBuilder(_powerSystem, this, _inserterBiPowerConsumerTypeIndexes);
+    }
+
+    public OptimizedPowerSystemInserterBuilder CreateInserterBuilder()
+    {
+        return new OptimizedPowerSystemInserterBuilder(_powerSystem, this, _inserterPowerConsumerTypeIndexes);
     }
 
     public OptimizedPowerSystem Build()
@@ -55,7 +59,7 @@ internal sealed class OptimizedPowerSystemBuilder
                                         _inserterPowerConsumerTypeIndexes.ToArray());
     }
 
-    private int GetOrAddPowerConsumerType(PowerConsumerType powerConsumerType)
+    public int GetOrAddPowerConsumerType(PowerConsumerType powerConsumerType)
     {
         if (!_powerConsumerTypeToIndex.TryGetValue(powerConsumerType, out int index))
         {
@@ -65,5 +69,16 @@ internal sealed class OptimizedPowerSystemBuilder
         }
 
         return index;
+    }
+
+    public void AddPowerConsumerIndexToNetwork(int powerConsumerIndex, int networkIndex)
+    {
+        if (!_networkIndexToOptimizedConsumerIndexes.TryGetValue(networkIndex, out HashSet<int> optimizedConsumerIndexes))
+        {
+            optimizedConsumerIndexes = [];
+            _networkIndexToOptimizedConsumerIndexes.Add(networkIndex, optimizedConsumerIndexes);
+        }
+
+        optimizedConsumerIndexes.Add(powerConsumerIndex);
     }
 }

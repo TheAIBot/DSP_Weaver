@@ -85,6 +85,7 @@ Once a player leaves again the mod will recreate the optimized format of that pl
 3. Some things are being consumed too fast for some odd reason. Assume it's because of ordering inserters or assemblers. Not sure though.
 4. Mod ignores anything created/destroyed on a planet when the player is not on that planet.
 5. Some wierd random divide by zero exception in assemblers. Perhaps due to ordering inserters or assemblers. Not sure though.
+6. Power statistics aare not correct which is presumeably because i should update power consumer data created in RefreshPowerConsumptionDemandsWithFactory & RefreshPowerNetworkConsumptionDemands
 
 # Why not use Patching transpiler
 

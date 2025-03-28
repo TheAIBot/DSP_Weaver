@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
@@ -8,7 +9,6 @@ namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 internal struct OptimizedInserter : IInserter<OptimizedInserter>
 {
     public byte grade { get; }
-    public readonly int pcId;
     public readonly bool careNeeds;
     public readonly short pickOffset;
     public readonly short insertOffset;
@@ -26,7 +26,6 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
     public OptimizedInserter(ref readonly InserterComponent inserter, int grade)
     {
         grade = (byte)grade;
-        pcId = inserter.pcId;
         careNeeds = inserter.careNeeds;
         pickOffset = inserter.pickOffset;
         insertOffset = inserter.insertOffset;
@@ -283,9 +282,9 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
         }
     }
 
-    public void SetPCState(PowerConsumerComponent[] pcPool)
+    public long GetPowerConsumption(PowerConsumerType powerConsumerType)
     {
-        pcPool[pcId].SetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
+        return powerConsumerType.GetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
     }
 
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch

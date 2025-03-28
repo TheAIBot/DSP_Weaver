@@ -139,8 +139,20 @@ internal sealed class OptimizedPowerSystem
             }
         }
 
-        optimizedPlanet._optimizedBiInserterExecutor.UpdatePower(planet, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
-        optimizedPlanet._optimizedInserterExecutor.UpdatePower(planet, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+        optimizedPlanet._optimizedBiInserterExecutor.UpdatePower(optimizedPlanet,
+                                                                 _inserterBiPowerConsumerTypeIndexes,
+                                                                 _powerConsumerTypes,
+                                                                 thisThreadNetworkPowerConsumption,
+                                                                 _usedThreadCnt,
+                                                                 _curThreadIdx,
+                                                                 _minimumMissionCnt);
+        optimizedPlanet._optimizedInserterExecutor.UpdatePower(optimizedPlanet,
+                                                               _inserterPowerConsumerTypeIndexes,
+                                                               _powerConsumerTypes,
+                                                               thisThreadNetworkPowerConsumption,
+                                                               _usedThreadCnt,
+                                                               _curThreadIdx,
+                                                               _minimumMissionCnt);
     }
 
     public void GameTick(PlanetFactory planet, long time, bool isActive, bool isMultithreadMode = false)

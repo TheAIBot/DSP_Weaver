@@ -6,4 +6,9 @@ internal record struct PowerConsumerType(long WorkEnergyPerTick, long IdleEnergy
     {
         return working ? WorkEnergyPerTick * permillage / 1000 : IdleEnergyPerTick;
     }
+
+    public long GetRequiredEnergy(bool working)
+    {
+        return (working ? WorkEnergyPerTick : IdleEnergyPerTick);
+    }
 }

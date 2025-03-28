@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
@@ -302,9 +303,9 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         }
     }
 
-    public void SetPCState(PowerConsumerComponent[] pcPool)
+    public long GetPowerConsumption(PowerConsumerType powerConsumerType)
     {
-        pcPool[pcId].SetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
+        return powerConsumerType.GetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
     }
 
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch

@@ -88,7 +88,7 @@ internal sealed class OptimizedPlanet
     {
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(planet.powerSystem);
         InitializeAssemblers(planet, optimizedPowerSystemBuilder);
-        InitializeInserters(planet);
+        InitializeInserters(planet, optimizedPowerSystemBuilder);
         InitializeMiners(planet);
         InitializeEjectors(planet);
         InitializeLabAssemblers(planet);
@@ -96,13 +96,13 @@ internal sealed class OptimizedPlanet
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
     }
 
-    private void InitializeInserters(PlanetFactory planet)
+    private void InitializeInserters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>();
-        _optimizedBiInserterExecutor.Initialize(planet, this, x => x.bidirectional);
+        _optimizedBiInserterExecutor.Initialize(planet, this, x => x.bidirectional, optimizedPowerSystemBuilder.CreateBiInserterBuilder());
 
         _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>();
-        _optimizedInserterExecutor.Initialize(planet, this, x => !x.bidirectional);
+        _optimizedInserterExecutor.Initialize(planet, this, x => !x.bidirectional, optimizedPowerSystemBuilder.CreateInserterBuilder());
     }
 
     private void InitializeAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)

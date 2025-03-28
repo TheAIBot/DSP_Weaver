@@ -1,5 +1,6 @@
 ﻿using System;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;
 
@@ -7,13 +8,16 @@ internal interface IInserterExecutor
 {
     int inserterCount { get; }
 
-    void Initialize(PlanetFactory planet, OptimizedPlanet optimizedPlanet, Func<InserterComponent, bool> inserterSelector);
+    void Initialize(PlanetFactory planet, OptimizedPlanet optimizedPlanet, Func<InserterComponent, bool> inserterSelector, OptimizedPowerSystemInserterBuilder optimizedPowerSystemInserterBuilder);
 
     int GetUnoptimizedInserterIndex(int optimizedInserterIndex);
 
     void GameTickInserters(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, int _start, int _end);
 
-    void UpdatePower(PlanetFactory planet,
+    void UpdatePower(OptimizedPlanet optimizedPlanet,
+                     int[] inserterPowerConsumerIndexes,
+                     PowerConsumerType[] powerConsumerTypes,
+                     long[] thisThreadNetworkPowerConsumption,
                      int _usedThreadCnt,
                      int _curThreadIdx,
                      int _minimumMissionCnt);

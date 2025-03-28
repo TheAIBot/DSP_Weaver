@@ -1,4 +1,6 @@
-﻿namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+﻿using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+
+namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
 internal interface IInserter<T>
 {
@@ -16,5 +18,5 @@ internal interface IInserter<T>
                 PickFromProducingPlant[] pickFromProducingPlants,
                 InserterGrade inserterGrade);
 
-    void SetPCState(PowerConsumerComponent[] pcPool);
+    long GetPowerConsumption(PowerConsumerType powerConsumerType);
 }

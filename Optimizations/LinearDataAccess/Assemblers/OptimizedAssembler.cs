@@ -8,7 +8,6 @@ namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 internal struct OptimizedAssembler
 {
     public readonly int assemblerRecipeIndex;
-    public readonly int pcId;
     public readonly bool forceAccMode;
     public readonly int speed;
     public readonly int[] served;
@@ -44,7 +43,6 @@ internal struct OptimizedAssembler
                               int extraPowerRatio)
     {
         this.assemblerRecipeIndex = assemblerRecipeIndex;
-        this.pcId = pcId;
         this.forceAccMode = forceAccMode;
         this.speed = speed;
         this.served = served;
