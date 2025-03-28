@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
@@ -287,9 +288,9 @@ internal struct OptimizedAssembler
         return AssemblerState.Active;
     }
 
-    public void SetPCState(PowerConsumerComponent[] pcPool)
+    public long GetPowerConsumption(PowerConsumerType powerConsumerType)
     {
-        pcPool[pcId].SetRequiredEnergy(replicating, 1000 + extraPowerRatio);
+        return powerConsumerType.GetRequiredEnergy(replicating, 1000 + extraPowerRatio);
     }
 
     private int split_inc_level(ref int n, ref int m, int p)

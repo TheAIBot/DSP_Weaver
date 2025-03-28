@@ -7,6 +7,7 @@ using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess;
 
@@ -14,8 +15,8 @@ internal sealed class OptimizedPlanet
 {
     private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedEntities = [];
 
-    InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
-    InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
+    public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
+    public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
 
     public NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
     public OptimizedAssembler[] _optimizedAssemblers;
@@ -29,10 +30,14 @@ internal sealed class OptimizedPlanet
 
     private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
 
+    private OptimizedPowerSystem _optimizedPowerSystem;
+
     public static void EnableOptimization()
     {
         Harmony.CreateAndPatchAll(typeof(OptimizedPlanet));
     }
+
+    public static OptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedEntities[planet];
 
     [HarmonyPriority(1)]
     [HarmonyPostfix]
@@ -81,11 +86,14 @@ internal sealed class OptimizedPlanet
 
     public void InitializeData(PlanetFactory planet)
     {
-        InitializeAssemblers(planet);
+        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(planet.powerSystem);
+        InitializeAssemblers(planet, optimizedPowerSystemBuilder);
         InitializeInserters(planet);
         InitializeMiners(planet);
         InitializeEjectors(planet);
         InitializeLabAssemblers(planet);
+
+        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
     }
 
     private void InitializeInserters(PlanetFactory planet)
@@ -97,7 +105,7 @@ internal sealed class OptimizedPlanet
         _optimizedInserterExecutor.Initialize(planet, this, x => !x.bidirectional);
     }
 
-    private void InitializeAssemblers(PlanetFactory planet)
+    private void InitializeAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _assemblerExecutor = new AssemblerExecutor();
 
@@ -137,8 +145,9 @@ internal sealed class OptimizedPlanet
             }
 
             assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
+            int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
             assemblerNetworkIdAndStates.Add(new NetworkIdAndState<AssemblerState>((int)(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active),
-                                                                                  planet.powerSystem.consumerPool[assembler.pcId].networkId));
+                                                                                  networkIndex));
             optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex,
                                                            assembler.pcId,
                                                            assembler.forceAccMode,
@@ -156,6 +165,7 @@ internal sealed class OptimizedPlanet
                                                            assembler.extraCycleCount,
                                                            assembler.extraSpeed,
                                                            assembler.extraPowerRatio));
+            optimizedPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
 
 
             // set it here so we don't have to set it in the update loop.
@@ -1210,93 +1220,13 @@ internal sealed class OptimizedPlanet
     [HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.ParallelGameTickBeforePower))]
     public static bool ParallelGameTickBeforePower(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
-        PlanetFactory planet = __instance.planet.factory;
-        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
-        EntityData[] entityPool = planet.entityPool;
-        StationComponent[] stationPool = planet.transport.stationPool;
-        PowerConsumerComponent[] consumerPool = planet.powerSystem.consumerPool;
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.minerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
+        if (isActive)
         {
-            for (int i = _start; i < _end; i++)
-            {
-                if (__instance.minerPool[i].id == i)
-                {
-                    int stationId = entityPool[__instance.minerPool[i].entityId].stationId;
-                    if (stationId > 0)
-                    {
-                        StationStore[] array = stationPool[stationId].storage;
-                        int count = array[0].count;
-                        int max = array[0].max;
-                        max = ((max < 2000) ? 2000 : max);
-                        float num = (float)count / (float)max;
-                        num = ((num > 1f) ? 1f : num);
-                        float num2 = -2.45f * num + 2.47f;
-                        num2 = ((num2 > 1f) ? 1f : num2);
-                        __instance.minerPool[i].speedDamper = num2;
-                    }
-                    else
-                    {
-                        float num3 = (float)__instance.minerPool[i].productCount / 50f;
-                        num3 = ((num3 > 1f) ? 1f : num3);
-                        float num4 = -2.45f * num3 + 2.47f;
-                        num4 = ((num4 > 1f) ? 1f : num4);
-                        __instance.minerPool[i].speedDamper = num4;
-                    }
-                    __instance.minerPool[i].SetPCState(consumerPool);
-                }
-            }
-        }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, optimizedPlanet._optimizedAssemblers.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            OptimizedAssembler[] optimizedAssemblers = optimizedPlanet._optimizedAssemblers;
-            for (int j = _start; j < _end; j++)
-            {
-                optimizedAssemblers[j].SetPCState(consumerPool);
-            }
-        }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int k = _start; k < _end; k++)
-            {
-                if (__instance.fractionatorPool[k].id == k)
-                {
-                    __instance.fractionatorPool[k].SetPCState(consumerPool);
-                }
-            }
-        }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.ejectorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int l = _start; l < _end; l++)
-            {
-                if (__instance.ejectorPool[l].id == l)
-                {
-                    __instance.ejectorPool[l].SetPCState(consumerPool);
-                }
-            }
-        }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.siloCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int m = _start; m < _end; m++)
-            {
-                if (__instance.siloPool[m].id == m)
-                {
-                    __instance.siloPool[m].SetPCState(consumerPool);
-                }
-            }
-        }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, __instance.labCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int n = _start; n < _end; n++)
-            {
-                if (__instance.labPool[n].id == n)
-                {
-                    __instance.labPool[n].SetPCState(consumerPool);
-                }
-            }
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
 
-        optimizedPlanet._optimizedBiInserterExecutor.UpdatePower(planet, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
-        optimizedPlanet._optimizedInserterExecutor.UpdatePower(planet, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[__instance.factory];
+        optimizedPlanet._optimizedPowerSystem.ParallelGameTickBeforePower(__instance.factory, optimizedPlanet, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
@@ -1310,311 +1240,8 @@ internal sealed class OptimizedPlanet
             return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
 
-        FactoryProductionStat factoryProductionStat = GameMain.statistics.production.factoryStatPool[__instance.factory.index];
-        int[] productRegister = factoryProductionStat.productRegister;
-        int[] consumeRegister = factoryProductionStat.consumeRegister;
-        long num = 0L;
-        long num2 = 0L;
-        long num3 = 0L;
-        long num4 = 0L;
-        long num5 = 0L;
-        PlanetData planetData = __instance.factory.planet;
-        float windStrength = planetData.windStrength;
-        float luminosity = planetData.luminosity;
-        Vector3 normalized = planetData.runtimeLocalSunDirection.normalized;
-        AnimData[] entityAnimPool = __instance.factory.entityAnimPool;
-        if (__instance.networkServes == null || __instance.networkServes.Length != __instance.netPool.Length)
-        {
-            __instance.networkServes = new float[__instance.netPool.Length];
-        }
-        if (__instance.networkGenerates == null || __instance.networkGenerates.Length != __instance.netPool.Length)
-        {
-            __instance.networkGenerates = new float[__instance.netPool.Length];
-        }
-        bool useIonLayer = GameMain.history.useIonLayer;
-        bool useCata = time % 10 == 0;
-        Array.Clear(__instance.currentGeneratorCapacities, 0, __instance.currentGeneratorCapacities.Length);
-        float response = ((__instance.dysonSphere != null) ? __instance.dysonSphere.energyRespCoef : 0f);
-        int num9 = (int)((float)Math.Min(Math.Abs(__instance.factory.planet.rotationPeriod), Math.Abs(__instance.factory.planet.orbitalPeriod)) * 60f / 2160f);
-        if (num9 < 1)
-        {
-            num9 = 1;
-        }
-        else if (num9 > 60)
-        {
-            num9 = 60;
-        }
-        if (__instance.factory.planet.singularity == EPlanetSingularity.TidalLocked)
-        {
-            num9 = 60;
-        }
-        bool flag2 = time % num9 == 0L || GameMain.onceGameTick <= 2;
-        int num10 = (int)(time % 90);
-        EntityData[] entityPool = __instance.factory.entityPool;
-        for (int i = 1; i < __instance.netCursor; i++)
-        {
-            PowerNetwork powerNetwork = __instance.netPool[i];
-            if (powerNetwork == null || powerNetwork.id != i)
-            {
-                continue;
-            }
-            List<int> consumers = powerNetwork.consumers;
-            int count = consumers.Count;
-            long num11 = 0L;
-            for (int j = 0; j < count; j++)
-            {
-                long requiredEnergy = __instance.consumerPool[consumers[j]].requiredEnergy;
-                num11 += requiredEnergy;
-                num2 += requiredEnergy;
-            }
-            long num22 = 0L;
-            List<int> exchangers = powerNetwork.exchangers;
-            int count2 = exchangers.Count;
-            long num23 = 0L;
-            long num24 = 0L;
-            int num25 = 0;
-            long num26 = 0L;
-            long num27 = 0L;
-            bool flag3 = false;
-            bool flag4 = false;
-            for (int k = 0; k < count2; k++)
-            {
-                num25 = exchangers[k];
-                __instance.excPool[num25].StateUpdate();
-                __instance.excPool[num25].BeltUpdate(__instance.factory);
-                flag3 = __instance.excPool[num25].state >= 1f;
-                flag4 = __instance.excPool[num25].state <= -1f;
-                if (!flag3 && !flag4)
-                {
-                    __instance.excPool[num25].capsCurrentTick = 0L;
-                    __instance.excPool[num25].currEnergyPerTick = 0L;
-                }
-                if (flag4)
-                {
-                    long num29 = __instance.excPool[num25].OutputCaps();
-                    num26 += num29;
-                    num22 = num26;
-                    __instance.currentGeneratorCapacities[__instance.excPool[num25].subId] += num29;
-                }
-                else if (flag3)
-                {
-                    num27 += __instance.excPool[num25].InputCaps();
-                }
-            }
-            List<int> generators = powerNetwork.generators;
-            int count3 = generators.Count;
-            int num30 = 0;
-            long num31 = 0L;
-            for (int l = 0; l < count3; l++)
-            {
-                num30 = generators[l];
-                if (__instance.genPool[num30].wind)
-                {
-                    num31 = __instance.genPool[num30].EnergyCap_Wind(windStrength);
-                    num22 += num31;
-                }
-                else if (__instance.genPool[num30].photovoltaic)
-                {
-                    if (flag2)
-                    {
-                        num31 = __instance.genPool[num30].EnergyCap_PV(normalized.x, normalized.y, normalized.z, luminosity);
-                        num22 += num31;
-                    }
-                    else
-                    {
-                        num31 = __instance.genPool[num30].capacityCurrentTick;
-                        num22 += num31;
-                    }
-                }
-                else if (__instance.genPool[num30].gamma)
-                {
-                    num31 = __instance.genPool[num30].EnergyCap_Gamma(response);
-                    num22 += num31;
-                }
-                else if (__instance.genPool[num30].geothermal)
-                {
-                    num31 = __instance.genPool[num30].EnergyCap_GTH();
-                    num22 += num31;
-                }
-                else
-                {
-                    num31 = __instance.genPool[num30].EnergyCap_Fuel();
-                    num22 += num31;
-                }
-                __instance.currentGeneratorCapacities[__instance.genPool[num30].subId] += num31;
-            }
-            num += num22 - num26;
-            long num32 = num22 - num11;
-            long num33 = 0L;
-            if (num32 > 0 && powerNetwork.exportDemandRatio > 0.0)
-            {
-                if (powerNetwork.exportDemandRatio > 1.0)
-                {
-                    powerNetwork.exportDemandRatio = 1.0;
-                }
-                num33 = (long)((double)num32 * powerNetwork.exportDemandRatio + 0.5);
-                num32 -= num33;
-                num11 += num33;
-            }
-            powerNetwork.exportDemandRatio = 0.0;
-            powerNetwork.energyStored = 0L;
-            List<int> accumulators = powerNetwork.accumulators;
-            int count4 = accumulators.Count;
-            long num34 = 0L;
-            long num35 = 0L;
-            int num36 = 0;
-            if (num32 >= 0)
-            {
-                for (int m = 0; m < count4; m++)
-                {
-                    num36 = accumulators[m];
-                    __instance.accPool[num36].curPower = 0L;
-                    long num37 = __instance.accPool[num36].InputCap();
-                    if (num37 > 0)
-                    {
-                        num37 = ((num37 < num32) ? num37 : num32);
-                        __instance.accPool[num36].curEnergy += num37;
-                        __instance.accPool[num36].curPower = num37;
-                        num32 -= num37;
-                        num34 += num37;
-                        num4 += num37;
-                    }
-                    powerNetwork.energyStored += __instance.accPool[num36].curEnergy;
-                }
-            }
-            else
-            {
-                long num38 = -num32;
-                for (int n = 0; n < count4; n++)
-                {
-                    num36 = accumulators[n];
-                    __instance.accPool[num36].curPower = 0L;
-                    long num39 = __instance.accPool[num36].OutputCap();
-                    if (num39 > 0)
-                    {
-                        num39 = ((num39 < num38) ? num39 : num38);
-                        __instance.accPool[num36].curEnergy -= num39;
-                        __instance.accPool[num36].curPower = -num39;
-                        num38 -= num39;
-                        num35 += num39;
-                        num3 += num39;
-                    }
-                    powerNetwork.energyStored += __instance.accPool[num36].curEnergy;
-                }
-            }
-            double num40 = ((num32 < num27) ? ((double)num32 / (double)num27) : 1.0);
-            for (int num41 = 0; num41 < count2; num41++)
-            {
-                num25 = exchangers[num41];
-                if (__instance.excPool[num25].state >= 1f && num40 >= 0.0)
-                {
-                    long num42 = (long)(num40 * (double)__instance.excPool[num25].capsCurrentTick + 0.99999);
-                    long remaining = ((num32 < num42) ? num32 : num42);
-                    long num43 = __instance.excPool[num25].InputUpdate(remaining, entityAnimPool, productRegister, consumeRegister);
-                    num32 -= num43;
-                    num23 += num43;
-                    num4 += num43;
-                }
-                else
-                {
-                    __instance.excPool[num25].currEnergyPerTick = 0L;
-                }
-            }
-            long num44 = ((num22 < num11 + num23) ? (num22 + num34 + num23) : (num11 + num34 + num23));
-            double num45 = ((num44 < num26) ? ((double)num44 / (double)num26) : 1.0);
-            for (int num46 = 0; num46 < count2; num46++)
-            {
-                num25 = exchangers[num46];
-                if (__instance.excPool[num25].state <= -1f)
-                {
-                    long num47 = (long)(num45 * (double)__instance.excPool[num25].capsCurrentTick + 0.99999);
-                    long energyPay = ((num44 < num47) ? num44 : num47);
-                    long num48 = __instance.excPool[num25].OutputUpdate(energyPay, entityAnimPool, productRegister, consumeRegister);
-                    num24 += num48;
-                    num3 += num48;
-                    num44 -= num48;
-                }
-            }
-            powerNetwork.energyCapacity = num22 - num26;
-            powerNetwork.energyRequired = num11 - num33;
-            powerNetwork.energyExport = num33;
-            powerNetwork.energyServed = ((num22 + num35 < num11) ? (num22 + num35) : num11);
-            powerNetwork.energyAccumulated = num34 - num35;
-            powerNetwork.energyExchanged = num23 - num24;
-            powerNetwork.energyExchangedInputTotal = num23;
-            powerNetwork.energyExchangedOutputTotal = num24;
-            if (num33 > 0)
-            {
-                PlanetATField planetATField = __instance.factory.planetATField;
-                planetATField.energy += num33;
-                planetATField.atFieldRechargeCurrent = num33 * 60;
-            }
-            num22 += num35;
-            num11 += num34;
-            num5 += ((num22 >= num11) ? (num2 + num33) : num22);
-            long num49 = ((num24 - num11 > 0) ? (num24 - num11) : 0);
-            double num50 = ((num22 >= num11) ? 1.0 : ((double)num22 / (double)num11));
-            num11 += num23 - num49;
-            num22 -= num24;
-            double num51 = ((num22 > num11) ? ((double)num11 / (double)num22) : 1.0);
-            powerNetwork.consumerRatio = num50;
-            powerNetwork.generaterRatio = num51;
-            powerNetwork.energyDischarge = num35 + num24;
-            powerNetwork.energyCharge = num34 + num23;
-            float num52 = ((num22 > 0 || powerNetwork.energyStored > 0 || num24 > 0) ? ((float)num50) : 0f);
-            float num53 = ((num22 > 0 || powerNetwork.energyStored > 0 || num24 > 0) ? ((float)num51) : 0f);
-            __instance.networkServes[i] = num52;
-            __instance.networkGenerates[i] = num53;
-            for (int num55 = 0; num55 < count3; num55++)
-            {
-                num30 = generators[num55];
-                long num56 = 0L;
-                bool flag5 = !__instance.genPool[num30].wind && !__instance.genPool[num30].photovoltaic && !__instance.genPool[num30].gamma && !__instance.genPool[num30].geothermal;
-                if (flag5)
-                {
-                    __instance.genPool[num30].currentStrength = ((num44 > 0 && __instance.genPool[num30].capacityCurrentTick > 0) ? 1 : 0);
-                }
-                if (num44 > 0 && __instance.genPool[num30].productId == 0)
-                {
-                    long num57 = (long)(num51 * (double)__instance.genPool[num30].capacityCurrentTick + 0.99999);
-                    num56 = ((num44 < num57) ? num44 : num57);
-                    if (num56 > 0)
-                    {
-                        num44 -= num56;
-                        if (flag5)
-                        {
-                            __instance.genPool[num30].GenEnergyByFuel(num56, consumeRegister);
-                        }
-                    }
-                }
-                __instance.genPool[num30].generateCurrentTick = num56;
-                int entityId4 = __instance.genPool[num30].entityId;
-                if (__instance.genPool[num30].wind)
-                {
-                }
-                else if (__instance.genPool[num30].gamma)
-                {
-                    bool keyFrame = (num30 + num10) % 90 == 0;
-                    __instance.genPool[num30].GameTick_Gamma(useIonLayer, useCata, keyFrame, __instance.factory, productRegister, consumeRegister);
-                }
-                else if (__instance.genPool[num30].fuelMask > 1)
-                {
-                }
-                else if (__instance.genPool[num30].geothermal)
-                {
-                    float num58 = __instance.genPool[num30].warmup + __instance.genPool[num30].warmupSpeed;
-                    __instance.genPool[num30].warmup = ((num58 > 1f) ? 1f : ((num58 < 0f) ? 0f : num58));
-                }
-            }
-        }
-        lock (factoryProductionStat)
-        {
-            factoryProductionStat.powerGenRegister = num;
-            factoryProductionStat.powerConRegister = num2;
-            factoryProductionStat.powerDisRegister = num3;
-            factoryProductionStat.powerChaRegister = num4;
-            factoryProductionStat.energyConsumption += num5;
-        }
+        OptimizedPowerSystem optimizedPowerSystem = _planetToOptimizedEntities[__instance.factory]._optimizedPowerSystem;
+        optimizedPowerSystem.GameTick(__instance.factory, time, isActive, isMultithreadMode);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
