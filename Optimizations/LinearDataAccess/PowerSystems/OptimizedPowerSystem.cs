@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Weaver.Optimizations.LinearDataAccess.Assemblers;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -84,20 +83,15 @@ internal sealed class OptimizedPowerSystem
                 }
             }
         }
-        if (WorkerThreadExecutor.CalculateMissionIndex(0, _assemblerPowerConsumerTypeIndexes.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            int[] assemblerPowerConsumerTypeIndexes = _assemblerPowerConsumerTypeIndexes;
-            PowerConsumerType[] powerConsumerTypes = _powerConsumerTypes;
-            OptimizedAssembler[] optimizedAssemblers = optimizedPlanet._optimizedAssemblers;
-            NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates = optimizedPlanet._assemblerNetworkIdAndStates;
-            for (int j = _start; j < _end; j++)
-            {
-                int networkIndex = assemblerNetworkIdAndStates[j].Index;
-                int powerConsumerTypeIndex = assemblerPowerConsumerTypeIndexes[j];
-                PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-                thisThreadNetworkPowerConsumption[networkIndex] += optimizedAssemblers[j].GetPowerConsumption(powerConsumerType);
-            }
-        }
+
+        optimizedPlanet._assemblerExecutor.UpdatePower(optimizedPlanet,
+                                                       _assemblerPowerConsumerTypeIndexes,
+                                                       _powerConsumerTypes,
+                                                       thisThreadNetworkPowerConsumption,
+                                                       _usedThreadCnt,
+                                                       _curThreadIdx,
+                                                       _minimumMissionCnt);
+
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factory.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
             for (int k = _start; k < _end; k++)

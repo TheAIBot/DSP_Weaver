@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
@@ -14,7 +13,6 @@ internal struct OptimizedAssembler
     public readonly int[] incServed;
     public readonly int[] needs;
     public readonly int[] produced;
-    public bool replicating;
     public bool incUsed;
     public int speedOverride; // Can move out but need to move logic to creation
     public int time;
@@ -22,7 +20,6 @@ internal struct OptimizedAssembler
     public int cycleCount;
     public int extraCycleCount;
     public int extraSpeed;
-    public int extraPowerRatio;
 
     public OptimizedAssembler(int assemblerRecipeIndex,
                               ref readonly AssemblerComponent assembler)
@@ -34,7 +31,6 @@ internal struct OptimizedAssembler
         incServed = assembler.incServed;
         needs = assembler.needs;
         produced = assembler.produced;
-        replicating = assembler.replicating;
         incUsed = assembler.incUsed;
         speedOverride = assembler.speedOverride;
         time = assembler.time;
@@ -42,7 +38,6 @@ internal struct OptimizedAssembler
         cycleCount = assembler.cycleCount;
         extraCycleCount = assembler.extraCycleCount;
         extraSpeed = assembler.extraSpeed;
-        extraPowerRatio = assembler.extraPowerRatio;
     }
 
     public void UpdateNeeds(ref readonly AssemblerRecipe assemblerRecipeData)
@@ -64,7 +59,9 @@ internal struct OptimizedAssembler
     public AssemblerState Update(float power,
                                  int[] productRegister,
                                  int[] consumeRegister,
-                                 ref readonly AssemblerRecipe assemblerRecipeData)
+                                 ref readonly AssemblerRecipe assemblerRecipeData,
+                                 ref bool replicating,
+                                 ref int extraPowerRatio)
     {
         if (power < 0.1f)
         {
@@ -269,11 +266,6 @@ internal struct OptimizedAssembler
             //return 0u;
         }
         return AssemblerState.Active;
-    }
-
-    public long GetPowerConsumption(PowerConsumerType powerConsumerType)
-    {
-        return powerConsumerType.GetRequiredEnergy(replicating, 1000 + extraPowerRatio);
     }
 
     private int split_inc_level(ref int n, ref int m, int p)

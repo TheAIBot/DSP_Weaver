@@ -20,6 +20,8 @@ internal sealed class OptimizedPlanet
 
     public NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
     public OptimizedAssembler[] _optimizedAssemblers;
+    public bool[] _assemblerReplicatings;
+    public int[] _assemblerExtraPowerRatios;
     public AssemblerRecipe[] _assemblerRecipes;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex;
     public AssemblerExecutor _assemblerExecutor;
@@ -111,6 +113,8 @@ internal sealed class OptimizedPlanet
 
         List<NetworkIdAndState<AssemblerState>> assemblerNetworkIdAndStates = [];
         List<OptimizedAssembler> optimizedAssemblers = [];
+        List<bool> assemblerReplicatings = [];
+        List<int> assemblerExtraPowerRatios = [];
         Dictionary<AssemblerRecipe, int> assemblerRecipeToIndex = [];
         List<AssemblerRecipe> assemblerRecipes = [];
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
@@ -149,6 +153,8 @@ internal sealed class OptimizedPlanet
             assemblerNetworkIdAndStates.Add(new NetworkIdAndState<AssemblerState>((int)(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active),
                                                                                   networkIndex));
             optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex, ref assembler));
+            assemblerReplicatings.Add(assembler.replicating);
+            assemblerExtraPowerRatios.Add(assembler.extraPowerRatio);
             optimizedPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
 
 
@@ -160,6 +166,8 @@ internal sealed class OptimizedPlanet
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates.ToArray();
         _assemblerRecipes = assemblerRecipes.ToArray();
         _optimizedAssemblers = optimizedAssemblers.ToArray();
+        _assemblerReplicatings = assemblerReplicatings.ToArray();
+        _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();
         _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
     }
 
