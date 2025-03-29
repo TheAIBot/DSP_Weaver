@@ -13,6 +13,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     where T : struct, IInserter<T>
 {
     private T[] _optimizedInserters;
+    private OptimizedInserterStage[] _optimizedInserterStages;
     private InserterGrade[] _inserterGrades;
     public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates;
     public InserterConnections[] _inserterConnections;
@@ -30,6 +31,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
          List<InserterGrade> inserterGrades,
          Dictionary<InserterGrade, int> inserterGradeToIndex,
          List<T> optimizedInserters,
+         List<OptimizedInserterStage> optimizedInserterStages,
          List<int> optimizedInserterToInserterIndex,
          List<PickFromProducingPlant> pickFromProducingPlants)
             = InitializeInserters<T>(planet, optimizedPlanet, inserterSelector, optimizedPowerSystemInserterBuilder);
@@ -39,6 +41,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         _inserterConnectionNeeds = inserterConnectionNeeds.ToArray();
         _inserterGrades = inserterGrades.ToArray();
         _optimizedInserters = optimizedInserters.ToArray();
+        _optimizedInserterStages = optimizedInserterStages.ToArray();
         _optimizedInserterToInserterIndex = optimizedInserterToInserterIndex.ToArray();
         _pickFromProducingPlants = pickFromProducingPlants.ToArray();
     }
@@ -57,7 +60,6 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        int[][] entityNeeds = planet.entityNeeds;
         InserterComponent[] unoptimizedInserters = planet.factorySystem.inserterPool;
         _end = _end > _optimizedInserters.Length ? _optimizedInserters.Length : _end;
         for (int inserterIndex = _start; inserterIndex < _end; inserterIndex++)
@@ -94,6 +96,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             float power2 = networkServes[networkIdAndState.Index];
             ref T optimizedInserter = ref _optimizedInserters[inserterIndex];
             InserterGrade inserterGrade = _inserterGrades[optimizedInserter.grade];
+            ref OptimizedInserterStage optimizedInserterStage = ref _optimizedInserterStages[inserterIndex];
             optimizedInserter.Update(planet,
                                      optimizedPlanet,
                                      power2,
@@ -102,7 +105,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                                      in _inserterConnections[inserterIndex],
                                      in _inserterConnectionNeeds[inserterIndex],
                                      _pickFromProducingPlants,
-                                     inserterGrade);
+                                     inserterGrade,
+                                     ref optimizedInserterStage);
         }
     }
 
@@ -119,15 +123,20 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             return;
         }
 
-        T[] optimizedInserters = _optimizedInserters;
         NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = _inserterNetworkIdAndStates;
         for (int j = _start; j < _end; j++)
         {
             int networkIndex = inserterNetworkIdAndStates[j].Index;
             int powerConsumerTypeIndex = inserterPowerConsumerIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisThreadNetworkPowerConsumption[networkIndex] += optimizedInserters[j].GetPowerConsumption(powerConsumerType);
+            OptimizedInserterStage optimizedInserterStage = _optimizedInserterStages[j];
+            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, optimizedInserterStage);
         }
+    }
+
+    private long GetPowerConsumption(PowerConsumerType powerConsumerType, OptimizedInserterStage stage)
+    {
+        return powerConsumerType.GetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
     }
 
     private bool IsObjectPickFromActive(OptimizedPlanet optimizedPlanet, int inserterIndex)
@@ -162,6 +171,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                     List<InserterGrade> inserterGrades,
                     Dictionary<InserterGrade, int> inserterGradeToIndex,
                     List<TInserter> optimizedInserters,
+                    List<OptimizedInserterStage> optimizedInserterStages,
                     List<int> optimizedInserterToInserterIndex,
                     List<PickFromProducingPlant> pickFromProducingPlants)
         InitializeInserters<TInserter>(PlanetFactory planet,
@@ -176,6 +186,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         List<InserterGrade> inserterGrades = [];
         Dictionary<InserterGrade, int> inserterGradeToIndex = [];
         List<TInserter> optimizedInserters = [];
+        List<OptimizedInserterStage> optimizedInserterStages = [];
         List<int> optimizedInserterToInserterIndex = [];
         List<PickFromProducingPlant> pickFromProducingPlants = [];
 
@@ -264,6 +275,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             }
 
             optimizedInserters.Add(default(TInserter).Create(in inserter, inserterGradeIndex));
+            optimizedInserterStages.Add(ToOptimizedInserterStage(inserter.stage));
             optimizedInserterToInserterIndex.Add(i);
 
             if (pickFrom.EntityType == EntityType.Assembler)
@@ -289,7 +301,17 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 inserterGrades,
                 inserterGradeToIndex,
                 optimizedInserters,
+                optimizedInserterStages,
                 optimizedInserterToInserterIndex,
                 pickFromProducingPlants);
     }
+
+    private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch
+    {
+        EInserterStage.Picking => OptimizedInserterStage.Picking,
+        EInserterStage.Sending => OptimizedInserterStage.Sending,
+        EInserterStage.Inserting => OptimizedInserterStage.Inserting,
+        EInserterStage.Returning => OptimizedInserterStage.Returning,
+        _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
+    };
 }

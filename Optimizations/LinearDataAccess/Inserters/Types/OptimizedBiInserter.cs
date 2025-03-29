@@ -1,7 +1,5 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
@@ -14,7 +12,6 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
     public readonly short pickOffset;
     public readonly short insertOffset;
     public readonly int filter;
-    public OptimizedInserterStage stage;
     public int itemId;
     public short itemCount;
     public short itemInc;
@@ -29,7 +26,6 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         pickOffset = inserter.pickOffset;
         insertOffset = inserter.insertOffset;
         filter = inserter.filter;
-        stage = ToOptimizedInserterStage(inserter.stage);
         itemId = inserter.itemId;
         itemCount = inserter.itemCount;
         itemInc = inserter.itemInc;
@@ -50,7 +46,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                        ref readonly InserterConnections inserterConnections,
                        ref readonly int[] inserterConnectionNeeds,
                        PickFromProducingPlant[] pickFromProducingPlants,
-                       InserterGrade inserterGrade)
+                       InserterGrade inserterGrade,
+                       ref OptimizedInserterStage stage)
     {
         if (power < 0.1f)
         {
@@ -302,18 +299,4 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             stage = stage == OptimizedInserterStage.Sending ? OptimizedInserterStage.Returning : OptimizedInserterStage.Picking;
         }
     }
-
-    public long GetPowerConsumption(PowerConsumerType powerConsumerType)
-    {
-        return powerConsumerType.GetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
-    }
-
-    private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch
-    {
-        EInserterStage.Picking => OptimizedInserterStage.Picking,
-        EInserterStage.Sending => OptimizedInserterStage.Sending,
-        EInserterStage.Inserting => OptimizedInserterStage.Inserting,
-        EInserterStage.Returning => OptimizedInserterStage.Returning,
-        _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
-    };
 }

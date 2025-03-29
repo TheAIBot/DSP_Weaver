@@ -1,10 +1,8 @@
-﻿using Weaver.Optimizations.LinearDataAccess.PowerSystems;
-
-namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+﻿namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
 internal interface IInserter<T>
 {
-    public byte grade { get; }
+    byte grade { get; }
 
     T Create(ref readonly InserterComponent inserter, int grade);
 
@@ -16,7 +14,6 @@ internal interface IInserter<T>
                 ref readonly InserterConnections inserterConnections,
                 ref readonly int[] inserterConnectionNeeds,
                 PickFromProducingPlant[] pickFromProducingPlants,
-                InserterGrade inserterGrade);
-
-    long GetPowerConsumption(PowerConsumerType powerConsumerType);
+                InserterGrade inserterGrade,
+                ref OptimizedInserterStage stage);
 }
