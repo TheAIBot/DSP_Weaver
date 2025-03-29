@@ -48,7 +48,14 @@ public class WeaverFixes : BaseUnityPlugin
 
         //InserterThreadLoadBalance.EnableOptimization();
         //InserterMultithreadingOptimization.EnableOptimization();
-        LinearInserterDataAccessOptimization.EnableOptimization();
+
+        // Causes various issues such as
+        // * Incorrect production statistics
+        // * Incorrect power statistics
+        // * Assembler DivideByZeroException
+        //LinearInserterDataAccessOptimization.EnableOptimization();
+
+
         OptimizedPlanet.EnableOptimization();
         GraphStatistics.Enable();
     }
