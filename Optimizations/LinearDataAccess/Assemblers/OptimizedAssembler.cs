@@ -25,39 +25,24 @@ internal struct OptimizedAssembler
     public int extraPowerRatio;
 
     public OptimizedAssembler(int assemblerRecipeIndex,
-                              int pcId,
-                              bool forceAccMode,
-                              int speed,
-                              int[] served,
-                              int[] incServed,
-                              int[] needs,
-                              int[] produced,
-                              bool replicating,
-                              bool incUsed,
-                              int speedOverride,
-                              int time,
-                              int extraTime,
-                              int cycleCount,
-                              int extraCycleCount,
-                              int extraSpeed,
-                              int extraPowerRatio)
+                              ref readonly AssemblerComponent assembler)
     {
         this.assemblerRecipeIndex = assemblerRecipeIndex;
-        this.forceAccMode = forceAccMode;
-        this.speed = speed;
-        this.served = served;
-        this.incServed = incServed;
-        this.needs = needs;
-        this.produced = produced;
-        this.replicating = replicating;
-        this.incUsed = incUsed;
-        this.speedOverride = speedOverride;
-        this.time = time;
-        this.extraTime = extraTime;
-        this.cycleCount = cycleCount;
-        this.extraCycleCount = extraCycleCount;
-        this.extraSpeed = extraSpeed;
-        this.extraPowerRatio = extraPowerRatio;
+        forceAccMode = assembler.forceAccMode;
+        speed = assembler.speed;
+        served = assembler.served;
+        incServed = assembler.incServed;
+        needs = assembler.needs;
+        produced = assembler.produced;
+        replicating = assembler.replicating;
+        incUsed = assembler.incUsed;
+        speedOverride = assembler.speedOverride;
+        time = assembler.time;
+        extraTime = assembler.extraTime;
+        cycleCount = assembler.cycleCount;
+        extraCycleCount = assembler.extraCycleCount;
+        extraSpeed = assembler.extraSpeed;
+        extraPowerRatio = assembler.extraPowerRatio;
     }
 
     public void UpdateNeeds(ref readonly AssemblerRecipe assemblerRecipeData)

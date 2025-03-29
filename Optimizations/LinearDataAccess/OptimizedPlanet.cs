@@ -148,23 +148,7 @@ internal sealed class OptimizedPlanet
             int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
             assemblerNetworkIdAndStates.Add(new NetworkIdAndState<AssemblerState>((int)(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active),
                                                                                   networkIndex));
-            optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex,
-                                                           assembler.pcId,
-                                                           assembler.forceAccMode,
-                                                           assembler.speed,
-                                                           assembler.served,
-                                                           assembler.incServed,
-                                                           assembler.needs,
-                                                           assembler.produced,
-                                                           assembler.replicating,
-                                                           assembler.incUsed,
-                                                           assembler.speedOverride,
-                                                           assembler.time,
-                                                           assembler.extraTime,
-                                                           assembler.cycleCount,
-                                                           assembler.extraCycleCount,
-                                                           assembler.extraSpeed,
-                                                           assembler.extraPowerRatio));
+            optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex, ref assembler));
             optimizedPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
 
 
@@ -962,8 +946,8 @@ internal sealed class OptimizedPlanet
                     if (!isActive)
                     {
                         PlanetFactory planet = __instance.assemblerFactories[i];
-                        OptimizedPlanet optimizedInserters = _planetToOptimizedEntities[planet];
-                        optimizedInserters.GameTick(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
+                        optimizedPlanet.GameTick(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
                     }
                     else
                     {
@@ -984,8 +968,8 @@ internal sealed class OptimizedPlanet
                     if (!isActive)
                     {
                         PlanetFactory planet = __instance.assemblerFactories[i];
-                        OptimizedPlanet optimizedInserters = _planetToOptimizedEntities[planet];
-                        optimizedInserters.GameTickLabProduceMode(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
+                        optimizedPlanet.GameTickLabProduceMode(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
                     }
                     else
                     {

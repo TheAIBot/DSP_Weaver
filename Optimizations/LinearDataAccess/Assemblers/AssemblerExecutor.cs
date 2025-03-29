@@ -13,7 +13,7 @@ internal sealed class AssemblerExecutor
         OptimizedAssembler[] optimizedAssemblers = optimizedPlanet._optimizedAssemblers;
         AssemblerRecipe[] assemblerRecipes = optimizedPlanet._assemblerRecipes;
 
-        if (!WorkerThreadExecutor.CalculateMissionIndex(1, optimizedAssemblers.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
+        if (!WorkerThreadExecutor.CalculateMissionIndex(0, optimizedAssemblers.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
         {
             return;
         }
