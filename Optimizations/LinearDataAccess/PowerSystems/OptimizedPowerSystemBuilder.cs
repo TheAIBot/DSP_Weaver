@@ -11,6 +11,8 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly List<int> _assemblerPowerConsumerTypeIndexes = [];
     private readonly List<int> _inserterBiPowerConsumerTypeIndexes = [];
     private readonly List<int> _inserterPowerConsumerTypeIndexes = [];
+    private readonly List<int> _producingLabPowerConsumerTypeIndexes = [];
+    private readonly List<int> _researchingLabPowerConsumerTypeIndexes = [];
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
 
     public OptimizedPowerSystemBuilder(PowerSystem powerSystem)
@@ -20,11 +22,7 @@ internal sealed class OptimizedPowerSystemBuilder
 
     public void AddAssembler(ref readonly AssemblerComponent assembler, int networkIndex)
     {
-        PowerConsumerComponent powerConsumerComponent = _powerSystem.consumerPool[assembler.pcId];
-        PowerConsumerType powerConsumerType = new PowerConsumerType(powerConsumerComponent.workEnergyPerTick, powerConsumerComponent.idleEnergyPerTick);
-        _assemblerPowerConsumerTypeIndexes.Add(GetOrAddPowerConsumerType(powerConsumerType));
-
-        AddPowerConsumerIndexToNetwork(assembler.pcId, networkIndex);
+        AddEntity(_assemblerPowerConsumerTypeIndexes, assembler.pcId, networkIndex);
     }
 
     public OptimizedPowerSystemInserterBuilder CreateBiInserterBuilder()
@@ -35,6 +33,16 @@ internal sealed class OptimizedPowerSystemBuilder
     public OptimizedPowerSystemInserterBuilder CreateInserterBuilder()
     {
         return new OptimizedPowerSystemInserterBuilder(_powerSystem, this, _inserterPowerConsumerTypeIndexes);
+    }
+
+    public void AddProducingLab(ref readonly LabComponent lab, int networkIndex)
+    {
+        AddEntity(_producingLabPowerConsumerTypeIndexes, lab.pcId, networkIndex);
+    }
+
+    public void AddResearchingLab(ref readonly LabComponent lab, int networkIndex)
+    {
+        AddEntity(_researchingLabPowerConsumerTypeIndexes, lab.pcId, networkIndex);
     }
 
     public OptimizedPowerSystem Build()
@@ -51,12 +59,13 @@ internal sealed class OptimizedPowerSystemBuilder
             networkNonOptimizedPowerConsumerIndexes[i] = _powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes).ToArray();
         }
 
-        WeaverFixes.Logger.LogMessage($"PowerConsumerTypes Count: {_powerConsumerTypes.Count}");
         return new OptimizedPowerSystem(_powerConsumerTypes.ToArray(),
                                         networkNonOptimizedPowerConsumerIndexes,
                                         _assemblerPowerConsumerTypeIndexes.ToArray(),
                                         _inserterBiPowerConsumerTypeIndexes.ToArray(),
-                                        _inserterPowerConsumerTypeIndexes.ToArray());
+                                        _inserterPowerConsumerTypeIndexes.ToArray(),
+                                        _producingLabPowerConsumerTypeIndexes.ToArray(),
+                                        _researchingLabPowerConsumerTypeIndexes.ToArray());
     }
 
     public int GetOrAddPowerConsumerType(PowerConsumerType powerConsumerType)
@@ -80,5 +89,14 @@ internal sealed class OptimizedPowerSystemBuilder
         }
 
         optimizedConsumerIndexes.Add(powerConsumerIndex);
+    }
+
+    private void AddEntity(List<int> powerConsumerTypeIndexes, int powerConsumerIndex, int networkIndex)
+    {
+        PowerConsumerComponent powerConsumerComponent = _powerSystem.consumerPool[powerConsumerIndex];
+        PowerConsumerType powerConsumerType = new PowerConsumerType(powerConsumerComponent.workEnergyPerTick, powerConsumerComponent.idleEnergyPerTick);
+        powerConsumerTypeIndexes.Add(GetOrAddPowerConsumerType(powerConsumerType));
+
+        AddPowerConsumerIndexToNetwork(powerConsumerIndex, networkIndex);
     }
 }

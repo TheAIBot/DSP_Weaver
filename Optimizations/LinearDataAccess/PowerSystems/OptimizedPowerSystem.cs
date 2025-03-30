@@ -11,19 +11,25 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _assemblerPowerConsumerTypeIndexes;
     private readonly int[] _inserterBiPowerConsumerTypeIndexes;
     private readonly int[] _inserterPowerConsumerTypeIndexes;
+    private readonly int[] _producingLabPowerConsumerTypeIndexes;
+    private readonly int[] _researchingLabPowerConsumerTypeIndexes;
     private long[][] _threadNetworkPowerConsumptionPrepared = null;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
                                 int[][] networkNonOptimizedPowerConsumerIndexes,
                                 int[] assemblerPowerConsumerTypeIndexes,
                                 int[] inserterBiPowerConsumerTypeIndexes,
-                                int[] inserterPowerConsumerTypeIndexes)
+                                int[] inserterPowerConsumerTypeIndexes,
+                                int[] producingLabPowerConsumerTypeIndexes,
+                                int[] researchingLabPowerConsumerTypeIndexes)
     {
         _powerConsumerTypes = powerConsumerTypes;
         _networkNonOptimizedPowerConsumerIndexes = networkNonOptimizedPowerConsumerIndexes;
         _assemblerPowerConsumerTypeIndexes = assemblerPowerConsumerTypeIndexes;
         _inserterBiPowerConsumerTypeIndexes = inserterBiPowerConsumerTypeIndexes;
         _inserterPowerConsumerTypeIndexes = inserterPowerConsumerTypeIndexes;
+        _producingLabPowerConsumerTypeIndexes = producingLabPowerConsumerTypeIndexes;
+        _researchingLabPowerConsumerTypeIndexes = researchingLabPowerConsumerTypeIndexes;
     }
 
     public void ParallelGameTickBeforePower(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
@@ -122,16 +128,21 @@ internal sealed class OptimizedPowerSystem
                 }
             }
         }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factory.labCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int n = _start; n < _end; n++)
-            {
-                if (factory.labPool[n].id == n)
-                {
-                    factory.labPool[n].SetPCState(consumerPool);
-                }
-            }
-        }
+
+        optimizedPlanet._producingLabExecutor.UpdatePower(optimizedPlanet,
+                                                          _producingLabPowerConsumerTypeIndexes,
+                                                          _powerConsumerTypes,
+                                                          thisThreadNetworkPowerConsumption,
+                                                          _usedThreadCnt,
+                                                          _curThreadIdx,
+                                                          _minimumMissionCnt);
+        optimizedPlanet._researchingLabExecutor.UpdatePower(optimizedPlanet,
+                                                            _researchingLabPowerConsumerTypeIndexes,
+                                                            _powerConsumerTypes,
+                                                            thisThreadNetworkPowerConsumption,
+                                                            _usedThreadCnt,
+                                                            _curThreadIdx,
+                                                            _minimumMissionCnt);
 
         optimizedPlanet._optimizedBiInserterExecutor.UpdatePower(optimizedPlanet,
                                                                  _inserterBiPowerConsumerTypeIndexes,

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 
@@ -70,7 +71,37 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet)
+    public void UpdatePower(OptimizedPlanet optimizedPlanet,
+                            int[] producingLabPowerConsumerIndexes,
+                            PowerConsumerType[] powerConsumerTypes,
+                            long[] thisThreadNetworkPowerConsumption,
+                            int _usedThreadCnt,
+                            int _curThreadIdx,
+                            int _minimumMissionCnt)
+    {
+        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedLabs.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
+        {
+            return;
+        }
+
+        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
+        for (int j = _start; j < _end; j++)
+        {
+            int networkIndex = networkIdAndStates[j].Index;
+            int powerConsumerTypeIndex = producingLabPowerConsumerIndexes[j];
+            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+            OptimizedProducingLab lab = optimizedLabs[j];
+            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, lab.replicating, lab.extraPowerRatio);
+        }
+    }
+
+    private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool replicating, int extraPowerRatio)
+    {
+        return powerConsumerType.GetRequiredEnergy(replicating, 1000 + extraPowerRatio);
+    }
+
+    public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         List<NetworkIdAndState<LabState>> networkIdAndStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
@@ -114,8 +145,10 @@ internal sealed class ProducingLabExecutor
 
             labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
             optimizedLabs.Add(new OptimizedProducingLab(producingLabRecipeIndex, nextLabIndex, ref lab));
-            networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, planet.powerSystem.consumerPool[lab.pcId].networkId));
+            int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
+            networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
             entityIds.Add(lab.entityId);
+            optimizedPowerSystemBuilder.AddProducingLab(in lab, networkIndex);
 
             // set it here so we don't have to set it in the update loop.
             // Need to investigate when i need to update it.

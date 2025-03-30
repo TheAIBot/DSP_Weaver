@@ -33,13 +33,13 @@ internal sealed class OptimizedPlanet
     private int[] _ejectorNetworkIds;
 
     //private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
-    private ProducingLabExecutor _producingLabExecutor;
+    public ProducingLabExecutor _producingLabExecutor;
     public NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
     public OptimizedProducingLab[] _optimizedProducingLabs;
     public ProducingLabRecipe[] _producingLabRecipes;
     public Dictionary<int, int> _producingLabIdToOptimizedIndex;
 
-    private ResearchingLabExecutor _researchingLabExecutor;
+    public ResearchingLabExecutor _researchingLabExecutor;
     public NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
     private OptimizedResearchingLab[] _optimizedResearchingLabs;
     public Dictionary<int, int> _researchingLabIdToOptimizedIndex;
@@ -106,8 +106,8 @@ internal sealed class OptimizedPlanet
         InitializeAssemblers(planet, optimizedPowerSystemBuilder);
         InitializeMiners(planet);
         InitializeEjectors(planet);
-        InitializeLabAssemblers(planet);
-        InitializeResearchingLabs(planet);
+        InitializeLabAssemblers(planet, optimizedPowerSystemBuilder);
+        InitializeResearchingLabs(planet, optimizedPowerSystemBuilder);
         InitializeInserters(planet, optimizedPowerSystemBuilder);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
@@ -228,20 +228,20 @@ internal sealed class OptimizedPlanet
         _ejectorNetworkIds = ejectorNetworkIds;
     }
 
-    private void InitializeLabAssemblers(PlanetFactory planet)
+    private void InitializeLabAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _producingLabExecutor = new ProducingLabExecutor();
-        _producingLabExecutor.Initialize(planet);
+        _producingLabExecutor.Initialize(planet, optimizedPowerSystemBuilder);
         _producingLabNetworkIdAndStates = _producingLabExecutor._networkIdAndStates;
         _optimizedProducingLabs = _producingLabExecutor._optimizedLabs;
         _producingLabRecipes = _producingLabExecutor._producingLabRecipes;
         _producingLabIdToOptimizedIndex = _producingLabExecutor._labIdToOptimizedLabIndex;
     }
 
-    private void InitializeResearchingLabs(PlanetFactory planet)
+    private void InitializeResearchingLabs(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _researchingLabExecutor = new ResearchingLabExecutor();
-        _researchingLabExecutor.Initialize(planet);
+        _researchingLabExecutor.Initialize(planet, optimizedPowerSystemBuilder);
         _researchingLabNetworkIdAndStates = _researchingLabExecutor._networkIdAndStates;
         _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;

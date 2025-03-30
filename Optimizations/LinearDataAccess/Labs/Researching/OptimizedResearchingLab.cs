@@ -11,6 +11,7 @@ internal struct OptimizedResearchingLab
     public readonly int[] matrixServed;
     public readonly int[] matrixIncServed;
     public readonly int nextLabIndex;
+    public bool replicating;
     public bool incUsed;
     public int hashBytes;
     public int extraHashBytes;
@@ -23,6 +24,7 @@ internal struct OptimizedResearchingLab
         matrixServed = lab.matrixServed;
         matrixIncServed = lab.matrixIncServed;
         this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
+        replicating = lab.replicating;
         incUsed = lab.incUsed;
         hashBytes = lab.hashBytes;
         extraHashBytes = lab.extraHashBytes;
@@ -88,6 +90,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
+                    replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -100,6 +103,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
+                    replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -112,6 +116,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
+                    replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -124,6 +129,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
+                    replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -136,6 +142,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
+                    replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -148,10 +155,12 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
+                    replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
         }
+        replicating = true;
         research_speed = research_speed < num ? research_speed : num;
         int num3 = (int)(power * 10000f * research_speed + 0.5f);
         hashBytes += num3;
