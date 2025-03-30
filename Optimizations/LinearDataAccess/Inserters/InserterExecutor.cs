@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;

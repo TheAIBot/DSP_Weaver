@@ -1,0 +1,244 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
+
+internal sealed class ResearchingLabExecutor
+{
+    private int[] _matrixPoints;
+    public NetworkIdAndState<LabState>[] _networkIdAndStates;
+    public OptimizedResearchingLab[] _optimizedLabs;
+    public int[] _entityIds;
+    public Dictionary<int, int> _labIdToOptimizedLabIndex;
+
+    public void GameTickLabResearchMode(PlanetFactory planet, long time)
+    {
+        FactorySystem factorySystem = planet.factorySystem;
+        GameHistoryData history = GameMain.history;
+        GameStatData statistics = GameMain.statistics;
+        FactoryProductionStat factoryProductionStat = statistics.production.factoryStatPool[planet.index];
+        int[] consumeRegister = factoryProductionStat.consumeRegister;
+        SignData[] entitySignPool = planet.entitySignPool;
+        PowerSystem powerSystem = planet.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        int num = history.currentTech;
+        TechProto techProto = LDB.techs.Select(num);
+        TechState ts = default;
+        bool flag2 = false;
+        float research_speed = history.techSpeed;
+        int techHashedThisFrame = statistics.techHashedThisFrame;
+        long uMatrixPoint = history.universeMatrixPointUploaded;
+        long hashRegister = factoryProductionStat.hashRegister;
+        if (num > 0 && techProto != null && techProto.IsLabTech && GameMain.history.techStates.ContainsKey(num))
+        {
+            ts = history.techStates[num];
+            flag2 = true;
+        }
+        if (!flag2)
+        {
+            num = 0;
+        }
+        int num2 = 0;
+        if (flag2)
+        {
+            for (int i = 0; i < techProto.Items.Length; i++)
+            {
+                int num3 = techProto.Items[i] - LabComponent.matrixIds[0];
+                if (num3 >= 0 && num3 < 5)
+                {
+                    num2 |= 1 << num3;
+                }
+                else if (num3 == 5)
+                {
+                    num2 = 32;
+                    break;
+                }
+            }
+        }
+        if (num2 > 32)
+        {
+            num2 = 32;
+        }
+        if (num2 < 0)
+        {
+            num2 = 0;
+        }
+        float num4 = LabComponent.techShaderStates[num2] + 0.2f;
+        if (factorySystem.researchTechId != num)
+        {
+            factorySystem.researchTechId = num;
+
+            Array.Clear(_matrixPoints, 0, _matrixPoints.Length);
+            if (techProto != null && techProto.IsLabTech)
+            {
+                for (int i = 0; i < techProto.Items.Length; i++)
+                {
+                    int num46779 = techProto.Items[i] - LabComponent.matrixIds[0];
+                    if (num46779 >= 0 && num46779 < _matrixPoints.Length)
+                    {
+                        _matrixPoints[num46779] = techProto.ItemPoints[i];
+                    }
+                }
+            }
+
+            int[] entityIds = _entityIds;
+            for (int i = 0; i < _optimizedLabs.Length; i++)
+            {
+                _optimizedLabs[i].SetFunction(entityIds[i], factorySystem.researchTechId, _matrixPoints, entitySignPool);
+            }
+        }
+
+        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        for (int k = 0; k < optimizedLabs.Length; k++)
+        {
+            ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[k];
+            ref OptimizedResearchingLab reference = ref optimizedLabs[k];
+
+            reference.UpdateNeedsResearch();
+            if (flag2)
+            {
+                int curLevel = ts.curLevel;
+                float power = networkServes[networkIdAndState.Index];
+                reference.InternalUpdateResearch(power,
+                                                 research_speed,
+                                                 factorySystem.researchTechId,
+                                                 _matrixPoints,
+                                                 consumeRegister,
+                                                 ref ts,
+                                                 ref techHashedThisFrame,
+                                                 ref uMatrixPoint,
+                                                 ref hashRegister);
+                if (ts.unlocked)
+                {
+                    history.techStates[factorySystem.researchTechId] = ts;
+                    for (int l = 0; l < techProto.UnlockRecipes.Length; l++)
+                    {
+                        history.UnlockRecipe(techProto.UnlockRecipes[l]);
+                    }
+                    for (int m = 0; m < techProto.UnlockFunctions.Length; m++)
+                    {
+                        history.UnlockTechFunction(techProto.UnlockFunctions[m], techProto.UnlockValues[m], curLevel);
+                    }
+                    for (int n = 0; n < techProto.AddItems.Length; n++)
+                    {
+                        history.GainTechAwards(techProto.AddItems[n], techProto.AddItemCounts[n]);
+                    }
+                    history.NotifyTechUnlock(factorySystem.researchTechId, curLevel);
+                    history.DequeueTech();
+                    flag2 = false;
+                }
+                if (ts.curLevel > curLevel)
+                {
+                    history.techStates[factorySystem.researchTechId] = ts;
+                    for (int num6 = 0; num6 < techProto.UnlockFunctions.Length; num6++)
+                    {
+                        history.UnlockTechFunction(techProto.UnlockFunctions[num6], techProto.UnlockValues[num6], curLevel);
+                    }
+                    for (int num7 = 0; num7 < techProto.AddItems.Length; num7++)
+                    {
+                        history.GainTechAwards(techProto.AddItems[num7], techProto.AddItemCounts[num7]);
+                    }
+                    history.NotifyTechUnlock(factorySystem.researchTechId, curLevel);
+                    history.DequeueTech();
+                    flag2 = false;
+                }
+            }
+        }
+
+        history.techStates[factorySystem.researchTechId] = ts;
+        statistics.techHashedThisFrame = techHashedThisFrame;
+        history.universeMatrixPointUploaded = uMatrixPoint;
+        factoryProductionStat.hashRegister = hashRegister;
+    }
+
+    public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        int num = 0;
+        int num2 = 0;
+        for (int i = (int)(GameMain.gameTick % 5); i < _optimizedLabs.Length; i += 5)
+        {
+            if (num == _curThreadIdx)
+            {
+                optimizedLabs[i].UpdateOutputToNext(optimizedLabs);
+            }
+            num2++;
+            if (num2 >= _minimumMissionCnt)
+            {
+                num2 = 0;
+                num++;
+                num %= _usedThreadCnt;
+            }
+        }
+    }
+
+    public void Initialize(PlanetFactory planet)
+    {
+        int[] matrixPoints = new int[LabComponent.matrixIds.Length];
+        bool copiedMatrixPoints = false;
+        List<NetworkIdAndState<LabState>> networkIdAndStates = [];
+        List<OptimizedResearchingLab> optimizedLabs = [];
+        List<int> entityIds = [];
+        Dictionary<int, int> labIdToOptimizedLabIndex = [];
+
+        for (int i = 0; i < planet.factorySystem.labCursor; i++)
+        {
+            ref LabComponent lab = ref planet.factorySystem.labPool[i];
+            if (lab.id != i)
+            {
+                continue;
+            }
+
+            if (!lab.researchMode)
+            {
+                continue;
+            }
+
+            if (!copiedMatrixPoints && lab.matrixPoints != null)
+            {
+                Array.Copy(lab.matrixPoints, matrixPoints, matrixPoints.Length);
+                copiedMatrixPoints = true;
+            }
+
+            int? nextLabIndex = null;
+            if (planet.factorySystem.labPool[lab.nextLabId].id != 0 &&
+                planet.factorySystem.labPool[lab.nextLabId].id == lab.nextLabId)
+            {
+                nextLabIndex = lab.nextLabId;
+            }
+
+            labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
+            optimizedLabs.Add(new OptimizedResearchingLab(nextLabIndex, ref lab));
+            networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, planet.powerSystem.consumerPool[lab.pcId].networkId));
+            entityIds.Add(lab.entityId);
+
+            // set it here so we don't have to set it in the update loop.
+            // Need to investigate when i need to update it.
+            planet.entityNeeds[lab.entityId] = lab.needs;
+        }
+
+        for (int i = 0; i < optimizedLabs.Count; i++)
+        {
+            OptimizedResearchingLab lab = optimizedLabs[i];
+            if (lab.nextLabIndex == OptimizedResearchingLab.NO_NEXT_LAB)
+            {
+                continue;
+            }
+
+            if (!labIdToOptimizedLabIndex.TryGetValue(lab.nextLabIndex, out int nextOptimizedLabIndex))
+            {
+                throw new InvalidOperationException("Next lab index was not part of the converted research labs.");
+            }
+
+            optimizedLabs[i] = new OptimizedResearchingLab(nextOptimizedLabIndex, ref lab);
+        }
+
+        _matrixPoints = matrixPoints.ToArray();
+        _networkIdAndStates = networkIdAndStates.ToArray();
+        _optimizedLabs = optimizedLabs.ToArray();
+        _entityIds = entityIds.ToArray();
+        _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
+    }
+}
