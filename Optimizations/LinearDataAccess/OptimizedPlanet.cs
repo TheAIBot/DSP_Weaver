@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using UnityEngine;
 using Weaver.FatoryGraphs;
@@ -30,7 +32,18 @@ internal sealed class OptimizedPlanet
 
     private int[] _ejectorNetworkIds;
 
-    private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
+    //private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
+    private ProducingLabExecutor _producingLabExecutor;
+    private NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
+    public OptimizedProducingLab[] _optimizedProducingLabs;
+    public ProducingLabRecipe[] _producingLabRecipes;
+    public Dictionary<int, int> _producingLabIdToOptimizedIndex;
+
+    private ResearchingLabExecutor _researchingLabExecutor;
+    private NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
+    private OptimizedResearchingLab[] _optimizedResearchingLabs;
+    public Dictionary<int, int> _researchingLabIdToOptimizedIndex;
+
 
     private OptimizedPowerSystem _optimizedPowerSystem;
 
@@ -89,11 +102,13 @@ internal sealed class OptimizedPlanet
     public void InitializeData(PlanetFactory planet)
     {
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(planet.powerSystem);
+
         InitializeAssemblers(planet, optimizedPowerSystemBuilder);
-        InitializeInserters(planet, optimizedPowerSystemBuilder);
         InitializeMiners(planet);
         InitializeEjectors(planet);
         InitializeLabAssemblers(planet);
+        InitializeResearchingLabs(planet);
+        InitializeInserters(planet, optimizedPowerSystemBuilder);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
     }
@@ -215,35 +230,21 @@ internal sealed class OptimizedPlanet
 
     private void InitializeLabAssemblers(PlanetFactory planet)
     {
-        NetworkIdAndState<LabState>[] labNetworkIdAndStates = new NetworkIdAndState<LabState>[planet.factorySystem.labCursor];
+        _producingLabExecutor = new ProducingLabExecutor();
+        _producingLabExecutor.Initialize(planet);
+        _producingLabNetworkIdAndStates = _producingLabExecutor._networkIdAndStates;
+        _optimizedProducingLabs = _producingLabExecutor._optimizedLabs;
+        _producingLabRecipes = _producingLabExecutor._producingLabRecipes;
+        _producingLabIdToOptimizedIndex = _producingLabExecutor._labIdToOptimizedLabIndex;
+    }
 
-        for (int i = 0; i < planet.factorySystem.labCursor; i++)
-        {
-            ref LabComponent lab = ref planet.factorySystem.labPool[i];
-            if (lab.id != i)
-            {
-                labNetworkIdAndStates[i] = new NetworkIdAndState<LabState>((int)LabState.InactiveNoAssembler, 0);
-                continue;
-            }
-
-            LabState state = LabState.Active;
-            if (lab.recipeId == 0)
-            {
-                state = LabState.InactiveNoRecipeSet;
-            }
-            if (lab.researchMode)
-            {
-                state = state | LabState.ResearchMode;
-            }
-
-            labNetworkIdAndStates[i] = new NetworkIdAndState<LabState>((int)state, planet.powerSystem.consumerPool[lab.pcId].networkId);
-
-            // set it here so we don't have to set it in the update loop.
-            // Need to investigate when i need to update it.
-            planet.entityNeeds[lab.entityId] = lab.needs;
-        }
-
-        _labProduceNetworkIdAndStates = labNetworkIdAndStates;
+    private void InitializeResearchingLabs(PlanetFactory planet)
+    {
+        _researchingLabExecutor = new ResearchingLabExecutor();
+        _researchingLabExecutor.Initialize(planet);
+        _researchingLabNetworkIdAndStates = _researchingLabExecutor._networkIdAndStates;
+        _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;
+        _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
     }
 
     public void Save(PlanetFactory planet)
@@ -573,7 +574,7 @@ internal sealed class OptimizedPlanet
             }
             return 0;
         }
-        else if (typedObjectIndex.EntityType == EntityType.Lab)
+        else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
         {
             PickFromProducingPlant producingPlant = pickFromProducingPlants[inserterIndex];
             int[] products2 = producingPlant.Products;
@@ -747,50 +748,55 @@ internal sealed class OptimizedPlanet
             }
             return 0;
         }
-        else if (typedObjectIndex.EntityType == EntityType.Lab)
+        else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
         {
             if (entityNeeds == null)
             {
                 return 0;
             }
-            ref LabComponent reference2 = ref planet.factorySystem.labPool[objectIndex];
-            if (reference2.researchMode)
+            ref readonly OptimizedProducingLab reference2 = ref optimizedPlanet._optimizedProducingLabs[objectIndex];
+            ProducingLabRecipe producingLabRecipe = optimizedPlanet._producingLabRecipes[reference2.producingLabRecipeIndex];
+            int[] requires2 = producingLabRecipe.Requires;
+            int[] served = reference2.served;
+            int[] incServed = reference2.incServed;
+            if (requires2 == null)
             {
-                int[] matrixServed = reference2.matrixServed;
-                int[] matrixIncServed = reference2.matrixIncServed;
-                if (matrixServed == null)
+                return 0;
+            }
+            int num3 = requires2.Length;
+            for (int i = 0; i < num3; i++)
+            {
+                if (requires2[i] == itemId)
                 {
-                    return 0;
-                }
-                int num2 = itemId - 6001;
-                if (num2 >= 0 && num2 < 6)
-                {
-                    Interlocked.Add(ref matrixServed[num2], 3600 * itemCount);
-                    Interlocked.Add(ref matrixIncServed[num2], 3600 * itemInc);
+                    Interlocked.Add(ref served[i], itemCount);
+                    Interlocked.Add(ref incServed[i], itemInc);
                     remainInc = 0;
                     return itemCount;
                 }
             }
-            else
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.ResearchingLab)
+        {
+            if (entityNeeds == null)
             {
-                int[] requires2 = reference2.requires;
-                int[] served = reference2.served;
-                int[] incServed = reference2.incServed;
-                if (requires2 == null)
-                {
-                    return 0;
-                }
-                int num3 = requires2.Length;
-                for (int i = 0; i < num3; i++)
-                {
-                    if (requires2[i] == itemId)
-                    {
-                        Interlocked.Add(ref served[i], itemCount);
-                        Interlocked.Add(ref incServed[i], itemInc);
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                }
+                return 0;
+            }
+
+            ref readonly OptimizedResearchingLab lab = ref optimizedPlanet._optimizedResearchingLabs[objectIndex];
+            int[] matrixServed = lab.matrixServed;
+            int[] matrixIncServed = lab.matrixIncServed;
+            if (matrixServed == null)
+            {
+                return 0;
+            }
+            int num2 = itemId - 6001;
+            if (num2 >= 0 && num2 < 6)
+            {
+                Interlocked.Add(ref matrixServed[num2], 3600 * itemCount);
+                Interlocked.Add(ref matrixIncServed[num2], 3600 * itemInc);
+                remainInc = 0;
+                return itemCount;
             }
             return 0;
         }
@@ -977,7 +983,7 @@ internal sealed class OptimizedPlanet
                     {
                         PlanetFactory planet = __instance.assemblerFactories[i];
                         OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
-                        optimizedPlanet.GameTickLabProduceMode(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
+                        optimizedPlanet._producingLabExecutor.GameTickLabProduceMode(planet, __instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
                     }
                     else
                     {
@@ -1177,37 +1183,6 @@ internal sealed class OptimizedPlanet
         }
     }
 
-    private void GameTickLabProduceMode(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
-    {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(1, planet.factorySystem.labCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
-        {
-            return;
-        }
-
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = obj.productRegister;
-        int[] consumeRegister = obj.consumeRegister;
-        float[] networkServes = planet.powerSystem.networkServes;
-        for (int i = _start; i < _end; i++)
-        {
-            NetworkIdAndState<LabState> networkIdAndState = _labProduceNetworkIdAndStates[i];
-            if (((LabState)networkIdAndState.State & LabState.Inactive) == LabState.Inactive)
-            {
-                continue;
-            }
-            if (((LabState)networkIdAndState.State & LabState.ResearchMode) == LabState.ResearchMode)
-            {
-                continue;
-            }
-
-            ref LabComponent lab = ref planet.factorySystem.labPool[i];
-            lab.UpdateNeedsAssemble();
-
-            float power = networkServes[networkIdAndState.Index];
-            lab.InternalUpdateAssemble(power, productRegister, consumeRegister);
-        }
-    }
-
     [HarmonyPrefix]
     [HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.ParallelGameTickBeforePower))]
     public static bool ParallelGameTickBeforePower(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
@@ -1238,9 +1213,42 @@ internal sealed class OptimizedPlanet
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
-    public TypedObjectIndex GetAsTypedObjectIndex(int index, EntityData[] entities)
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.GameTickLabResearchMode))]
+    public static bool GameTickLabResearchMode(FactorySystem __instance, long time, bool isActive)
     {
-        ref readonly EntityData entity = ref entities[index];
+        if (isActive)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[__instance.factory];
+        optimizedPlanet._researchingLabExecutor.GameTickLabResearchMode(__instance.factory, time);
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FactorySystem),
+                  nameof(FactorySystem.GameTickLabOutputToNext),
+                  [typeof(long), typeof(bool), typeof(int), typeof(int), typeof(int)])]
+    public static bool GameTickLabOutputToNext(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        if (isActive)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[__instance.factory];
+        optimizedPlanet._producingLabExecutor.GameTickLabOutputToNext(time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+        optimizedPlanet._researchingLabExecutor.GameTickLabOutputToNext(time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)
+    {
+        ref readonly EntityData entity = ref planet.entityPool[index];
         if (entity.beltId != 0)
         {
             return new TypedObjectIndex(EntityType.Belt, entity.beltId);
@@ -1249,7 +1257,7 @@ internal sealed class OptimizedPlanet
         {
             if (!_assemblerIdToOptimizedIndex.TryGetValue(entity.assemblerId, out int optimizedAssemblerIndex))
             {
-                return new TypedObjectIndex(EntityType.None, entity.assemblerId);
+                throw new InvalidOperationException("Failed to convert assembler id into optimized assembler id.");
             }
 
             return new TypedObjectIndex(EntityType.Assembler, optimizedAssemblerIndex);
@@ -1264,7 +1272,24 @@ internal sealed class OptimizedPlanet
         }
         else if (entity.labId != 0)
         {
-            return new TypedObjectIndex(EntityType.Lab, entity.labId);
+            if (planet.factorySystem.labPool[entity.labId].researchMode)
+            {
+                if (!_researchingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
+                {
+                    throw new InvalidOperationException("Failed to convert researching lab id into optimized lab id.");
+                }
+
+                return new TypedObjectIndex(EntityType.ResearchingLab, optimizedLabIndex);
+            }
+            else
+            {
+                if (!_producingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
+                {
+                    throw new InvalidOperationException("Failed to convert producing lab id into optimized lab id.");
+                }
+
+                return new TypedObjectIndex(EntityType.ProducingLab, optimizedLabIndex);
+            }
         }
         else if (entity.storageId != 0)
         {
@@ -1335,5 +1360,1077 @@ internal sealed class OptimizedPlanet
         }
 
         throw new InvalidOperationException("Unknown entity type.");
+    }
+}
+
+[StructLayout(LayoutKind.Auto)]
+internal struct ProducingLabRecipe : IEqualityComparer<ProducingLabRecipe>
+{
+    public readonly int RecipeId;
+    public readonly int TimeSpend;
+    public readonly int ExtraTimeSpend;
+    public readonly int Speed;
+    public readonly bool Productive;
+    public readonly int[] Requires;
+    public readonly int[] RequireCounts;
+    public readonly int[] Products;
+    public readonly int[] ProductCounts;
+
+    public ProducingLabRecipe(ref readonly LabComponent lab)
+    {
+        RecipeId = lab.recipeId;
+        TimeSpend = lab.timeSpend;
+        ExtraTimeSpend = lab.extraTimeSpend;
+        Speed = lab.speed;
+        Productive = lab.productive;
+        Requires = lab.requires;
+        RequireCounts = lab.requireCounts;
+        Products = lab.products;
+        ProductCounts = lab.productCounts;
+    }
+
+    public bool Equals(ProducingLabRecipe x, ProducingLabRecipe y)
+    {
+        return x.RecipeId == y.RecipeId &&
+               x.TimeSpend == y.TimeSpend &&
+               x.ExtraTimeSpend == y.ExtraTimeSpend &&
+               x.Speed == y.Speed &&
+               x.Productive == y.Productive &&
+               x.Requires.SequenceEqual(y.Requires) &&
+               x.RequireCounts.SequenceEqual(y.RequireCounts) &&
+               x.Products.SequenceEqual(y.Products) &&
+               x.ProductCounts.SequenceEqual(y.ProductCounts);
+    }
+
+    public int GetHashCode(ProducingLabRecipe obj)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(RecipeId);
+        hashCode.Add(TimeSpend);
+        hashCode.Add(ExtraTimeSpend);
+        hashCode.Add(Speed);
+        hashCode.Add(Productive);
+        for (int i = 0; i < Requires.Length; i++)
+        {
+            hashCode.Add(Requires[i]);
+        }
+        for (int i = 0; i < RequireCounts.Length; i++)
+        {
+            hashCode.Add(RequireCounts[i]);
+        }
+        for (int i = 0; i < Products.Length; i++)
+        {
+            hashCode.Add(Products[i]);
+        }
+        for (int i = 0; i < ProductCounts.Length; i++)
+        {
+            hashCode.Add(ProductCounts[i]);
+        }
+
+        return hashCode.ToHashCode();
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (obj is not ProducingLabRecipe other)
+        {
+            return false;
+        }
+
+        return Equals(this, other);
+    }
+
+    public override int GetHashCode()
+    {
+        return GetHashCode(this);
+    }
+}
+
+[StructLayout(LayoutKind.Auto)]
+internal struct OptimizedProducingLab
+{
+    public const int NO_NEXT_LAB = -1;
+    public readonly int producingLabRecipeIndex;
+    public readonly bool forceAccMode;
+    public readonly int[] served;
+    public readonly int[] incServed;
+    public readonly int[] needs;
+    public readonly int[] produced;
+    public readonly int nextLabIndex;
+    public bool replicating;
+    public bool incUsed;
+    public int time;
+    public int extraTime;
+    public int extraSpeed;
+    public int extraPowerRatio;
+    public int speedOverride;
+
+    public OptimizedProducingLab(int producingLabRecipeIndex,
+                                 int? nextLabIndex,
+                                 ref readonly LabComponent lab)
+    {
+        this.producingLabRecipeIndex = producingLabRecipeIndex;
+        forceAccMode = lab.forceAccMode;
+        served = lab.served;
+        incServed = lab.incServed;
+        needs = lab.needs;
+        produced = lab.produced;
+        this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
+        replicating = lab.replicating;
+        incUsed = lab.incUsed;
+        time = lab.time;
+        extraTime = lab.extraTime;
+        extraSpeed = lab.extraSpeed;
+        extraPowerRatio = lab.extraPowerRatio;
+        speedOverride = lab.speedOverride;
+    }
+
+    public OptimizedProducingLab(int nextLabIndex,
+                                 ref readonly OptimizedProducingLab lab)
+    {
+        producingLabRecipeIndex = lab.producingLabRecipeIndex;
+        forceAccMode = lab.forceAccMode;
+        served = lab.served;
+        incServed = lab.incServed;
+        needs = lab.needs;
+        produced = lab.produced;
+        this.nextLabIndex = nextLabIndex;
+        replicating = lab.replicating;
+        incUsed = lab.incUsed;
+        time = lab.time;
+        extraTime = lab.extraTime;
+        extraSpeed = lab.extraSpeed;
+        extraPowerRatio = lab.extraPowerRatio;
+        speedOverride = lab.speedOverride;
+    }
+
+    public void UpdateNeedsAssemble(ref readonly ProducingLabRecipe producingLabRecipe)
+    {
+        int num = served.Length;
+        int num2 = ((producingLabRecipe.TimeSpend > 5400000) ? 6 : (3 * ((speedOverride + 5001) / 10000) + 3));
+        needs[0] = ((0 < num && served[0] < num2) ? producingLabRecipe.Requires[0] : 0);
+        needs[1] = ((1 < num && served[1] < num2) ? producingLabRecipe.Requires[1] : 0);
+        needs[2] = ((2 < num && served[2] < num2) ? producingLabRecipe.Requires[2] : 0);
+        needs[3] = ((3 < num && served[3] < num2) ? producingLabRecipe.Requires[3] : 0);
+        needs[4] = ((4 < num && served[4] < num2) ? producingLabRecipe.Requires[4] : 0);
+        needs[5] = ((5 < num && served[5] < num2) ? producingLabRecipe.Requires[5] : 0);
+    }
+
+    public uint InternalUpdateAssemble(float power,
+                                       int[] productRegister,
+                                       int[] consumeRegister,
+                                       ref readonly ProducingLabRecipe producingLabRecipe)
+    {
+        if (power < 0.1f)
+        {
+            return 0u;
+        }
+        if (extraTime >= producingLabRecipe.ExtraTimeSpend)
+        {
+            int num = producingLabRecipe.Products.Length;
+            if (num == 1)
+            {
+                produced[0] += producingLabRecipe.ProductCounts[0];
+                lock (productRegister)
+                {
+                    productRegister[producingLabRecipe.Products[0]] += producingLabRecipe.ProductCounts[0];
+                }
+            }
+            else
+            {
+                for (int i = 0; i < num; i++)
+                {
+                    produced[i] += producingLabRecipe.ProductCounts[i];
+                    lock (productRegister)
+                    {
+                        productRegister[producingLabRecipe.Products[i]] += producingLabRecipe.ProductCounts[i];
+                    }
+                }
+            }
+            extraTime -= producingLabRecipe.ExtraTimeSpend;
+        }
+        if (time >= producingLabRecipe.TimeSpend)
+        {
+            replicating = false;
+            int num2 = producingLabRecipe.Products.Length;
+            if (num2 == 1)
+            {
+                if (produced[0] + producingLabRecipe.ProductCounts[0] > 10 * ((speedOverride + 9999) / 10000))
+                {
+                    return 0u;
+                }
+                produced[0] += producingLabRecipe.ProductCounts[0];
+                lock (productRegister)
+                {
+                    productRegister[producingLabRecipe.Products[0]] += producingLabRecipe.ProductCounts[0];
+                }
+            }
+            else
+            {
+                for (int j = 0; j < num2; j++)
+                {
+                    if (produced[j] + producingLabRecipe.ProductCounts[j] > 10 * ((speedOverride + 9999) / 10000))
+                    {
+                        return 0u;
+                    }
+                }
+                for (int k = 0; k < num2; k++)
+                {
+                    produced[k] += producingLabRecipe.ProductCounts[k];
+                    lock (productRegister)
+                    {
+                        productRegister[producingLabRecipe.Products[k]] += producingLabRecipe.ProductCounts[k];
+                    }
+                }
+            }
+            extraSpeed = 0;
+            speedOverride = producingLabRecipe.Speed;
+            extraPowerRatio = 0;
+            time -= producingLabRecipe.TimeSpend;
+        }
+        if (!replicating)
+        {
+            int num3 = producingLabRecipe.RequireCounts.Length;
+            for (int l = 0; l < num3; l++)
+            {
+                if (incServed[l] <= 0)
+                {
+                    incServed[l] = 0;
+                }
+                if (served[l] < producingLabRecipe.RequireCounts[l] || served[l] == 0)
+                {
+                    time = 0;
+                    return 0u;
+                }
+            }
+            int num4 = ((num3 > 0) ? 10 : 0);
+            for (int m = 0; m < num3; m++)
+            {
+                int num5 = split_inc_level(ref served[m], ref incServed[m], producingLabRecipe.RequireCounts[m]);
+                num4 = ((num4 < num5) ? num4 : num5);
+                if (!incUsed)
+                {
+                    incUsed = num5 > 0;
+                }
+                if (served[m] == 0)
+                {
+                    incServed[m] = 0;
+                }
+                lock (consumeRegister)
+                {
+                    consumeRegister[producingLabRecipe.Requires[m]] += producingLabRecipe.RequireCounts[m];
+                }
+            }
+            if (num4 < 0)
+            {
+                num4 = 0;
+            }
+            if (producingLabRecipe.Productive && !forceAccMode)
+            {
+                extraSpeed = (int)((double)producingLabRecipe.Speed * Cargo.incTableMilli[num4] * 10.0 + 0.1);
+                speedOverride = producingLabRecipe.Speed;
+                extraPowerRatio = Cargo.powerTable[num4];
+            }
+            else
+            {
+                extraSpeed = 0;
+                speedOverride = (int)((double)producingLabRecipe.Speed * (1.0 + Cargo.accTableMilli[num4]) + 0.1);
+                extraPowerRatio = Cargo.powerTable[num4];
+            }
+            replicating = true;
+        }
+        if (replicating && time < producingLabRecipe.TimeSpend && extraTime < producingLabRecipe.ExtraTimeSpend)
+        {
+            time += (int)(power * (float)speedOverride);
+            extraTime += (int)(power * (float)extraSpeed);
+        }
+        if (!replicating)
+        {
+            return 0u;
+        }
+        return (uint)(producingLabRecipe.Products[0] - LabComponent.matrixIds[0] + 1);
+    }
+
+    public void UpdateOutputToNext(OptimizedProducingLab[] labPool,
+                                   ref readonly ProducingLabRecipe producingLabRecipe)
+    {
+        if (nextLabIndex == NO_NEXT_LAB)
+        {
+            return;
+        }
+
+        // This should never be possible. All labs in a column always share their settings
+        //if (labPool[nextLabIndex].needs == null || recipeId != labPool[nextLabIndex].recipeId || techId != labPool[nextLabIndex].techId)
+        //{
+        //    return;
+        //}
+        if (served != null && labPool[nextLabIndex].served != null)
+        {
+            int[] obj2 = ((nextLabIndex > labPool[nextLabIndex].nextLabIndex) ? served : labPool[nextLabIndex].served);
+            int[] array2 = ((nextLabIndex > labPool[nextLabIndex].nextLabIndex) ? labPool[nextLabIndex].served : served);
+            lock (obj2)
+            {
+                lock (array2)
+                {
+                    int num13 = served.Length;
+                    int num14 = ((producingLabRecipe.TimeSpend > 5400000) ? 1 : (1 + speedOverride / 20000));
+                    for (int i = 0; i < num13; i++)
+                    {
+                        if (labPool[nextLabIndex].needs[i] == producingLabRecipe.Requires[i] && served[i] >= producingLabRecipe.RequireCounts[i] + num14)
+                        {
+                            int num15 = served[i] - producingLabRecipe.RequireCounts[i] - num14;
+                            if (num15 > 5)
+                            {
+                                num15 = 5;
+                            }
+                            int num16 = num15 * incServed[i] / served[i];
+                            served[i] -= num15;
+                            incServed[i] -= num16;
+                            labPool[nextLabIndex].served[i] += num15;
+                            labPool[nextLabIndex].incServed[i] += num16;
+                        }
+                    }
+                }
+            }
+        }
+
+        int[] obj3 = ((nextLabIndex > labPool[nextLabIndex].nextLabIndex) ? produced : labPool[nextLabIndex].produced);
+        int[] array3 = ((nextLabIndex > labPool[nextLabIndex].nextLabIndex) ? labPool[nextLabIndex].produced : produced);
+        lock (obj3)
+        {
+            lock (array3)
+            {
+                int num17 = 10 * ((speedOverride + 9999) / 10000) - 2;
+                if (produced[0] < num17 && labPool[nextLabIndex].produced[0] > 0)
+                {
+                    int num18 = ((num17 - produced[0] < labPool[nextLabIndex].produced[0]) ? (num17 - produced[0]) : labPool[nextLabIndex].produced[0]);
+                    produced[0] += num18;
+                    labPool[nextLabIndex].produced[0] -= num18;
+                }
+            }
+        }
+    }
+
+    private int split_inc_level(ref int n, ref int m, int p)
+    {
+        int num = m / n;
+        int num2 = m - num * n;
+        n -= p;
+        num2 -= n;
+        m -= ((num2 > 0) ? (num * p + num2) : (num * p));
+        return num;
+    }
+}
+
+internal sealed class ProducingLabExecutor
+{
+    public NetworkIdAndState<LabState>[] _networkIdAndStates;
+    public OptimizedProducingLab[] _optimizedLabs;
+    public ProducingLabRecipe[] _producingLabRecipes;
+    public int[] _entityIds;
+    public Dictionary<int, int> _labIdToOptimizedLabIndex;
+
+    public void GameTickLabProduceMode(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedLabs.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
+        {
+            return;
+        }
+
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        float[] networkServes = planet.powerSystem.networkServes;
+        OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
+        ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
+        for (int i = _start; i < _end; i++)
+        {
+            NetworkIdAndState<LabState> networkIdAndState = _networkIdAndStates[i];
+
+            ref OptimizedProducingLab lab = ref optimizedLabs[i];
+            ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
+            lab.UpdateNeedsAssemble(in producingLabRecipe);
+
+            float power = networkServes[networkIdAndState.Index];
+            lab.InternalUpdateAssemble(power,
+                                       productRegister,
+                                       consumeRegister,
+                                       in producingLabRecipe);
+        }
+    }
+
+    public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
+        ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
+        int num = 0;
+        int num2 = 0;
+        for (int i = (int)(GameMain.gameTick % 5); i < _optimizedLabs.Length; i += 5)
+        {
+            if (num == _curThreadIdx)
+            {
+                ref OptimizedProducingLab lab = ref optimizedLabs[i];
+                ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
+                lab.UpdateOutputToNext(optimizedLabs, in producingLabRecipe);
+            }
+            num2++;
+            if (num2 >= _minimumMissionCnt)
+            {
+                num2 = 0;
+                num++;
+                num %= _usedThreadCnt;
+            }
+        }
+    }
+
+    public void Initialize(PlanetFactory planet)
+    {
+        List<NetworkIdAndState<LabState>> networkIdAndStates = [];
+        List<OptimizedProducingLab> optimizedLabs = [];
+        Dictionary<ProducingLabRecipe, int> producingLabRecipeToRecipeIndex = [];
+        List<ProducingLabRecipe> producingLabRecipes = [];
+        List<int> entityIds = [];
+        Dictionary<int, int> labIdToOptimizedLabIndex = [];
+
+        for (int i = 0; i < planet.factorySystem.labCursor; i++)
+        {
+            ref LabComponent lab = ref planet.factorySystem.labPool[i];
+            if (lab.id != i)
+            {
+                continue;
+            }
+
+            if (lab.researchMode)
+            {
+                continue;
+            }
+
+            if (lab.recipeId == 0)
+            {
+                continue;
+            }
+
+            int? nextLabIndex = null;
+            if (planet.factorySystem.labPool[lab.nextLabId].id != 0 &&
+                planet.factorySystem.labPool[lab.nextLabId].id == lab.nextLabId)
+            {
+                nextLabIndex = lab.nextLabId;
+            }
+
+            var producingLabRecipe = new ProducingLabRecipe(in lab);
+            if (!producingLabRecipeToRecipeIndex.TryGetValue(producingLabRecipe, out int producingLabRecipeIndex))
+            {
+                producingLabRecipeToRecipeIndex.Add(producingLabRecipe, producingLabRecipes.Count);
+                producingLabRecipeIndex = producingLabRecipes.Count;
+                producingLabRecipes.Add(producingLabRecipe);
+            }
+
+            labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
+            optimizedLabs.Add(new OptimizedProducingLab(producingLabRecipeIndex, nextLabIndex, ref lab));
+            networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, planet.powerSystem.consumerPool[lab.pcId].networkId));
+            entityIds.Add(lab.entityId);
+
+            // set it here so we don't have to set it in the update loop.
+            // Need to investigate when i need to update it.
+            planet.entityNeeds[lab.entityId] = lab.needs;
+        }
+
+        for (int i = 0; i < optimizedLabs.Count; i++)
+        {
+            OptimizedProducingLab lab = optimizedLabs[i];
+            if (lab.nextLabIndex == OptimizedProducingLab.NO_NEXT_LAB)
+            {
+                continue;
+            }
+
+            if (!labIdToOptimizedLabIndex.TryGetValue(lab.nextLabIndex, out int nextOptimizedLabIndex))
+            {
+                throw new InvalidOperationException("Next lab index was not part of the converted research labs.");
+            }
+
+            optimizedLabs[i] = new OptimizedProducingLab(nextOptimizedLabIndex, ref lab);
+        }
+
+        _networkIdAndStates = networkIdAndStates.ToArray();
+        _optimizedLabs = optimizedLabs.ToArray();
+        _producingLabRecipes = producingLabRecipes.ToArray();
+        _entityIds = entityIds.ToArray();
+        _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
+    }
+}
+
+[StructLayout(LayoutKind.Auto)]
+internal struct OptimizedResearchingLab
+{
+    public const int NO_NEXT_LAB = -1;
+    public readonly int[] needs;
+    public readonly int[] matrixServed;
+    public readonly int[] matrixIncServed;
+    public readonly int nextLabIndex;
+    public bool incUsed;
+    public int hashBytes;
+    public int extraHashBytes;
+    public int extraPowerRatio;
+
+    public OptimizedResearchingLab(int? nextLabIndex,
+                                   ref readonly LabComponent lab)
+    {
+        needs = lab.needs;
+        matrixServed = lab.matrixServed;
+        matrixIncServed = lab.matrixIncServed;
+        this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
+        incUsed = lab.incUsed;
+        hashBytes = lab.hashBytes;
+        extraHashBytes = lab.extraHashBytes;
+        extraPowerRatio = lab.extraPowerRatio;
+    }
+
+    public OptimizedResearchingLab(int nextLabIndex,
+                                   ref readonly OptimizedResearchingLab lab)
+    {
+        needs = lab.needs;
+        matrixServed = lab.matrixServed;
+        matrixIncServed = lab.matrixIncServed;
+        this.nextLabIndex = nextLabIndex;
+        incUsed = lab.incUsed;
+        hashBytes = lab.hashBytes;
+        extraHashBytes = lab.extraHashBytes;
+        extraPowerRatio = lab.extraPowerRatio;
+    }
+
+    public void SetFunction(int entityId, int techId, int[] matrixPoints, SignData[] signPool)
+    {
+        hashBytes = 0;
+        extraHashBytes = 0;
+        extraPowerRatio = 0;
+        incUsed = false;
+        Array.Copy(LabComponent.matrixIds, needs, LabComponent.matrixIds.Length);
+        signPool[entityId].iconId0 = (uint)techId;
+        signPool[entityId].iconType = ((techId != 0) ? 3u : 0u);
+    }
+
+    public void UpdateNeedsResearch()
+    {
+        needs[0] = ((matrixServed[0] < 36000) ? 6001 : 0);
+        needs[1] = ((matrixServed[1] < 36000) ? 6002 : 0);
+        needs[2] = ((matrixServed[2] < 36000) ? 6003 : 0);
+        needs[3] = ((matrixServed[3] < 36000) ? 6004 : 0);
+        needs[4] = ((matrixServed[4] < 36000) ? 6005 : 0);
+        needs[5] = ((matrixServed[5] < 36000) ? 6006 : 0);
+    }
+
+    public uint InternalUpdateResearch(float power,
+                                       float research_speed,
+                                       int techId,
+                                       int[] matrixPoints,
+                                       int[] consumeRegister,
+                                       ref TechState ts,
+                                       ref int techHashedThisFrame,
+                                       ref long uMatrixPoint,
+                                       ref long hashRegister)
+    {
+        if (power < 0.1f)
+        {
+            return 0u;
+        }
+        int num = (int)(research_speed + 2f);
+        int num2 = 0;
+        if (matrixPoints[0] > 0)
+        {
+            num2 = matrixServed[0] / matrixPoints[0];
+            if (num2 < num)
+            {
+                num = num2;
+                if (num == 0)
+                {
+                    return 0u;
+                }
+            }
+        }
+        if (matrixPoints[1] > 0)
+        {
+            num2 = matrixServed[1] / matrixPoints[1];
+            if (num2 < num)
+            {
+                num = num2;
+                if (num == 0)
+                {
+                    return 0u;
+                }
+            }
+        }
+        if (matrixPoints[2] > 0)
+        {
+            num2 = matrixServed[2] / matrixPoints[2];
+            if (num2 < num)
+            {
+                num = num2;
+                if (num == 0)
+                {
+                    return 0u;
+                }
+            }
+        }
+        if (matrixPoints[3] > 0)
+        {
+            num2 = matrixServed[3] / matrixPoints[3];
+            if (num2 < num)
+            {
+                num = num2;
+                if (num == 0)
+                {
+                    return 0u;
+                }
+            }
+        }
+        if (matrixPoints[4] > 0)
+        {
+            num2 = matrixServed[4] / matrixPoints[4];
+            if (num2 < num)
+            {
+                num = num2;
+                if (num == 0)
+                {
+                    return 0u;
+                }
+            }
+        }
+        if (matrixPoints[5] > 0)
+        {
+            num2 = matrixServed[5] / matrixPoints[5];
+            if (num2 < num)
+            {
+                num = num2;
+                if (num == 0)
+                {
+                    return 0u;
+                }
+            }
+        }
+        research_speed = ((research_speed < (float)num) ? research_speed : ((float)num));
+        int num3 = (int)(power * 10000f * research_speed + 0.5f);
+        hashBytes += num3;
+        long num4 = hashBytes / 10000;
+        hashBytes -= (int)num4 * 10000;
+        long num5 = ts.hashNeeded - ts.hashUploaded;
+        num4 = ((num4 < num5) ? num4 : num5);
+        num4 = ((num4 < num) ? num4 : num);
+        int num6 = (int)num4;
+        if (num6 > 0)
+        {
+            int num7 = matrixServed.Length;
+            int num8 = ((num7 != 0) ? 10 : 0);
+            for (int i = 0; i < num7; i++)
+            {
+                if (matrixPoints[i] > 0)
+                {
+                    int num9 = matrixServed[i] / 3600;
+                    int num10 = split_inc_level(ref matrixServed[i], ref matrixIncServed[i], matrixPoints[i] * num6);
+                    num8 = ((num8 < num10) ? num8 : num10);
+                    int num11 = matrixServed[i] / 3600;
+                    if (matrixServed[i] <= 0 || matrixIncServed[i] < 0)
+                    {
+                        matrixIncServed[i] = 0;
+                    }
+                    int num12 = num9 - num11;
+                    if (num12 > 0 && !incUsed)
+                    {
+                        incUsed = num8 > 0;
+                    }
+                    consumeRegister[LabComponent.matrixIds[i]] += num12;
+                }
+            }
+            if (num8 < 0)
+            {
+                num8 = 0;
+            }
+            long num13 = 0L;
+            int num14 = 0;
+            int extraSpeed = (int)(10000.0 * Cargo.incTableMilli[num8] * 10.0 + 0.1);
+            extraPowerRatio = Cargo.powerTable[num8];
+            extraHashBytes += (int)(power * (float)extraSpeed * research_speed + 0.5f);
+            num13 = extraHashBytes / 100000;
+            extraHashBytes -= (int)num13 * 100000;
+            num13 = ((num13 < 0) ? 0 : num13);
+            num14 = (int)num13;
+            ts.hashUploaded += num4 + num13;
+            hashRegister += num4 + num13;
+            uMatrixPoint += ts.uPointPerHash * num4;
+            techHashedThisFrame += num6 + num14;
+            if (ts.hashUploaded >= ts.hashNeeded)
+            {
+                TechProto techProto = LDB.techs.Select(techId);
+                if (ts.curLevel >= ts.maxLevel)
+                {
+                    ts.curLevel = ts.maxLevel;
+                    ts.hashUploaded = ts.hashNeeded;
+                    ts.unlocked = true;
+                    ts.unlockTick = GameMain.gameTick;
+                }
+                else
+                {
+                    ts.curLevel++;
+                    ts.hashUploaded = 0L;
+                    ts.hashNeeded = techProto.GetHashNeeded(ts.curLevel);
+                }
+            }
+        }
+        else
+        {
+            extraPowerRatio = 0;
+        }
+        return 1u;
+    }
+
+    public void UpdateOutputToNext(OptimizedResearchingLab[] labPool)
+    {
+        if (nextLabIndex == NO_NEXT_LAB)
+        {
+            return;
+        }
+
+        // This should never be possible. All labs in a column always share their settings
+        //if (labPool[nextLabId].needs == null || recipeId != labPool[nextLabId].recipeId || techId != labPool[nextLabId].techId)
+        //{
+        //    return;
+        //}
+
+        if (matrixServed != null && labPool[nextLabIndex].matrixServed != null)
+        {
+            int[] obj = ((nextLabIndex > labPool[nextLabIndex].nextLabIndex) ? matrixServed : labPool[nextLabIndex].matrixServed);
+            int[] array = ((nextLabIndex > labPool[nextLabIndex].nextLabIndex) ? labPool[nextLabIndex].matrixServed : matrixServed);
+            lock (obj)
+            {
+                lock (array)
+                {
+                    if (labPool[nextLabIndex].needs[0] == 6001 && matrixServed[0] >= 7200)
+                    {
+                        int num = (matrixServed[0] - 7200) / 3600 * 3600;
+                        if (num > 36000)
+                        {
+                            num = 36000;
+                        }
+                        int num2 = split_inc(ref matrixServed[0], ref matrixIncServed[0], num);
+                        labPool[nextLabIndex].matrixIncServed[0] += num2;
+                        labPool[nextLabIndex].matrixServed[0] += num;
+                    }
+                    if (labPool[nextLabIndex].needs[1] == 6002 && matrixServed[1] >= 7200)
+                    {
+                        int num3 = (matrixServed[1] - 7200) / 3600 * 3600;
+                        if (num3 > 36000)
+                        {
+                            num3 = 36000;
+                        }
+                        int num4 = split_inc(ref matrixServed[1], ref matrixIncServed[1], num3);
+                        labPool[nextLabIndex].matrixIncServed[1] += num4;
+                        labPool[nextLabIndex].matrixServed[1] += num3;
+                    }
+                    if (labPool[nextLabIndex].needs[2] == 6003 && matrixServed[2] >= 7200)
+                    {
+                        int num5 = (matrixServed[2] - 7200) / 3600 * 3600;
+                        if (num5 > 36000)
+                        {
+                            num5 = 36000;
+                        }
+                        int num6 = split_inc(ref matrixServed[2], ref matrixIncServed[2], num5);
+                        labPool[nextLabIndex].matrixIncServed[2] += num6;
+                        labPool[nextLabIndex].matrixServed[2] += num5;
+                    }
+                    if (labPool[nextLabIndex].needs[3] == 6004 && matrixServed[3] >= 7200)
+                    {
+                        int num7 = (matrixServed[3] - 7200) / 3600 * 3600;
+                        if (num7 > 36000)
+                        {
+                            num7 = 36000;
+                        }
+                        int num8 = split_inc(ref matrixServed[3], ref matrixIncServed[3], num7);
+                        labPool[nextLabIndex].matrixIncServed[3] += num8;
+                        labPool[nextLabIndex].matrixServed[3] += num7;
+                    }
+                    if (labPool[nextLabIndex].needs[4] == 6005 && matrixServed[4] >= 7200)
+                    {
+                        int num9 = (matrixServed[4] - 7200) / 3600 * 3600;
+                        if (num9 > 36000)
+                        {
+                            num9 = 36000;
+                        }
+                        int num10 = split_inc(ref matrixServed[4], ref matrixIncServed[4], num9);
+                        labPool[nextLabIndex].matrixIncServed[4] += num10;
+                        labPool[nextLabIndex].matrixServed[4] += num9;
+                    }
+                    if (labPool[nextLabIndex].needs[5] == 6006 && matrixServed[5] >= 7200)
+                    {
+                        int num11 = (matrixServed[5] - 7200) / 3600 * 3600;
+                        if (num11 > 36000)
+                        {
+                            num11 = 36000;
+                        }
+                        int num12 = split_inc(ref matrixServed[5], ref matrixIncServed[5], num11);
+                        labPool[nextLabIndex].matrixIncServed[5] += num12;
+                        labPool[nextLabIndex].matrixServed[5] += num11;
+                    }
+                }
+            }
+        }
+    }
+
+    private int split_inc(ref int n, ref int m, int p)
+    {
+        int num = m / n;
+        int num2 = m - num * n;
+        n -= p;
+        num2 -= n;
+        num = ((num2 > 0) ? (num * p + num2) : (num * p));
+        m -= num;
+        return num;
+    }
+
+    private int split_inc_level(ref int n, ref int m, int p)
+    {
+        int num = m / n;
+        int num2 = m - num * n;
+        n -= p;
+        num2 -= n;
+        m -= ((num2 > 0) ? (num * p + num2) : (num * p));
+        return num;
+    }
+}
+
+internal sealed class ResearchingLabExecutor
+{
+    private int[] _matrixPoints;
+    public NetworkIdAndState<LabState>[] _networkIdAndStates;
+    public OptimizedResearchingLab[] _optimizedLabs;
+    public int[] _entityIds;
+    public Dictionary<int, int> _labIdToOptimizedLabIndex;
+
+    public void GameTickLabResearchMode(PlanetFactory planet, long time)
+    {
+        FactorySystem factorySystem = planet.factorySystem;
+        GameHistoryData history = GameMain.history;
+        GameStatData statistics = GameMain.statistics;
+        FactoryProductionStat factoryProductionStat = statistics.production.factoryStatPool[planet.index];
+        int[] consumeRegister = factoryProductionStat.consumeRegister;
+        SignData[] entitySignPool = planet.entitySignPool;
+        PowerSystem powerSystem = planet.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        int num = history.currentTech;
+        TechProto techProto = LDB.techs.Select(num);
+        TechState ts = default(TechState);
+        bool flag2 = false;
+        float research_speed = history.techSpeed;
+        int techHashedThisFrame = statistics.techHashedThisFrame;
+        long uMatrixPoint = history.universeMatrixPointUploaded;
+        long hashRegister = factoryProductionStat.hashRegister;
+        if (num > 0 && techProto != null && techProto.IsLabTech && GameMain.history.techStates.ContainsKey(num))
+        {
+            ts = history.techStates[num];
+            flag2 = true;
+        }
+        if (!flag2)
+        {
+            num = 0;
+        }
+        int num2 = 0;
+        if (flag2)
+        {
+            for (int i = 0; i < techProto.Items.Length; i++)
+            {
+                int num3 = techProto.Items[i] - LabComponent.matrixIds[0];
+                if (num3 >= 0 && num3 < 5)
+                {
+                    num2 |= 1 << num3;
+                }
+                else if (num3 == 5)
+                {
+                    num2 = 32;
+                    break;
+                }
+            }
+        }
+        if (num2 > 32)
+        {
+            num2 = 32;
+        }
+        if (num2 < 0)
+        {
+            num2 = 0;
+        }
+        float num4 = (float)LabComponent.techShaderStates[num2] + 0.2f;
+        if (factorySystem.researchTechId != num)
+        {
+            factorySystem.researchTechId = num;
+
+            Array.Clear(_matrixPoints, 0, _matrixPoints.Length);
+            if (techProto != null && techProto.IsLabTech)
+            {
+                for (int i = 0; i < techProto.Items.Length; i++)
+                {
+                    int num46779 = techProto.Items[i] - LabComponent.matrixIds[0];
+                    if (num46779 >= 0 && num46779 < _matrixPoints.Length)
+                    {
+                        _matrixPoints[num46779] = techProto.ItemPoints[i];
+                    }
+                }
+            }
+
+            int[] entityIds = _entityIds;
+            for (int i = 0; i < _optimizedLabs.Length; i++)
+            {
+                _optimizedLabs[i].SetFunction(entityIds[i], factorySystem.researchTechId, _matrixPoints, entitySignPool);
+            }
+        }
+
+        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        for (int k = 0; k < optimizedLabs.Length; k++)
+        {
+            ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[k];
+            ref OptimizedResearchingLab reference = ref optimizedLabs[k];
+
+            reference.UpdateNeedsResearch();
+            if (flag2)
+            {
+                int curLevel = ts.curLevel;
+                float power = networkServes[networkIdAndState.Index];
+                reference.InternalUpdateResearch(power,
+                                                 research_speed,
+                                                 factorySystem.researchTechId,
+                                                 _matrixPoints,
+                                                 consumeRegister,
+                                                 ref ts,
+                                                 ref techHashedThisFrame,
+                                                 ref uMatrixPoint,
+                                                 ref hashRegister);
+                if (ts.unlocked)
+                {
+                    history.techStates[factorySystem.researchTechId] = ts;
+                    for (int l = 0; l < techProto.UnlockRecipes.Length; l++)
+                    {
+                        history.UnlockRecipe(techProto.UnlockRecipes[l]);
+                    }
+                    for (int m = 0; m < techProto.UnlockFunctions.Length; m++)
+                    {
+                        history.UnlockTechFunction(techProto.UnlockFunctions[m], techProto.UnlockValues[m], curLevel);
+                    }
+                    for (int n = 0; n < techProto.AddItems.Length; n++)
+                    {
+                        history.GainTechAwards(techProto.AddItems[n], techProto.AddItemCounts[n]);
+                    }
+                    history.NotifyTechUnlock(factorySystem.researchTechId, curLevel);
+                    history.DequeueTech();
+                    flag2 = false;
+                }
+                if (ts.curLevel > curLevel)
+                {
+                    history.techStates[factorySystem.researchTechId] = ts;
+                    for (int num6 = 0; num6 < techProto.UnlockFunctions.Length; num6++)
+                    {
+                        history.UnlockTechFunction(techProto.UnlockFunctions[num6], techProto.UnlockValues[num6], curLevel);
+                    }
+                    for (int num7 = 0; num7 < techProto.AddItems.Length; num7++)
+                    {
+                        history.GainTechAwards(techProto.AddItems[num7], techProto.AddItemCounts[num7]);
+                    }
+                    history.NotifyTechUnlock(factorySystem.researchTechId, curLevel);
+                    history.DequeueTech();
+                    flag2 = false;
+                }
+            }
+        }
+
+        history.techStates[factorySystem.researchTechId] = ts;
+        statistics.techHashedThisFrame = techHashedThisFrame;
+        history.universeMatrixPointUploaded = uMatrixPoint;
+        factoryProductionStat.hashRegister = hashRegister;
+    }
+
+    public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        int num = 0;
+        int num2 = 0;
+        for (int i = (int)(GameMain.gameTick % 5); i < _optimizedLabs.Length; i += 5)
+        {
+            if (num == _curThreadIdx)
+            {
+                optimizedLabs[i].UpdateOutputToNext(optimizedLabs);
+            }
+            num2++;
+            if (num2 >= _minimumMissionCnt)
+            {
+                num2 = 0;
+                num++;
+                num %= _usedThreadCnt;
+            }
+        }
+    }
+
+    public void Initialize(PlanetFactory planet)
+    {
+        int[] matrixPoints = new int[LabComponent.matrixIds.Length];
+        bool copiedMatrixPoints = false;
+        List<NetworkIdAndState<LabState>> networkIdAndStates = [];
+        List<OptimizedResearchingLab> optimizedLabs = [];
+        List<int> entityIds = [];
+        Dictionary<int, int> labIdToOptimizedLabIndex = [];
+
+        for (int i = 0; i < planet.factorySystem.labCursor; i++)
+        {
+            ref LabComponent lab = ref planet.factorySystem.labPool[i];
+            if (lab.id != i)
+            {
+                continue;
+            }
+
+            if (!lab.researchMode)
+            {
+                continue;
+            }
+
+            if (!copiedMatrixPoints && lab.matrixPoints != null)
+            {
+                Array.Copy(lab.matrixPoints, matrixPoints, matrixPoints.Length);
+                copiedMatrixPoints = true;
+            }
+
+            int? nextLabIndex = null;
+            if (planet.factorySystem.labPool[lab.nextLabId].id != 0 &&
+                planet.factorySystem.labPool[lab.nextLabId].id == lab.nextLabId)
+            {
+                nextLabIndex = lab.nextLabId;
+            }
+
+            labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
+            optimizedLabs.Add(new OptimizedResearchingLab(nextLabIndex, ref lab));
+            networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, planet.powerSystem.consumerPool[lab.pcId].networkId));
+            entityIds.Add(lab.entityId);
+
+            // set it here so we don't have to set it in the update loop.
+            // Need to investigate when i need to update it.
+            planet.entityNeeds[lab.entityId] = lab.needs;
+        }
+
+        for (int i = 0; i < optimizedLabs.Count; i++)
+        {
+            OptimizedResearchingLab lab = optimizedLabs[i];
+            if (lab.nextLabIndex == OptimizedResearchingLab.NO_NEXT_LAB)
+            {
+                continue;
+            }
+
+            if (!labIdToOptimizedLabIndex.TryGetValue(lab.nextLabIndex, out int nextOptimizedLabIndex))
+            {
+                throw new InvalidOperationException("Next lab index was not part of the converted research labs.");
+            }
+
+            optimizedLabs[i] = new OptimizedResearchingLab(nextOptimizedLabIndex, ref lab);
+        }
+
+        _matrixPoints = matrixPoints.ToArray();
+        _networkIdAndStates = networkIdAndStates.ToArray();
+        _optimizedLabs = optimizedLabs.ToArray();
+        _entityIds = entityIds.ToArray();
+        _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
     }
 }

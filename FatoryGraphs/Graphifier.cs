@@ -172,7 +172,7 @@ internal static class Graphifier
         }
         else if (entity.labId != 0)
         {
-            return new EntityTypeIndex(EntityType.Lab, entity.labId);
+            return new EntityTypeIndex(factory.labPool[entity.labId].researchMode ? EntityType.ResearchingLab : EntityType.ProducingLab, entity.labId);
         }
         else if (entity.storageId != 0)
         {

@@ -202,7 +202,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             TypedObjectIndex pickFrom = new TypedObjectIndex(EntityType.None, 0);
             if (inserter.pickTarget != 0)
             {
-                pickFrom = optimizedPlanet.GetAsTypedObjectIndex(inserter.pickTarget, planet.entityPool);
+                pickFrom = optimizedPlanet.GetAsGranularTypedObjectIndex(inserter.pickTarget, planet);
             }
             else
             {
@@ -218,7 +218,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             int[] insertIntoNeeds = null;
             if (inserter.insertTarget != 0)
             {
-                insertInto = optimizedPlanet.GetAsTypedObjectIndex(inserter.insertTarget, planet.entityPool);
+                insertInto = optimizedPlanet.GetAsGranularTypedObjectIndex(inserter.insertTarget, planet);
                 insertIntoNeeds = OptimizedPlanet.GetEntityNeeds(planet, inserter.insertTarget);
             }
             else
@@ -284,10 +284,11 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerRecipes[assembler.assemblerRecipeIndex];
                 pickFromProducingPlants.Add(new PickFromProducingPlant(assemblerRecipe.Products, assembler.produced));
             }
-            else if (pickFrom.EntityType == EntityType.Lab && !planet.factorySystem.labPool[pickFrom.Index].researchMode)
+            else if (pickFrom.EntityType == EntityType.ProducingLab)
             {
-                ref readonly LabComponent lab = ref planet.factorySystem.labPool[pickFrom.Index];
-                pickFromProducingPlants.Add(new PickFromProducingPlant(lab.products, lab.produced));
+                ref readonly OptimizedProducingLab lab = ref optimizedPlanet._optimizedProducingLabs[pickFrom.Index];
+                ref readonly ProducingLabRecipe producingLabRecipe = ref optimizedPlanet._producingLabRecipes[lab.producingLabRecipeIndex];
+                pickFromProducingPlants.Add(new PickFromProducingPlant(producingLabRecipe.Products, lab.produced));
             }
             else
             {

@@ -508,7 +508,7 @@ public class LinearInserterDataAccessOptimization
                 continue;
             }
 
-            entityTypeIndexAndPowerConsumerIndexes.Add(new EntityIndexAndPowerIndex(EntityType.Lab, i, component.pcId));
+            entityTypeIndexAndPowerConsumerIndexes.Add(new EntityIndexAndPowerIndex(component.researchMode ? EntityType.ResearchingLab : EntityType.ProducingLab, i, component.pcId));
         }
         for (int i = 1; i < transport.stationCursor; i++)
         {
