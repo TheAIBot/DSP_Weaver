@@ -263,7 +263,6 @@ internal struct OptimizedAssembler
         if (!replicating)
         {
             throw new InvalidOperationException("I do not think this is possible. Not sure why it is in the game.");
-            //return 0u;
         }
         return AssemblerState.Active;
     }

@@ -63,19 +63,20 @@ internal struct OptimizedResearchingLab
         needs[5] = matrixServed[5] < 36000 ? 6006 : 0;
     }
 
-    public uint InternalUpdateResearch(float power,
-                                       float research_speed,
-                                       int techId,
-                                       int[] matrixPoints,
-                                       int[] consumeRegister,
-                                       ref TechState ts,
-                                       ref int techHashedThisFrame,
-                                       ref long uMatrixPoint,
-                                       ref long hashRegister)
+    public LabState InternalUpdateResearch(float power,
+                                           float research_speed,
+                                           int techId,
+                                           int[] matrixPoints,
+                                           int[] consumeRegister,
+                                           ref TechState ts,
+                                           ref int techHashedThisFrame,
+                                           ref long uMatrixPoint,
+                                           ref long hashRegister)
     {
         if (power < 0.1f)
         {
-            return 0u;
+            // Lets not deal with missing power for now. Just check every tick.
+            return LabState.Active;
         }
         int num = (int)(research_speed + 2f);
         int num2 = 0;
@@ -87,7 +88,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    return 0u;
+                    return LabState.InactiveInputMissing;
                 }
             }
         }
@@ -99,7 +100,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    return 0u;
+                    return LabState.InactiveInputMissing;
                 }
             }
         }
@@ -111,7 +112,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    return 0u;
+                    return LabState.InactiveInputMissing;
                 }
             }
         }
@@ -123,7 +124,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    return 0u;
+                    return LabState.InactiveInputMissing;
                 }
             }
         }
@@ -135,7 +136,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    return 0u;
+                    return LabState.InactiveInputMissing;
                 }
             }
         }
@@ -147,7 +148,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    return 0u;
+                    return LabState.InactiveInputMissing;
                 }
             }
         }
@@ -223,10 +224,13 @@ internal struct OptimizedResearchingLab
         {
             extraPowerRatio = 0;
         }
-        return 1u;
+
+        return LabState.Active;
     }
 
-    public void UpdateOutputToNext(OptimizedResearchingLab[] labPool)
+    public void UpdateOutputToNext(int labIndex,
+                                   OptimizedResearchingLab[] labPool,
+                                   NetworkIdAndState<LabState>[] networkIdAndStates)
     {
         if (nextLabIndex == NO_NEXT_LAB)
         {
@@ -238,7 +242,7 @@ internal struct OptimizedResearchingLab
         //{
         //    return;
         //}
-
+        bool movedItems = false;
         if (matrixServed != null && labPool[nextLabIndex].matrixServed != null)
         {
             int[] obj = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? matrixServed : labPool[nextLabIndex].matrixServed;
@@ -257,6 +261,7 @@ internal struct OptimizedResearchingLab
                         int num2 = split_inc(ref matrixServed[0], ref matrixIncServed[0], num);
                         labPool[nextLabIndex].matrixIncServed[0] += num2;
                         labPool[nextLabIndex].matrixServed[0] += num;
+                        movedItems = true;
                     }
                     if (labPool[nextLabIndex].needs[1] == 6002 && matrixServed[1] >= 7200)
                     {
@@ -268,6 +273,7 @@ internal struct OptimizedResearchingLab
                         int num4 = split_inc(ref matrixServed[1], ref matrixIncServed[1], num3);
                         labPool[nextLabIndex].matrixIncServed[1] += num4;
                         labPool[nextLabIndex].matrixServed[1] += num3;
+                        movedItems = true;
                     }
                     if (labPool[nextLabIndex].needs[2] == 6003 && matrixServed[2] >= 7200)
                     {
@@ -279,6 +285,7 @@ internal struct OptimizedResearchingLab
                         int num6 = split_inc(ref matrixServed[2], ref matrixIncServed[2], num5);
                         labPool[nextLabIndex].matrixIncServed[2] += num6;
                         labPool[nextLabIndex].matrixServed[2] += num5;
+                        movedItems = true;
                     }
                     if (labPool[nextLabIndex].needs[3] == 6004 && matrixServed[3] >= 7200)
                     {
@@ -290,6 +297,7 @@ internal struct OptimizedResearchingLab
                         int num8 = split_inc(ref matrixServed[3], ref matrixIncServed[3], num7);
                         labPool[nextLabIndex].matrixIncServed[3] += num8;
                         labPool[nextLabIndex].matrixServed[3] += num7;
+                        movedItems = true;
                     }
                     if (labPool[nextLabIndex].needs[4] == 6005 && matrixServed[4] >= 7200)
                     {
@@ -301,6 +309,7 @@ internal struct OptimizedResearchingLab
                         int num10 = split_inc(ref matrixServed[4], ref matrixIncServed[4], num9);
                         labPool[nextLabIndex].matrixIncServed[4] += num10;
                         labPool[nextLabIndex].matrixServed[4] += num9;
+                        movedItems = true;
                     }
                     if (labPool[nextLabIndex].needs[5] == 6006 && matrixServed[5] >= 7200)
                     {
@@ -312,9 +321,16 @@ internal struct OptimizedResearchingLab
                         int num12 = split_inc(ref matrixServed[5], ref matrixIncServed[5], num11);
                         labPool[nextLabIndex].matrixIncServed[5] += num12;
                         labPool[nextLabIndex].matrixServed[5] += num11;
+                        movedItems = true;
                     }
                 }
             }
+        }
+
+        if (movedItems)
+        {
+            networkIdAndStates[labIndex].State = (int)LabState.Active;
+            networkIdAndStates[nextLabIndex].State = (int)LabState.Active;
         }
     }
 

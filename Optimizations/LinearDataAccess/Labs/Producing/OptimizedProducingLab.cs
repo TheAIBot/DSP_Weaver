@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 
@@ -72,14 +73,15 @@ internal struct OptimizedProducingLab
         needs[5] = 5 < num && served[5] < num2 ? producingLabRecipe.Requires[5] : 0;
     }
 
-    public uint InternalUpdateAssemble(float power,
-                                       int[] productRegister,
-                                       int[] consumeRegister,
-                                       ref readonly ProducingLabRecipe producingLabRecipe)
+    public LabState InternalUpdateAssemble(float power,
+                                           int[] productRegister,
+                                           int[] consumeRegister,
+                                           ref readonly ProducingLabRecipe producingLabRecipe)
     {
         if (power < 0.1f)
         {
-            return 0u;
+            // Lets not deal with missing power for now. Just check every tick.
+            return LabState.Active;
         }
         if (extraTime >= producingLabRecipe.ExtraTimeSpend)
         {
@@ -113,7 +115,7 @@ internal struct OptimizedProducingLab
             {
                 if (produced[0] + producingLabRecipe.ProductCounts[0] > 10 * ((speedOverride + 9999) / 10000))
                 {
-                    return 0u;
+                    return LabState.InactiveOutputFull;
                 }
                 produced[0] += producingLabRecipe.ProductCounts[0];
                 lock (productRegister)
@@ -127,7 +129,7 @@ internal struct OptimizedProducingLab
                 {
                     if (produced[j] + producingLabRecipe.ProductCounts[j] > 10 * ((speedOverride + 9999) / 10000))
                     {
-                        return 0u;
+                        return LabState.InactiveOutputFull;
                     }
                 }
                 for (int k = 0; k < num2; k++)
@@ -156,7 +158,7 @@ internal struct OptimizedProducingLab
                 if (served[l] < producingLabRecipe.RequireCounts[l] || served[l] == 0)
                 {
                     time = 0;
-                    return 0u;
+                    return LabState.InactiveInputMissing;
                 }
             }
             int num4 = num3 > 0 ? 10 : 0;
@@ -202,12 +204,14 @@ internal struct OptimizedProducingLab
         }
         if (!replicating)
         {
-            return 0u;
+            throw new InvalidOperationException("I do not think this is possible. Not sure why it is in the game.");
         }
-        return (uint)(producingLabRecipe.Products[0] - LabComponent.matrixIds[0] + 1);
+        return LabState.Active;
     }
 
-    public void UpdateOutputToNext(OptimizedProducingLab[] labPool,
+    public void UpdateOutputToNext(int labIndex,
+                                   OptimizedProducingLab[] labPool,
+                                   NetworkIdAndState<LabState>[] networkIdAndStates,
                                    ref readonly ProducingLabRecipe producingLabRecipe)
     {
         if (nextLabIndex == NO_NEXT_LAB)
@@ -220,6 +224,7 @@ internal struct OptimizedProducingLab
         //{
         //    return;
         //}
+        bool movedItems = false;
         if (served != null && labPool[nextLabIndex].served != null)
         {
             int[] obj2 = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? served : labPool[nextLabIndex].served;
@@ -244,6 +249,7 @@ internal struct OptimizedProducingLab
                             incServed[i] -= num16;
                             labPool[nextLabIndex].served[i] += num15;
                             labPool[nextLabIndex].incServed[i] += num16;
+                            movedItems = true;
                         }
                     }
                 }
@@ -262,8 +268,15 @@ internal struct OptimizedProducingLab
                     int num18 = num17 - produced[0] < labPool[nextLabIndex].produced[0] ? num17 - produced[0] : labPool[nextLabIndex].produced[0];
                     produced[0] += num18;
                     labPool[nextLabIndex].produced[0] -= num18;
+                    movedItems = true;
                 }
             }
+        }
+
+        if (movedItems)
+        {
+            networkIdAndStates[labIndex].State = (int)LabState.Active;
+            networkIdAndStates[nextLabIndex].State = (int)LabState.Active;
         }
     }
 

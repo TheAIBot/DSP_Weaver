@@ -22,6 +22,8 @@ internal sealed class ResearchingLabExecutor
         SignData[] entitySignPool = planet.entitySignPool;
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
+        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         int num = history.currentTech;
         TechProto techProto = LDB.techs.Select(num);
         TechState ts = default;
@@ -83,33 +85,35 @@ internal sealed class ResearchingLabExecutor
             }
 
             int[] entityIds = _entityIds;
-            for (int i = 0; i < _optimizedLabs.Length; i++)
+            for (int i = 0; i < optimizedLabs.Length; i++)
             {
-                _optimizedLabs[i].SetFunction(entityIds[i], factorySystem.researchTechId, _matrixPoints, entitySignPool);
+                optimizedLabs[i].SetFunction(entityIds[i], factorySystem.researchTechId, _matrixPoints, entitySignPool);
             }
         }
 
-        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
-        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         for (int k = 0; k < optimizedLabs.Length; k++)
         {
             ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[k];
-            ref OptimizedResearchingLab reference = ref optimizedLabs[k];
+            if ((LabState)networkIdAndState.State != LabState.Active)
+            {
+                continue;
+            }
 
+            ref OptimizedResearchingLab reference = ref optimizedLabs[k];
             reference.UpdateNeedsResearch();
             if (flag2)
             {
                 int curLevel = ts.curLevel;
                 float power = networkServes[networkIdAndState.Index];
-                reference.InternalUpdateResearch(power,
-                                                 research_speed,
-                                                 factorySystem.researchTechId,
-                                                 _matrixPoints,
-                                                 consumeRegister,
-                                                 ref ts,
-                                                 ref techHashedThisFrame,
-                                                 ref uMatrixPoint,
-                                                 ref hashRegister);
+                networkIdAndState.State = (int)reference.InternalUpdateResearch(power,
+                                                                                research_speed,
+                                                                                factorySystem.researchTechId,
+                                                                                _matrixPoints,
+                                                                                consumeRegister,
+                                                                                ref ts,
+                                                                                ref techHashedThisFrame,
+                                                                                ref uMatrixPoint,
+                                                                                ref hashRegister);
                 if (ts.unlocked)
                 {
                     history.techStates[factorySystem.researchTechId] = ts;
@@ -155,6 +159,7 @@ internal sealed class ResearchingLabExecutor
 
     public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
+        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         int num = 0;
         int num2 = 0;
@@ -162,7 +167,7 @@ internal sealed class ResearchingLabExecutor
         {
             if (num == _curThreadIdx)
             {
-                optimizedLabs[i].UpdateOutputToNext(optimizedLabs);
+                optimizedLabs[i].UpdateOutputToNext(i, optimizedLabs, networkIdAndStates);
             }
             num2++;
             if (num2 >= _minimumMissionCnt)

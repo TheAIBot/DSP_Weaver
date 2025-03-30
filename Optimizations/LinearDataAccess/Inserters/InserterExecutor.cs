@@ -147,6 +147,10 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         {
             return (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
         }
+        else if (objectIndex.EntityType == EntityType.ProducingLab)
+        {
+            return (LabState)optimizedPlanet._producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+        }
         else
         {
             throw new InvalidOperationException($"Check if pick from is active does currently not support entity type of type: {objectIndex.EntityType}");
@@ -159,6 +163,14 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         if (objectIndex.EntityType == EntityType.Assembler)
         {
             return (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
+        }
+        else if (objectIndex.EntityType == EntityType.ProducingLab)
+        {
+            return (LabState)optimizedPlanet._producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+        }
+        else if (objectIndex.EntityType == EntityType.ResearchingLab)
+        {
+            return (LabState)optimizedPlanet._researchingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
         }
         else
         {

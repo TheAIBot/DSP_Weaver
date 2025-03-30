@@ -34,13 +34,13 @@ internal sealed class OptimizedPlanet
 
     //private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
     private ProducingLabExecutor _producingLabExecutor;
-    private NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
+    public NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
     public OptimizedProducingLab[] _optimizedProducingLabs;
     public ProducingLabRecipe[] _producingLabRecipes;
     public Dictionary<int, int> _producingLabIdToOptimizedIndex;
 
     private ResearchingLabExecutor _researchingLabExecutor;
-    private NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
+    public NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
     private OptimizedResearchingLab[] _optimizedResearchingLabs;
     public Dictionary<int, int> _researchingLabIdToOptimizedIndex;
 
@@ -576,6 +576,14 @@ internal sealed class OptimizedPlanet
         }
         else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
         {
+            LabState labState = (LabState)optimizedPlanet._producingLabNetworkIdAndStates[objectIndex].State;
+            if (labState != LabState.Active &&
+                labState != LabState.InactiveOutputFull)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactivePickFrom;
+                return 0;
+            }
+
             PickFromProducingPlant producingPlant = pickFromProducingPlants[inserterIndex];
             int[] products2 = producingPlant.Products;
             int[] produced2 = producingPlant.Produced;
@@ -590,6 +598,7 @@ internal sealed class OptimizedPlanet
                     int value = Interlocked.Decrement(ref produced2[j]);
                     if (value >= 0)
                     {
+                        optimizedPlanet._producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                         return products2[j];
                     }
                     else
@@ -750,9 +759,17 @@ internal sealed class OptimizedPlanet
         }
         else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
         {
+            LabState labState = (LabState)optimizedPlanet._producingLabNetworkIdAndStates[objectIndex].State;
+            if (labState != LabState.Active &&
+                labState != LabState.InactiveInputMissing)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                return 0;
+            }
+
             if (entityNeeds == null)
             {
-                return 0;
+                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if producing lab is inactive which the above if statement should have caught.");
             }
             ref readonly OptimizedProducingLab reference2 = ref optimizedPlanet._optimizedProducingLabs[objectIndex];
             ProducingLabRecipe producingLabRecipe = optimizedPlanet._producingLabRecipes[reference2.producingLabRecipeIndex];
@@ -771,6 +788,7 @@ internal sealed class OptimizedPlanet
                     Interlocked.Add(ref served[i], itemCount);
                     Interlocked.Add(ref incServed[i], itemInc);
                     remainInc = 0;
+                    optimizedPlanet._producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                     return itemCount;
                 }
             }
@@ -778,9 +796,17 @@ internal sealed class OptimizedPlanet
         }
         else if (typedObjectIndex.EntityType == EntityType.ResearchingLab)
         {
+            LabState labState = (LabState)optimizedPlanet._researchingLabNetworkIdAndStates[objectIndex].State;
+            if (labState != LabState.Active &&
+                labState != LabState.InactiveInputMissing)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                return 0;
+            }
+
             if (entityNeeds == null)
             {
-                return 0;
+                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if researching lab is inactive which the above if statement should have caught.");
             }
 
             ref readonly OptimizedResearchingLab lab = ref optimizedPlanet._optimizedResearchingLabs[objectIndex];
@@ -796,6 +822,7 @@ internal sealed class OptimizedPlanet
                 Interlocked.Add(ref matrixServed[num2], 3600 * itemCount);
                 Interlocked.Add(ref matrixIncServed[num2], 3600 * itemInc);
                 remainInc = 0;
+                optimizedPlanet._researchingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                 return itemCount;
             }
             return 0;

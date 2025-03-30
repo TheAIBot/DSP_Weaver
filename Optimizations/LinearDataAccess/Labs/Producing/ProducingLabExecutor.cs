@@ -22,26 +22,32 @@ internal sealed class ProducingLabExecutor
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
         float[] networkServes = planet.powerSystem.networkServes;
+        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
         for (int i = _start; i < _end; i++)
         {
-            NetworkIdAndState<LabState> networkIdAndState = _networkIdAndStates[i];
+            ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[i];
+            if ((LabState)networkIdAndState.State != LabState.Active)
+            {
+                continue;
+            }
 
             ref OptimizedProducingLab lab = ref optimizedLabs[i];
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
             lab.UpdateNeedsAssemble(in producingLabRecipe);
 
             float power = networkServes[networkIdAndState.Index];
-            lab.InternalUpdateAssemble(power,
-                                       productRegister,
-                                       consumeRegister,
-                                       in producingLabRecipe);
+            networkIdAndState.State = (int)lab.InternalUpdateAssemble(power,
+                                                                      productRegister,
+                                                                      consumeRegister,
+                                                                      in producingLabRecipe);
         }
     }
 
     public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
+        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
         int num = 0;
@@ -52,7 +58,7 @@ internal sealed class ProducingLabExecutor
             {
                 ref OptimizedProducingLab lab = ref optimizedLabs[i];
                 ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
-                lab.UpdateOutputToNext(optimizedLabs, in producingLabRecipe);
+                lab.UpdateOutputToNext(i, optimizedLabs, networkIdAndStates, in producingLabRecipe);
             }
             num2++;
             if (num2 >= _minimumMissionCnt)
