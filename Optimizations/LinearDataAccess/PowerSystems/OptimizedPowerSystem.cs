@@ -62,31 +62,36 @@ internal sealed class OptimizedPowerSystem
         {
             for (int i = _start; i < _end; i++)
             {
-                if (factory.minerPool[i].id == i)
+                if (factory.minerPool[i].id != i)
                 {
-                    int stationId = entityPool[factory.minerPool[i].entityId].stationId;
-                    if (stationId > 0)
-                    {
-                        StationStore[] array = stationPool[stationId].storage;
-                        int count = array[0].count;
-                        int max = array[0].max;
-                        max = max < 2000 ? 2000 : max;
-                        float num = count / (float)max;
-                        num = num > 1f ? 1f : num;
-                        float num2 = -2.45f * num + 2.47f;
-                        num2 = num2 > 1f ? 1f : num2;
-                        factory.minerPool[i].speedDamper = num2;
-                    }
-                    else
-                    {
-                        float num3 = factory.minerPool[i].productCount / 50f;
-                        num3 = num3 > 1f ? 1f : num3;
-                        float num4 = -2.45f * num3 + 2.47f;
-                        num4 = num4 > 1f ? 1f : num4;
-                        factory.minerPool[i].speedDamper = num4;
-                    }
-                    factory.minerPool[i].SetPCState(consumerPool);
+                    continue;
                 }
+                int stationId = entityPool[factory.minerPool[i].entityId].stationId;
+                if (stationId > 0)
+                {
+                    StationStore[] array = stationPool[stationId].storage;
+                    int num = array[0].count;
+                    if (array[0].localOrder < -4000)
+                    {
+                        num += array[0].localOrder + 4000;
+                    }
+                    int max = array[0].max;
+                    max = ((max < 3000) ? 3000 : max);
+                    float num2 = (float)num / (float)max;
+                    num2 = ((num2 > 1f) ? 1f : num2);
+                    float num3 = -2.45f * num2 + 2.47f;
+                    num3 = ((num3 > 1f) ? 1f : num3);
+                    factory.minerPool[i].speedDamper = num3;
+                }
+                else
+                {
+                    float num4 = (float)factory.minerPool[i].productCount / 50f;
+                    num4 = ((num4 > 1f) ? 1f : num4);
+                    float num5 = -2.45f * num4 + 2.47f;
+                    num5 = ((num5 > 1f) ? 1f : num5);
+                    factory.minerPool[i].speedDamper = num5;
+                }
+                factory.minerPool[i].SetPCState(consumerPool);
             }
         }
 

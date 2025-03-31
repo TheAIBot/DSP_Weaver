@@ -1062,6 +1062,11 @@ internal sealed class OptimizedPlanet
                 num5 = 0f;
             }
             bool flag2 = isActive && num4 > 0f;
+
+            // Change back when dsp package as updated
+            //int num6 = MinerComponent.InsufficientWarningThresAmount(num3, num4);
+            int num6 = 4;
+
             for (int i = _start; i < _end; i++)
             {
                 if (factorySystem.minerPool[i].id != i)
@@ -1069,42 +1074,39 @@ internal sealed class OptimizedPlanet
                     continue;
                 }
                 int entityId = factorySystem.minerPool[i].entityId;
-                float num6 = networkServes[_minerNetworkIds[i]];
-                uint num7 = factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num6, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
-                if (isActive)
+                int stationId = entityPool[entityId].stationId;
+                float num7 = networkServes[consumerPool[factorySystem.minerPool[i].pcId].networkId];
+                uint num8 = factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num7, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
+                int num9 = (int)Mathf.Floor(entityAnimPool[entityId].time / 10f);
+                entityAnimPool[entityId].time = entityAnimPool[entityId].time % 10f;
+                entityAnimPool[entityId].Step(num8, num * num7);
+                entityAnimPool[entityId].power = num7;
+                if (stationId > 0)
                 {
-                    int stationId = entityPool[entityId].stationId;
-                    int num8 = (int)Mathf.Floor(entityAnimPool[entityId].time / 10f);
-                    entityAnimPool[entityId].time = entityAnimPool[entityId].time % 10f;
-                    entityAnimPool[entityId].Step(num7, num * num6);
-                    entityAnimPool[entityId].power = num6;
-                    if (stationId > 0)
+                    if (factorySystem.minerPool[i].veinCount > 0)
                     {
-                        if (factorySystem.minerPool[i].veinCount > 0)
-                        {
-                            EVeinType veinTypeByItemId = LDB.veins.GetVeinTypeByItemId(veinPool[factorySystem.minerPool[i].veins[0]].productId);
-                            entityAnimPool[entityId].state += (uint)((int)veinTypeByItemId * 100);
-                        }
-                        entityAnimPool[entityId].power += 10f;
-                        entityAnimPool[entityId].power += factorySystem.minerPool[i].speed / 10 * 10;
-                        if (num7 == 1)
-                        {
-                            num8 = 3000;
-                        }
-                        else
-                        {
-                            num8 -= (int)(num * 1000f);
-                            if (num8 < 0)
-                            {
-                                num8 = 0;
-                            }
-                        }
-                        entityAnimPool[entityId].time += num8 * 10;
+                        EVeinType veinTypeByItemId = LDB.veins.GetVeinTypeByItemId(veinPool[factorySystem.minerPool[i].veins[0]].productId);
+                        entityAnimPool[entityId].state += (uint)((int)veinTypeByItemId * 100);
                     }
-                    if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+                    entityAnimPool[entityId].power += 10f;
+                    entityAnimPool[entityId].power += factorySystem.minerPool[i].speed / 10 * 10;
+                    if (num8 == 1)
                     {
-                        entitySignPool[entityId].signType = ((factorySystem.minerPool[i].minimumVeinAmount < 1000) ? 7u : 0u);
+                        num9 = 3000;
                     }
+                    else
+                    {
+                        num9 -= (int)(num * 1000f);
+                        if (num9 < 0)
+                        {
+                            num9 = 0;
+                        }
+                    }
+                    entityAnimPool[entityId].time += num9 * 10;
+                }
+                if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+                {
+                    entitySignPool[entityId].signType = ((factorySystem.minerPool[i].minimumVeinAmount < num6) ? 7u : 0u);
                 }
                 if (flag2 && factorySystem.minerPool[i].type == EMinerType.Vein)
                 {
@@ -1112,17 +1114,11 @@ internal sealed class OptimizedPlanet
                     {
                         factorySystem.minerPool[i].GetTotalVeinAmount(veinPool);
                     }
-                    if (isActive)
-                    {
-                        entitySignPool[entityId].count0 = factorySystem.minerPool[i].totalVeinAmount;
-                    }
+                    entitySignPool[entityId].count0 = factorySystem.minerPool[i].totalVeinAmount;
                 }
                 else
                 {
-                    if (isActive)
-                    {
-                        entitySignPool[entityId].count0 = 0f;
-                    }
+                    entitySignPool[entityId].count0 = 0f;
                 }
             }
         }
