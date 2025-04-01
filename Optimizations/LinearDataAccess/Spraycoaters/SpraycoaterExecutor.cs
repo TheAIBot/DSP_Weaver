@@ -10,12 +10,10 @@ internal sealed class SpraycoaterExecutor
     {
         int[] consumeRegister = GameMain.statistics.production.factoryStatPool[planet.index].consumeRegister;
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
-        PerformanceMonitor.BeginSample(ECpuWorkEntry.Belt);
         for (int i = 0; i < optimizedSpraycoaters.Length; i++)
         {
             optimizedSpraycoaters[i].InternalUpdate(consumeRegister);
         }
-        PerformanceMonitor.EndSample(ECpuWorkEntry.Belt);
     }
 
     public void Initialize(PlanetFactory planet)

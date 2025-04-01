@@ -1,7 +1,9 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
@@ -1303,6 +1305,65 @@ internal sealed class OptimizedPlanet
         optimizedPlanet._spraycoaterExecutor.SpraycoaterGameTick(__instance.factory);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    public static void ParallelSpraycoaterLogic()
+    {
+        PerformanceMonitor.BeginSample(ECpuWorkEntry.Belt);
+
+        PlanetFactory? localFactory = GameMain.localPlanet?.factory;
+        Parallel.For(0, GameMain.data.factoryCount, i =>
+        {
+            PlanetFactory planet = GameMain.data.factories[i];
+            if (planet.cargoTraffic == null)
+            {
+                return;
+            }
+
+            bool isActive = localFactory == planet;
+            if (isActive)
+            {
+                planet.cargoTraffic.SpraycoaterGameTick();
+                return;
+            }
+
+            OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
+            optimizedPlanet._spraycoaterExecutor.SpraycoaterGameTick(planet);
+        });
+
+        PerformanceMonitor.EndSample(ECpuWorkEntry.Belt);
+    }
+
+    [HarmonyTranspiler, HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
+    static IEnumerable<CodeInstruction> ReplaceSingleThreadedSpraycoaterLogicWithParallelOptimizedLogic(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+    {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        CodeMatch[] sprayCoaterGameTickCall = [
+            // factories[num3].cargoTraffic.SpraycoaterGameTick();
+            new CodeMatch(OpCodes.Ldarg_0),
+            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(GameData), nameof(GameData.factories))),
+            new CodeMatch(OpCodes.Ldloc_S),
+            new CodeMatch(OpCodes.Ldelem_Ref),
+            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(PlanetFactory), nameof(PlanetFactory.cargoTraffic))),
+            new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(CargoTraffic), nameof(CargoTraffic.SpraycoaterGameTick))),
+        ];
+
+        CodeMatch[] afterSpraycoaterLoop = [
+            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Storage),
+            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.BeginSample)))
+        ];
+
+        codeMatcher.MatchForward(false, sprayCoaterGameTickCall)
+            .ThrowIfNotMatch($"Failed to find {nameof(sprayCoaterGameTickCall)}")
+            .RemoveInstructions(sprayCoaterGameTickCall.Length)
+            .MatchForward(false, afterSpraycoaterLoop)
+            .ThrowIfNotMatch($"Failed to find {nameof(afterSpraycoaterLoop)}")
+            .Insert([
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedPlanet), nameof(ParallelSpraycoaterLogic)))
+            ]);
+
+        return codeMatcher.InstructionEnumeration();
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)
