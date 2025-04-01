@@ -10,6 +10,7 @@ using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 
 namespace Weaver.Optimizations.LinearDataAccess;
 
@@ -44,6 +45,7 @@ internal sealed class OptimizedPlanet
     private OptimizedResearchingLab[] _optimizedResearchingLabs;
     public Dictionary<int, int> _researchingLabIdToOptimizedIndex;
 
+    private SpraycoaterExecutor _spraycoaterExecutor;
 
     private OptimizedPowerSystem _optimizedPowerSystem;
 
@@ -109,6 +111,7 @@ internal sealed class OptimizedPlanet
         InitializeLabAssemblers(planet, optimizedPowerSystemBuilder);
         InitializeResearchingLabs(planet, optimizedPowerSystemBuilder);
         InitializeInserters(planet, optimizedPowerSystemBuilder);
+        InitializeSpraycoaters(planet);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
     }
@@ -245,6 +248,12 @@ internal sealed class OptimizedPlanet
         _researchingLabNetworkIdAndStates = _researchingLabExecutor._networkIdAndStates;
         _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
+    }
+
+    private void InitializeSpraycoaters(PlanetFactory planet)
+    {
+        _spraycoaterExecutor = new SpraycoaterExecutor();
+        _spraycoaterExecutor.Initialize(planet);
     }
 
     public void Save(PlanetFactory planet)
@@ -1265,6 +1274,33 @@ internal sealed class OptimizedPlanet
         OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[__instance.factory];
         optimizedPlanet._producingLabExecutor.GameTickLabOutputToNext(time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
         optimizedPlanet._researchingLabExecutor.GameTickLabOutputToNext(time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    //[HarmonyPrefix]
+    //[HarmonyPatch(typeof(ModelProtoSet), nameof(ModelProtoSet.Select))]
+    //public static ModelProto Select(ModelProtoSet __instance, int id)
+    //{
+    //    if (__instance.dataIndices.TryGetValue(id, out int index))
+    //    {
+    //        return __instance.dataArray[index];
+    //    }
+    //    return null;
+    //}
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CargoTraffic), nameof(CargoTraffic.SpraycoaterGameTick))]
+    public static bool SpraycoaterGameTick(CargoTraffic __instance)
+    {
+        bool isActive = GameMain.localPlanet != null && GameMain.localPlanet.factory == __instance.factory;
+        if (isActive)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[__instance.factory];
+        optimizedPlanet._spraycoaterExecutor.SpraycoaterGameTick(__instance.factory);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
