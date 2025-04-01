@@ -10,6 +10,8 @@ namespace Weaver.Optimizations.LinearDataAccess.Inserters;
 
 internal record struct PickFromProducingPlant(int[] Products, int[] Produced);
 
+internal record struct ConnectionBelts(CargoPath PickFrom, CargoPath InsertInto);
+
 internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     where T : struct, IInserter<T>
 {
@@ -21,6 +23,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     public int[][] _inserterConnectionNeeds;
     public int[] _optimizedInserterToInserterIndex;
     public PickFromProducingPlant[] _pickFromProducingPlants;
+    public ConnectionBelts[] _connectionBelts;
 
     public int inserterCount => _optimizedInserters.Length;
 
@@ -34,7 +37,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
          List<T> optimizedInserters,
          List<OptimizedInserterStage> optimizedInserterStages,
          List<int> optimizedInserterToInserterIndex,
-         List<PickFromProducingPlant> pickFromProducingPlants)
+         List<PickFromProducingPlant> pickFromProducingPlants,
+         List<ConnectionBelts> connectionBelts)
             = InitializeInserters<T>(planet, optimizedPlanet, inserterSelector, optimizedPowerSystemInserterBuilder);
 
         _inserterNetworkIdAndStates = inserterNetworkIdAndStates.ToArray();
@@ -45,11 +49,12 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         _optimizedInserterStages = optimizedInserterStages.ToArray();
         _optimizedInserterToInserterIndex = optimizedInserterToInserterIndex.ToArray();
         _pickFromProducingPlants = pickFromProducingPlants.ToArray();
+        _connectionBelts = connectionBelts.ToArray();
     }
 
-    public T Create(ref readonly InserterComponent inserter, int grade)
+    public T Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
     {
-        return default(T).Create(in inserter, grade);
+        return default(T).Create(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
 
     public int GetUnoptimizedInserterIndex(int optimizedInserterIndex)
@@ -98,6 +103,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             ref T optimizedInserter = ref _optimizedInserters[inserterIndex];
             InserterGrade inserterGrade = _inserterGrades[optimizedInserter.grade];
             ref OptimizedInserterStage optimizedInserterStage = ref _optimizedInserterStages[inserterIndex];
+            ref readonly ConnectionBelts connectionBelts = ref _connectionBelts[inserterIndex];
             optimizedInserter.Update(planet,
                                      optimizedPlanet,
                                      power2,
@@ -107,7 +113,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                                      in _inserterConnectionNeeds[inserterIndex],
                                      _pickFromProducingPlants,
                                      inserterGrade,
-                                     ref optimizedInserterStage);
+                                     ref optimizedInserterStage,
+                                     in connectionBelts);
         }
     }
 
@@ -186,7 +193,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                     List<TInserter> optimizedInserters,
                     List<OptimizedInserterStage> optimizedInserterStages,
                     List<int> optimizedInserterToInserterIndex,
-                    List<PickFromProducingPlant> pickFromProducingPlants)
+                    List<PickFromProducingPlant> pickFromProducingPlants,
+                    List<ConnectionBelts> connectionBelts)
         InitializeInserters<TInserter>(PlanetFactory planet,
                                        OptimizedPlanet optimizedPlanet,
                                        Func<InserterComponent, bool> inserterSelector,
@@ -202,6 +210,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         List<OptimizedInserterStage> optimizedInserterStages = [];
         List<int> optimizedInserterToInserterIndex = [];
         List<PickFromProducingPlant> pickFromProducingPlants = [];
+        List<ConnectionBelts> connectionBelts = [];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
@@ -287,9 +296,28 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 inserterGradeToIndex.Add(inserterGrade, inserterGradeIndex);
             }
 
-            optimizedInserters.Add(default(TInserter).Create(in inserter, inserterGradeIndex));
+            CargoPath pickFromBelt = null;
+            int pickFromOffset = inserter.pickOffset;
+            if (pickFrom.EntityType == EntityType.Belt)
+            {
+                BeltComponent belt = planet.cargoTraffic.beltPool[pickFrom.Index];
+                pickFromBelt = planet.cargoTraffic.GetCargoPath(belt.segPathId);
+                pickFromOffset += belt.pivotOnPath;
+            }
+
+            CargoPath insertIntoBelt = null;
+            int insertIntoOffset = inserter.insertOffset;
+            if (insertInto.EntityType == EntityType.Belt)
+            {
+                BeltComponent belt = planet.cargoTraffic.beltPool[insertInto.Index];
+                insertIntoBelt = planet.cargoTraffic.pathPool[belt.segPathId];
+                insertIntoOffset += belt.pivotOnPath;
+            }
+
+            optimizedInserters.Add(default(TInserter).Create(in inserter, pickFromOffset, insertIntoOffset, inserterGradeIndex));
             optimizedInserterStages.Add(ToOptimizedInserterStage(inserter.stage));
             optimizedInserterToInserterIndex.Add(i);
+            connectionBelts.Add(new ConnectionBelts(pickFromBelt, insertIntoBelt));
 
             if (pickFrom.EntityType == EntityType.Assembler)
             {
@@ -317,7 +345,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 optimizedInserters,
                 optimizedInserterStages,
                 optimizedInserterToInserterIndex,
-                pickFromProducingPlants);
+                pickFromProducingPlants,
+                connectionBelts);
     }
 
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch

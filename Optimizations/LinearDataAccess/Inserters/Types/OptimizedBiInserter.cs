@@ -18,13 +18,13 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
     public int stackCount;
     public int idleTick;
 
-    public OptimizedBiInserter(ref readonly InserterComponent inserter, int grade)
+    public OptimizedBiInserter(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
     {
         grade = (byte)grade;
         pcId = inserter.pcId;
         careNeeds = inserter.careNeeds;
-        pickOffset = inserter.pickOffset;
-        insertOffset = inserter.insertOffset;
+        pickOffset = (short)pickFromOffset;
+        insertOffset = (short)insertIntoOffset;
         filter = inserter.filter;
         itemId = inserter.itemId;
         itemCount = inserter.itemCount;
@@ -33,9 +33,9 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         idleTick = inserter.idleTick;
     }
 
-    public OptimizedBiInserter Create(ref readonly InserterComponent inserter, int grade)
+    public OptimizedBiInserter Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
     {
-        return new OptimizedBiInserter(in inserter, grade);
+        return new OptimizedBiInserter(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
 
     public void Update(PlanetFactory planet,
@@ -47,7 +47,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                        ref readonly int[] inserterConnectionNeeds,
                        PickFromProducingPlant[] pickFromProducingPlants,
                        InserterGrade inserterGrade,
-                       ref OptimizedInserterStage stage)
+                       ref OptimizedInserterStage stage,
+                       ref readonly ConnectionBelts connectionBelts)
     {
         if (power < 0.1f)
         {
@@ -75,6 +76,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                                                             optimizedPlanet,
                                                             ref inserterNetworkIdAndState,
                                                             in inserterConnections,
+                                                            in connectionBelts,
                                                             inserterIndex,
                                                             pickFromProducingPlants,
                                                             pickOffset,
@@ -112,6 +114,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                                                     optimizedPlanet,
                                                     ref inserterNetworkIdAndState,
                                                     in inserterConnections,
+                                                    in connectionBelts,
                                                     inserterIndex,
                                                     pickFromProducingPlants,
                                                     pickOffset,
@@ -152,6 +155,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                                                                      optimizedPlanet,
                                                                      ref inserterNetworkIdAndState,
                                                                      in inserterConnections,
+                                                                     in connectionBelts,
                                                                      inserterIndex,
                                                                      pickFromProducingPlants,
                                                                      pickOffset,
@@ -187,6 +191,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                                                       optimizedPlanet,
                                                       ref inserterNetworkIdAndState,
                                                       in inserterConnections,
+                                                      in connectionBelts,
                                                       inserterIndex,
                                                       pickFromProducingPlants,
                                                       pickOffset,
@@ -233,7 +238,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             {
                 int num5 = itemCount;
                 int num6 = itemInc;
-                planet.cargoTraffic.TryInsertItemToBeltWithStackIncreasement(num4.Index, insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
+                connectionBelts.InsertInto.TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
                 if (num5 < itemCount)
                 {
                     num3 = itemId;
@@ -265,7 +270,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             int num7 = itemCount / stackCount;
             int num8 = (int)(itemInc / (float)itemCount * num7 + 0.5f);
             byte remainInc = (byte)num8;
-            int num9 = OptimizedPlanet.InsertInto(planet, optimizedPlanet, ref inserterNetworkIdAndState, in inserterConnections, insertIntoNeeds, insertOffset, itemId, (byte)num7, (byte)num8, out remainInc);
+            int num9 = OptimizedPlanet.InsertInto(planet, optimizedPlanet, ref inserterNetworkIdAndState, in inserterConnections, in connectionBelts, insertIntoNeeds, insertOffset, itemId, (byte)num7, (byte)num8, out remainInc);
             if (num9 <= 0)
             {
                 break;

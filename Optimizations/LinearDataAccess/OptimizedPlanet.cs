@@ -369,6 +369,7 @@ internal sealed class OptimizedPlanet
                                OptimizedPlanet optimizedPlanet,
                                ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                                ref readonly InserterConnections inserterConnections,
+                               ref readonly ConnectionBelts connectionBelts,
                                int inserterIndex,
                                PickFromProducingPlant[] pickFromProducingPlants,
                                int offset,
@@ -390,9 +391,13 @@ internal sealed class OptimizedPlanet
         {
             if (needs == null)
             {
-                return planet.cargoTraffic.TryPickItem(objectIndex, offset, filter, out stack, out inc);
+                if (filter != 0)
+                {
+                    return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, out stack, out inc);
+                }
+                return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, out stack, out inc);
             }
-            return planet.cargoTraffic.TryPickItem(objectIndex, offset, filter, needs, out stack, out inc);
+            return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, needs, out stack, out inc);
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
@@ -646,6 +651,7 @@ internal sealed class OptimizedPlanet
                                  OptimizedPlanet optimizedPlanet,
                                  ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                                  ref readonly InserterConnections inserterConnections,
+                                 ref readonly ConnectionBelts connectionBelts,
                                  int[]? entityNeeds,
                                  int offset,
                                  int itemId,
@@ -663,7 +669,7 @@ internal sealed class OptimizedPlanet
 
         if (typedObjectIndex.EntityType == EntityType.Belt)
         {
-            if (planet.cargoTraffic.TryInsertItem(objectIndex, offset, itemId, itemCount, itemInc))
+            if (connectionBelts.InsertInto.TryInsertItem(offset, itemId, itemCount, itemInc))
             {
                 remainInc = 0;
                 return itemCount;

@@ -4,7 +4,7 @@ internal interface IInserter<T>
 {
     byte grade { get; }
 
-    T Create(ref readonly InserterComponent inserter, int grade);
+    T Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
 
     void Update(PlanetFactory planet,
                 OptimizedPlanet optimizedPlanet,
@@ -15,5 +15,6 @@ internal interface IInserter<T>
                 ref readonly int[] inserterConnectionNeeds,
                 PickFromProducingPlant[] pickFromProducingPlants,
                 InserterGrade inserterGrade,
-                ref OptimizedInserterStage stage);
+                ref OptimizedInserterStage stage,
+                ref readonly ConnectionBelts connectionBelts);
 }

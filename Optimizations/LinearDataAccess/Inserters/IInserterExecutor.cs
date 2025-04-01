@@ -26,5 +26,5 @@ internal interface IInserterExecutor
 internal interface IInserterExecutor<T> : IInserterExecutor
     where T : IInserter<T>
 {
-    T Create(ref readonly InserterComponent inserter, int grade);
+    T Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
 }
