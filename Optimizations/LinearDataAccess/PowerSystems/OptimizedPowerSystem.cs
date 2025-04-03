@@ -13,6 +13,7 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _inserterPowerConsumerTypeIndexes;
     private readonly int[] _producingLabPowerConsumerTypeIndexes;
     private readonly int[] _researchingLabPowerConsumerTypeIndexes;
+    private readonly int[] _spraycoaterPowerConsumerTypeIndexes;
     private long[][] _threadNetworkPowerConsumptionPrepared = null;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
@@ -21,7 +22,8 @@ internal sealed class OptimizedPowerSystem
                                 int[] inserterBiPowerConsumerTypeIndexes,
                                 int[] inserterPowerConsumerTypeIndexes,
                                 int[] producingLabPowerConsumerTypeIndexes,
-                                int[] researchingLabPowerConsumerTypeIndexes)
+                                int[] researchingLabPowerConsumerTypeIndexes,
+                                int[] spraycoaterPowerConsumerTypeIndexes)
     {
         _powerConsumerTypes = powerConsumerTypes;
         _networkNonOptimizedPowerConsumerIndexes = networkNonOptimizedPowerConsumerIndexes;
@@ -30,26 +32,12 @@ internal sealed class OptimizedPowerSystem
         _inserterPowerConsumerTypeIndexes = inserterPowerConsumerTypeIndexes;
         _producingLabPowerConsumerTypeIndexes = producingLabPowerConsumerTypeIndexes;
         _researchingLabPowerConsumerTypeIndexes = researchingLabPowerConsumerTypeIndexes;
+        _spraycoaterPowerConsumerTypeIndexes = spraycoaterPowerConsumerTypeIndexes;
     }
 
-    public void ParallelGameTickBeforePower(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void FactorySystem_ParallelGameTickBeforePower(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
-        if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != GameMain.multithreadSystem.usedThreadCnt)
-        {
-            lock (this)
-            {
-                if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != GameMain.multithreadSystem.usedThreadCnt)
-                {
-                    var threadNetworkPowerConsumptionPrepared = new long[GameMain.multithreadSystem.usedThreadCnt][];
-                    for (int i = 0; i < threadNetworkPowerConsumptionPrepared.Length; i++)
-                    {
-                        threadNetworkPowerConsumptionPrepared[i] = new long[_networkNonOptimizedPowerConsumerIndexes.Length];
-                    }
-
-                    _threadNetworkPowerConsumptionPrepared = threadNetworkPowerConsumptionPrepared;
-                }
-            }
-        }
+        InitializeThreadLocalArrays();
 
         long[] thisThreadNetworkPowerConsumption = _threadNetworkPowerConsumptionPrepared[_curThreadIdx];
         Array.Clear(thisThreadNetworkPowerConsumption, 0, thisThreadNetworkPowerConsumption.Length);
@@ -163,6 +151,44 @@ internal sealed class OptimizedPowerSystem
                                                                _usedThreadCnt,
                                                                _curThreadIdx,
                                                                _minimumMissionCnt);
+    }
+
+    public void CargoTraffic_ParallelGameTickBeforePower(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        long[] thisThreadNetworkPowerConsumption = _threadNetworkPowerConsumptionPrepared[_curThreadIdx];
+
+        CargoTraffic cargoTraffic = planet.cargoTraffic;
+        PowerConsumerComponent[] consumerPool = planet.powerSystem.consumerPool;
+        if (WorkerThreadExecutor.CalculateMissionIndex(1, cargoTraffic.monitorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
+        {
+            for (int i = _start; i < _end; i++)
+            {
+                if (cargoTraffic.monitorPool[i].id == i)
+                {
+                    cargoTraffic.monitorPool[i].SetPCState(consumerPool);
+                }
+            }
+        }
+
+        optimizedPlanet._spraycoaterExecutor.UpdatePower(optimizedPlanet,
+                                                          _spraycoaterPowerConsumerTypeIndexes,
+                                                          _powerConsumerTypes,
+                                                          thisThreadNetworkPowerConsumption,
+                                                          _usedThreadCnt,
+                                                          _curThreadIdx,
+                                                          _minimumMissionCnt);
+
+        if (!WorkerThreadExecutor.CalculateMissionIndex(1, cargoTraffic.pilerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
+        {
+            return;
+        }
+        for (int k = _start; k < _end; k++)
+        {
+            if (cargoTraffic.pilerPool[k].id == k)
+            {
+                cargoTraffic.pilerPool[k].SetPCState(consumerPool);
+            }
+        }
     }
 
     public void GameTick(PlanetFactory planet, long time, bool isActive, bool isMultithreadMode = false)
@@ -476,6 +502,26 @@ internal sealed class OptimizedPowerSystem
             factoryProductionStat.powerDisRegister = num3;
             factoryProductionStat.powerChaRegister = num4;
             factoryProductionStat.energyConsumption += num5;
+        }
+    }
+
+    private void InitializeThreadLocalArrays()
+    {
+        if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != GameMain.multithreadSystem.usedThreadCnt)
+        {
+            lock (this)
+            {
+                if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != GameMain.multithreadSystem.usedThreadCnt)
+                {
+                    var threadNetworkPowerConsumptionPrepared = new long[GameMain.multithreadSystem.usedThreadCnt][];
+                    for (int i = 0; i < threadNetworkPowerConsumptionPrepared.Length; i++)
+                    {
+                        threadNetworkPowerConsumptionPrepared[i] = new long[_networkNonOptimizedPowerConsumerIndexes.Length];
+                    }
+
+                    _threadNetworkPowerConsumptionPrepared = threadNetworkPowerConsumptionPrepared;
+                }
+            }
         }
     }
 }

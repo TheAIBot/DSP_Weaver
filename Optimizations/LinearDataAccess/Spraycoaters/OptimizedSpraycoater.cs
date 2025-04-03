@@ -19,8 +19,6 @@ public struct OptimizedSpraycoater
     public int incCount;
     public int extraIncCount;
     public bool incUsed;
-    public int sprayTime;
-    public bool isSpraycoatingItem;
 
     public OptimizedSpraycoater(int incommingBeltSegIndexPlusSegPivotOffset,
                                 CargoPath incommingCargoPath,
@@ -45,11 +43,9 @@ public struct OptimizedSpraycoater
         incCount = spraycoater.incCount;
         extraIncCount = spraycoater.extraIncCount;
         incUsed = spraycoater.incUsed;
-        sprayTime = spraycoater.sprayTime;
-        isSpraycoatingItem = spraycoater.cargoBeltItemId != 0;
     }
 
-    public void InternalUpdate(int[] consumeRegister)
+    public void InternalUpdate(int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime)
     {
         if (incommingCargoPath != null && incCount + extraIncCount < incCapacity)
         {

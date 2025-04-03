@@ -47,7 +47,7 @@ internal sealed class OptimizedPlanet
     private OptimizedResearchingLab[] _optimizedResearchingLabs;
     public Dictionary<int, int> _researchingLabIdToOptimizedIndex;
 
-    private SpraycoaterExecutor _spraycoaterExecutor;
+    public SpraycoaterExecutor _spraycoaterExecutor;
 
     private OptimizedPowerSystem _optimizedPowerSystem;
 
@@ -113,7 +113,7 @@ internal sealed class OptimizedPlanet
         InitializeLabAssemblers(planet, optimizedPowerSystemBuilder);
         InitializeResearchingLabs(planet, optimizedPowerSystemBuilder);
         InitializeInserters(planet, optimizedPowerSystemBuilder);
-        InitializeSpraycoaters(planet);
+        InitializeSpraycoaters(planet, optimizedPowerSystemBuilder);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
     }
@@ -252,10 +252,10 @@ internal sealed class OptimizedPlanet
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
     }
 
-    private void InitializeSpraycoaters(PlanetFactory planet)
+    private void InitializeSpraycoaters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
-        _spraycoaterExecutor.Initialize(planet);
+        _spraycoaterExecutor.Initialize(planet, optimizedPowerSystemBuilder);
     }
 
     public void Save(PlanetFactory planet)
@@ -1225,7 +1225,7 @@ internal sealed class OptimizedPlanet
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.ParallelGameTickBeforePower))]
-    public static bool ParallelGameTickBeforePower(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public static bool FactorySystem_ParallelGameTickBeforePower(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         if (isActive)
         {
@@ -1233,7 +1233,22 @@ internal sealed class OptimizedPlanet
         }
 
         OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[__instance.factory];
-        optimizedPlanet._optimizedPowerSystem.ParallelGameTickBeforePower(__instance.factory, optimizedPlanet, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+        optimizedPlanet._optimizedPowerSystem.FactorySystem_ParallelGameTickBeforePower(__instance.factory, optimizedPlanet, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CargoTraffic), nameof(CargoTraffic.ParallelGameTickBeforePower))]
+    public static bool CargoTraffic_ParallelGameTickBeforePower(CargoTraffic __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        if (isActive)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[__instance.factory];
+        optimizedPlanet._optimizedPowerSystem.CargoTraffic_ParallelGameTickBeforePower(__instance.factory, optimizedPlanet, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }

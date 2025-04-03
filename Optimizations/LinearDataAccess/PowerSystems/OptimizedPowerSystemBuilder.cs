@@ -13,6 +13,7 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly List<int> _inserterPowerConsumerTypeIndexes = [];
     private readonly List<int> _producingLabPowerConsumerTypeIndexes = [];
     private readonly List<int> _researchingLabPowerConsumerTypeIndexes = [];
+    private readonly List<int> _spraycoaterPowerConsumerTypeIndexes = [];
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
 
     public OptimizedPowerSystemBuilder(PowerSystem powerSystem)
@@ -45,6 +46,11 @@ internal sealed class OptimizedPowerSystemBuilder
         AddEntity(_researchingLabPowerConsumerTypeIndexes, lab.pcId, networkIndex);
     }
 
+    public void AddSpraycoater(ref readonly SpraycoaterComponent spraycoater, int networkIndex)
+    {
+        AddEntity(_spraycoaterPowerConsumerTypeIndexes, spraycoater.pcId, networkIndex);
+    }
+
     public OptimizedPowerSystem Build()
     {
         int[][] networkNonOptimizedPowerConsumerIndexes = new int[_powerSystem.netCursor][];
@@ -65,7 +71,8 @@ internal sealed class OptimizedPowerSystemBuilder
                                         _inserterBiPowerConsumerTypeIndexes.ToArray(),
                                         _inserterPowerConsumerTypeIndexes.ToArray(),
                                         _producingLabPowerConsumerTypeIndexes.ToArray(),
-                                        _researchingLabPowerConsumerTypeIndexes.ToArray());
+                                        _researchingLabPowerConsumerTypeIndexes.ToArray(),
+                                        _spraycoaterPowerConsumerTypeIndexes.ToArray());
     }
 
     public int GetOrAddPowerConsumerType(PowerConsumerType powerConsumerType)
