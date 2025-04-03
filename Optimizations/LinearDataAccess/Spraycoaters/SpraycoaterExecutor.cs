@@ -22,8 +22,7 @@ internal sealed class SpraycoaterExecutor
         }
     }
 
-    public void UpdatePower(OptimizedPlanet optimizedPlanet,
-                            int[] spraycoaterPowerConsumerTypeIndexes,
+    public void UpdatePower(int[] spraycoaterPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisThreadNetworkPowerConsumption,
                             int _usedThreadCnt,
@@ -37,14 +36,14 @@ internal sealed class SpraycoaterExecutor
 
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
         int[] spraycoaterNetworkIds = _spraycoaterNetworkIds;
-        bool[] assemblerReplicatings = optimizedPlanet._assemblerReplicatings;
-        int[] assemblerExtraPowerRatios = optimizedPlanet._assemblerExtraPowerRatios;
+        bool[] isSpraycoatingItems = _isSpraycoatingItems;
+        int[] sprayTimes = _sprayTimes;
         for (int j = _start; j < _end; j++)
         {
             int networkIndex = spraycoaterNetworkIds[j];
             int powerConsumerTypeIndex = spraycoaterPowerConsumerTypeIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, assemblerReplicatings[j], assemblerExtraPowerRatios[j]);
+            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItems[j], sprayTimes[j]);
         }
     }
 

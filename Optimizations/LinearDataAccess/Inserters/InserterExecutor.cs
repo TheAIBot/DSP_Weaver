@@ -168,11 +168,11 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         TypedObjectIndex objectIndex = _inserterConnections[inserterIndex].PickFrom;
         if (objectIndex.EntityType == EntityType.Assembler)
         {
-            return (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
+            return (AssemblerState)_assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
         }
         else if (objectIndex.EntityType == EntityType.ProducingLab)
         {
-            return (LabState)optimizedPlanet._producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+            return (LabState)_producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
         }
         else
         {
@@ -185,15 +185,15 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         TypedObjectIndex objectIndex = _inserterConnections[inserterIndex].InsertInto;
         if (objectIndex.EntityType == EntityType.Assembler)
         {
-            return (AssemblerState)optimizedPlanet._assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
+            return (AssemblerState)_assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
         }
         else if (objectIndex.EntityType == EntityType.ProducingLab)
         {
-            return (LabState)optimizedPlanet._producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+            return (LabState)_producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
         }
         else if (objectIndex.EntityType == EntityType.ResearchingLab)
         {
-            return (LabState)optimizedPlanet._researchingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+            return (LabState)_researchingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
         }
         else
         {
@@ -955,8 +955,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
 
             if (pickFrom.EntityType == EntityType.Assembler)
             {
-                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._optimizedAssemblers[pickFrom.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerRecipes[assembler.assemblerRecipeIndex];
+                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._assemblerExecutor._optimizedAssemblers[pickFrom.Index];
+                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[assembler.assemblerRecipeIndex];
                 pickFromProducingPlants.Add(new PickFromProducingPlant(assemblerRecipe.Products, assembler.produced));
             }
             else if (pickFrom.EntityType == EntityType.ProducingLab)
@@ -972,8 +972,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
 
             if (insertInto.EntityType == EntityType.Assembler)
             {
-                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._optimizedAssemblers[insertInto.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerRecipes[assembler.assemblerRecipeIndex];
+                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._assemblerExecutor._optimizedAssemblers[insertInto.Index];
+                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[assembler.assemblerRecipeIndex];
                 insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assembler.served, assembler.incServed));
             }
             else if (insertInto.EntityType == EntityType.ProducingLab)

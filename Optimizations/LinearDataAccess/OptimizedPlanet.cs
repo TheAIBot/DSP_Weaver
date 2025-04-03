@@ -22,12 +22,6 @@ internal sealed class OptimizedPlanet
     public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
     public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
 
-    public NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
-    public OptimizedAssembler[] _optimizedAssemblers;
-    public bool[] _assemblerReplicatings;
-    public int[] _assemblerExtraPowerRatios;
-    public AssemblerRecipe[] _assemblerRecipes;
-    public Dictionary<int, int> _assemblerIdToOptimizedIndex;
     public AssemblerExecutor _assemblerExecutor;
 
     private int[] _minerNetworkIds;
@@ -119,75 +113,17 @@ internal sealed class OptimizedPlanet
 
     private void InitializeInserters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
-        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
+        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
         _optimizedBiInserterExecutor.Initialize(planet, this, x => x.bidirectional, optimizedPowerSystemBuilder.CreateBiInserterBuilder());
 
-        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
+        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
         _optimizedInserterExecutor.Initialize(planet, this, x => !x.bidirectional, optimizedPowerSystemBuilder.CreateInserterBuilder());
     }
 
     private void InitializeAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _assemblerExecutor = new AssemblerExecutor();
-
-        List<NetworkIdAndState<AssemblerState>> assemblerNetworkIdAndStates = [];
-        List<OptimizedAssembler> optimizedAssemblers = [];
-        List<bool> assemblerReplicatings = [];
-        List<int> assemblerExtraPowerRatios = [];
-        Dictionary<AssemblerRecipe, int> assemblerRecipeToIndex = [];
-        List<AssemblerRecipe> assemblerRecipes = [];
-        Dictionary<int, int> assemblerIdToOptimizedIndex = [];
-
-        for (int i = 0; i < planet.factorySystem.assemblerCursor; i++)
-        {
-            ref AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
-            if (assembler.id != i)
-            {
-                continue;
-            }
-
-            if (assembler.recipeId == 0)
-            {
-                continue;
-            }
-
-            AssemblerRecipe assemblerRecipe = new AssemblerRecipe(assembler.recipeId,
-                                                                  assembler.recipeType,
-                                                                  assembler.timeSpend,
-                                                                  assembler.extraTimeSpend,
-                                                                  assembler.productive,
-                                                                  assembler.requires,
-                                                                  assembler.requireCounts,
-                                                                  assembler.products,
-                                                                  assembler.productCounts);
-            if (!assemblerRecipeToIndex.TryGetValue(assemblerRecipe, out int assemblerRecipeIndex))
-            {
-                assemblerRecipeIndex = assemblerRecipeToIndex.Count;
-                assemblerRecipeToIndex.Add(assemblerRecipe, assemblerRecipeIndex);
-                assemblerRecipes.Add(assemblerRecipe);
-            }
-
-            assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
-            int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
-            assemblerNetworkIdAndStates.Add(new NetworkIdAndState<AssemblerState>((int)(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active),
-                                                                                  networkIndex));
-            optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex, ref assembler));
-            assemblerReplicatings.Add(assembler.replicating);
-            assemblerExtraPowerRatios.Add(assembler.extraPowerRatio);
-            optimizedPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
-
-
-            // set it here so we don't have to set it in the update loop.
-            // Need to remember to update it when the assemblers recipe is changed.
-            planet.entityNeeds[assembler.entityId] = assembler.needs;
-        }
-
-        _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates.ToArray();
-        _assemblerRecipes = assemblerRecipes.ToArray();
-        _optimizedAssemblers = optimizedAssemblers.ToArray();
-        _assemblerReplicatings = assemblerReplicatings.ToArray();
-        _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();
-        _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
+        _assemblerExecutor.InitializeAssemblers(planet, optimizedPowerSystemBuilder);
     }
 
     private void InitializeMiners(PlanetFactory planet)
@@ -520,7 +456,7 @@ internal sealed class OptimizedPlanet
             }
         }
 
-        _assemblerExecutor.GameTick(planet, this, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+        _assemblerExecutor.GameTick(planet, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
 
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
@@ -776,7 +712,7 @@ internal sealed class OptimizedPlanet
         }
         else if (entity.assemblerId != 0)
         {
-            if (!_assemblerIdToOptimizedIndex.TryGetValue(entity.assemblerId, out int optimizedAssemblerIndex))
+            if (!_assemblerExecutor._assemblerIdToOptimizedIndex.TryGetValue(entity.assemblerId, out int optimizedAssemblerIndex))
             {
                 throw new InvalidOperationException("Failed to convert assembler id into optimized assembler id.");
             }

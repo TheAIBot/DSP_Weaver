@@ -83,8 +83,7 @@ internal sealed class OptimizedPowerSystem
             }
         }
 
-        optimizedPlanet._assemblerExecutor.UpdatePower(optimizedPlanet,
-                                                       _assemblerPowerConsumerTypeIndexes,
+        optimizedPlanet._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
                                                        _powerConsumerTypes,
                                                        thisThreadNetworkPowerConsumption,
                                                        _usedThreadCnt,
@@ -170,13 +169,12 @@ internal sealed class OptimizedPowerSystem
             }
         }
 
-        optimizedPlanet._spraycoaterExecutor.UpdatePower(optimizedPlanet,
-                                                          _spraycoaterPowerConsumerTypeIndexes,
-                                                          _powerConsumerTypes,
-                                                          thisThreadNetworkPowerConsumption,
-                                                          _usedThreadCnt,
-                                                          _curThreadIdx,
-                                                          _minimumMissionCnt);
+        optimizedPlanet._spraycoaterExecutor.UpdatePower(_spraycoaterPowerConsumerTypeIndexes,
+                                                         _powerConsumerTypes,
+                                                         thisThreadNetworkPowerConsumption,
+                                                         _usedThreadCnt,
+                                                         _curThreadIdx,
+                                                         _minimumMissionCnt);
 
         if (!WorkerThreadExecutor.CalculateMissionIndex(1, cargoTraffic.pilerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
