@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
+using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;
@@ -11,6 +13,8 @@ namespace Weaver.Optimizations.LinearDataAccess.Inserters;
 internal record struct PickFromProducingPlant(int[] Products, int[] Produced);
 
 internal record struct ConnectionBelts(CargoPath PickFrom, CargoPath InsertInto);
+
+internal record struct InsertIntoConsumingPlant(int[] Requires, int[] Served, int[] IncServed);
 
 internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     where T : struct, IInserter<T>
@@ -24,8 +28,22 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
     public int[] _optimizedInserterToInserterIndex;
     public PickFromProducingPlant[] _pickFromProducingPlants;
     public ConnectionBelts[] _connectionBelts;
+    public InsertIntoConsumingPlant[] _insertIntoConsumingPlants;
+
+    private readonly NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
+    private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
+    private readonly NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
 
     public int inserterCount => _optimizedInserters.Length;
+
+    public InserterExecutor(NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates,
+        NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,
+        NetworkIdAndState<LabState>[] researchingLabNetworkIdAndStates)
+    {
+        _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates;
+        _producingLabNetworkIdAndStates = producingLabNetworkIdAndStates;
+        _researchingLabNetworkIdAndStates = researchingLabNetworkIdAndStates;
+    }
 
     public void Initialize(PlanetFactory planet, OptimizedPlanet optimizedPlanet, Func<InserterComponent, bool> inserterSelector, OptimizedPowerSystemInserterBuilder optimizedPowerSystemInserterBuilder)
     {
@@ -38,7 +56,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
          List<OptimizedInserterStage> optimizedInserterStages,
          List<int> optimizedInserterToInserterIndex,
          List<PickFromProducingPlant> pickFromProducingPlants,
-         List<ConnectionBelts> connectionBelts)
+         List<ConnectionBelts> connectionBelts,
+         List<InsertIntoConsumingPlant> insertIntoConsumingPlants)
             = InitializeInserters<T>(planet, optimizedPlanet, inserterSelector, optimizedPowerSystemInserterBuilder);
 
         _inserterNetworkIdAndStates = inserterNetworkIdAndStates.ToArray();
@@ -50,6 +69,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         _optimizedInserterToInserterIndex = optimizedInserterToInserterIndex.ToArray();
         _pickFromProducingPlants = pickFromProducingPlants.ToArray();
         _connectionBelts = connectionBelts.ToArray();
+        _insertIntoConsumingPlants = insertIntoConsumingPlants.ToArray();
     }
 
     public T Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
@@ -67,6 +87,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         InserterComponent[] unoptimizedInserters = planet.factorySystem.inserterPool;
+        InsertIntoConsumingPlant[] insertIntoConsumingPlants = _insertIntoConsumingPlants;
         _end = _end > _optimizedInserters.Length ? _optimizedInserters.Length : _end;
         for (int inserterIndex = _start; inserterIndex < _end; inserterIndex++)
         {
@@ -103,18 +124,13 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             ref T optimizedInserter = ref _optimizedInserters[inserterIndex];
             InserterGrade inserterGrade = _inserterGrades[optimizedInserter.grade];
             ref OptimizedInserterStage optimizedInserterStage = ref _optimizedInserterStages[inserterIndex];
-            ref readonly ConnectionBelts connectionBelts = ref _connectionBelts[inserterIndex];
             optimizedInserter.Update(planet,
-                                     optimizedPlanet,
+                                     this,
                                      power2,
                                      inserterIndex,
                                      ref networkIdAndState,
-                                     in _inserterConnections[inserterIndex],
-                                     in _inserterConnectionNeeds[inserterIndex],
-                                     _pickFromProducingPlants,
                                      inserterGrade,
-                                     ref optimizedInserterStage,
-                                     in connectionBelts);
+                                     ref optimizedInserterStage);
         }
     }
 
@@ -185,6 +201,622 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         }
     }
 
+    public int PickFrom(PlanetFactory planet,
+                        ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                        int inserterIndex,
+                        int offset,
+                        int filter,
+                        int[] needs,
+                        out byte stack,
+                        out byte inc)
+    {
+        stack = 1;
+        inc = 0;
+        TypedObjectIndex typedObjectIndex = _inserterConnections[inserterIndex].PickFrom;
+        int objectIndex = typedObjectIndex.Index;
+        if (objectIndex == 0)
+        {
+            return 0;
+        }
+
+        if (typedObjectIndex.EntityType == EntityType.Belt)
+        {
+            ConnectionBelts connectionBelts = _connectionBelts[inserterIndex];
+            if (needs == null)
+            {
+                if (filter != 0)
+                {
+                    return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, out stack, out inc);
+                }
+                return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, out stack, out inc);
+            }
+            return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, needs, out stack, out inc);
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Assembler)
+        {
+            AssemblerState assemblerState = (AssemblerState)_assemblerNetworkIdAndStates[objectIndex].State;
+            if (assemblerState != AssemblerState.Active &&
+                assemblerState != AssemblerState.InactiveOutputFull)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactivePickFrom;
+                return 0;
+            }
+
+            PickFromProducingPlant producingPlant = _pickFromProducingPlants[inserterIndex];
+            int[] products = producingPlant.Products;
+            int[] produced = producingPlant.Produced;
+
+            int num = products.Length;
+            switch (num)
+            {
+                case 1:
+                    if (produced[0] > 0 && products[0] > 0 && (filter == 0 || filter == products[0]) && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
+                    {
+                        int value = Interlocked.Decrement(ref produced[0]);
+                        if (value >= 0)
+                        {
+                            _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                            return products[0];
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref produced[0]);
+                        }
+                    }
+                    break;
+                case 2:
+                    if ((filter == products[0] || filter == 0) && produced[0] > 0 && products[0] > 0 && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
+                    {
+                        int value = Interlocked.Decrement(ref produced[0]);
+                        if (value >= 0)
+                        {
+                            _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                            return products[0];
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref produced[0]);
+                        }
+                    }
+                    if ((filter == products[1] || filter == 0) && produced[1] > 0 && products[1] > 0 && (needs == null || needs[0] == products[1] || needs[1] == products[1] || needs[2] == products[1] || needs[3] == products[1] || needs[4] == products[1] || needs[5] == products[1]))
+                    {
+                        int value = Interlocked.Decrement(ref produced[1]);
+                        if (value >= 0)
+                        {
+                            _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                            return products[1];
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref produced[1]);
+                        }
+                    }
+                    break;
+                default:
+                    {
+                        for (int i = 0; i < num; i++)
+                        {
+                            if ((filter == products[i] || filter == 0) && produced[i] > 0 && products[i] > 0 && (needs == null || needs[0] == products[i] || needs[1] == products[i] || needs[2] == products[i] || needs[3] == products[i] || needs[4] == products[i] || needs[5] == products[i]))
+                            {
+                                int value = Interlocked.Decrement(ref produced[i]);
+                                if (value >= 0)
+                                {
+                                    _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                                    return products[i];
+                                }
+                                else
+                                {
+                                    Interlocked.Increment(ref produced[i]);
+                                }
+                            }
+                        }
+                        break;
+                    }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Ejector)
+        {
+            ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[objectIndex];
+            lock (planet.entityMutexs[ejector.entityId])
+            {
+                int bulletId = ejector.bulletId;
+                int bulletCount = ejector.bulletCount;
+                if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && (needs == null || needs[0] == bulletId || needs[1] == bulletId || needs[2] == bulletId || needs[3] == bulletId || needs[4] == bulletId || needs[5] == bulletId))
+                {
+                    ejector.TakeOneBulletUnsafe(out inc);
+                    return bulletId;
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Silo)
+        {
+            ref SiloComponent silo = ref planet.factorySystem.siloPool[objectIndex];
+            lock (planet.entityMutexs[silo.entityId])
+            {
+                int bulletId2 = silo.bulletId;
+                int bulletCount2 = silo.bulletCount;
+                if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && (needs == null || needs[0] == bulletId2 || needs[1] == bulletId2 || needs[2] == bulletId2 || needs[3] == bulletId2 || needs[4] == bulletId2 || needs[5] == bulletId2))
+                {
+                    silo.TakeOneBulletUnsafe(out inc);
+                    return bulletId2;
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Storage)
+        {
+            int inc2;
+            StorageComponent storageComponent = planet.factoryStorage.storagePool[objectIndex];
+            StorageComponent storageComponent2 = storageComponent;
+            if (storageComponent != null)
+            {
+                storageComponent = storageComponent.topStorage;
+                while (storageComponent != null)
+                {
+                    lock (planet.entityMutexs[storageComponent.entityId])
+                    {
+                        if (storageComponent.lastEmptyItem != 0 && storageComponent.lastEmptyItem != filter)
+                        {
+                            int itemId = filter;
+                            int count = 1;
+                            bool flag = false;
+                            if (needs == null)
+                            {
+                                storageComponent.TakeTailItems(ref itemId, ref count, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                                inc = (byte)inc2;
+                                flag = count == 1;
+                            }
+                            else
+                            {
+                                bool flag2 = storageComponent.TakeTailItems(ref itemId, ref count, needs, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                                inc = (byte)inc2;
+                                flag = count == 1 || flag2;
+                            }
+                            if (count == 1)
+                            {
+                                storageComponent.lastEmptyItem = -1;
+                                return itemId;
+                            }
+                            if (!flag)
+                            {
+                                storageComponent.lastEmptyItem = filter;
+                            }
+                        }
+                        if (storageComponent == storageComponent2)
+                        {
+                            break;
+                        }
+                        storageComponent = storageComponent.previousStorage;
+                        continue;
+                    }
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Station)
+        {
+            int inc2;
+            StationComponent stationComponent = planet.transport.stationPool[objectIndex];
+            if (stationComponent != null)
+            {
+                lock (planet.entityMutexs[stationComponent.entityId])
+                {
+                    int _itemId = filter;
+                    int _count = 1;
+                    if (needs == null)
+                    {
+                        stationComponent.TakeItem(ref _itemId, ref _count, out inc2);
+                        inc = (byte)inc2;
+                    }
+                    else
+                    {
+                        stationComponent.TakeItem(ref _itemId, ref _count, needs, out inc2);
+                        inc = (byte)inc2;
+                    }
+                    if (_count == 1)
+                    {
+                        return _itemId;
+                    }
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
+        {
+            LabState labState = (LabState)_producingLabNetworkIdAndStates[objectIndex].State;
+            if (labState != LabState.Active &&
+                labState != LabState.InactiveOutputFull)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactivePickFrom;
+                return 0;
+            }
+
+            PickFromProducingPlant producingPlant = _pickFromProducingPlants[inserterIndex];
+            int[] products2 = producingPlant.Products;
+            int[] produced2 = producingPlant.Produced;
+            if (products2 == null || produced2 == null)
+            {
+                return 0;
+            }
+            for (int j = 0; j < products2.Length; j++)
+            {
+                if (produced2[j] > 0 && products2[j] > 0 && (filter == 0 || filter == products2[j]) && (needs == null || needs[0] == products2[j] || needs[1] == products2[j] || needs[2] == products2[j] || needs[3] == products2[j] || needs[4] == products2[j] || needs[5] == products2[j]))
+                {
+                    int value = Interlocked.Decrement(ref produced2[j]);
+                    if (value >= 0)
+                    {
+                        _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
+                        return products2[j];
+                    }
+                    else
+                    {
+                        Interlocked.Increment(ref produced2[j]);
+                    }
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.PowerGenerator)
+        {
+            ref PowerGeneratorComponent powerGenerator = ref planet.powerSystem.genPool[offset];
+            int inc2;
+            if (offset > 0 && planet.powerSystem.genPool[offset].id == offset)
+            {
+                lock (planet.entityMutexs[powerGenerator.entityId])
+                {
+                    if (planet.powerSystem.genPool[offset].fuelCount <= 8)
+                    {
+                        int result = planet.powerSystem.genPool[objectIndex].PickFuelFrom(filter, out inc2);
+                        inc = (byte)inc2;
+                        return result;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        return 0;
+    }
+
+    public int InsertInto(PlanetFactory planet,
+                                 ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                                 int inserterIndex,
+                                 int[]? entityNeeds,
+                                 int offset,
+                                 int itemId,
+                                 byte itemCount,
+                                 byte itemInc,
+                                 out byte remainInc)
+    {
+        remainInc = itemInc;
+        TypedObjectIndex typedObjectIndex = _inserterConnections[inserterIndex].InsertInto;
+        int objectIndex = typedObjectIndex.Index;
+        if (objectIndex == 0)
+        {
+            return 0;
+        }
+
+        if (typedObjectIndex.EntityType == EntityType.Belt)
+        {
+            ConnectionBelts connectionBelts = _connectionBelts[inserterIndex];
+            if (connectionBelts.InsertInto.TryInsertItem(offset, itemId, itemCount, itemInc))
+            {
+                remainInc = 0;
+                return itemCount;
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Assembler)
+        {
+            AssemblerState assemblerState = (AssemblerState)_assemblerNetworkIdAndStates[objectIndex].State;
+            if (assemblerState != AssemblerState.Active &&
+                assemblerState != AssemblerState.InactiveInputMissing)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                return 0;
+            }
+
+            if (entityNeeds == null)
+            {
+                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
+            }
+            InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
+            int[] requires = insertIntoConsumingPlant.Requires;
+            int[] served = insertIntoConsumingPlant.Served;
+            int[] incServed = insertIntoConsumingPlant.IncServed;
+            int num = requires.Length;
+            if (0 < num && requires[0] == itemId)
+            {
+                Interlocked.Add(ref served[0], itemCount);
+                Interlocked.Add(ref incServed[0], itemInc);
+                remainInc = 0;
+                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                return itemCount;
+            }
+            if (1 < num && requires[1] == itemId)
+            {
+                Interlocked.Add(ref served[1], itemCount);
+                Interlocked.Add(ref incServed[1], itemInc);
+                remainInc = 0;
+                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                return itemCount;
+            }
+            if (2 < num && requires[2] == itemId)
+            {
+                Interlocked.Add(ref served[2], itemCount);
+                Interlocked.Add(ref incServed[2], itemInc);
+                remainInc = 0;
+                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                return itemCount;
+            }
+            if (3 < num && requires[3] == itemId)
+            {
+                Interlocked.Add(ref served[3], itemCount);
+                Interlocked.Add(ref incServed[3], itemInc);
+                remainInc = 0;
+                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                return itemCount;
+            }
+            if (4 < num && requires[4] == itemId)
+            {
+                Interlocked.Add(ref served[4], itemCount);
+                Interlocked.Add(ref incServed[4], itemInc);
+                remainInc = 0;
+                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                return itemCount;
+            }
+            if (5 < num && requires[5] == itemId)
+            {
+                Interlocked.Add(ref served[5], itemCount);
+                Interlocked.Add(ref incServed[5], itemInc);
+                remainInc = 0;
+                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                return itemCount;
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Ejector)
+        {
+            if (entityNeeds == null)
+            {
+                return 0;
+            }
+            if (entityNeeds[0] == itemId && planet.factorySystem.ejectorPool[objectIndex].bulletId == itemId)
+            {
+                Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletCount, itemCount);
+                Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletInc, itemInc);
+                remainInc = 0;
+                return itemCount;
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Silo)
+        {
+            if (entityNeeds == null)
+            {
+                return 0;
+            }
+            if (entityNeeds[0] == itemId && planet.factorySystem.siloPool[objectIndex].bulletId == itemId)
+            {
+                Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletCount, itemCount);
+                Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletInc, itemInc);
+                remainInc = 0;
+                return itemCount;
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
+        {
+            LabState labState = (LabState)_producingLabNetworkIdAndStates[objectIndex].State;
+            if (labState != LabState.Active &&
+                labState != LabState.InactiveInputMissing)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                return 0;
+            }
+
+            if (entityNeeds == null)
+            {
+                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if producing lab is inactive which the above if statement should have caught.");
+            }
+            InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
+            int[] requires2 = insertIntoConsumingPlant.Requires;
+            int[] served = insertIntoConsumingPlant.Served;
+            int[] incServed = insertIntoConsumingPlant.IncServed;
+            if (requires2 == null)
+            {
+                return 0;
+            }
+            int num3 = requires2.Length;
+            for (int i = 0; i < num3; i++)
+            {
+                if (requires2[i] == itemId)
+                {
+                    Interlocked.Add(ref served[i], itemCount);
+                    Interlocked.Add(ref incServed[i], itemInc);
+                    remainInc = 0;
+                    _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
+                    return itemCount;
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.ResearchingLab)
+        {
+            LabState labState = (LabState)_researchingLabNetworkIdAndStates[objectIndex].State;
+            if (labState != LabState.Active &&
+                labState != LabState.InactiveInputMissing)
+            {
+                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                return 0;
+            }
+
+            if (entityNeeds == null)
+            {
+                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if researching lab is inactive which the above if statement should have caught.");
+            }
+            InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
+            int[] matrixServed = insertIntoConsumingPlant.Served;
+            int[] matrixIncServed = insertIntoConsumingPlant.IncServed;
+            if (matrixServed == null)
+            {
+                return 0;
+            }
+            int num2 = itemId - 6001;
+            if (num2 >= 0 && num2 < 6)
+            {
+                Interlocked.Add(ref matrixServed[num2], 3600 * itemCount);
+                Interlocked.Add(ref matrixIncServed[num2], 3600 * itemInc);
+                remainInc = 0;
+                _researchingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
+                return itemCount;
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Storage)
+        {
+            StorageComponent storageComponent = planet.factoryStorage.storagePool[objectIndex];
+            while (storageComponent != null)
+            {
+                lock (planet.entityMutexs[storageComponent.entityId])
+                {
+                    if (storageComponent.lastFullItem != itemId)
+                    {
+                        int num4 = 0;
+                        num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
+                        remainInc = (byte)remainInc2;
+                        if (num4 == itemCount)
+                        {
+                            storageComponent.lastFullItem = -1;
+                        }
+                        else
+                        {
+                            storageComponent.lastFullItem = itemId;
+                        }
+                        if (num4 != 0 || storageComponent.nextStorage == null)
+                        {
+                            return num4;
+                        }
+                    }
+                    storageComponent = storageComponent.nextStorage;
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Station)
+        {
+            if (entityNeeds == null)
+            {
+                return 0;
+            }
+            StationComponent stationComponent = planet.transport.stationPool[objectIndex];
+            if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
+            {
+                lock (planet.entityMutexs[stationComponent.entityId])
+                {
+                    if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
+                    {
+                        stationComponent.warperCount += itemCount;
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                }
+            }
+            StationStore[] storage = stationComponent.storage;
+            for (int j = 0; j < entityNeeds.Length && j < storage.Length; j++)
+            {
+                if (entityNeeds[j] == itemId && storage[j].itemId == itemId)
+                {
+                    Interlocked.Add(ref storage[j].count, itemCount);
+                    Interlocked.Add(ref storage[j].inc, itemInc);
+                    remainInc = 0;
+                    return itemCount;
+                }
+            }
+
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.PowerGenerator)
+        {
+            PowerGeneratorComponent[] genPool = planet.powerSystem.genPool;
+            ref PowerGeneratorComponent powerGenerator = ref genPool[objectIndex];
+            lock (planet.entityMutexs[powerGenerator.entityId])
+            {
+                if (itemId == powerGenerator.fuelId)
+                {
+                    if (powerGenerator.fuelCount < 10)
+                    {
+                        ref short fuelCount = ref powerGenerator.fuelCount;
+                        fuelCount += itemCount;
+                        ref short fuelInc = ref powerGenerator.fuelInc;
+                        fuelInc += itemInc;
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    return 0;
+                }
+                if (powerGenerator.fuelId == 0)
+                {
+                    int[] array = ItemProto.fuelNeeds[powerGenerator.fuelMask];
+                    if (array == null || array.Length == 0)
+                    {
+                        return 0;
+                    }
+                    for (int k = 0; k < array.Length; k++)
+                    {
+                        if (array[k] == itemId)
+                        {
+                            powerGenerator.SetNewFuel(itemId, itemCount, itemInc);
+                            remainInc = 0;
+                            return itemCount;
+                        }
+                    }
+                    return 0;
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Splitter)
+        {
+            switch (offset)
+            {
+                case 0:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltA, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+                case 1:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltB, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+                case 2:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltC, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+                case 3:
+                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltD, 0, itemId, itemCount, itemInc))
+                    {
+                        remainInc = 0;
+                        return itemCount;
+                    }
+                    break;
+            }
+            return 0;
+        }
+
+        return 0;
+    }
+
     private static (List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates,
                     List<InserterConnections> inserterConnections,
                     List<int[]> inserterConnectionNeeds,
@@ -194,7 +826,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                     List<OptimizedInserterStage> optimizedInserterStages,
                     List<int> optimizedInserterToInserterIndex,
                     List<PickFromProducingPlant> pickFromProducingPlants,
-                    List<ConnectionBelts> connectionBelts)
+                    List<ConnectionBelts> connectionBelts,
+                    List<InsertIntoConsumingPlant> insertIntoConsumingPlants)
         InitializeInserters<TInserter>(PlanetFactory planet,
                                        OptimizedPlanet optimizedPlanet,
                                        Func<InserterComponent, bool> inserterSelector,
@@ -211,6 +844,7 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
         List<int> optimizedInserterToInserterIndex = [];
         List<PickFromProducingPlant> pickFromProducingPlants = [];
         List<ConnectionBelts> connectionBelts = [];
+        List<InsertIntoConsumingPlant> insertIntoConsumingPlants = [];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
@@ -335,6 +969,28 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
             {
                 pickFromProducingPlants.Add(default);
             }
+
+            if (insertInto.EntityType == EntityType.Assembler)
+            {
+                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._optimizedAssemblers[insertInto.Index];
+                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerRecipes[assembler.assemblerRecipeIndex];
+                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assembler.served, assembler.incServed));
+            }
+            else if (insertInto.EntityType == EntityType.ProducingLab)
+            {
+                ref readonly OptimizedProducingLab lab = ref optimizedPlanet._optimizedProducingLabs[insertInto.Index];
+                ProducingLabRecipe producingLabRecipe = optimizedPlanet._producingLabRecipes[lab.producingLabRecipeIndex];
+                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(producingLabRecipe.Requires, lab.served, lab.incServed));
+            }
+            else if (insertInto.EntityType == EntityType.ResearchingLab)
+            {
+                ref readonly OptimizedResearchingLab lab = ref optimizedPlanet._optimizedResearchingLabs[insertInto.Index];
+                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(null, lab.matrixServed, lab.matrixIncServed));
+            }
+            else
+            {
+                insertIntoConsumingPlants.Add(default);
+            }
         }
 
         return (inserterNetworkIdAndStates,
@@ -346,7 +1002,8 @@ internal sealed class InserterExecutor<T> : IInserterExecutor<T>
                 optimizedInserterStages,
                 optimizedInserterToInserterIndex,
                 pickFromProducingPlants,
-                connectionBelts);
+                connectionBelts,
+                insertIntoConsumingPlants);
     }
 
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch

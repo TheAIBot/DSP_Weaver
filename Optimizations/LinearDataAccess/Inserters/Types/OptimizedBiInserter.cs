@@ -39,16 +39,12 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
     }
 
     public void Update(PlanetFactory planet,
-                       OptimizedPlanet optimizedPlanet,
+                       InserterExecutor<OptimizedBiInserter> inserterExecutor,
                        float power,
                        int inserterIndex,
                        ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
-                       ref readonly InserterConnections inserterConnections,
-                       ref readonly int[] inserterConnectionNeeds,
-                       PickFromProducingPlant[] pickFromProducingPlants,
                        InserterGrade inserterGrade,
-                       ref OptimizedInserterStage stage,
-                       ref readonly ConnectionBelts connectionBelts)
+                       ref OptimizedInserterStage stage)
     {
         if (power < 0.1f)
         {
@@ -69,21 +65,17 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 {
                     if (idleTick-- < 1)
                     {
-                        int[] array = inserterConnectionNeeds;
+                        int[] array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                         if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                         {
-                            num2 = OptimizedPlanet.PickFrom(planet,
-                                                            optimizedPlanet,
-                                                            ref inserterNetworkIdAndState,
-                                                            in inserterConnections,
-                                                            in connectionBelts,
-                                                            inserterIndex,
-                                                            pickFromProducingPlants,
-                                                            pickOffset,
-                                                            filter,
-                                                            array,
-                                                            out stack,
-                                                            out inc);
+                            num2 = inserterExecutor.PickFrom(planet,
+                                                             ref inserterNetworkIdAndState,
+                                                             inserterIndex,
+                                                             pickOffset,
+                                                             filter,
+                                                             array,
+                                                             out stack,
+                                                             out inc);
                             if (num2 > 0)
                             {
                                 itemId = num2;
@@ -110,18 +102,14 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 }
                 else
                 {
-                    num2 = OptimizedPlanet.PickFrom(planet,
-                                                    optimizedPlanet,
-                                                    ref inserterNetworkIdAndState,
-                                                    in inserterConnections,
-                                                    in connectionBelts,
-                                                    inserterIndex,
-                                                    pickFromProducingPlants,
-                                                    pickOffset,
-                                                    filter,
-                                                    null,
-                                                    out stack,
-                                                    out inc);
+                    num2 = inserterExecutor.PickFrom(planet,
+                                                     ref inserterNetworkIdAndState,
+                                                     inserterIndex,
+                                                     pickOffset,
+                                                     filter,
+                                                     null,
+                                                     out stack,
+                                                     out inc);
                     if (num2 > 0)
                     {
                         itemId = num2;
@@ -148,21 +136,17 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                     {
                         if (idleTick-- < 1)
                         {
-                            int[] array2 = inserterConnectionNeeds;
+                            int[] array2 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                             if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
                             {
-                                int num44 = OptimizedPlanet.PickFrom(planet,
-                                                                     optimizedPlanet,
-                                                                     ref inserterNetworkIdAndState,
-                                                                     in inserterConnections,
-                                                                     in connectionBelts,
-                                                                     inserterIndex,
-                                                                     pickFromProducingPlants,
-                                                                     pickOffset,
-                                                                     itemId,
-                                                                     array2,
-                                                                     out stack,
-                                                                     out inc);
+                                int num44 = inserterExecutor.PickFrom(planet,
+                                                                      ref inserterNetworkIdAndState,
+                                                                      inserterIndex,
+                                                                      pickOffset,
+                                                                      itemId,
+                                                                      array2,
+                                                                      out stack,
+                                                                      out inc);
                                 if (num44 > 0)
                                 {
                                     itemCount += stack;
@@ -187,18 +171,14 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                             num = 0;
                         }
                     }
-                    else if (OptimizedPlanet.PickFrom(planet,
-                                                      optimizedPlanet,
-                                                      ref inserterNetworkIdAndState,
-                                                      in inserterConnections,
-                                                      in connectionBelts,
-                                                      inserterIndex,
-                                                      pickFromProducingPlants,
-                                                      pickOffset,
-                                                      itemId,
-                                                      null,
-                                                      out stack,
-                                                      out inc) > 0)
+                    else if (inserterExecutor.PickFrom(planet,
+                                                       ref inserterNetworkIdAndState,
+                                                       inserterIndex,
+                                                       pickOffset,
+                                                       itemId,
+                                                       null,
+                                                       out stack,
+                                                       out inc) > 0)
                     {
                         itemCount += stack;
                         itemInc += inc;
@@ -233,11 +213,12 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             {
                 break;
             }
-            TypedObjectIndex num4 = inserterGrade.StackOutput > 1 ? inserterConnections.InsertInto : default;
+            TypedObjectIndex num4 = inserterGrade.StackOutput > 1 ? inserterExecutor._inserterConnections[inserterIndex].InsertInto : default;
             if (num4.EntityType == EntityType.Belt && num4.Index > 0)
             {
                 int num5 = itemCount;
                 int num6 = itemInc;
+                ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
                 connectionBelts.InsertInto.TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
                 if (num5 < itemCount)
                 {
@@ -257,7 +238,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 continue;
             }
 
-            int[] insertIntoNeeds = inserterConnectionNeeds;
+            int[] insertIntoNeeds = inserterExecutor._inserterConnectionNeeds[inserterIndex];
             if (careNeeds)
             {
 
@@ -270,7 +251,15 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             int num7 = itemCount / stackCount;
             int num8 = (int)(itemInc / (float)itemCount * num7 + 0.5f);
             byte remainInc = (byte)num8;
-            int num9 = OptimizedPlanet.InsertInto(planet, optimizedPlanet, ref inserterNetworkIdAndState, in inserterConnections, in connectionBelts, insertIntoNeeds, insertOffset, itemId, (byte)num7, (byte)num8, out remainInc);
+            int num9 = inserterExecutor.InsertInto(planet,
+                                                   ref inserterNetworkIdAndState,
+                                                   inserterIndex,
+                                                   insertIntoNeeds,
+                                                   insertOffset,
+                                                   itemId,
+                                                   (byte)num7,
+                                                   (byte)num8,
+                                                   out remainInc);
             if (num9 <= 0)
             {
                 break;
