@@ -207,8 +207,8 @@ internal sealed class OptimizedPlanet
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
-    public static void InserterPartExecute<T>(WorkerThreadExecutor __instance, Func<OptimizedPlanet, T> inserterExecutorSelector)
-        where T : IInserterExecutor
+    public static void InserterPartExecute<T>(WorkerThreadExecutor __instance, Func<OptimizedPlanet, InserterExecutor<T>> inserterExecutorSelector)
+        where T : struct, IInserter<T>
     {
         if (__instance.inserterFactories == null)
         {
@@ -219,7 +219,7 @@ internal sealed class OptimizedPlanet
         {
             PlanetFactory planet = __instance.inserterFactories[planetIndex];
             OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
-            T optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            InserterExecutor<T> optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
             totalGalaxyInserterCount += optimizedInserterExecutor.inserterCount;
         }
         int minimumMissionCnt = 64;
@@ -233,7 +233,7 @@ internal sealed class OptimizedPlanet
         {
             PlanetFactory planet = __instance.inserterFactories[planetIndex];
             OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
-            T optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            InserterExecutor<T> optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
 
             int totalInsertersIncludingOnThisPlanets = totalInsertersSeenOnPreviousPlanets + optimizedInserterExecutor.inserterCount;
             if (totalInsertersIncludingOnThisPlanets <= _start)
@@ -248,7 +248,7 @@ internal sealed class OptimizedPlanet
         {
             PlanetFactory planet = __instance.inserterFactories[planetIndex];
             OptimizedPlanet optimizedPlanet = _planetToOptimizedEntities[planet];
-            T optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            InserterExecutor<T> optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
 
             bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[planetIndex].planet;
             int num5 = _start - totalInsertersSeenOnPreviousPlanets;
