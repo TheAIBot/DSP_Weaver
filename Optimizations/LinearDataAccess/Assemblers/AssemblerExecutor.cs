@@ -12,7 +12,7 @@ internal sealed class AssemblerExecutor
     public AssemblerRecipe[] _assemblerRecipes;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex;
 
-    public void GameTick(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         GameHistoryData history = GameMain.history;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];

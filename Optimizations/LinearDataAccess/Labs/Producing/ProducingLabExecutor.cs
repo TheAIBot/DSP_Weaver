@@ -12,7 +12,7 @@ internal sealed class ProducingLabExecutor
     public int[] _entityIds;
     public Dictionary<int, int> _labIdToOptimizedLabIndex;
 
-    public void GameTickLabProduceMode(PlanetFactory planet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void GameTickLabProduceMode(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedLabs.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
         {
