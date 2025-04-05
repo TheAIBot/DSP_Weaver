@@ -14,4 +14,6 @@ internal interface IInserter<T>
                 ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                 InserterGrade inserterGrade,
                 ref OptimizedInserterStage stage);
+
+    void Save(ref InserterComponent inserter, EInserterStage inserterStage);
 }

@@ -79,9 +79,24 @@ internal sealed class AssemblerExecutor
         }
     }
 
-    public long GetPowerConsumption(PowerConsumerType powerConsumerType, bool assemblerReplicating, int assemblerExtraPowerRatio)
+    public void Save(PlanetFactory planet)
     {
-        return powerConsumerType.GetRequiredEnergy(assemblerReplicating, 1000 + assemblerExtraPowerRatio);
+        AssemblerComponent[] assemblers = planet.factorySystem.assemblerPool;
+        OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
+        AssemblerRecipe[] assemblerRecipes = _assemblerRecipes;
+        bool[] assemblerReplicatings = _assemblerReplicatings;
+        int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
+        for (int i = 1; i < planet.factorySystem.assemblerCursor; i++)
+        {
+            if (!_assemblerIdToOptimizedIndex.TryGetValue(i, out int optimizedIndex))
+            {
+                continue;
+            }
+
+            ref OptimizedAssembler optimizedAssembler = ref optimizedAssemblers[optimizedIndex];
+            ref readonly AssemblerRecipe assemblerRecipe = ref assemblerRecipes[optimizedAssembler.assemblerRecipeIndex];
+            optimizedAssembler.Save(ref assemblers[i], in assemblerRecipe, assemblerReplicatings[optimizedIndex], assemblerExtraPowerRatios[optimizedIndex]);
+        }
     }
 
     public void InitializeAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -144,5 +159,10 @@ internal sealed class AssemblerExecutor
         _assemblerReplicatings = assemblerReplicatings.ToArray();
         _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();
         _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
+    }
+
+    private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool assemblerReplicating, int assemblerExtraPowerRatio)
+    {
+        return powerConsumerType.GetRequiredEnergy(assemblerReplicating, 1000 + assemblerExtraPowerRatio);
     }
 }

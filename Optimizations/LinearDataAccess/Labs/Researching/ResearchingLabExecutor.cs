@@ -205,9 +205,19 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool replicating, int extraPowerRatio)
+    public void Save(PlanetFactory planet)
     {
-        return powerConsumerType.GetRequiredEnergy(replicating, 1000 + extraPowerRatio);
+        LabComponent[] labComponents = planet.factorySystem.labPool;
+        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        for (int i = 1; i < planet.factorySystem.labCursor; i++)
+        {
+            if (!_labIdToOptimizedLabIndex.TryGetValue(i, out int optimizedIndex))
+            {
+                continue;
+            }
+
+            optimizedLabs[optimizedIndex].Save(ref labComponents[i], _matrixPoints);
+        }
     }
 
     public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -278,5 +288,10 @@ internal sealed class ResearchingLabExecutor
         _optimizedLabs = optimizedLabs.ToArray();
         _entityIds = entityIds.ToArray();
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
+    }
+
+    private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool replicating, int extraPowerRatio)
+    {
+        return powerConsumerType.GetRequiredEnergy(replicating, 1000 + extraPowerRatio);
     }
 }

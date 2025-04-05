@@ -272,4 +272,17 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                 break;
         }
     }
+
+    public void Save(ref InserterComponent inserter, EInserterStage inserterStage)
+    {
+        inserter.speed = speed;
+        inserter.time = time;
+        inserter.stt = stt;
+        inserter.itemId = itemId;
+        inserter.itemCount = itemCount;
+        inserter.itemInc = itemInc;
+        inserter.stackCount = stackCount;
+        inserter.idleTick = idleTick;
+        inserter.stage = inserterStage;
+    }
 }

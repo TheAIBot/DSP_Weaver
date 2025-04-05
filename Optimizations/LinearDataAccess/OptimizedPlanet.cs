@@ -15,9 +15,18 @@ using Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 
 namespace Weaver.Optimizations.LinearDataAccess;
 
+internal enum OptimizedPlanetStatus
+{
+    Running,
+    Stopped
+}
+
 internal sealed class OptimizedPlanet
 {
     private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedEntities = [];
+
+    private readonly PlanetFactory _planet;
+    public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
 
     public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
     public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
@@ -44,6 +53,11 @@ internal sealed class OptimizedPlanet
 
     private OptimizedPowerSystem _optimizedPowerSystem;
 
+    public OptimizedPlanet(PlanetFactory planet)
+    {
+        _planet = planet;
+    }
+
     public static void EnableOptimization()
     {
         Harmony.CreateAndPatchAll(typeof(OptimizedPlanet));
@@ -69,9 +83,7 @@ internal sealed class OptimizedPlanet
                 continue;
             }
 
-            var optimizedInserters = new OptimizedPlanet();
-            optimizedInserters.InitializeData(planet);
-            _planetToOptimizedEntities.Add(planet, optimizedInserters);
+            _planetToOptimizedEntities.Add(planet, new OptimizedPlanet(planet));
         }
     }
 
@@ -81,34 +93,66 @@ internal sealed class OptimizedPlanet
     {
         WeaverFixes.Logger.LogMessage($"Saving {nameof(OptimizedPlanet)}");
 
-        for (int i = 0; i < GameMain.data.factoryCount; i++)
+        foreach (OptimizedPlanet optimizedPlanet in _planetToOptimizedEntities.Values)
         {
-            PlanetFactory planet = GameMain.data.factories[i];
-            if (planet == GameMain.localPlanet.factory)
+            optimizedPlanet.Save();
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
+    public static void GameData_GameTick(long time)
+    {
+        foreach (KeyValuePair<PlanetFactory, OptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedEntities)
+        {
+            if (GameMain.localPlanet?.factory != planetToOptimizedPlanet.Key)
+            {
+                if (planetToOptimizedPlanet.Value.Status == OptimizedPlanetStatus.Stopped)
+                {
+                    WeaverFixes.Logger.LogMessage($"Optimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
+                    planetToOptimizedPlanet.Value.Initialize();
+                }
+
+                continue;
+            }
+
+            if (planetToOptimizedPlanet.Value.Status == OptimizedPlanetStatus.Stopped)
             {
                 continue;
             }
 
-            if (_planetToOptimizedEntities.TryGetValue(planet, out OptimizedPlanet optimizedInserters))
-            {
-                optimizedInserters.Save(planet);
-            }
+            WeaverFixes.Logger.LogMessage($"Deoptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
+            planetToOptimizedPlanet.Value.Save();
         }
     }
 
-    public void InitializeData(PlanetFactory planet)
+    public void Save()
     {
-        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(planet.powerSystem);
+        _optimizedBiInserterExecutor.Save(_planet);
+        _optimizedInserterExecutor.Save(_planet);
+        _assemblerExecutor.Save(_planet);
+        _producingLabExecutor.Save(_planet);
+        _researchingLabExecutor.Save(_planet);
+        _spraycoaterExecutor.Save(_planet);
 
-        InitializeAssemblers(planet, optimizedPowerSystemBuilder);
-        InitializeMiners(planet);
-        InitializeEjectors(planet);
-        InitializeLabAssemblers(planet, optimizedPowerSystemBuilder);
-        InitializeResearchingLabs(planet, optimizedPowerSystemBuilder);
-        InitializeInserters(planet, optimizedPowerSystemBuilder);
-        InitializeSpraycoaters(planet, optimizedPowerSystemBuilder);
+        Status = OptimizedPlanetStatus.Stopped;
+    }
+
+    public void Initialize()
+    {
+        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
+
+        InitializeAssemblers(_planet, optimizedPowerSystemBuilder);
+        InitializeMiners(_planet);
+        InitializeEjectors(_planet);
+        InitializeLabAssemblers(_planet, optimizedPowerSystemBuilder);
+        InitializeResearchingLabs(_planet, optimizedPowerSystemBuilder);
+        InitializeInserters(_planet, optimizedPowerSystemBuilder);
+        InitializeSpraycoaters(_planet, optimizedPowerSystemBuilder);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
+
+        Status = OptimizedPlanetStatus.Running;
     }
 
     private void InitializeInserters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -191,10 +235,6 @@ internal sealed class OptimizedPlanet
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
         _spraycoaterExecutor.Initialize(planet, optimizedPowerSystemBuilder);
-    }
-
-    public void Save(PlanetFactory planet)
-    {
     }
 
     [HarmonyPrefix]

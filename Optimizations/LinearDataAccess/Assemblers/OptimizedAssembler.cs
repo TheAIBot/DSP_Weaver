@@ -267,6 +267,27 @@ internal struct OptimizedAssembler
         return AssemblerState.Active;
     }
 
+    public readonly void Save(ref AssemblerComponent assembler, ref readonly AssemblerRecipe assemblerRecipeData, bool replicating, int extraPowerRatio)
+    {
+        assembler.requires = assemblerRecipeData.Requires;
+        assembler.requireCounts = assemblerRecipeData.RequireCounts;
+        assembler.products = assemblerRecipeData.Products;
+        assembler.productCounts = assemblerRecipeData.ProductCounts;
+        assembler.served = served;
+        assembler.incServed = incServed;
+        assembler.needs = needs;
+        assembler.produced = produced;
+        assembler.incUsed = incUsed;
+        assembler.speedOverride = speedOverride;
+        assembler.time = time;
+        assembler.extraTime = extraTime;
+        assembler.cycleCount = cycleCount;
+        assembler.extraCycleCount = extraCycleCount;
+        assembler.extraSpeed = extraSpeed;
+        assembler.replicating = replicating;
+        assembler.extraPowerRatio = extraPowerRatio;
+    }
+
     private int split_inc_level(ref int n, ref int m, int p)
     {
         int num = m / n;

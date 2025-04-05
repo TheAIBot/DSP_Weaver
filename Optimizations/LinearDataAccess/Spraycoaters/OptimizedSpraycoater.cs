@@ -126,4 +126,16 @@ public struct OptimizedSpraycoater
             }
         }
     }
+
+    public readonly void Save(ref SpraycoaterComponent spraycoater, bool isSpraycoatingItem, int sprayTime)
+    {
+        spraycoater.incItemId = incItemId;
+        spraycoater.incAbility = incAbility;
+        spraycoater.incSprayTimes = incSprayTimes;
+        spraycoater.incCount = incCount;
+        spraycoater.extraIncCount = extraIncCount;
+        spraycoater.incUsed = incUsed;
+        spraycoater.cargoBeltItemId = isSpraycoatingItem ? 1 : 0;
+        spraycoater.sprayTime = sprayTime;
+    }
 }

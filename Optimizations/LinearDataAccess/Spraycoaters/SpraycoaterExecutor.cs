@@ -9,6 +9,7 @@ internal sealed class SpraycoaterExecutor
     private OptimizedSpraycoater[] _optimizedSpraycoaters;
     private bool[] _isSpraycoatingItems;
     private int[] _sprayTimes;
+    public Dictionary<int, int> _spraycoaterIdToOptimizedSpraycoaterIndex;
 
     public void SpraycoaterGameTick(PlanetFactory planet)
     {
@@ -52,12 +53,30 @@ internal sealed class SpraycoaterExecutor
         return powerConsumerType.GetRequiredEnergy(sprayTime < 10000 && isSprayCoatingItem);
     }
 
+    public void Save(PlanetFactory planet)
+    {
+        SpraycoaterComponent[] spraycoaters = planet.cargoTraffic.spraycoaterPool;
+        OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
+        bool[] isSpraycoatingItems = _isSpraycoatingItems;
+        int[] sprayTimes = _sprayTimes;
+        for (int i = 1; i < planet.cargoTraffic.spraycoaterCursor; i++)
+        {
+            if (!_spraycoaterIdToOptimizedSpraycoaterIndex.TryGetValue(i, out int optimizedIndex))
+            {
+                continue;
+            }
+
+            optimizedSpraycoaters[optimizedIndex].Save(ref spraycoaters[i], isSpraycoatingItems[optimizedIndex], sprayTimes[optimizedIndex]);
+        }
+    }
+
     public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         List<int> spraycoaterNetworkIds = [];
         List<OptimizedSpraycoater> optimizedSpraycoaters = [];
         List<bool> isSpraycoatingItems = [];
         List<int> sprayTimes = [];
+        Dictionary<int, int> spraycoaterIdToOptimizedSpraycoaterIndex = [];
 
         for (int i = 1; i < planet.cargoTraffic.spraycoaterCursor; i++)
         {
@@ -100,6 +119,7 @@ internal sealed class SpraycoaterExecutor
             int networkId = planet.powerSystem.consumerPool[spraycoater.pcId].networkId;
             PowerNetwork powerNetwork = networkId != 0 ? planet.powerSystem.netPool[networkId] : null;
 
+            spraycoaterIdToOptimizedSpraycoaterIndex.Add(i, optimizedSpraycoaters.Count);
             spraycoaterNetworkIds.Add(networkId);
             optimizedSpraycoaters.Add(new OptimizedSpraycoater(incommingBeltSegIndexPlusSegPivotOffset,
                                                                incommingCargoPath,
@@ -117,5 +137,6 @@ internal sealed class SpraycoaterExecutor
         _optimizedSpraycoaters = optimizedSpraycoaters.ToArray();
         _isSpraycoatingItems = isSpraycoatingItems.ToArray();
         _sprayTimes = sprayTimes.ToArray();
+        _spraycoaterIdToOptimizedSpraycoaterIndex = spraycoaterIdToOptimizedSpraycoaterIndex;
     }
 }

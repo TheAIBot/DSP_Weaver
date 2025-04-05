@@ -293,4 +293,14 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             stage = stage == OptimizedInserterStage.Sending ? OptimizedInserterStage.Returning : OptimizedInserterStage.Picking;
         }
     }
+
+    public void Save(ref InserterComponent inserter, EInserterStage inserterStage)
+    {
+        inserter.itemId = itemId;
+        inserter.itemCount = itemCount;
+        inserter.itemInc = itemInc;
+        inserter.stackCount = stackCount;
+        inserter.idleTick = idleTick;
+        inserter.stage = inserterStage;
+    }
 }

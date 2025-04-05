@@ -280,6 +280,25 @@ internal struct OptimizedProducingLab
         }
     }
 
+    public void Save(ref LabComponent lab, ref readonly ProducingLabRecipe producingLabRecipe)
+    {
+        lab.requires = producingLabRecipe.Requires;
+        lab.requireCounts = producingLabRecipe.RequireCounts;
+        lab.products = producingLabRecipe.Products;
+        lab.productCounts = producingLabRecipe.ProductCounts;
+        lab.served = served;
+        lab.incServed = incServed;
+        lab.needs = needs;
+        lab.produced = produced;
+        lab.replicating = replicating;
+        lab.incUsed = incUsed;
+        lab.time = time;
+        lab.extraTime = extraTime;
+        lab.extraSpeed = extraSpeed;
+        lab.extraPowerRatio = extraPowerRatio;
+        lab.speedOverride = speedOverride;
+    }
+
     private int split_inc_level(ref int n, ref int m, int p)
     {
         int num = m / n;

@@ -343,6 +343,19 @@ internal struct OptimizedResearchingLab
         }
     }
 
+    public void Save(ref LabComponent lab, int[] matrixPoints)
+    {
+        lab.needs = needs;
+        lab.matrixServed = matrixServed;
+        lab.matrixIncServed = matrixIncServed;
+        lab.replicating = replicating;
+        lab.incUsed = incUsed;
+        lab.hashBytes = hashBytes;
+        lab.extraHashBytes = extraHashBytes;
+        lab.extraPowerRatio = extraPowerRatio;
+        lab.matrixPoints = matrixPoints;
+    }
+
     private int split_inc(ref int n, ref int m, int p)
     {
         int num = m / n;

@@ -29,6 +29,7 @@ internal sealed class InserterExecutor<T>
     public PickFromProducingPlant[] _pickFromProducingPlants;
     public ConnectionBelts[] _connectionBelts;
     public InsertIntoConsumingPlant[] _insertIntoConsumingPlants;
+    public Dictionary<int, int> _inserterIdToOptimizedIndex;
 
     private readonly NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
     private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
@@ -790,6 +791,22 @@ internal sealed class InserterExecutor<T>
         return 0;
     }
 
+    public void Save(PlanetFactory planet)
+    {
+        InserterComponent[] inserters = planet.factorySystem.inserterPool;
+        T[] optimizedInserters = _optimizedInserters;
+        OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
+        for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
+        {
+            if (!_inserterIdToOptimizedIndex.TryGetValue(i, out int optimizedIndex))
+            {
+                continue;
+            }
+
+            optimizedInserters[optimizedIndex].Save(ref inserters[i], ToEInserterStage(optimizedInserterStages[optimizedIndex]));
+        }
+    }
+
     public void Initialize(PlanetFactory planet,
                            OptimizedPlanet optimizedPlanet,
                            Func<InserterComponent, bool> inserterSelector,
@@ -806,6 +823,7 @@ internal sealed class InserterExecutor<T>
         List<PickFromProducingPlant> pickFromProducingPlants = [];
         List<ConnectionBelts> connectionBelts = [];
         List<InsertIntoConsumingPlant> insertIntoConsumingPlants = [];
+        Dictionary<int, int> inserterIdToOptimizedIndex = [];
 
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
@@ -853,6 +871,7 @@ internal sealed class InserterExecutor<T>
                 continue;
             }
 
+            inserterIdToOptimizedIndex.Add(i, optimizedInserters.Count);
             int networkIndex = planet.powerSystem.consumerPool[inserter.pcId].networkId;
             inserterNetworkIdAndStates.Add(new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), networkIndex));
             inserterConnections.Add(new InserterConnections(pickFrom, insertInto));
@@ -964,6 +983,7 @@ internal sealed class InserterExecutor<T>
         _pickFromProducingPlants = pickFromProducingPlants.ToArray();
         _connectionBelts = connectionBelts.ToArray();
         _insertIntoConsumingPlants = insertIntoConsumingPlants.ToArray();
+        _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex;
     }
 
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch
@@ -972,6 +992,15 @@ internal sealed class InserterExecutor<T>
         EInserterStage.Sending => OptimizedInserterStage.Sending,
         EInserterStage.Inserting => OptimizedInserterStage.Inserting,
         EInserterStage.Returning => OptimizedInserterStage.Returning,
+        _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
+    };
+
+    private static EInserterStage ToEInserterStage(OptimizedInserterStage inserterStage) => inserterStage switch
+    {
+        OptimizedInserterStage.Picking => EInserterStage.Picking,
+        OptimizedInserterStage.Sending => EInserterStage.Sending,
+        OptimizedInserterStage.Inserting => EInserterStage.Inserting,
+        OptimizedInserterStage.Returning => EInserterStage.Returning,
         _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
     };
 }
