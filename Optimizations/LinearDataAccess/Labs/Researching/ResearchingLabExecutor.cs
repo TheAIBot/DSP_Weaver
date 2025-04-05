@@ -13,7 +13,7 @@ internal sealed class ResearchingLabExecutor
     public int[] _entityIds;
     public Dictionary<int, int> _labIdToOptimizedLabIndex;
 
-    public void GameTickLabResearchMode(PlanetFactory planet, long time)
+    public bool GameTickLabResearchMode(PlanetFactory planet, long time)
     {
         FactorySystem factorySystem = planet.factorySystem;
         GameHistoryData history = GameMain.history;
@@ -92,6 +92,7 @@ internal sealed class ResearchingLabExecutor
             }
         }
 
+        bool hasResearchedTechnology = false;
         for (int k = 0; k < optimizedLabs.Length; k++)
         {
             ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[k];
@@ -117,6 +118,7 @@ internal sealed class ResearchingLabExecutor
                                                                                 ref hashRegister);
                 if (ts.unlocked)
                 {
+                    hasResearchedTechnology = true;
                     history.techStates[factorySystem.researchTechId] = ts;
                     for (int l = 0; l < techProto.UnlockRecipes.Length; l++)
                     {
@@ -136,6 +138,7 @@ internal sealed class ResearchingLabExecutor
                 }
                 if (ts.curLevel > curLevel)
                 {
+                    hasResearchedTechnology = true;
                     history.techStates[factorySystem.researchTechId] = ts;
                     for (int num6 = 0; num6 < techProto.UnlockFunctions.Length; num6++)
                     {
@@ -156,6 +159,8 @@ internal sealed class ResearchingLabExecutor
         statistics.techHashedThisFrame = techHashedThisFrame;
         history.universeMatrixPointUploaded = uMatrixPoint;
         factoryProductionStat.hashRegister = hashRegister;
+
+        return hasResearchedTechnology;
     }
 
     public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)

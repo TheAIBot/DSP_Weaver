@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection.Emit;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
@@ -12,6 +13,7 @@ internal static class OptimizedStarCluster
 {
     private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedPlanet = [];
     private static readonly Queue<PlanetFactory> _newPlanets = [];
+    private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
 
     public static void EnableOptimization()
     {
@@ -93,8 +95,22 @@ internal static class OptimizedStarCluster
                 continue;
             }
 
-            WeaverFixes.Logger.LogMessage($"Deoptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
+            WeaverFixes.Logger.LogMessage($"DeOptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
             planetToOptimizedPlanet.Value.Save();
+        }
+
+        if (_planetsToReOptimize.Count > 0)
+        {
+            // Avoid lag spike by spreading load over multiple ticks
+            PlanetFactory planetToReOptimize = _planetsToReOptimize.Dequeue();
+            OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planetToReOptimize];
+            if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+            {
+                return;
+            }
+
+            WeaverFixes.Logger.LogMessage($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
+            optimizedPlanet.Save();
         }
     }
 
@@ -112,21 +128,21 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(PlanetFactory), nameof(PlanetFactory.AddEntityDataWithComponents))]
     public static void PlanetFactory_AddEntityDataWithComponents(PlanetFactory __instance)
     {
-        DeoptimizeDueToNonPlayerAction(__instance);
+        DeOptimizeDueToNonPlayerAction(__instance);
     }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(PlanetFactory), nameof(PlanetFactory.RemoveEntityWithComponents))]
     public static void PlanetFactory_RemoveEntityWithComponents(PlanetFactory __instance)
     {
-        DeoptimizeDueToNonPlayerAction(__instance);
+        DeOptimizeDueToNonPlayerAction(__instance);
     }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(PlanetFactory), nameof(PlanetFactory.UpgradeEntityWithComponents))]
     public static void PlanetFactory_UpgradeEntityWithComponents(PlanetFactory __instance)
     {
-        DeoptimizeDueToNonPlayerAction(__instance);
+        DeOptimizeDueToNonPlayerAction(__instance);
     }
 
     [HarmonyPrefix]
@@ -384,7 +400,16 @@ internal static class OptimizedStarCluster
             return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
 
-        optimizedPlanet._researchingLabExecutor.GameTickLabResearchMode(__instance.factory, time);
+        bool hasResearchedTechnology = optimizedPlanet._researchingLabExecutor.GameTickLabResearchMode(__instance.factory, time);
+        if (hasResearchedTechnology)
+        {
+            foreach (PlanetFactory planetToReOptimize in _planetToOptimizedPlanet.Where(x => x.Value.Status == OptimizedPlanetStatus.Running)
+                                                                                 .Select(x => x.Key))
+            {
+                _planetsToReOptimize.Enqueue(planetToReOptimize);
+            }
+
+        }
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
@@ -439,12 +464,12 @@ internal static class OptimizedStarCluster
         return codeMatcher.InstructionEnumeration();
     }
 
-    private static void DeoptimizeDueToNonPlayerAction(PlanetFactory planet)
+    private static void DeOptimizeDueToNonPlayerAction(PlanetFactory planet)
     {
         OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
         if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
         {
-            WeaverFixes.Logger.LogMessage($"Deoptimizing planet: {planet.planet.displayName}");
+            WeaverFixes.Logger.LogMessage($"DeOptimizing planet: {planet.planet.displayName}");
             optimizedPlanet.Save();
         }
         optimizedPlanet.OptimizeDelayInTicks = 200;
