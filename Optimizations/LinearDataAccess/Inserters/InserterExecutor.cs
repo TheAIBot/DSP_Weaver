@@ -25,7 +25,6 @@ internal sealed class InserterExecutor<T>
     public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates;
     public InserterConnections[] _inserterConnections;
     public int[][] _inserterConnectionNeeds;
-    public int[] _optimizedInserterToInserterIndex;
     public PickFromProducingPlant[] _pickFromProducingPlants;
     public ConnectionBelts[] _connectionBelts;
     public InsertIntoConsumingPlant[] _insertIntoConsumingPlants;
@@ -51,16 +50,10 @@ internal sealed class InserterExecutor<T>
         return default(T).Create(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
 
-    public int GetUnoptimizedInserterIndex(int optimizedInserterIndex)
-    {
-        return _optimizedInserterToInserterIndex[optimizedInserterIndex];
-    }
-
     public void GameTickInserters(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, int _start, int _end)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        InserterComponent[] unoptimizedInserters = planet.factorySystem.inserterPool;
         InsertIntoConsumingPlant[] insertIntoConsumingPlants = _insertIntoConsumingPlants;
         _end = _end > _optimizedInserters.Length ? _optimizedInserters.Length : _end;
         for (int inserterIndex = _start; inserterIndex < _end; inserterIndex++)
@@ -819,7 +812,6 @@ internal sealed class InserterExecutor<T>
         Dictionary<InserterGrade, int> inserterGradeToIndex = [];
         List<T> optimizedInserters = [];
         List<OptimizedInserterStage> optimizedInserterStages = [];
-        List<int> optimizedInserterToInserterIndex = [];
         List<PickFromProducingPlant> pickFromProducingPlants = [];
         List<ConnectionBelts> connectionBelts = [];
         List<InsertIntoConsumingPlant> insertIntoConsumingPlants = [];
@@ -930,7 +922,6 @@ internal sealed class InserterExecutor<T>
 
             optimizedInserters.Add(default(T).Create(in inserter, pickFromOffset, insertIntoOffset, inserterGradeIndex));
             optimizedInserterStages.Add(ToOptimizedInserterStage(inserter.stage));
-            optimizedInserterToInserterIndex.Add(i);
             connectionBelts.Add(new ConnectionBelts(pickFromBelt, insertIntoBelt));
 
             if (pickFrom.EntityType == EntityType.Assembler)
@@ -979,7 +970,6 @@ internal sealed class InserterExecutor<T>
         _inserterGrades = inserterGrades.ToArray();
         _optimizedInserters = optimizedInserters.ToArray();
         _optimizedInserterStages = optimizedInserterStages.ToArray();
-        _optimizedInserterToInserterIndex = optimizedInserterToInserterIndex.ToArray();
         _pickFromProducingPlants = pickFromProducingPlants.ToArray();
         _connectionBelts = connectionBelts.ToArray();
         _insertIntoConsumingPlants = insertIntoConsumingPlants.ToArray();

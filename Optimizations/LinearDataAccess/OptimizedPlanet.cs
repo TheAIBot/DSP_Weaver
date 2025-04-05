@@ -17,6 +17,7 @@ internal sealed class OptimizedPlanet
 {
     private readonly PlanetFactory _planet;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
+    public int OptimizeDelayInTicks { get; set; } = 0;
 
     public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
     public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
