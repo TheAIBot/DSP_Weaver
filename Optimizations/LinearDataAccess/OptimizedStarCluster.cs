@@ -5,11 +5,13 @@ using System.Reflection.Emit;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
+#nullable enable
 namespace Weaver.Optimizations.LinearDataAccess;
 
 internal static class OptimizedStarCluster
 {
     private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedPlanet = [];
+    private static readonly Queue<PlanetFactory> _newPlanets = [];
 
     public static void EnableOptimization()
     {
@@ -56,6 +58,17 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
     public static void GameData_GameTick(long time)
     {
+        lock (_newPlanets)
+        {
+            while (_newPlanets.Count > 0)
+            {
+                PlanetFactory newPlanet = _newPlanets.Dequeue();
+
+                WeaverFixes.Logger.LogMessage($"Adding planet: {newPlanet.planet.displayName}");
+                _planetToOptimizedPlanet.Add(newPlanet, new OptimizedPlanet(newPlanet));
+            }
+        }
+
         foreach (KeyValuePair<PlanetFactory, OptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedPlanet)
         {
             if (GameMain.localPlanet?.factory != planetToOptimizedPlanet.Key)
@@ -79,6 +92,16 @@ internal static class OptimizedStarCluster
         }
     }
 
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(PlanetFactory), nameof(PlanetFactory.Init))]
+    public static void PlanetFactory_Init(PlanetFactory __instance)
+    {
+        lock (_newPlanets)
+        {
+            _newPlanets.Enqueue(__instance);
+        }
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.InserterPartExecute))]
     public static bool InserterPartExecute(WorkerThreadExecutor __instance)
@@ -89,7 +112,7 @@ internal static class OptimizedStarCluster
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
-    public static void InserterPartExecute<T>(WorkerThreadExecutor __instance, Func<OptimizedPlanet, InserterExecutor<T>> inserterExecutorSelector)
+    public static void InserterPartExecute<T>(WorkerThreadExecutor __instance, Func<OptimizedPlanet, InserterExecutor<T>?> inserterExecutorSelector)
         where T : struct, IInserter<T>
     {
         if (__instance.inserterFactories == null)
@@ -101,7 +124,12 @@ internal static class OptimizedStarCluster
         {
             PlanetFactory planet = __instance.inserterFactories[planetIndex];
             OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
-            InserterExecutor<T> optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            if (optimizedInserterExecutor == null)
+            {
+                continue;
+            }
+
             totalGalaxyInserterCount += optimizedInserterExecutor.inserterCount;
         }
         int minimumMissionCnt = 64;
@@ -115,7 +143,11 @@ internal static class OptimizedStarCluster
         {
             PlanetFactory planet = __instance.inserterFactories[planetIndex];
             OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
-            InserterExecutor<T> optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            if (optimizedInserterExecutor == null)
+            {
+                continue;
+            }
 
             int totalInsertersIncludingOnThisPlanets = totalInsertersSeenOnPreviousPlanets + optimizedInserterExecutor.inserterCount;
             if (totalInsertersIncludingOnThisPlanets <= _start)
@@ -130,7 +162,11 @@ internal static class OptimizedStarCluster
         {
             PlanetFactory planet = __instance.inserterFactories[planetIndex];
             OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
-            InserterExecutor<T> optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
+            if (optimizedInserterExecutor == null)
+            {
+                continue;
+            }
 
             int num5 = _start - totalInsertersSeenOnPreviousPlanets;
             int num6 = _end - totalInsertersSeenOnPreviousPlanets;
