@@ -75,7 +75,7 @@ internal sealed class OptimizedPlanet
         InitializeResearchingLabs(_planet, optimizedPowerSystemBuilder);
         InitializeInserters(_planet, optimizedPowerSystemBuilder);
         InitializeSpraycoaters(_planet, optimizedPowerSystemBuilder);
-        InitializeFractionators(_planet);
+        InitializeFractionators(_planet, optimizedPowerSystemBuilder);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
@@ -164,10 +164,10 @@ internal sealed class OptimizedPlanet
         _spraycoaterExecutor.Initialize(planet, optimizedPowerSystemBuilder);
     }
 
-    private void InitializeFractionators(PlanetFactory planet)
+    private void InitializeFractionators(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _fractionatorExecutor = new FractionatorExecutor();
-        _fractionatorExecutor.Initialize(planet);
+        _fractionatorExecutor.Initialize(planet, optimizedPowerSystemBuilder);
     }
 
     public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)

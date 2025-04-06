@@ -14,10 +14,10 @@ internal struct OptimizedFractionator
     public int fluidId;
     public int productId;
     public float produceProb;
-    public bool isWorking;
-    public int fluidInputCount;
-    public float fluidInputCargoCount;
-    public int fluidInputInc;
+
+
+
+
     public int productOutputCount;
     public int fluidOutputCount;
     public int fluidOutputInc;
@@ -41,10 +41,6 @@ internal struct OptimizedFractionator
         fluidId = fractionator.fluidId;
         productId = fractionator.productId;
         produceProb = fractionator.produceProb;
-        isWorking = fractionator.isWorking;
-        fluidInputCount = fractionator.fluidInputCount;
-        fluidInputCargoCount = fractionator.fluidInputCargoCount;
-        fluidInputInc = fractionator.fluidInputInc;
         productOutputCount = fractionator.productOutputCount;
         fluidOutputCount = fractionator.fluidOutputCount;
         fluidOutputInc = fractionator.fluidOutputInc;
@@ -54,23 +50,6 @@ internal struct OptimizedFractionator
         fluidOutputTotal = fractionator.fluidOutputTotal;
         productOutputTotal = fractionator.productOutputTotal;
         seed = fractionator.seed;
-    }
-
-    public int incLevel
-    {
-        get
-        {
-            if (fluidInputCount <= 0 || fluidInputInc <= 0)
-            {
-                return 0;
-            }
-            int num = fluidInputInc / fluidInputCount;
-            if (num >= 10)
-            {
-                return 10;
-            }
-            return num;
-        }
     }
 
     public void SetRecipe(int needId)
@@ -92,6 +71,7 @@ internal struct OptimizedFractionator
     public uint InternalUpdate(CargoTraffic cargoTraffic,
                                float power,
                                ref readonly FractionatorConfiguration configuration,
+                               ref FractionatorPowerFields fractionatorPowerFields,
                                int[] productRegister,
                                int[] consumeRegister)
     {
@@ -100,17 +80,17 @@ internal struct OptimizedFractionator
             return 0u;
         }
         double num = 1.0;
-        if (fluidInputCount == 0)
+        if (fractionatorPowerFields.fluidInputCount == 0)
         {
-            fluidInputCargoCount = 0f;
+            fractionatorPowerFields.fluidInputCargoCount = 0f;
         }
         else
         {
-            num = fluidInputCargoCount > 0.0001 ? fluidInputCount / fluidInputCargoCount : 4f;
+            num = fractionatorPowerFields.fluidInputCargoCount > 0.0001 ? fractionatorPowerFields.fluidInputCount / fractionatorPowerFields.fluidInputCargoCount : 4f;
         }
-        if (fluidInputCount > 0 && productOutputCount < configuration.ProductOutputMax && fluidOutputCount < configuration.FluidOutputMax)
+        if (fractionatorPowerFields.fluidInputCount > 0 && productOutputCount < configuration.ProductOutputMax && fluidOutputCount < configuration.FluidOutputMax)
         {
-            int num2 = (int)((double)power * 166.66666666666666 * (double)(fluidInputCargoCount < 30f ? fluidInputCargoCount : 30f) * num + 0.75);
+            int num2 = (int)((double)power * 166.66666666666666 * (double)(fractionatorPowerFields.fluidInputCargoCount < 30f ? fractionatorPowerFields.fluidInputCargoCount : 30f) * num + 0.75);
             progress += num2;
             if (progress > 100000)
             {
@@ -118,7 +98,7 @@ internal struct OptimizedFractionator
             }
             while (progress >= 10000)
             {
-                int num3 = fluidInputInc > 0 && fluidInputCount > 0 ? fluidInputInc / fluidInputCount : 0;
+                int num3 = fractionatorPowerFields.fluidInputInc > 0 && fractionatorPowerFields.fluidInputCount > 0 ? fractionatorPowerFields.fluidInputInc / fractionatorPowerFields.fluidInputCount : 0;
                 if (!incUsed)
                 {
                     incUsed = num3 > 0;
@@ -144,12 +124,12 @@ internal struct OptimizedFractionator
                     fluidOutputTotal++;
                     fluidOutputInc += num3;
                 }
-                fluidInputCount--;
-                fluidInputInc -= num3;
-                fluidInputCargoCount -= (float)(1.0 / num);
-                if (fluidInputCargoCount < 0f)
+                fractionatorPowerFields.fluidInputCount--;
+                fractionatorPowerFields.fluidInputInc -= num3;
+                fractionatorPowerFields.fluidInputCargoCount -= (float)(1.0 / num);
+                if (fractionatorPowerFields.fluidInputCargoCount < 0f)
                 {
-                    fluidInputCargoCount = 0f;
+                    fractionatorPowerFields.fluidInputCargoCount = 0f;
                 }
                 progress -= 10000;
             }
@@ -183,15 +163,15 @@ internal struct OptimizedFractionator
                     }
                 }
             }
-            else if (!configuration.IsOutput1 && fluidInputCargoCount < configuration.FluidInputMax)
+            else if (!configuration.IsOutput1 && fractionatorPowerFields.fluidInputCargoCount < configuration.FluidInputMax)
             {
                 if (fluidId > 0)
                 {
                     if (TryPickItemAtRear(cargoTraffic, belt1, fluidId, null, out stack, out inc) > 0)
                     {
-                        fluidInputCount += stack;
-                        fluidInputInc += inc;
-                        fluidInputCargoCount += 1f;
+                        fractionatorPowerFields.fluidInputCount += stack;
+                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCargoCount += 1f;
                     }
                 }
                 else
@@ -199,9 +179,9 @@ internal struct OptimizedFractionator
                     int num5 = TryPickItemAtRear(cargoTraffic, belt1, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
                     if (num5 > 0)
                     {
-                        fluidInputCount += stack;
-                        fluidInputInc += inc;
-                        fluidInputCargoCount += 1f;
+                        fractionatorPowerFields.fluidInputCount += stack;
+                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCargoCount += 1f;
                         SetRecipe(num5);
                     }
                 }
@@ -230,15 +210,15 @@ internal struct OptimizedFractionator
                     }
                 }
             }
-            else if (!configuration.IsOutput2 && fluidInputCargoCount < configuration.FluidInputMax)
+            else if (!configuration.IsOutput2 && fractionatorPowerFields.fluidInputCargoCount < configuration.FluidInputMax)
             {
                 if (fluidId > 0)
                 {
                     if (TryPickItemAtRear(cargoTraffic, belt2, fluidId, null, out stack, out inc) > 0)
                     {
-                        fluidInputCount += stack;
-                        fluidInputInc += inc;
-                        fluidInputCargoCount += 1f;
+                        fractionatorPowerFields.fluidInputCount += stack;
+                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCargoCount += 1f;
                     }
                 }
                 else
@@ -246,9 +226,9 @@ internal struct OptimizedFractionator
                     int num7 = TryPickItemAtRear(cargoTraffic, belt2, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
                     if (num7 > 0)
                     {
-                        fluidInputCount += stack;
-                        fluidInputInc += inc;
-                        fluidInputCargoCount += 1f;
+                        fractionatorPowerFields.fluidInputCount += stack;
+                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCargoCount += 1f;
                         SetRecipe(num7);
                     }
                 }
@@ -258,27 +238,29 @@ internal struct OptimizedFractionator
         {
             productOutputCount--;
         }
-        if (fluidInputCount == 0 && fluidOutputCount == 0 && productOutputCount == 0)
+        if (fractionatorPowerFields.fluidInputCount == 0 && fluidOutputCount == 0 && productOutputCount == 0)
         {
             fluidId = 0;
         }
-        isWorking = fluidInputCount > 0 && productOutputCount < configuration.ProductOutputMax && fluidOutputCount < configuration.FluidOutputMax;
-        if (!isWorking)
+        fractionatorPowerFields.isWorking = fractionatorPowerFields.fluidInputCount > 0 && productOutputCount < configuration.ProductOutputMax && fluidOutputCount < configuration.FluidOutputMax;
+        if (!fractionatorPowerFields.isWorking)
         {
             return 0u;
         }
         return 1u;
     }
 
-    public void Save(ref FractionatorComponent fractionator, SignData[] signPool)
+    public void Save(ref FractionatorComponent fractionator,
+                     ref readonly FractionatorPowerFields fractionatorPowerFields,
+                     SignData[] signPool)
     {
         fractionator.fluidId = fluidId;
         fractionator.productId = productId;
         fractionator.produceProb = produceProb;
-        fractionator.isWorking = isWorking;
-        fractionator.fluidInputCount = fluidInputCount;
-        fractionator.fluidInputCargoCount = fluidInputCargoCount;
-        fractionator.fluidInputInc = fluidInputInc;
+        fractionator.isWorking = fractionatorPowerFields.isWorking;
+        fractionator.fluidInputCount = fractionatorPowerFields.fluidInputCount;
+        fractionator.fluidInputCargoCount = fractionatorPowerFields.fluidInputCargoCount;
+        fractionator.fluidInputInc = fractionatorPowerFields.fluidInputInc;
         fractionator.productOutputCount = productOutputCount;
         fractionator.fluidOutputCount = fluidOutputCount;
         fractionator.fluidOutputInc = fluidOutputInc;

@@ -1,10 +1,13 @@
 ﻿using System.Collections.Generic;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
+
 internal sealed class FractionatorExecutor
 {
     private int[] _fractionatorNetworkId;
     private OptimizedFractionator[] _optimizedFractionators;
+    private FractionatorPowerFields[] _fractionatorsPowerFields;
     private FractionatorConfiguration[] _fractionatorConfigurations;
     public Dictionary<int, int> _fractionatorIdToOptimizedIndex;
 
@@ -23,6 +26,7 @@ internal sealed class FractionatorExecutor
         float[] networkServes = powerSystem.networkServes;
         int[] fractionatorNetworkId = _fractionatorNetworkId;
         OptimizedFractionator[] optimizedFractionators = _optimizedFractionators;
+        FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         FractionatorConfiguration[] fractionatorConfigurations = _fractionatorConfigurations;
 
         for (int i = _start; i < _end; i++)
@@ -30,11 +34,36 @@ internal sealed class FractionatorExecutor
             float power2 = networkServes[fractionatorNetworkId[i]];
             ref OptimizedFractionator fractionator = ref optimizedFractionators[i];
             ref readonly FractionatorConfiguration configuration = ref fractionatorConfigurations[fractionator.configurationIndex];
+            ref FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[i];
             fractionator.InternalUpdate(cargoTraffic,
                                         power2,
                                         in configuration,
+                                        ref fractionatorPowerFields,
                                         productRegister,
                                         consumeRegister);
+        }
+    }
+
+    public void UpdatePower(int[] fractionatorPowerConsumerTypeIndexes,
+                            PowerConsumerType[] powerConsumerTypes,
+                            long[] thisThreadNetworkPowerConsumption,
+                            int _usedThreadCnt,
+                            int _curThreadIdx,
+                            int _minimumMissionCnt)
+    {
+        if (!WorkerThreadExecutor.CalculateMissionIndex(0, fractionatorPowerConsumerTypeIndexes.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
+        {
+            return;
+        }
+
+        int[] fractionatorNetworkId = _fractionatorNetworkId;
+        FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
+        for (int j = _start; j < _end; j++)
+        {
+            int networkIndex = fractionatorNetworkId[j];
+            int powerConsumerTypeIndex = fractionatorPowerConsumerTypeIndexes[j];
+            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorsPowerFields[j]);
         }
     }
 
@@ -43,6 +72,7 @@ internal sealed class FractionatorExecutor
         SignData[] entitySignPool = planet.entitySignPool;
         FractionatorComponent[] fractionators = planet.factorySystem.fractionatorPool;
         OptimizedFractionator[] optimizedFractionators = _optimizedFractionators;
+        FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         for (int i = 1; i < planet.factorySystem.fractionatorCursor; i++)
         {
             if (!_fractionatorIdToOptimizedIndex.TryGetValue(i, out int optimizedIndex))
@@ -51,14 +81,16 @@ internal sealed class FractionatorExecutor
             }
 
             ref readonly OptimizedFractionator optimizedFractionator = ref optimizedFractionators[optimizedIndex];
-            optimizedFractionator.Save(ref fractionators[i], entitySignPool);
+            ref readonly FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[i];
+            optimizedFractionator.Save(ref fractionators[i], in fractionatorPowerFields, entitySignPool);
         }
     }
 
-    public void Initialize(PlanetFactory planet)
+    public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         List<int> fractionatorNetworkId = [];
         List<OptimizedFractionator> optimizedFractionators = [];
+        List<FractionatorPowerFields> fractionatorsPowerFields = [];
         Dictionary<FractionatorConfiguration, int> fractionatorConfigurationToIndex = [];
         List<FractionatorConfiguration> fractionatorConfigurations = [];
         Dictionary<int, int> fractionatorIdToOptimizedIndex = [];
@@ -109,12 +141,27 @@ internal sealed class FractionatorExecutor
                                                                  belt2,
                                                                  fractionatorConfigurationIndex,
                                                                  in fractionator));
+            fractionatorsPowerFields.Add(new FractionatorPowerFields(in fractionator));
+            optimizedPowerSystemBuilder.AddFractionator(in fractionator, networkIndex);
 
         }
 
         _fractionatorNetworkId = fractionatorNetworkId.ToArray();
         _optimizedFractionators = optimizedFractionators.ToArray();
+        _fractionatorsPowerFields = fractionatorsPowerFields.ToArray();
         _fractionatorConfigurations = fractionatorConfigurations.ToArray();
         _fractionatorIdToOptimizedIndex = fractionatorIdToOptimizedIndex;
+    }
+
+    private long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly FractionatorPowerFields fractionatorPowerFields)
+    {
+        double num = (((double)fractionatorPowerFields.fluidInputCargoCount > 0.0001) ? ((float)fractionatorPowerFields.fluidInputCount / fractionatorPowerFields.fluidInputCargoCount) : 4f);
+        double num2 = (double)((fractionatorPowerFields.fluidInputCargoCount < 30f) ? fractionatorPowerFields.fluidInputCargoCount : 30f) * num - 30.0;
+        if (num2 < 0.0)
+        {
+            num2 = 0.0;
+        }
+        int permillage = (int)((num2 * 50.0 + 1000.0) * Cargo.powerTableRatio[fractionatorPowerFields.incLevel] + 0.5);
+        return powerConsumerType.GetRequiredEnergy(fractionatorPowerFields.isWorking, permillage);
     }
 }

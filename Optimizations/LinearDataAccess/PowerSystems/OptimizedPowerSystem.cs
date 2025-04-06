@@ -14,6 +14,7 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _producingLabPowerConsumerTypeIndexes;
     private readonly int[] _researchingLabPowerConsumerTypeIndexes;
     private readonly int[] _spraycoaterPowerConsumerTypeIndexes;
+    private readonly int[] _fractionatorPowerConsumerTypeIndexes;
     private long[][] _threadNetworkPowerConsumptionPrepared = null;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
@@ -23,7 +24,8 @@ internal sealed class OptimizedPowerSystem
                                 int[] inserterPowerConsumerTypeIndexes,
                                 int[] producingLabPowerConsumerTypeIndexes,
                                 int[] researchingLabPowerConsumerTypeIndexes,
-                                int[] spraycoaterPowerConsumerTypeIndexes)
+                                int[] spraycoaterPowerConsumerTypeIndexes,
+                                int[] fractionatorPowerConsumerTypeIndexes)
     {
         _powerConsumerTypes = powerConsumerTypes;
         _networkNonOptimizedPowerConsumerIndexes = networkNonOptimizedPowerConsumerIndexes;
@@ -33,6 +35,7 @@ internal sealed class OptimizedPowerSystem
         _producingLabPowerConsumerTypeIndexes = producingLabPowerConsumerTypeIndexes;
         _researchingLabPowerConsumerTypeIndexes = researchingLabPowerConsumerTypeIndexes;
         _spraycoaterPowerConsumerTypeIndexes = spraycoaterPowerConsumerTypeIndexes;
+        _fractionatorPowerConsumerTypeIndexes = fractionatorPowerConsumerTypeIndexes;
     }
 
     public void FactorySystem_ParallelGameTickBeforePower(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
@@ -90,16 +93,13 @@ internal sealed class OptimizedPowerSystem
                                                        _curThreadIdx,
                                                        _minimumMissionCnt);
 
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factory.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int k = _start; k < _end; k++)
-            {
-                if (factory.fractionatorPool[k].id == k)
-                {
-                    factory.fractionatorPool[k].SetPCState(consumerPool);
-                }
-            }
-        }
+        optimizedPlanet._fractionatorExecutor.UpdatePower(_fractionatorPowerConsumerTypeIndexes,
+                                                          _powerConsumerTypes,
+                                                          thisThreadNetworkPowerConsumption,
+                                                          _usedThreadCnt,
+                                                          _curThreadIdx,
+                                                          _minimumMissionCnt);
+
         if (WorkerThreadExecutor.CalculateMissionIndex(1, factory.ejectorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
         {
             for (int l = _start; l < _end; l++)
