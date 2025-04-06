@@ -96,15 +96,15 @@ internal struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
 
     public void Print()
     {
-        WeaverFixes.Logger.LogMessage($"{nameof(RecipeId)}: {RecipeId}");
-        WeaverFixes.Logger.LogMessage($"{nameof(RecipeType)}: {RecipeType}");
-        WeaverFixes.Logger.LogMessage($"{nameof(TimeSpend)}: {TimeSpend}");
-        WeaverFixes.Logger.LogMessage($"{nameof(ExtraTimeSpend)}: {ExtraTimeSpend}");
-        WeaverFixes.Logger.LogMessage($"{nameof(Productive)}: {Productive}");
-        WeaverFixes.Logger.LogMessage($"{nameof(Requires)}: [{(Requires != null ? string.Join(", ", Requires) : null)}]");
-        WeaverFixes.Logger.LogMessage($"{nameof(RequireCounts)}: [{(RequireCounts != null ? string.Join(", ", RequireCounts) : null)}]");
-        WeaverFixes.Logger.LogMessage($"{nameof(Products)}: [{(Products != null ? string.Join(", ", Products) : null)}]");
-        WeaverFixes.Logger.LogMessage($"{nameof(ProductCounts)}: [{(ProductCounts != null ? string.Join(", ", ProductCounts) : null)}]");
-        WeaverFixes.Logger.LogMessage($"{nameof(GetHashCode)}: {GetHashCode(this)}");
+        WeaverFixes.Logger.LogInfo($"{nameof(RecipeId)}: {RecipeId}");
+        WeaverFixes.Logger.LogInfo($"{nameof(RecipeType)}: {RecipeType}");
+        WeaverFixes.Logger.LogInfo($"{nameof(TimeSpend)}: {TimeSpend}");
+        WeaverFixes.Logger.LogInfo($"{nameof(ExtraTimeSpend)}: {ExtraTimeSpend}");
+        WeaverFixes.Logger.LogInfo($"{nameof(Productive)}: {Productive}");
+        WeaverFixes.Logger.LogInfo($"{nameof(Requires)}: [{(Requires != null ? string.Join(", ", Requires) : null)}]");
+        WeaverFixes.Logger.LogInfo($"{nameof(RequireCounts)}: [{(RequireCounts != null ? string.Join(", ", RequireCounts) : null)}]");
+        WeaverFixes.Logger.LogInfo($"{nameof(Products)}: [{(Products != null ? string.Join(", ", Products) : null)}]");
+        WeaverFixes.Logger.LogInfo($"{nameof(ProductCounts)}: [{(ProductCounts != null ? string.Join(", ", ProductCounts) : null)}]");
+        WeaverFixes.Logger.LogInfo($"{nameof(GetHashCode)}: {GetHashCode(this)}");
     }
 }

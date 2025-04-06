@@ -19,7 +19,7 @@ public class PlayerPackageUtilityBenchmarkPatches
     private static void Count_Postfix(PlayerPackageUtility __instance)
     {
         _countTimes.EndSampling(0);
-        WeaverFixes.Logger.LogMessage($"{nameof(PlayerPackageUtility)} {nameof(PlayerPackageUtility.Count)} {_countTimes.GetAverageTimeInMilliseconds(0):N8}");
+        WeaverFixes.Logger.LogInfo($"{nameof(PlayerPackageUtility)} {nameof(PlayerPackageUtility.Count)} {_countTimes.GetAverageTimeInMilliseconds(0):N8}");
     }
 }
 

@@ -59,7 +59,7 @@ public class InserterThreadLoadBalance
             {
                 threadTimes.Append($" {_inserterPerThreadItemCount[i],7:N0}");
             }
-            WeaverFixes.Logger.LogMessage($"{nameof(MultithreadSystem)} Sum: {_inserterPerThreadItemCount.Sum()} Thread item counts: {threadTimes}");
+            WeaverFixes.Logger.LogInfo($"{nameof(MultithreadSystem)} Sum: {_inserterPerThreadItemCount.Sum()} Thread item counts: {threadTimes}");
             MultithreadSystemBenchmarkDisplayPatches.LogComputeTimes(MissionOrderType.Inserter, WorkerThreadExecutorBenchmarkPatches._missionComputeTimes[(uint)MissionOrderType.Inserter]);
             RebalanceInsertersPerThread(__instance);
         }
@@ -215,7 +215,7 @@ public class InserterThreadLoadBalance
         }
         _end = _start + _inserterPerThreadItemCount[_curThreadIdx];
 
-        //WeaverFixes.Logger.LogMessage($"{_curThreadIdx} {_start} {_end}");
+        //WeaverFixes.Logger.LogInfo($"{_curThreadIdx} {_start} {_end}");
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
@@ -226,7 +226,7 @@ public class InserterThreadLoadBalance
                   [ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out])]
     private static void CalculateMissionIndex_Loadbalance_Postfix(WorkerThreadExecutor __instance, int _curThreadIdx, int _start, int _end)
     {
-        //WeaverFixes.Logger.LogMessage($"{_curThreadIdx} {_start} {_end}");
+        //WeaverFixes.Logger.LogInfo($"{_curThreadIdx} {_start} {_end}");
         if (enableStatisticsLoadBalancing)
         {
             return;

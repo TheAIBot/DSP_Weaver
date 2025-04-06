@@ -21,7 +21,7 @@ public class KillStatisticsBenchmarkPatches
     private static void PrepareTick_Postfix(KillStatistics __instance)
     {
         _prepareTickTimes.EndSampling(0);
-        WeaverFixes.Logger.LogMessage($"{nameof(KillStatistics)} {nameof(KillStatistics.PrepareTick)} {_prepareTickTimes.GetAverageTimeInMilliseconds(0):N8}");
+        WeaverFixes.Logger.LogInfo($"{nameof(KillStatistics)} {nameof(KillStatistics.PrepareTick)} {_prepareTickTimes.GetAverageTimeInMilliseconds(0):N8}");
     }
 
     [HarmonyPrefix]
@@ -37,7 +37,7 @@ public class KillStatisticsBenchmarkPatches
     private static void GameTick_Postfix(KillStatistics __instance)
     {
         _gameTickTimes.EndSampling(0);
-        WeaverFixes.Logger.LogMessage($"{nameof(KillStatistics)} {nameof(KillStatistics.GameTick)} {_gameTickTimes.GetAverageTimeInMilliseconds(0):N8}");
+        WeaverFixes.Logger.LogInfo($"{nameof(KillStatistics)} {nameof(KillStatistics.GameTick)} {_gameTickTimes.GetAverageTimeInMilliseconds(0):N8}");
     }
 
     [HarmonyPrefix]
@@ -53,6 +53,6 @@ public class KillStatisticsBenchmarkPatches
     private static void AfterTick_Postfix(KillStatistics __instance)
     {
         _afterTickTimes.EndSampling(0);
-        WeaverFixes.Logger.LogMessage($"{nameof(KillStatistics)} {nameof(KillStatistics.AfterTick)} {_afterTickTimes.GetAverageTimeInMilliseconds(0):N8}");
+        WeaverFixes.Logger.LogInfo($"{nameof(KillStatistics)} {nameof(KillStatistics.AfterTick)} {_afterTickTimes.GetAverageTimeInMilliseconds(0):N8}");
     }
 }

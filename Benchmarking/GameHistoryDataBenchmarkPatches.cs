@@ -20,7 +20,7 @@ public class GameHistoryDataBenchmarkPatches
     private static void PrepareTick_Postfix(GameHistoryData __instance)
     {
         _prepareTickTimes.EndSampling(0);
-        WeaverFixes.Logger.LogMessage($"{nameof(GameHistoryData)} {nameof(GameHistoryData.PrepareTick)} {_prepareTickTimes.GetAverageTimeInMilliseconds(0):N8}");
+        WeaverFixes.Logger.LogInfo($"{nameof(GameHistoryData)} {nameof(GameHistoryData.PrepareTick)} {_prepareTickTimes.GetAverageTimeInMilliseconds(0):N8}");
     }
 
     [HarmonyPrefix]
@@ -36,7 +36,7 @@ public class GameHistoryDataBenchmarkPatches
     private static void AfterTick_Postfix(GameHistoryData __instance)
     {
         _afterTickTimes.EndSampling(0);
-        WeaverFixes.Logger.LogMessage($"{nameof(GameHistoryData)} {nameof(GameHistoryData.AfterTick)} {_afterTickTimes.GetAverageTimeInMilliseconds(0):N8}");
+        WeaverFixes.Logger.LogInfo($"{nameof(GameHistoryData)} {nameof(GameHistoryData.AfterTick)} {_afterTickTimes.GetAverageTimeInMilliseconds(0):N8}");
     }
 }
 

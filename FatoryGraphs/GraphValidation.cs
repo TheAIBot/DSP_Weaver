@@ -14,7 +14,7 @@ internal static class GraphValidation
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
-        WeaverFixes.Logger.LogMessage($"Initializing {nameof(GraphValidation)}");
+        WeaverFixes.Logger.LogInfo($"Initializing {nameof(GraphValidation)}");
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {

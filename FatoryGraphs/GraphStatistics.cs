@@ -16,7 +16,7 @@ internal static class GraphStatistics
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
-        WeaverFixes.Logger.LogMessage($"Initializing {nameof(GraphStatistics)}");
+        WeaverFixes.Logger.LogInfo($"Initializing {nameof(GraphStatistics)}");
 
         List<Graph> allGraphs = [];
 
@@ -34,12 +34,12 @@ internal static class GraphStatistics
             List<Graph> graphs = Graphifier.ToInserterGraphs(factory);
             allGraphs.AddRange(graphs);
 
-            WeaverFixes.Logger.LogMessage($"Name: {planet.planet.displayName}");
-            WeaverFixes.Logger.LogMessage($"\tDistinct Graphs: {graphs.Count}");
-            WeaverFixes.Logger.LogMessage($"\tGraph Sizes: Size, Count");
+            WeaverFixes.Logger.LogInfo($"Name: {planet.planet.displayName}");
+            WeaverFixes.Logger.LogInfo($"\tDistinct Graphs: {graphs.Count}");
+            WeaverFixes.Logger.LogInfo($"\tGraph Sizes: Size, Count");
             foreach (IGrouping<int, Graph> item in graphs.GroupBy(x => x.NodeCount))
             {
-                WeaverFixes.Logger.LogMessage($"\t\t{item.Key:N0}: {item.Count():N0}");
+                WeaverFixes.Logger.LogInfo($"\t\t{item.Key:N0}: {item.Count():N0}");
             }
 
             for (int inserterIndex = 1; inserterIndex < factory.inserterCursor; inserterIndex++)
@@ -61,7 +61,7 @@ internal static class GraphStatistics
             }
         }
 
-        WeaverFixes.Logger.LogMessage($"Entity type counts");
+        WeaverFixes.Logger.LogInfo($"Entity type counts");
         foreach (EntityType entityType in Enum.GetValues(typeof(EntityType)))
         {
             int entityTypeCount = allGraphs.SelectMany(x => x.GetAllNodes())
@@ -69,15 +69,15 @@ internal static class GraphStatistics
                                            .Count();
             if (entityType == EntityType.Inserter)
             {
-                WeaverFixes.Logger.LogMessage($"\t{entityType}: {entityTypeCount:N0}");
+                WeaverFixes.Logger.LogInfo($"\t{entityType}: {entityTypeCount:N0}");
                 foreach (KeyValuePair<int, int> inserterGradeCount in gradeToCount.OrderBy(x => x.Key))
                 {
-                    WeaverFixes.Logger.LogMessage($"\t\t{inserterGradeCount.Key}: {inserterGradeCount.Value:N0}");
+                    WeaverFixes.Logger.LogInfo($"\t\t{inserterGradeCount.Key}: {inserterGradeCount.Value:N0}");
                 }
             }
             else
             {
-                WeaverFixes.Logger.LogMessage($"\t{entityType}: {entityTypeCount:N0}");
+                WeaverFixes.Logger.LogInfo($"\t{entityType}: {entityTypeCount:N0}");
             }
         }
     }

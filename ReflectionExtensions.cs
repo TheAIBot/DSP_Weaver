@@ -15,7 +15,7 @@ public static class ReflectionExtensions
             return;
         }
 
-        WeaverFixes.Logger.LogMessage($"Raised event {eventName}");
+        WeaverFixes.Logger.LogInfo($"Raised event {eventName}");
         foreach (var eventAction in eventActions)
         {
             eventAction.DynamicInvoke();

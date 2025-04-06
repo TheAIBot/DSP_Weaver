@@ -15,7 +15,7 @@ internal static class Graphifier
         HashSet<Node> nodes = new HashSet<Node>();
         Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode = new Dictionary<EntityTypeIndex, Node>();
 
-        //WeaverFixes.Logger.LogMessage($"Cursor: {factorySystem.inserterCursor}");
+        //WeaverFixes.Logger.LogInfo($"Cursor: {factorySystem.inserterCursor}");
 
         for (int i = 1; i < factorySystem.inserterCursor; i++)
         {
@@ -60,8 +60,8 @@ internal static class Graphifier
             }
         }
 
-        //WeaverFixes.Logger.LogMessage($"Nodes: {nodes.Count}");
-        //WeaverFixes.Logger.LogMessage($"EntityIdToNode: {entityTypeIndexToNode.Count}");
+        //WeaverFixes.Logger.LogInfo($"Nodes: {nodes.Count}");
+        //WeaverFixes.Logger.LogInfo($"EntityIdToNode: {entityTypeIndexToNode.Count}");
 
         List<Graph> graphs = new List<Graph>();
         while (nodes.Count > 0)

@@ -18,7 +18,7 @@ public class LinearInserterDataAccessOptimization
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
-        WeaverFixes.Logger.LogMessage($"Initializing {nameof(LinearInserterDataAccessOptimization)}");
+        WeaverFixes.Logger.LogInfo($"Initializing {nameof(LinearInserterDataAccessOptimization)}");
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {

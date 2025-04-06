@@ -86,11 +86,11 @@ public class ShrinkPools
             }
         }
 
-        WeaverFixes.Logger.LogMessage($"Total:   {totalSlots:N0}");
-        WeaverFixes.Logger.LogMessage($"Used:    {usedSlots:N0}");
-        WeaverFixes.Logger.LogMessage($"Unused:  {unusedSlots:N0}");
-        WeaverFixes.Logger.LogMessage($"Holes:   {holes:N0}");
-        WeaverFixes.Logger.LogMessage($"Used Ratio: {(((float)usedSlots / totalSlots) * 100):N2}%");
+        WeaverFixes.Logger.LogInfo($"Total:   {totalSlots:N0}");
+        WeaverFixes.Logger.LogInfo($"Used:    {usedSlots:N0}");
+        WeaverFixes.Logger.LogInfo($"Unused:  {unusedSlots:N0}");
+        WeaverFixes.Logger.LogInfo($"Holes:   {holes:N0}");
+        WeaverFixes.Logger.LogInfo($"Used Ratio: {(((float)usedSlots / totalSlots) * 100):N2}%");
     }
 
     [HarmonyPostfix]
@@ -338,7 +338,7 @@ public class ShrinkPools
             }
         }
 
-        WeaverFixes.Logger.LogMessage("Optimized pools");
+        WeaverFixes.Logger.LogInfo("Optimized pools");
     }
 
     private static void GatherPoolData<T>(T[] pool, Func<T, int> getId, ref int totalSlots, ref int usedSlots, ref int unusedSlots, ref int holes)

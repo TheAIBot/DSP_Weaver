@@ -27,7 +27,7 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
-        WeaverFixes.Logger.LogMessage($"Initializing {nameof(OptimizedPlanet)}");
+        WeaverFixes.Logger.LogInfo($"Initializing {nameof(OptimizedPlanet)}");
 
         _planetToOptimizedPlanet.Clear();
 
@@ -48,7 +48,7 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.SaveCurrentGame))]
     private static void SaveCurrentGame_Prefix()
     {
-        WeaverFixes.Logger.LogMessage($"Saving {nameof(OptimizedPlanet)}");
+        WeaverFixes.Logger.LogInfo($"Saving {nameof(OptimizedPlanet)}");
 
         foreach (OptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
         {
@@ -66,7 +66,7 @@ internal static class OptimizedStarCluster
             {
                 PlanetFactory newPlanet = _newPlanets.Dequeue();
 
-                WeaverFixes.Logger.LogMessage($"Adding planet: {newPlanet.planet.displayName}");
+                WeaverFixes.Logger.LogInfo($"Adding planet: {newPlanet.planet.displayName}");
                 _planetToOptimizedPlanet.Add(newPlanet, new OptimizedPlanet(newPlanet));
             }
         }
@@ -83,7 +83,7 @@ internal static class OptimizedStarCluster
                         continue;
                     }
 
-                    WeaverFixes.Logger.LogMessage($"Optimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
+                    WeaverFixes.Logger.LogInfo($"Optimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
                     planetToOptimizedPlanet.Value.Initialize();
                 }
 
@@ -95,7 +95,7 @@ internal static class OptimizedStarCluster
                 continue;
             }
 
-            WeaverFixes.Logger.LogMessage($"DeOptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
+            WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
             planetToOptimizedPlanet.Value.Save();
         }
 
@@ -109,7 +109,7 @@ internal static class OptimizedStarCluster
                 return;
             }
 
-            WeaverFixes.Logger.LogMessage($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
+            WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
             optimizedPlanet.Save();
         }
     }
@@ -469,7 +469,7 @@ internal static class OptimizedStarCluster
         OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
         if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
         {
-            WeaverFixes.Logger.LogMessage($"DeOptimizing planet: {planet.planet.displayName}");
+            WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planet.planet.displayName}");
             optimizedPlanet.Save();
         }
         optimizedPlanet.OptimizeDelayInTicks = 200;

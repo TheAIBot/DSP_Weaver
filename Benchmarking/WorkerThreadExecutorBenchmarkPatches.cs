@@ -100,6 +100,6 @@ public class MultithreadSystemBenchmarkDisplayPatches
         }
 
         string missionName = Enum.GetName(typeof(MissionOrderType), missionOrder);
-        WeaverFixes.Logger.LogMessage($"{nameof(MultithreadSystem)} Mission: {missionName,18} Min: {minTime,4:N1} Max: {maxTime,4:N1} Thread Times: {threadTimes}");
+        WeaverFixes.Logger.LogInfo($"{nameof(MultithreadSystem)} Mission: {missionName,18} Min: {minTime,4:N1} Max: {maxTime,4:N1} Thread Times: {threadTimes}");
     }
 }

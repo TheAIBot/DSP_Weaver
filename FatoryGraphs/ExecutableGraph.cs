@@ -33,7 +33,7 @@ internal sealed class ExecutableGraph<TExecuteAction>
                          .OrderBy(x => x)
                          .ToArray();
 
-        //WeaverFixes.Logger.LogMessage($"{_indexes.Length} indexes");
+        //WeaverFixes.Logger.LogInfo($"{_indexes.Length} indexes");
     }
 
     /// <summary>

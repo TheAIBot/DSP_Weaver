@@ -23,7 +23,7 @@ public class InserterMultithreadingOptimization
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
-        WeaverFixes.Logger.LogMessage($"Initializing {nameof(InserterMultithreadingOptimization)}");
+        WeaverFixes.Logger.LogInfo($"Initializing {nameof(InserterMultithreadingOptimization)}");
 
         _inserterTickTimes.Clear();
         _inserterExecutables.Clear();
@@ -49,7 +49,7 @@ public class InserterMultithreadingOptimization
             }
         }
 
-        WeaverFixes.Logger.LogMessage($"Created {_inserterExecutables.Count} executable graphs");
+        WeaverFixes.Logger.LogInfo($"Created {_inserterExecutables.Count} executable graphs");
     }
 
     [HarmonyPrefix]
@@ -100,7 +100,7 @@ public class InserterMultithreadingOptimization
 
         if (_gameTime.Value % 60 == 0)
         {
-            WeaverFixes.Logger.LogMessage($"Inserter tick {_inserterTickTimes.GetAverageTimeInMilliseconds(0):N2}");
+            WeaverFixes.Logger.LogInfo($"Inserter tick {_inserterTickTimes.GetAverageTimeInMilliseconds(0):N2}");
         }
 
         __instance.isRevAllThreadCompleteSignal = true;
