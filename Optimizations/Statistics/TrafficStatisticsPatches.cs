@@ -109,7 +109,10 @@ public sealed class TrafficStatisticsPatches
             return;
         }
 
-        _isStarUpdated[starId] = true;
+        if (_isStarUpdated != null)
+        {
+            _isStarUpdated[starId] = true;
+        }
     }
 
     [HarmonyPrefix]
@@ -121,7 +124,10 @@ public sealed class TrafficStatisticsPatches
             return;
         }
 
-        _isStarUpdated[starId] = true;
+        if (_isStarUpdated != null)
+        {
+            _isStarUpdated[starId] = true;
+        }
     }
 
     [HarmonyPrefix]
@@ -133,7 +139,10 @@ public sealed class TrafficStatisticsPatches
             return;
         }
 
-        _isStarUpdated[starId] = true;
+        if (_isStarUpdated != null)
+        {
+            _isStarUpdated[starId] = true;
+        }
     }
 
     [HarmonyPrefix]
@@ -146,7 +155,7 @@ public sealed class TrafficStatisticsPatches
         }
 
         PlanetFactory planetFactory = __instance.gameData.galaxy.PlanetById(planetId)?.factory;
-        if (planetFactory != null)
+        if (planetFactory != null && _isPlanetUpdated != null)
         {
             _isPlanetUpdated[planetFactory.index] = true;
         }
@@ -162,7 +171,7 @@ public sealed class TrafficStatisticsPatches
         }
 
         PlanetFactory planetFactory = __instance.gameData.galaxy.PlanetById(planetId)?.factory;
-        if (planetFactory != null)
+        if (planetFactory != null && _isPlanetUpdated != null)
         {
             _isPlanetUpdated[planetFactory.index] = true;
         }
@@ -178,7 +187,7 @@ public sealed class TrafficStatisticsPatches
         }
 
         PlanetFactory planetFactory = __instance.gameData.galaxy.PlanetById(planetId)?.factory;
-        if (planetFactory != null)
+        if (planetFactory != null && _isPlanetUpdated != null)
         {
             _isPlanetUpdated[planetFactory.index] = true;
         }
