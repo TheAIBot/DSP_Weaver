@@ -149,13 +149,13 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.InserterPartExecute))]
     public static bool InserterPartExecute(WorkerThreadExecutor __instance)
     {
-        InserterPartExecute(__instance, x => x._optimizedBiInserterExecutor);
-        InserterPartExecute(__instance, x => x._optimizedInserterExecutor);
+        InserterPartExecute(__instance, x => x._optimizedBiInserterExecutor, true);
+        InserterPartExecute(__instance, x => x._optimizedInserterExecutor, false);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
-    public static void InserterPartExecute<T>(WorkerThreadExecutor __instance, Func<OptimizedPlanet, InserterExecutor<T>?> inserterExecutorSelector)
+    public static void InserterPartExecute<T>(WorkerThreadExecutor __instance, Func<OptimizedPlanet, InserterExecutor<T>?> inserterExecutorSelector, bool runOriginalLogicOnUnoptimizedPlanets)
         where T : struct, IInserter<T>
     {
         if (__instance.inserterFactories == null)
@@ -170,13 +170,17 @@ internal static class OptimizedStarCluster
             InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
 
             int inserterCount;
-            if (optimizedInserterExecutor == null)
+            if (optimizedInserterExecutor != null)
+            {
+                inserterCount = optimizedInserterExecutor.inserterCount;
+            }
+            else if (runOriginalLogicOnUnoptimizedPlanets)
             {
                 inserterCount = planet.factorySystem.inserterCursor;
             }
             else
             {
-                inserterCount = optimizedInserterExecutor.inserterCount;
+                inserterCount = 0;
             }
 
             totalGalaxyInserterCount += inserterCount;
@@ -195,13 +199,17 @@ internal static class OptimizedStarCluster
             InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
 
             int inserterCount;
-            if (optimizedInserterExecutor == null)
+            if (optimizedInserterExecutor != null)
+            {
+                inserterCount = optimizedInserterExecutor.inserterCount;
+            }
+            else if (runOriginalLogicOnUnoptimizedPlanets)
             {
                 inserterCount = planet.factorySystem.inserterCursor;
             }
             else
             {
-                inserterCount = optimizedInserterExecutor.inserterCount;
+                inserterCount = 0;
             }
 
             int totalInsertersIncludingOnThisPlanets = totalInsertersSeenOnPreviousPlanets + inserterCount;
@@ -220,13 +228,17 @@ internal static class OptimizedStarCluster
             InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
 
             int inserterCount;
-            if (optimizedInserterExecutor == null)
+            if (optimizedInserterExecutor != null)
+            {
+                inserterCount = optimizedInserterExecutor.inserterCount;
+            }
+            else if (runOriginalLogicOnUnoptimizedPlanets)
             {
                 inserterCount = planet.factorySystem.inserterCursor;
             }
             else
             {
-                inserterCount = optimizedInserterExecutor.inserterCount;
+                inserterCount = 0;
             }
 
             int num5 = _start - totalInsertersSeenOnPreviousPlanets;
@@ -244,7 +256,7 @@ internal static class OptimizedStarCluster
 
                         optimizedInserterExecutor.GameTickInserters(planet, optimizedPlanet, __instance.inserterTime, num5, inserterCount);
                     }
-                    else
+                    else if (runOriginalLogicOnUnoptimizedPlanets)
                     {
                         bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[planetIndex].planet;
                         __instance.inserterFactories[planetIndex].factorySystem.GameTickInserters(__instance.inserterTime, isActive, num5, inserterCount);
@@ -270,7 +282,7 @@ internal static class OptimizedStarCluster
 
                     optimizedInserterExecutor.GameTickInserters(planet, optimizedPlanet, __instance.inserterTime, num5, num6);
                 }
-                else
+                else if (runOriginalLogicOnUnoptimizedPlanets)
                 {
                     bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[planetIndex].planet;
                     __instance.inserterFactories[planetIndex].factorySystem.GameTickInserters(__instance.inserterTime, isActive, num5, num6);
