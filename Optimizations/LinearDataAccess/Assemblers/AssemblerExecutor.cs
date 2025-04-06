@@ -9,6 +9,9 @@ internal sealed class AssemblerExecutor
     public OptimizedAssembler[] _optimizedAssemblers;
     private bool[] _assemblerReplicatings;
     private int[] _assemblerExtraPowerRatios;
+    private AssemblerTimingData[] _assemblersTimingData;
+    public AssemblerNeeds[] _assemblersNeeds;
+    public int[] _assemblerRecipeIndexes;
     public AssemblerRecipe[] _assemblerRecipes;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex;
     public HashSet<int> _unOptimizedAssemblerIds;
@@ -24,6 +27,9 @@ internal sealed class AssemblerExecutor
         AssemblerRecipe[] assemblerRecipes = _assemblerRecipes;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
+        AssemblerTimingData[] assemblersTimingData = _assemblersTimingData;
+        AssemblerNeeds[] assemblersNeeds = _assemblersNeeds;
+        int[] assemblerRecipeIndexes = _assemblerRecipeIndexes;
 
         if (!WorkerThreadExecutor.CalculateMissionIndex(0, optimizedAssemblers.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
         {
@@ -38,19 +44,28 @@ internal sealed class AssemblerExecutor
                 continue;
             }
 
-            float power = networkServes[assemblerNetworkIdAndState.Index];
-            ref OptimizedAssembler assembler = ref optimizedAssemblers[k];
-            ref AssemblerRecipe recipeData = ref assemblerRecipes[assembler.assemblerRecipeIndex];
-            assembler.UpdateNeeds(ref recipeData);
+            AssemblerRecipe recipeData = assemblerRecipes[assemblerRecipeIndexes[k]];
+            AssemblerNeeds assemblerNeeds = assemblersNeeds[k];
+            ref AssemblerTimingData assemblerTimingData = ref assemblersTimingData[k];
+            OptimizedAssembler.UpdateNeeds(ref recipeData, ref assemblerTimingData, ref assemblerNeeds);
 
+            float power = networkServes[assemblerNetworkIdAndState.Index];
             ref bool replicating = ref assemblerReplicatings[k];
+            if (!assemblerTimingData.UpdateTimings(power, replicating, in recipeData))
+            {
+                continue;
+            }
+
+            ref OptimizedAssembler assembler = ref optimizedAssemblers[k];
             ref int extraPowerRatios = ref assemblerExtraPowerRatios[k];
             assemblerNetworkIdAndState.State = (int)assembler.Update(power,
                                                                      productRegister,
                                                                      consumeRegister,
                                                                      ref recipeData,
                                                                      ref replicating,
-                                                                     ref extraPowerRatios);
+                                                                     ref extraPowerRatios,
+                                                                     ref assemblerTimingData,
+                                                                     ref assemblerNeeds);
         }
     }
 
@@ -86,6 +101,9 @@ internal sealed class AssemblerExecutor
         AssemblerRecipe[] assemblerRecipes = _assemblerRecipes;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
+        AssemblerTimingData[] assemblersTimingData = _assemblersTimingData;
+        AssemblerNeeds[] assemblersNeeds = _assemblersNeeds;
+        int[] assemblerRecipeIndexes = _assemblerRecipeIndexes;
         for (int i = 1; i < planet.factorySystem.assemblerCursor; i++)
         {
             if (!_assemblerIdToOptimizedIndex.TryGetValue(i, out int optimizedIndex))
@@ -94,8 +112,13 @@ internal sealed class AssemblerExecutor
             }
 
             ref readonly OptimizedAssembler optimizedAssembler = ref optimizedAssemblers[optimizedIndex];
-            ref readonly AssemblerRecipe assemblerRecipe = ref assemblerRecipes[optimizedAssembler.assemblerRecipeIndex];
-            optimizedAssembler.Save(ref assemblers[i], in assemblerRecipe, assemblerReplicatings[optimizedIndex], assemblerExtraPowerRatios[optimizedIndex]);
+            ref readonly AssemblerRecipe assemblerRecipe = ref assemblerRecipes[assemblerRecipeIndexes[optimizedIndex]];
+            optimizedAssembler.Save(ref assemblers[i],
+                                    in assemblerRecipe,
+                                    assemblerReplicatings[optimizedIndex],
+                                    assemblerExtraPowerRatios[optimizedIndex],
+                                    in assemblersTimingData[optimizedIndex],
+                                    in assemblersNeeds[optimizedIndex]);
         }
     }
 
@@ -105,6 +128,9 @@ internal sealed class AssemblerExecutor
         List<OptimizedAssembler> optimizedAssemblers = [];
         List<bool> assemblerReplicatings = [];
         List<int> assemblerExtraPowerRatios = [];
+        List<AssemblerTimingData> assemblersTimingData = [];
+        List<AssemblerNeeds> assemblersNeeds = [];
+        List<int> assemblerRecipeIndexes = [];
         Dictionary<AssemblerRecipe, int> assemblerRecipeToIndex = [];
         List<AssemblerRecipe> assemblerRecipes = [];
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
@@ -145,9 +171,12 @@ internal sealed class AssemblerExecutor
             int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
             assemblerNetworkIdAndStates.Add(new NetworkIdAndState<AssemblerState>((int)(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active),
                                                                                   networkIndex));
-            optimizedAssemblers.Add(new OptimizedAssembler(assemblerRecipeIndex, ref assembler));
+            optimizedAssemblers.Add(new OptimizedAssembler(ref assembler));
             assemblerReplicatings.Add(assembler.replicating);
             assemblerExtraPowerRatios.Add(assembler.extraPowerRatio);
+            assemblersTimingData.Add(new AssemblerTimingData(in assembler));
+            assemblersNeeds.Add(new AssemblerNeeds(in assembler));
+            assemblerRecipeIndexes.Add(assemblerRecipeIndex);
             optimizedPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
 
 
@@ -161,6 +190,9 @@ internal sealed class AssemblerExecutor
         _optimizedAssemblers = optimizedAssemblers.ToArray();
         _assemblerReplicatings = assemblerReplicatings.ToArray();
         _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();
+        _assemblersTimingData = assemblersTimingData.ToArray();
+        _assemblersNeeds = assemblersNeeds.ToArray();
+        _assemblerRecipeIndexes = assemblerRecipeIndexes.ToArray();
         _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
         _unOptimizedAssemblerIds = unOptimizedAssemblerIds;
     }

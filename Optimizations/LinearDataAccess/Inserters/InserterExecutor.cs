@@ -936,7 +936,7 @@ internal sealed class InserterExecutor<T>
             if (pickFrom.EntityType == EntityType.Assembler)
             {
                 ref readonly OptimizedAssembler assembler = ref optimizedPlanet._assemblerExecutor._optimizedAssemblers[pickFrom.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[assembler.assemblerRecipeIndex];
+                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[optimizedPlanet._assemblerExecutor._assemblerRecipeIndexes[pickFrom.Index]];
                 pickFromProducingPlants.Add(new PickFromProducingPlant(assemblerRecipe.Products, assembler.produced));
             }
             else if (pickFrom.EntityType == EntityType.ProducingLab)
@@ -953,8 +953,9 @@ internal sealed class InserterExecutor<T>
             if (insertInto.EntityType == EntityType.Assembler)
             {
                 ref readonly OptimizedAssembler assembler = ref optimizedPlanet._assemblerExecutor._optimizedAssemblers[insertInto.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[assembler.assemblerRecipeIndex];
-                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assembler.served, assembler.incServed));
+                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[optimizedPlanet._assemblerExecutor._assemblerRecipeIndexes[insertInto.Index]];
+                ref readonly AssemblerNeeds assemblerNeeds = ref optimizedPlanet._assemblerExecutor._assemblersNeeds[insertInto.Index];
+                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assemblerNeeds.served, assembler.incServed));
             }
             else if (insertInto.EntityType == EntityType.ProducingLab)
             {
