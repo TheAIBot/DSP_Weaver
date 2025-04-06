@@ -11,6 +11,7 @@ internal sealed class AssemblerExecutor
     private int[] _assemblerExtraPowerRatios;
     public AssemblerRecipe[] _assemblerRecipes;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex;
+    public HashSet<int> _unOptimizedAssemblerIds;
 
     public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
@@ -108,17 +109,20 @@ internal sealed class AssemblerExecutor
         Dictionary<AssemblerRecipe, int> assemblerRecipeToIndex = [];
         List<AssemblerRecipe> assemblerRecipes = [];
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
+        HashSet<int> unOptimizedAssemblerIds = [];
 
         for (int i = 0; i < planet.factorySystem.assemblerCursor; i++)
         {
             ref AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
             if (assembler.id != i)
             {
+                unOptimizedAssemblerIds.Add(i);
                 continue;
             }
 
             if (assembler.recipeId == 0)
             {
+                unOptimizedAssemblerIds.Add(i);
                 continue;
             }
 
@@ -159,6 +163,7 @@ internal sealed class AssemblerExecutor
         _assemblerReplicatings = assemblerReplicatings.ToArray();
         _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();
         _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
+        _unOptimizedAssemblerIds = unOptimizedAssemblerIds;
     }
 
     private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool assemblerReplicating, int assemblerExtraPowerRatio)

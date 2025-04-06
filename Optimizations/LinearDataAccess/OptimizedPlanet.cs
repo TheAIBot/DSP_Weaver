@@ -316,6 +316,11 @@ internal sealed class OptimizedPlanet
         {
             if (!_assemblerExecutor._assemblerIdToOptimizedIndex.TryGetValue(entity.assemblerId, out int optimizedAssemblerIndex))
             {
+                if (_assemblerExecutor._unOptimizedAssemblerIds.Contains(entity.assemblerId))
+                {
+                    return new TypedObjectIndex(EntityType.None, -1);
+                }
+
                 throw new InvalidOperationException("Failed to convert assembler id into optimized assembler id.");
             }
 
@@ -335,6 +340,11 @@ internal sealed class OptimizedPlanet
             {
                 if (!_researchingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
                 {
+                    if (_researchingLabExecutor._unOptimizedLabIds.Contains(entity.labId))
+                    {
+                        return new TypedObjectIndex(EntityType.None, -1);
+                    }
+
                     throw new InvalidOperationException("Failed to convert researching lab id into optimized lab id.");
                 }
 
@@ -344,6 +354,11 @@ internal sealed class OptimizedPlanet
             {
                 if (!_producingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
                 {
+                    if (_producingLabExecutor._unOptimizedLabIds.Contains(entity.labId))
+                    {
+                        return new TypedObjectIndex(EntityType.None, -1);
+                    }
+
                     throw new InvalidOperationException("Failed to convert producing lab id into optimized lab id.");
                 }
 

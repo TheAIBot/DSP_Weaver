@@ -11,6 +11,7 @@ internal sealed class ProducingLabExecutor
     public ProducingLabRecipe[] _producingLabRecipes;
     public int[] _entityIds;
     public Dictionary<int, int> _labIdToOptimizedLabIndex;
+    public HashSet<int> _unOptimizedLabIds;
 
     public void GameTickLabProduceMode(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
@@ -122,22 +123,26 @@ internal sealed class ProducingLabExecutor
         List<ProducingLabRecipe> producingLabRecipes = [];
         List<int> entityIds = [];
         Dictionary<int, int> labIdToOptimizedLabIndex = [];
+        HashSet<int> unOptimizedLabIds = [];
 
         for (int i = 0; i < planet.factorySystem.labCursor; i++)
         {
             ref LabComponent lab = ref planet.factorySystem.labPool[i];
             if (lab.id != i)
             {
+                unOptimizedLabIds.Add(i);
                 continue;
             }
 
             if (lab.researchMode)
             {
+                unOptimizedLabIds.Add(i);
                 continue;
             }
 
             if (lab.recipeId == 0)
             {
+                unOptimizedLabIds.Add(i);
                 continue;
             }
 
@@ -189,6 +194,7 @@ internal sealed class ProducingLabExecutor
         _producingLabRecipes = producingLabRecipes.ToArray();
         _entityIds = entityIds.ToArray();
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
+        _unOptimizedLabIds = unOptimizedLabIds;
     }
 
     private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool replicating, int extraPowerRatio)

@@ -830,6 +830,10 @@ internal sealed class InserterExecutor<T>
             if (inserter.pickTarget != 0)
             {
                 pickFrom = optimizedPlanet.GetAsGranularTypedObjectIndex(inserter.pickTarget, planet);
+                if (pickFrom.EntityType == EntityType.None)
+                {
+                    continue;
+                }
             }
             else
             {
@@ -846,6 +850,11 @@ internal sealed class InserterExecutor<T>
             if (inserter.insertTarget != 0)
             {
                 insertInto = optimizedPlanet.GetAsGranularTypedObjectIndex(inserter.insertTarget, planet);
+                if (insertInto.EntityType == EntityType.None)
+                {
+                    continue;
+                }
+
                 insertIntoNeeds = OptimizedPlanet.GetEntityNeeds(planet, inserter.insertTarget);
             }
             else
