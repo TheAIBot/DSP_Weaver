@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using UnityEngine;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
+using Weaver.Optimizations.LinearDataAccess.Fractionators;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
@@ -42,6 +42,8 @@ internal sealed class OptimizedPlanet
 
     public SpraycoaterExecutor _spraycoaterExecutor;
 
+    public FractionatorExecutor _fractionatorExecutor;
+
     public OptimizedPowerSystem _optimizedPowerSystem;
 
     public OptimizedPlanet(PlanetFactory planet)
@@ -57,6 +59,7 @@ internal sealed class OptimizedPlanet
         _producingLabExecutor.Save(_planet);
         _researchingLabExecutor.Save(_planet);
         _spraycoaterExecutor.Save(_planet);
+        _fractionatorExecutor.Save(_planet);
 
         Status = OptimizedPlanetStatus.Stopped;
     }
@@ -72,6 +75,7 @@ internal sealed class OptimizedPlanet
         InitializeResearchingLabs(_planet, optimizedPowerSystemBuilder);
         InitializeInserters(_planet, optimizedPowerSystemBuilder);
         InitializeSpraycoaters(_planet, optimizedPowerSystemBuilder);
+        InitializeFractionators(_planet);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
@@ -160,6 +164,12 @@ internal sealed class OptimizedPlanet
         _spraycoaterExecutor.Initialize(planet, optimizedPowerSystemBuilder);
     }
 
+    private void InitializeFractionators(PlanetFactory planet)
+    {
+        _fractionatorExecutor = new FractionatorExecutor();
+        _fractionatorExecutor.Initialize(planet);
+    }
+
     public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         GameHistoryData history = GameMain.history;
@@ -209,21 +219,8 @@ internal sealed class OptimizedPlanet
 
         _assemblerExecutor.GameTick(planet, time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
 
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.fractionatorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int l = _start; l < _end; l++)
-            {
-                if (factorySystem.fractionatorPool[l].id == l)
-                {
-                    int entityId4 = factorySystem.fractionatorPool[l].entityId;
-                    float power2 = networkServes[consumerPool[factorySystem.fractionatorPool[l].pcId].networkId];
-                    uint state = factorySystem.fractionatorPool[l].InternalUpdate(factorySystem.factory, power2, entitySignPool, productRegister, consumeRegister);
-                    entityAnimPool[entityId4].time = Mathf.Sqrt((float)factorySystem.fractionatorPool[l].fluidInputCount * 0.025f);
-                    entityAnimPool[entityId4].state = state;
-                    entityAnimPool[entityId4].power = power2;
-                }
-            }
-        }
+        _fractionatorExecutor.GameTick(planet, time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+
         lock (factorySystem.ejectorPool)
         {
             if (factorySystem.ejectorCursor - factorySystem.ejectorRecycleCursor > 1)

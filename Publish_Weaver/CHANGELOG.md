@@ -1,3 +1,6 @@
+## 1.1.0
+* Optimized fractionators.
+
 ## 1.0.1
 * Fixed sorters on active planets would be updated twice per tick which would sometimes result in a `DivideByZeroException`.
 * Fixed that it was not possible to create a new game with the mod loaded.

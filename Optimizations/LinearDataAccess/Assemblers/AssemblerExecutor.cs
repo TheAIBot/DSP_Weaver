@@ -15,7 +15,6 @@ internal sealed class AssemblerExecutor
 
     public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
-        GameHistoryData history = GameMain.history;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
@@ -94,7 +93,7 @@ internal sealed class AssemblerExecutor
                 continue;
             }
 
-            ref OptimizedAssembler optimizedAssembler = ref optimizedAssemblers[optimizedIndex];
+            ref readonly OptimizedAssembler optimizedAssembler = ref optimizedAssemblers[optimizedIndex];
             ref readonly AssemblerRecipe assemblerRecipe = ref assemblerRecipes[optimizedAssembler.assemblerRecipeIndex];
             optimizedAssembler.Save(ref assemblers[i], in assemblerRecipe, assemblerReplicatings[optimizedIndex], assemblerExtraPowerRatios[optimizedIndex]);
         }
