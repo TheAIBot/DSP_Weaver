@@ -1,4 +1,4 @@
-﻿## Summary
+## Summary
 
 Weaver is a mod that roughly doubles the performance of DSP. The mod does not alter gameplay in any way and can be enabled/disabled anytime.
 You'll experience the best performance while flying in outer space. You can read why in the **_How it works_** section.
