@@ -314,59 +314,35 @@ internal static class OptimizedStarCluster
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.AssemblerPartExecute))]
-    public static bool AssemblerPartExecute(WorkerThreadExecutor __instance)
+    [HarmonyPatch(typeof(FactorySystem),
+                  nameof(FactorySystem.GameTick),
+                  [typeof(long), typeof(bool), typeof(int), typeof(int), typeof(int)])]
+    public static bool FactorySystem_GameTick(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
-        if (__instance.assemblerFactories == null)
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[__instance.factory];
+        if (optimizedPlanet.Status != OptimizedPlanetStatus.Running)
         {
-            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
-        for (int i = 0; i < __instance.assemblerFactoryCnt; i++)
+
+        optimizedPlanet.GameTick(__instance.factory, time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FactorySystem),
+                  nameof(FactorySystem.GameTickLabProduceMode),
+                  [typeof(long), typeof(bool), typeof(int), typeof(int), typeof(int)])]
+    public static bool FactorySystem_GameTickLabProduceMode(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    {
+        OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[__instance.factory];
+        if (optimizedPlanet.Status != OptimizedPlanetStatus.Running)
         {
-            if (__instance.assemblerFactories[i].factorySystem == null)
-            {
-                continue;
-            }
-
-            PlanetFactory planet = __instance.assemblerFactories[i];
-            OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
-
-            try
-            {
-                if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
-                {
-                    optimizedPlanet.GameTick(planet, __instance.assemblerTime, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
-                }
-                else
-                {
-                    bool isActive = __instance.assemblerLocalPlanet == __instance.assemblerFactories[i].planet;
-                    __instance.assemblerFactories[i].factorySystem.GameTick(__instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
-                }
-            }
-            catch (Exception ex)
-            {
-                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Assembler Factory idx:" + i.ToString() + " Assembler gametick " + ex;
-                __instance.hasErrorMessage = true;
-            }
-
-            try
-            {
-                if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
-                {
-                    optimizedPlanet._producingLabExecutor.GameTickLabProduceMode(planet, __instance.assemblerTime, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
-                }
-                else
-                {
-                    bool isActive = __instance.assemblerLocalPlanet == __instance.assemblerFactories[i].planet;
-                    __instance.assemblerFactories[i].factorySystem.GameTickLabProduceMode(__instance.assemblerTime, isActive, __instance.usedThreadCnt, __instance.curThreadIdx, 4);
-                }
-            }
-            catch (Exception ex2)
-            {
-                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Lab Produce Factory idx:" + i.ToString() + " lab produce gametick " + ex2;
-                __instance.hasErrorMessage = true;
-            }
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
+
+        optimizedPlanet._producingLabExecutor.GameTickLabProduceMode(__instance.factory, time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
@@ -380,7 +356,6 @@ internal static class OptimizedStarCluster
         {
             return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
-
 
         optimizedPlanet._optimizedPowerSystem.FactorySystem_ParallelGameTickBeforePower(__instance.factory, optimizedPlanet, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
 
