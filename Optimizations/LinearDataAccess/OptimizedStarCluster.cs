@@ -22,6 +22,16 @@ internal static class OptimizedStarCluster
 
     public static OptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(GameMain), nameof(GameMain.End))]
+    public static void End()
+    {
+        WeaverFixes.Logger.LogInfo($"Clearing optimized planets");
+        // Clear optimized planets in the specific case where a new save is created which circumvents
+        // the logic in LoadCurrentGame_Postfix which is other wise supposed to do it
+        _planetToOptimizedPlanet.Clear();
+    }
+
     [HarmonyPriority(1)]
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
@@ -52,6 +62,11 @@ internal static class OptimizedStarCluster
 
         foreach (OptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
         {
+            if (optimizedPlanet.Status != OptimizedPlanetStatus.Running)
+            {
+                continue;
+            }
+
             optimizedPlanet.Save();
         }
     }
