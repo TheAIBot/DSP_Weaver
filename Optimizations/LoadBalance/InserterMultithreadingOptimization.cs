@@ -13,9 +13,9 @@ public class InserterMultithreadingOptimization
     private static readonly List<ExecutableGraph<InserterExecutableGraphAction>> _inserterExecutables = [];
     private static long? _gameTime;
 
-    public static void EnableOptimization()
+    public static void EnableOptimization(Harmony harmony)
     {
-        Harmony.CreateAndPatchAll(typeof(InserterMultithreadingOptimization));
+        harmony.PatchAll(typeof(InserterMultithreadingOptimization));
     }
 
     [HarmonyPriority(1)]

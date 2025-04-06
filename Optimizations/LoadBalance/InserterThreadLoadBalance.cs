@@ -11,13 +11,13 @@ public class InserterThreadLoadBalance
     internal static int[]? _inserterPerThreadItemCount = null;
     internal static bool enableStatisticsLoadBalancing = false;
 
-    public static void EnableOptimization()
+    public static void EnableOptimization(Harmony harmony)
     {
-        Harmony.CreateAndPatchAll(typeof(WorkerThreadExecutorBenchmarkPatches));
-        Harmony.CreateAndPatchAll(typeof(MultithreadSystemBenchmarkDisplayPatches));
+        harmony.PatchAll(typeof(WorkerThreadExecutorBenchmarkPatches));
+        harmony.PatchAll(typeof(MultithreadSystemBenchmarkDisplayPatches));
         MultithreadSystemBenchmarkDisplayPatches._logResults = false;
 
-        Harmony.CreateAndPatchAll(typeof(InserterThreadLoadBalance));
+        harmony.PatchAll(typeof(InserterThreadLoadBalance));
     }
 
     [HarmonyPostfix]

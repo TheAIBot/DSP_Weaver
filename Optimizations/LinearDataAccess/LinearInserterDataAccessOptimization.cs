@@ -8,9 +8,9 @@ namespace Weaver.Optimizations.LinearDataAccess;
 
 public class LinearInserterDataAccessOptimization
 {
-    public static void EnableOptimization()
+    public static void EnableOptimization(Harmony harmony)
     {
-        Harmony.CreateAndPatchAll(typeof(LinearInserterDataAccessOptimization));
+        harmony.PatchAll(typeof(LinearInserterDataAccessOptimization));
     }
 
     [HarmonyPriority(2)] // need to be executed before InserterMultithreadingOptimization

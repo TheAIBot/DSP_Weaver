@@ -20,42 +20,43 @@ public class WeaverFixes : BaseUnityPlugin
 
     private void Awake()
     {
+        var harmony = new Harmony(ModInfo.Guid);
         // These changes parallelize calculating statistics
-        Harmony.CreateAndPatchAll(typeof(ProductionStatisticsPatches));
-        Harmony.CreateAndPatchAll(typeof(KillStatisticsPatches));
-        Harmony.CreateAndPatchAll(typeof(TrafficStatisticsPatches));
-        //Harmony.CreateAndPatchAll(typeof(CustomChartsPatches));
+        harmony.PatchAll(typeof(ProductionStatisticsPatches));
+        harmony.PatchAll(typeof(KillStatisticsPatches));
+        harmony.PatchAll(typeof(TrafficStatisticsPatches));
+        //harmony.PatchAll(typeof(CustomChartsPatches));
 
 
 
         // These are for benchmarking the code
-        //Harmony.CreateAndPatchAll(typeof(GameHistoryDataBenchmarkPatches));
-        //Harmony.CreateAndPatchAll(typeof(GameStatDataBenchmarkPatches));
-        //Harmony.CreateAndPatchAll(typeof(PlayerPackageUtilityBenchmarkPatches));
+        //harmony.PatchAll(typeof(GameHistoryDataBenchmarkPatches));
+        //harmony.PatchAll(typeof(GameStatDataBenchmarkPatches));
+        //harmony.PatchAll(typeof(PlayerPackageUtilityBenchmarkPatches));
 
-        //Harmony.CreateAndPatchAll(typeof(ProductionStatisticsBenchmarkPatches));
-        //Harmony.CreateAndPatchAll(typeof(KillStatisticsBenchmarkPatches));
-        //Harmony.CreateAndPatchAll(typeof(TrafficStatisticsBenchmarkPatches));
-        //Harmony.CreateAndPatchAll(typeof(CustomChartsBenchmarkPatches));
+        //harmony.PatchAll(typeof(ProductionStatisticsBenchmarkPatches));
+        //harmony.PatchAll(typeof(KillStatisticsBenchmarkPatches));
+        //harmony.PatchAll(typeof(TrafficStatisticsBenchmarkPatches));
+        //harmony.PatchAll(typeof(CustomChartsBenchmarkPatches));
 
 
         // Optimizing the codes usage of object pools
-        //Harmony.CreateAndPatchAll(typeof(ShrinkPools));
+        //harmony.PatchAll(typeof(ShrinkPools));
 
-        //Harmony.CreateAndPatchAll(typeof(WorkerThreadExecutorBenchmarkPatches));
-        //Harmony.CreateAndPatchAll(typeof(MultithreadSystemBenchmarkDisplayPatches));
+        //harmony.PatchAll(typeof(WorkerThreadExecutorBenchmarkPatches));
+        //harmony.PatchAll(typeof(MultithreadSystemBenchmarkDisplayPatches));
 
-        //InserterThreadLoadBalance.EnableOptimization();
-        //InserterMultithreadingOptimization.EnableOptimization();
+        //InserterThreadLoadBalance.EnableOptimization(harmony);
+        //InserterMultithreadingOptimization.EnableOptimization(harmony);
 
         // Causes various issues such as
         // * Incorrect production statistics
         // * Incorrect power statistics
         // * Assembler DivideByZeroException
-        //LinearInserterDataAccessOptimization.EnableOptimization();
+        //LinearInserterDataAccessOptimization.EnableOptimization(harmony);
 
 
-        OptimizedStarCluster.EnableOptimization();
-        //GraphStatistics.Enable();
+        OptimizedStarCluster.EnableOptimization(harmony);
+        //GraphStatistics.Enable(harmony);
     }
 }

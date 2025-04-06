@@ -15,9 +15,9 @@ internal static class OptimizedStarCluster
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
 
-    public static void EnableOptimization()
+    public static void EnableOptimization(Harmony harmony)
     {
-        Harmony.CreateAndPatchAll(typeof(OptimizedStarCluster));
+        harmony.PatchAll(typeof(OptimizedStarCluster));
     }
 
     public static OptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];

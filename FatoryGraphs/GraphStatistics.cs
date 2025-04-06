@@ -7,9 +7,9 @@ namespace Weaver.FatoryGraphs;
 
 internal static class GraphStatistics
 {
-    public static void Enable()
+    public static void Enable(Harmony harmony)
     {
-        Harmony.CreateAndPatchAll(typeof(GraphStatistics));
+        harmony.PatchAll(typeof(GraphStatistics));
     }
 
     [HarmonyPostfix]

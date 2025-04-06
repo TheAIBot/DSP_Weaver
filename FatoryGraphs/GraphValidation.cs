@@ -5,9 +5,9 @@ namespace Weaver.FatoryGraphs;
 
 internal static class GraphValidation
 {
-    public static void Enable()
+    public static void Enable(Harmony harmony)
     {
-        Harmony.CreateAndPatchAll(typeof(GraphValidation));
+        harmony.PatchAll(typeof(GraphValidation));
     }
 
     [HarmonyPostfix]
