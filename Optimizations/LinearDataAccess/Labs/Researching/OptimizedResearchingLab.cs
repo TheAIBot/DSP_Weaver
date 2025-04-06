@@ -11,11 +11,9 @@ internal struct OptimizedResearchingLab
     public readonly int[] matrixServed;
     public readonly int[] matrixIncServed;
     public readonly int nextLabIndex;
-    public bool replicating;
     public bool incUsed;
     public int hashBytes;
     public int extraHashBytes;
-    public int extraPowerRatio;
 
     public OptimizedResearchingLab(int? nextLabIndex,
                                    ref readonly LabComponent lab)
@@ -24,11 +22,9 @@ internal struct OptimizedResearchingLab
         matrixServed = lab.matrixServed;
         matrixIncServed = lab.matrixIncServed;
         this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
-        replicating = lab.replicating;
         incUsed = lab.incUsed;
         hashBytes = lab.hashBytes;
         extraHashBytes = lab.extraHashBytes;
-        extraPowerRatio = lab.extraPowerRatio;
     }
 
     public OptimizedResearchingLab(int nextLabIndex,
@@ -41,14 +37,17 @@ internal struct OptimizedResearchingLab
         incUsed = lab.incUsed;
         hashBytes = lab.hashBytes;
         extraHashBytes = lab.extraHashBytes;
-        extraPowerRatio = lab.extraPowerRatio;
     }
 
-    public void SetFunction(int entityId, int techId, int[] matrixPoints, SignData[] signPool)
+    public void SetFunction(int entityId,
+                            int techId,
+                            int[] matrixPoints,
+                            SignData[] signPool,
+                            ref LabPowerFields labPowerFields)
     {
         hashBytes = 0;
         extraHashBytes = 0;
-        extraPowerRatio = 0;
+        labPowerFields.extraPowerRatio = 0;
         incUsed = false;
         Array.Copy(LabComponent.matrixIds, needs, LabComponent.matrixIds.Length);
         signPool[entityId].iconId0 = (uint)techId;
@@ -73,7 +72,8 @@ internal struct OptimizedResearchingLab
                                            ref TechState ts,
                                            ref int techHashedThisFrame,
                                            ref long uMatrixPoint,
-                                           ref long hashRegister)
+                                           ref long hashRegister,
+                                           ref LabPowerFields labPowerFields)
     {
         if (power < 0.1f)
         {
@@ -90,7 +90,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    replicating = false;
+                    labPowerFields.replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -103,7 +103,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    replicating = false;
+                    labPowerFields.replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -116,7 +116,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    replicating = false;
+                    labPowerFields.replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -129,7 +129,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    replicating = false;
+                    labPowerFields.replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -142,7 +142,7 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    replicating = false;
+                    labPowerFields.replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -155,12 +155,12 @@ internal struct OptimizedResearchingLab
                 num = num2;
                 if (num == 0)
                 {
-                    replicating = false;
+                    labPowerFields.replicating = false;
                     return LabState.InactiveInputMissing;
                 }
             }
         }
-        replicating = true;
+        labPowerFields.replicating = true;
         research_speed = research_speed < num ? research_speed : num;
         int num3 = (int)(power * 10000f * research_speed + 0.5f);
         hashBytes += num3;
@@ -201,7 +201,7 @@ internal struct OptimizedResearchingLab
             long num13 = 0L;
             int num14 = 0;
             int extraSpeed = (int)(10000.0 * Cargo.incTableMilli[num8] * 10.0 + 0.1);
-            extraPowerRatio = Cargo.powerTable[num8];
+            labPowerFields.extraPowerRatio = Cargo.powerTable[num8];
             extraHashBytes += (int)(power * extraSpeed * research_speed + 0.5f);
             num13 = extraHashBytes / 100000;
             extraHashBytes -= (int)num13 * 100000;
@@ -231,7 +231,7 @@ internal struct OptimizedResearchingLab
         }
         else
         {
-            extraPowerRatio = 0;
+            labPowerFields.extraPowerRatio = 0;
         }
 
         return LabState.Active;
@@ -343,16 +343,18 @@ internal struct OptimizedResearchingLab
         }
     }
 
-    public void Save(ref LabComponent lab, int[] matrixPoints)
+    public void Save(ref LabComponent lab,
+                     LabPowerFields labPowerFields,
+                     int[] matrixPoints)
     {
         lab.needs = needs;
         lab.matrixServed = matrixServed;
         lab.matrixIncServed = matrixIncServed;
-        lab.replicating = replicating;
+        lab.replicating = labPowerFields.replicating;
         lab.incUsed = incUsed;
         lab.hashBytes = hashBytes;
         lab.extraHashBytes = extraHashBytes;
-        lab.extraPowerRatio = extraPowerRatio;
+        lab.extraPowerRatio = labPowerFields.extraPowerRatio;
         lab.matrixPoints = matrixPoints;
     }
 

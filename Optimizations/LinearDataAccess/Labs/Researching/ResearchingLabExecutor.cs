@@ -10,6 +10,7 @@ internal sealed class ResearchingLabExecutor
     private int[] _matrixPoints;
     public NetworkIdAndState<LabState>[] _networkIdAndStates;
     public OptimizedResearchingLab[] _optimizedLabs;
+    public LabPowerFields[] _labsPowerFields;
     public int[] _entityIds;
     public Dictionary<int, int> _labIdToOptimizedLabIndex;
     public HashSet<int> _unOptimizedLabIds;
@@ -26,6 +27,7 @@ internal sealed class ResearchingLabExecutor
         float[] networkServes = powerSystem.networkServes;
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        LabPowerFields[] labsPowerFields = _labsPowerFields;
         int num = history.currentTech;
         TechProto techProto = LDB.techs.Select(num);
         TechState ts = default;
@@ -89,7 +91,11 @@ internal sealed class ResearchingLabExecutor
             int[] entityIds = _entityIds;
             for (int i = 0; i < optimizedLabs.Length; i++)
             {
-                optimizedLabs[i].SetFunction(entityIds[i], factorySystem.researchTechId, _matrixPoints, entitySignPool);
+                optimizedLabs[i].SetFunction(entityIds[i],
+                                             factorySystem.researchTechId,
+                                             _matrixPoints,
+                                             entitySignPool,
+                                             ref labsPowerFields[i]);
             }
         }
 
@@ -116,7 +122,8 @@ internal sealed class ResearchingLabExecutor
                                                                                 ref ts,
                                                                                 ref techHashedThisFrame,
                                                                                 ref uMatrixPoint,
-                                                                                ref hashRegister);
+                                                                                ref hashRegister,
+                                                                                ref labsPowerFields[k]);
                 if (ts.unlocked)
                 {
                     hasResearchedTechnology = true;
@@ -200,14 +207,13 @@ internal sealed class ResearchingLabExecutor
         }
 
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
-        OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        LabPowerFields[] labsPowerFields = _labsPowerFields;
         for (int j = _start; j < _end; j++)
         {
             int networkIndex = networkIdAndStates[j].Index;
             int powerConsumerTypeIndex = researchingLabPowerConsumerIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            OptimizedResearchingLab lab = optimizedLabs[j];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, lab.replicating, lab.extraPowerRatio);
+            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labsPowerFields[j]);
         }
     }
 
@@ -215,6 +221,7 @@ internal sealed class ResearchingLabExecutor
     {
         LabComponent[] labComponents = planet.factorySystem.labPool;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
+        LabPowerFields[] labsPowerFields = _labsPowerFields;
         for (int i = 1; i < planet.factorySystem.labCursor; i++)
         {
             if (!_labIdToOptimizedLabIndex.TryGetValue(i, out int optimizedIndex))
@@ -222,7 +229,7 @@ internal sealed class ResearchingLabExecutor
                 continue;
             }
 
-            optimizedLabs[optimizedIndex].Save(ref labComponents[i], _matrixPoints);
+            optimizedLabs[optimizedIndex].Save(ref labComponents[i], labsPowerFields[i], _matrixPoints);
         }
     }
 
@@ -232,6 +239,7 @@ internal sealed class ResearchingLabExecutor
         bool copiedMatrixPoints = false;
         List<NetworkIdAndState<LabState>> networkIdAndStates = [];
         List<OptimizedResearchingLab> optimizedLabs = [];
+        List<LabPowerFields> labsPowerFields = [];
         List<int> entityIds = [];
         Dictionary<int, int> labIdToOptimizedLabIndex = [];
         HashSet<int> unOptimizedLabIds = [];
@@ -266,6 +274,7 @@ internal sealed class ResearchingLabExecutor
 
             labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
             optimizedLabs.Add(new OptimizedResearchingLab(nextLabIndex, ref lab));
+            labsPowerFields.Add(new LabPowerFields(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
             networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
             entityIds.Add(lab.entityId);
@@ -295,13 +304,14 @@ internal sealed class ResearchingLabExecutor
         _matrixPoints = matrixPoints.ToArray();
         _networkIdAndStates = networkIdAndStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
+        _labsPowerFields = labsPowerFields.ToArray();
         _entityIds = entityIds.ToArray();
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
         _unOptimizedLabIds = unOptimizedLabIds;
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool replicating, int extraPowerRatio)
+    private long GetPowerConsumption(PowerConsumerType powerConsumerType, LabPowerFields producingLabPowerFields)
     {
-        return powerConsumerType.GetRequiredEnergy(replicating, 1000 + extraPowerRatio);
+        return powerConsumerType.GetRequiredEnergy(producingLabPowerFields.replicating, 1000 + producingLabPowerFields.extraPowerRatio);
     }
 }

@@ -8,6 +8,7 @@ internal sealed class ProducingLabExecutor
 {
     public NetworkIdAndState<LabState>[] _networkIdAndStates;
     public OptimizedProducingLab[] _optimizedLabs;
+    public LabPowerFields[] _labsPowerFields;
     public ProducingLabRecipe[] _producingLabRecipes;
     public int[] _entityIds;
     public Dictionary<int, int> _labIdToOptimizedLabIndex;
@@ -26,6 +27,7 @@ internal sealed class ProducingLabExecutor
         float[] networkServes = planet.powerSystem.networkServes;
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
+        LabPowerFields[] labsPowerFields = _labsPowerFields;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
         for (int i = _start; i < _end; i++)
         {
@@ -43,7 +45,8 @@ internal sealed class ProducingLabExecutor
             networkIdAndState.State = (int)lab.InternalUpdateAssemble(power,
                                                                       productRegister,
                                                                       consumeRegister,
-                                                                      in producingLabRecipe);
+                                                                      in producingLabRecipe,
+                                                                      ref labsPowerFields[i]);
         }
     }
 
@@ -86,14 +89,13 @@ internal sealed class ProducingLabExecutor
         }
 
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
-        OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
+        LabPowerFields[] labsPowerFields = _labsPowerFields;
         for (int j = _start; j < _end; j++)
         {
             int networkIndex = networkIdAndStates[j].Index;
             int powerConsumerTypeIndex = producingLabPowerConsumerIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            OptimizedProducingLab lab = optimizedLabs[j];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, lab.replicating, lab.extraPowerRatio);
+            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labsPowerFields[j]);
         }
     }
 
@@ -101,6 +103,7 @@ internal sealed class ProducingLabExecutor
     {
         LabComponent[] labComponents = planet.factorySystem.labPool;
         OptimizedProducingLab[] optimizedProducingLabs = _optimizedLabs;
+        LabPowerFields[] labsPowerFields = _labsPowerFields;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
         for (int i = 1; i < planet.factorySystem.labCursor; i++)
         {
@@ -111,7 +114,7 @@ internal sealed class ProducingLabExecutor
 
             ref OptimizedProducingLab optimizedLab = ref _optimizedLabs[optimizedIndex];
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[optimizedLab.producingLabRecipeIndex];
-            optimizedLab.Save(ref labComponents[i], in producingLabRecipe);
+            optimizedLab.Save(ref labComponents[i], in producingLabRecipe, labsPowerFields[i]);
         }
     }
 
@@ -119,6 +122,7 @@ internal sealed class ProducingLabExecutor
     {
         List<NetworkIdAndState<LabState>> networkIdAndStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
+        List<LabPowerFields> labsPowerFields = [];
         Dictionary<ProducingLabRecipe, int> producingLabRecipeToRecipeIndex = [];
         List<ProducingLabRecipe> producingLabRecipes = [];
         List<int> entityIds = [];
@@ -163,6 +167,7 @@ internal sealed class ProducingLabExecutor
 
             labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
             optimizedLabs.Add(new OptimizedProducingLab(producingLabRecipeIndex, nextLabIndex, ref lab));
+            labsPowerFields.Add(new LabPowerFields(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
             networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
             entityIds.Add(lab.entityId);
@@ -191,14 +196,15 @@ internal sealed class ProducingLabExecutor
 
         _networkIdAndStates = networkIdAndStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
+        _labsPowerFields = labsPowerFields.ToArray();
         _producingLabRecipes = producingLabRecipes.ToArray();
         _entityIds = entityIds.ToArray();
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
         _unOptimizedLabIds = unOptimizedLabIds;
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool replicating, int extraPowerRatio)
+    private long GetPowerConsumption(PowerConsumerType powerConsumerType, LabPowerFields producingLabPowerFields)
     {
-        return powerConsumerType.GetRequiredEnergy(replicating, 1000 + extraPowerRatio);
+        return powerConsumerType.GetRequiredEnergy(producingLabPowerFields.replicating, 1000 + producingLabPowerFields.extraPowerRatio);
     }
 }

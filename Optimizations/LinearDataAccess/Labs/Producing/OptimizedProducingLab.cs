@@ -14,12 +14,10 @@ internal struct OptimizedProducingLab
     public readonly int[] needs;
     public readonly int[] produced;
     public readonly int nextLabIndex;
-    public bool replicating;
     public bool incUsed;
     public int time;
     public int extraTime;
     public int extraSpeed;
-    public int extraPowerRatio;
     public int speedOverride;
 
     public OptimizedProducingLab(int producingLabRecipeIndex,
@@ -33,12 +31,10 @@ internal struct OptimizedProducingLab
         needs = lab.needs;
         produced = lab.produced;
         this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
-        replicating = lab.replicating;
         incUsed = lab.incUsed;
         time = lab.time;
         extraTime = lab.extraTime;
         extraSpeed = lab.extraSpeed;
-        extraPowerRatio = lab.extraPowerRatio;
         speedOverride = lab.speedOverride;
     }
 
@@ -52,12 +48,10 @@ internal struct OptimizedProducingLab
         needs = lab.needs;
         produced = lab.produced;
         this.nextLabIndex = nextLabIndex;
-        replicating = lab.replicating;
         incUsed = lab.incUsed;
         time = lab.time;
         extraTime = lab.extraTime;
         extraSpeed = lab.extraSpeed;
-        extraPowerRatio = lab.extraPowerRatio;
         speedOverride = lab.speedOverride;
     }
 
@@ -76,7 +70,8 @@ internal struct OptimizedProducingLab
     public LabState InternalUpdateAssemble(float power,
                                            int[] productRegister,
                                            int[] consumeRegister,
-                                           ref readonly ProducingLabRecipe producingLabRecipe)
+                                           ref readonly ProducingLabRecipe producingLabRecipe,
+                                           ref LabPowerFields labPowerFields)
     {
         if (power < 0.1f)
         {
@@ -109,7 +104,7 @@ internal struct OptimizedProducingLab
         }
         if (time >= producingLabRecipe.TimeSpend)
         {
-            replicating = false;
+            labPowerFields.replicating = false;
             int num2 = producingLabRecipe.Products.Length;
             if (num2 == 1)
             {
@@ -143,10 +138,10 @@ internal struct OptimizedProducingLab
             }
             extraSpeed = 0;
             speedOverride = producingLabRecipe.Speed;
-            extraPowerRatio = 0;
+            labPowerFields.extraPowerRatio = 0;
             time -= producingLabRecipe.TimeSpend;
         }
-        if (!replicating)
+        if (!labPowerFields.replicating)
         {
             int num3 = producingLabRecipe.RequireCounts.Length;
             for (int l = 0; l < num3; l++)
@@ -187,22 +182,22 @@ internal struct OptimizedProducingLab
             {
                 extraSpeed = (int)(producingLabRecipe.Speed * Cargo.incTableMilli[num4] * 10.0 + 0.1);
                 speedOverride = producingLabRecipe.Speed;
-                extraPowerRatio = Cargo.powerTable[num4];
+                labPowerFields.extraPowerRatio = Cargo.powerTable[num4];
             }
             else
             {
                 extraSpeed = 0;
                 speedOverride = (int)(producingLabRecipe.Speed * (1.0 + Cargo.accTableMilli[num4]) + 0.1);
-                extraPowerRatio = Cargo.powerTable[num4];
+                labPowerFields.extraPowerRatio = Cargo.powerTable[num4];
             }
-            replicating = true;
+            labPowerFields.replicating = true;
         }
-        if (replicating && time < producingLabRecipe.TimeSpend && extraTime < producingLabRecipe.ExtraTimeSpend)
+        if (labPowerFields.replicating && time < producingLabRecipe.TimeSpend && extraTime < producingLabRecipe.ExtraTimeSpend)
         {
             time += (int)(power * speedOverride);
             extraTime += (int)(power * extraSpeed);
         }
-        if (!replicating)
+        if (!labPowerFields.replicating)
         {
             throw new InvalidOperationException("I do not think this is possible. Not sure why it is in the game.");
         }
@@ -280,7 +275,9 @@ internal struct OptimizedProducingLab
         }
     }
 
-    public void Save(ref LabComponent lab, ref readonly ProducingLabRecipe producingLabRecipe)
+    public void Save(ref LabComponent lab,
+                     ref readonly ProducingLabRecipe producingLabRecipe,
+                     LabPowerFields labPowerFields)
     {
         lab.requires = producingLabRecipe.Requires;
         lab.requireCounts = producingLabRecipe.RequireCounts;
@@ -290,12 +287,12 @@ internal struct OptimizedProducingLab
         lab.incServed = incServed;
         lab.needs = needs;
         lab.produced = produced;
-        lab.replicating = replicating;
+        lab.replicating = labPowerFields.replicating;
         lab.incUsed = incUsed;
         lab.time = time;
         lab.extraTime = extraTime;
         lab.extraSpeed = extraSpeed;
-        lab.extraPowerRatio = extraPowerRatio;
+        lab.extraPowerRatio = labPowerFields.extraPowerRatio;
         lab.speedOverride = speedOverride;
     }
 
