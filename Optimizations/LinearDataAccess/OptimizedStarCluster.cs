@@ -14,6 +14,7 @@ internal static class OptimizedStarCluster
     private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedPlanet = [];
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
+    private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new();
 
     public static void EnableOptimization(Harmony harmony)
     {
@@ -30,6 +31,7 @@ internal static class OptimizedStarCluster
         // Clear optimized planets in the specific case where a new save is created which circumvents
         // the logic in LoadCurrentGame_Postfix which is other wise supposed to do it
         _planetToOptimizedPlanet.Clear();
+        _workStealingMultiThreadedFactorySimulation.Clear();
     }
 
     [HarmonyPriority(1)]
@@ -40,6 +42,7 @@ internal static class OptimizedStarCluster
         WeaverFixes.Logger.LogInfo($"Initializing {nameof(OptimizedPlanet)}");
 
         _planetToOptimizedPlanet.Clear();
+        _workStealingMultiThreadedFactorySimulation.Clear();
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
@@ -464,6 +467,61 @@ internal static class OptimizedStarCluster
             ]);
 
         return codeMatcher.InstructionEnumeration();
+    }
+
+    [HarmonyTranspiler, HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
+    static IEnumerable<CodeInstruction> ReplaceMultithreadedSimulationLogic(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+    {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        // GameMain.multithreadSystem.multithreadSystemEnable
+        CodeMatch[] multithreadedIfCondition = [
+            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(MultithreadSystem), nameof(MultithreadSystem.multithreadSystemEnable)))
+        ];
+
+        // PerformanceMonitor.BeginSample(ECpuWorkEntry.PowerSystem);
+        CodeMatch[] beginSamplePowerPerformanceMonitor = [
+            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.PowerSystem),
+            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.BeginSample)))
+        ];
+
+        // PerformanceMonitor.EndSample(ECpuWorkEntry.PowerSystem);
+        CodeMatch[] endSamplePowerPerformanceMonitor = [
+            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.PowerSystem),
+            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.EndSample)))
+        ];
+
+        codeMatcher.MatchForward(true, multithreadedIfCondition)
+                   .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}")
+                   .MatchForward(true, beginSamplePowerPerformanceMonitor)
+                   .ThrowIfNotMatch($"Failed to find {nameof(beginSamplePowerPerformanceMonitor)} 1");
+        // Without +1 here i also remove the first PerformanceMonitor.BeginSample(ECpuWorkEntry.PowerSystem).
+        // I do not understand why that is the case.
+        int startPosition = codeMatcher.Pos + 1;
+        codeMatcher.MatchForward(true, endSamplePowerPerformanceMonitor)
+                   .ThrowIfNotMatch($"Failed to find {nameof(endSamplePowerPerformanceMonitor)} 1")
+                   .MatchForward(true, beginSamplePowerPerformanceMonitor)
+                   .ThrowIfNotMatch($"Failed to find {nameof(beginSamplePowerPerformanceMonitor)} 2")
+                   .MatchForward(false, endSamplePowerPerformanceMonitor)
+                   .ThrowIfNotMatch($"Failed to find {nameof(endSamplePowerPerformanceMonitor)} 2");
+        int endPosition = codeMatcher.Pos;
+        codeMatcher.Start()
+                   .Advance(startPosition)
+                   .RemoveInstructions(endPosition - startPosition)
+                   .Insert([
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteSimulation)))
+                    ]);
+
+        codeMatcher.Start()
+                   .MatchForward(true, multithreadedIfCondition)
+                   .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}");
+
+        return codeMatcher.InstructionEnumeration();
+    }
+
+    private static void ExecuteSimulation()
+    {
+        _workStealingMultiThreadedFactorySimulation.Simulate();
     }
 
     private static void DeOptimizeDueToNonPlayerAction(PlanetFactory planet)
