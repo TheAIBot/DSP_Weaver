@@ -15,6 +15,8 @@ internal sealed class ResearchingLabExecutor
     public Dictionary<int, int> _labIdToOptimizedLabIndex;
     public HashSet<int> _unOptimizedLabIds;
 
+    public int ResearchingLabCount => _optimizedLabs.Length;
+
     public bool GameTickLabResearchMode(PlanetFactory planet, long time)
     {
         FactorySystem factorySystem = planet.factorySystem;

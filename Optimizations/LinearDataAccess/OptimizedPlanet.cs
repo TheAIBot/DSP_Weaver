@@ -439,23 +439,37 @@ internal sealed class OptimizedPlanet
         List<WorkTracker> work = [];
 
         int minerCount = _planet.factorySystem.minerCursor;
-        int assemblerCount = _planet.factorySystem.assemblerCursor;
-        int fractionatorCount = _planet.factorySystem.fractionatorCursor;
+        int assemblerCount = Status == OptimizedPlanetStatus.Running ? _assemblerExecutor.AssemblerCount : _planet.factorySystem.assemblerCursor;
+        int fractionatorCount = Status == OptimizedPlanetStatus.Running ? _fractionatorExecutor.FractionatorCount : _planet.factorySystem.fractionatorCursor;
         int ejectorCount = _planet.factorySystem.ejectorCursor;
         int siloCount = _planet.factorySystem.siloCursor;
 
         int monitorCount = _planet.cargoTraffic.monitorCursor;
-        int spraycoaterCount = _planet.cargoTraffic.spraycoaterCursor;
+        int spraycoaterCount = Status == OptimizedPlanetStatus.Running ? _spraycoaterExecutor.SpraycoaterCount : _planet.cargoTraffic.spraycoaterCursor;
         int pilerCount = _planet.cargoTraffic.pilerCursor;
+        int splitterCount = _planet.cargoTraffic.splitterCursor;
+        int cargoPathCount = _planet.cargoTraffic.pathCursor;
 
         int stationCount = _planet.transport.stationCursor;
         int dispenserCount = _planet.transport.dispenserCursor;
+        int transportEntities = stationCount + dispenserCount;
 
         int turretCount = _planet.defenseSystem.turrets.cursor;
         int fieldGeneratorCount = _planet.defenseSystem.fieldGenerators.cursor;
         int battleBaseCount = _planet.defenseSystem.battleBases.cursor;
 
         int markerCount = _planet.digitalSystem.markers.cursor;
+
+        int inserterCount = Status == OptimizedPlanetStatus.Running ? (_optimizedBiInserterExecutor.InserterCount + _optimizedInserterExecutor.InserterCount) : _planet.factorySystem.inserterCursor;
+
+        int producingLabCount = Status == OptimizedPlanetStatus.Running ? _producingLabExecutor.ProducingLabCount : _planet.factorySystem.labCursor;
+        int researchingLabCount = Status == OptimizedPlanetStatus.Running ? _researchingLabExecutor.ResearchingLabCount : _planet.factorySystem.labCursor;
+        int labCount = Status == OptimizedPlanetStatus.Running ? (producingLabCount + researchingLabCount) : _planet.factorySystem.labCursor;
+
+        int storageCount = _planet.factoryStorage.storageCursor;
+        int tankCount = _planet.factoryStorage.tankCursor;
+
+
 
         int totalEntities = minerCount +
                             assemblerCount +
@@ -473,12 +487,79 @@ internal sealed class OptimizedPlanet
                             markerCount;
 
         const int minimumWorkPerCore = 1_000;
-        int workCount = ((totalEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        workCount = Math.Min(workCount, maxParallelism);
-        work.Add(new WorkTracker(workCount));
+        int beforePowerWorkCount = ((totalEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        beforePowerWorkCount = Math.Min(beforePowerWorkCount, maxParallelism);
+        work.Add(new WorkTracker(beforePowerWorkCount));
 
         int powerNetworkCount = _planet.powerSystem.netCursor;
         work.Add(new WorkTracker(powerNetworkCount > 0 ? 1 : 0));
+
+        int assemblerStepEntityCount = minerCount +
+                                       assemblerCount +
+                                       fractionatorCount +
+                                       ejectorCount +
+                                       siloCount +
+                                       producingLabCount;
+        int assemblerWorkCount = ((assemblerStepEntityCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        assemblerWorkCount = Math.Min(assemblerWorkCount, maxParallelism);
+        work.Add(new WorkTracker(assemblerWorkCount));
+
+        work.Add(new WorkTracker(researchingLabCount > 0 ? 1 : 0));
+
+        int labOutput2NextWorkCount = ((labCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        labOutput2NextWorkCount = Math.Min(labOutput2NextWorkCount, maxParallelism);
+        work.Add(new WorkTracker(labOutput2NextWorkCount));
+
+        int transportWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        transportWorkCount = Math.Min(transportWorkCount, maxParallelism);
+        work.Add(new WorkTracker(transportWorkCount));
+
+        work.Add(new WorkTracker(stationCount > 0 ? 1 : 0));
+
+        int inserterWorkCount = ((inserterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        inserterWorkCount = Math.Min(inserterWorkCount, maxParallelism);
+        work.Add(new WorkTracker(inserterWorkCount));
+
+        work.Add(new WorkTracker((storageCount + tankCount) > 0 ? 1 : 0));
+
+        int cargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        cargoPathsWorkCount = Math.Min(cargoPathsWorkCount, maxParallelism);
+        work.Add(new WorkTracker(cargoPathsWorkCount));
+
+        work.Add(new WorkTracker(splitterCount > 0 ? 1 : 0));
+
+        work.Add(new WorkTracker(monitorCount > 0 ? 1 : 0));
+
+        work.Add(new WorkTracker(spraycoaterCount > 0 ? 1 : 0));
+
+        work.Add(new WorkTracker(pilerCount > 0 ? 1 : 0));
+        //int splitterWorkCount = ((splitterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        //splitterWorkCount = Math.Min(splitterWorkCount, maxParallelism);
+        //work.Add(new WorkTracker(splitterWorkCount));
+
+        //int monitorWorkCount = ((monitorCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        //monitorWorkCount = Math.Min(monitorWorkCount, maxParallelism);
+        //work.Add(new WorkTracker(monitorWorkCount));
+
+        //int spraycoaterWorkCount = ((spraycoaterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        //spraycoaterWorkCount = Math.Min(spraycoaterWorkCount, maxParallelism);
+        //work.Add(new WorkTracker(spraycoaterWorkCount));
+
+        //int pilerWorkCount = ((pilerCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        //pilerWorkCount = Math.Min(pilerWorkCount, maxParallelism);
+        //work.Add(new WorkTracker(pilerWorkCount));
+
+        work.Add(new WorkTracker(stationCount > 0 ? 1 : 0));
+
+        int sandboxModeWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        sandboxModeWorkCount = Math.Min(sandboxModeWorkCount, maxParallelism);
+        work.Add(new WorkTracker(GameMain.sandboxToolsEnabled ? sandboxModeWorkCount : 0));
+
+        int presentCargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        presentCargoPathsWorkCount = Math.Min(presentCargoPathsWorkCount, maxParallelism);
+        work.Add(new WorkTracker(Status == OptimizedPlanetStatus.Stopped ? presentCargoPathsWorkCount : 0));
+
+        work.Add(new WorkTracker(markerCount > 0 ? 1 : 0));
 
         return work.ToArray();
     }
@@ -487,8 +568,26 @@ internal sealed class OptimizedPlanet
 internal enum WorkType
 {
     BeforePower = 0,
-    Power = 1,
-    Done = 2
+    Power,
+    //Construction,
+    //CheckBefore,
+    Assembler,
+    LabResearchMode,
+    LabOutput2NextData,
+    TransportData,
+    InputFromBelt,
+    InserterData,
+    Storage,
+    CargoPathsData,
+    Splitter,
+    Monitor,
+    Spraycoater,
+    Piler,
+    OutputToBelt,
+    SandboxMode,
+    PresentCargoPathsData,
+    Digital,
+    Done
 }
 
 internal record struct WorkPlan(WorkType WorkType, int WorkIndex, int WorkParallelism);
@@ -528,13 +627,14 @@ internal sealed class PlanetWorkManager
     private int _currentWorkType;
 
     public PlanetFactory Planet { get; }
+    public OptimizedPlanet OptimizedPlanet { get; }
 
-    public PlanetWorkManager(PlanetFactory planet, int parallelism)
+    public PlanetWorkManager(PlanetFactory planet, OptimizedPlanet optimizedPlanet, int parallelism)
     {
-        OptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(planet);
         _workTrackers = optimizedPlanet.GetMultithreadedWork(parallelism);
 
         Planet = planet;
+        OptimizedPlanet = optimizedPlanet;
     }
 
     public void SetMaxWorkParallelism(int parallelism)
@@ -611,8 +711,13 @@ internal sealed class PlanetWorkManager
         int currentCount = Interlocked.Increment(ref workTracker.CompletedCount);
         if (currentCount == workTracker.MaxWorkCount)
         {
-            // Damn you dotnet framework and your lack of generic atomic operations!!!!
-            Interlocked.Increment(ref _currentWorkType);
+            int nextWorkOffset = 1;
+            while (nextWorkOffset + _currentWorkType < _workTrackers.Length && _workTrackers[_currentWorkType + nextWorkOffset].MaxWorkCount == 0)
+            {
+                nextWorkOffset++;
+            }
+
+            _currentWorkType = Interlocked.Add(ref _currentWorkType, nextWorkOffset);
             workTracker.WaitForCompletion.Set();
         }
         else if (currentCount > workTracker.MaxWorkCount)
@@ -652,7 +757,9 @@ internal sealed class StarClusterWorkManager
             {
                 continue;
             }
-            allPlanetWorkManagers.Add(new PlanetWorkManager(allPlanets[i], parallelism));
+
+            OptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(allPlanets[i]);
+            allPlanetWorkManagers.Add(new PlanetWorkManager(allPlanets[i], optimizedPlanet, parallelism));
         }
 
         _planetWorkManagers = allPlanetWorkManagers.ToArray();
@@ -784,74 +891,191 @@ internal sealed class WorkExecutor
 {
     private readonly StarClusterWorkManager _starClusterWorkManager;
     private readonly WorkerThreadExecutor _workerThreadExecutor;
+    private readonly object _singleThreadedCodeLock;
 
-    public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThreadExecutor workerThreadExecutor)
+    public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock)
     {
         _starClusterWorkManager = starClusterWorkManager;
         _workerThreadExecutor = workerThreadExecutor;
+        _singleThreadedCodeLock = singleThreadedCodeLock;
     }
 
     public void Execute(PlanetData? localPlanet, long time)
     {
         int originalWorkerThreadIndex = _workerThreadExecutor.curThreadIdx;
         int originalWorkerUsedThreadCount = _workerThreadExecutor.usedThreadCnt;
-        PlanetWorkManager? planetWorkManager = null;
-        while (true)
+        try
         {
-            WorkPlan? workPlan = null;
-            if (planetWorkManager != null)
+            PlanetWorkManager? planetWorkManager = null;
+            while (true)
             {
-                workPlan = planetWorkManager.TryGetWork(out var _);
+                WorkPlan? workPlan = null;
+                if (planetWorkManager != null)
+                {
+                    workPlan = planetWorkManager.TryGetWork(out var _);
+                    if (workPlan == null)
+                    {
+                        planetWorkManager = null;
+                    }
+                }
+
                 if (workPlan == null)
                 {
-                    planetWorkManager = null;
-                }
-            }
+                    PlanetWorkPlan? planetWorkPlan = _starClusterWorkManager.TryGetWork();
+                    if (planetWorkPlan == null)
+                    {
+                        break;
+                    }
 
-            if (workPlan == null)
-            {
-                PlanetWorkPlan? planetWorkPlan = _starClusterWorkManager.TryGetWork();
-                if (planetWorkPlan == null)
+                    planetWorkManager = planetWorkPlan.Value.PlanetWorkManager;
+                    workPlan = planetWorkPlan.Value.WorkPlan;
+                }
+
+                bool isActive = localPlanet == planetWorkManager.Planet.planet;
+                _workerThreadExecutor.curThreadIdx = workPlan.Value.WorkIndex;
+                _workerThreadExecutor.usedThreadCnt = workPlan.Value.WorkParallelism;
+                if (workPlan.Value.WorkType == WorkType.BeforePower)
                 {
-                    break;
+                    _workerThreadExecutor.beforePowerLocalPlanet = localPlanet;
+                    _workerThreadExecutor.beforePowerFactories = [planetWorkManager.Planet];
+                    _workerThreadExecutor.beforePowerFactoryCnt = 1;
+                    _workerThreadExecutor.beforePowerTime = time;
+                    //_workerThreadExecutor.threadMissionOrders |= 16u;
+                    _workerThreadExecutor.BeforePowerPartExecute();
+                }
+                else if (workPlan.Value.WorkType == WorkType.Power && planetWorkManager.Planet.powerSystem != null)
+                {
+                    planetWorkManager.Planet.powerSystem.multithreadPlayerPos = GameMain.mainPlayer.position;
+                    planetWorkManager.Planet.powerSystem.GameTick(time, isActive, isMultithreadMode: true);
+                    //_workerThreadExecutor.powerSystemLocalPlanet = localPlanet;
+                    //_workerThreadExecutor.powerSystemFactories = [planetWorkManager.Planet];
+                    //_workerThreadExecutor.powerSystemFactoryCnt = 1;
+                    //_workerThreadExecutor.powerSystemTime = time;
+                    //_workerThreadExecutor.threadMissionOrders |= 32u;
+                    //_workerThreadExecutor.PowerSystemPartExecute();
+                }
+                //else if (workPlan.Value.WorkType == WorkType.Assembler)
+                //{
+
+                //}
+                //else if (workPlan.Value.WorkType == WorkType.Assembler)
+                //{
+
+                //}
+                else if (workPlan.Value.WorkType == WorkType.Assembler)
+                {
+                    _workerThreadExecutor.assemblerLocalPlanet = localPlanet;
+                    _workerThreadExecutor.assemblerFactories = [planetWorkManager.Planet];
+                    _workerThreadExecutor.assemblerFactoryCnt = 1;
+                    _workerThreadExecutor.assemblerTime = time;
+                    _workerThreadExecutor.AssemblerPartExecute();
+                }
+                else if (workPlan.Value.WorkType == WorkType.LabResearchMode)
+                {
+                    lock (_singleThreadedCodeLock)
+                    {
+                        planetWorkManager.Planet.factorySystem.GameTickLabResearchMode(time, isActive);
+                    }
+                }
+                else if (workPlan.Value.WorkType == WorkType.LabOutput2NextData)
+                {
+                    _workerThreadExecutor.labOutput2NextLocalPlanet = localPlanet;
+                    _workerThreadExecutor.labOutput2NextFactories = [planetWorkManager.Planet];
+                    _workerThreadExecutor.labOutput2NextFactoryCnt = 1;
+                    _workerThreadExecutor.labOutput2NextTime = time;
+                    _workerThreadExecutor.LabOutput2NextPartExecute();
+                }
+                else if (workPlan.Value.WorkType == WorkType.TransportData && planetWorkManager.Planet.transport != null)
+                {
+                    _workerThreadExecutor.transportLocalPlanet = localPlanet;
+                    _workerThreadExecutor.transportFactories = [planetWorkManager.Planet];
+                    _workerThreadExecutor.transportFactoryCnt = 1;
+                    _workerThreadExecutor.transportTime = time;
+                    _workerThreadExecutor.TransportPartExecute();
+                }
+                else if (workPlan.Value.WorkType == WorkType.InputFromBelt && planetWorkManager.Planet.transport != null)
+                {
+                    planetWorkManager.Planet.transport.GameTick_InputFromBelt(time);
+                }
+                else if (workPlan.Value.WorkType == WorkType.InserterData)
+                {
+                    _workerThreadExecutor.inserterLocalPlanet = localPlanet;
+                    _workerThreadExecutor.inserterFactories = [planetWorkManager.Planet];
+                    _workerThreadExecutor.inserterFactoryCnt = 1;
+                    _workerThreadExecutor.inserterTime = time;
+                    _workerThreadExecutor.InserterPartExecute();
+                }
+                else if (workPlan.Value.WorkType == WorkType.Storage && planetWorkManager.Planet.factoryStorage != null)
+                {
+                    planetWorkManager.Planet.factoryStorage.GameTick(time, isActive);
+                }
+                else if (workPlan.Value.WorkType == WorkType.CargoPathsData)
+                {
+                    _workerThreadExecutor.cargoPathsLocalPlanet = localPlanet;
+                    _workerThreadExecutor.cargoPathsFactories = [planetWorkManager.Planet];
+                    _workerThreadExecutor.cargoPathsFactoryCnt = 1;
+                    _workerThreadExecutor.cargoPathsTime = time;
+                    _workerThreadExecutor.CargoPathsPartExecute();
+                }
+                else if (workPlan.Value.WorkType == WorkType.Splitter && planetWorkManager.Planet.cargoTraffic != null)
+                {
+                    planetWorkManager.Planet.cargoTraffic.SplitterGameTick(time);
+                }
+                else if (workPlan.Value.WorkType == WorkType.Monitor && planetWorkManager.Planet.cargoTraffic != null)
+                {
+                    planetWorkManager.Planet.cargoTraffic.MonitorGameTick();
+                }
+                else if (workPlan.Value.WorkType == WorkType.Spraycoater && planetWorkManager.Planet.cargoTraffic != null)
+                {
+                    planetWorkManager.OptimizedPlanet._spraycoaterExecutor.SpraycoaterGameTick(planetWorkManager.Planet);
+                    //planetWorkManager.Planet.cargoTraffic.SpraycoaterGameTick();
+                }
+                else if (workPlan.Value.WorkType == WorkType.Piler && planetWorkManager.Planet.cargoTraffic != null)
+                {
+                    planetWorkManager.Planet.cargoTraffic.PilerGameTick();
+                }
+                else if (workPlan.Value.WorkType == WorkType.OutputToBelt && planetWorkManager.Planet.transport != null)
+                {
+                    int stationPilerLevel = GameMain.history.stationPilerLevel;
+                    planetWorkManager.Planet.transport.GameTick_OutputToBelt(stationPilerLevel, time);
+                }
+                else if (workPlan.Value.WorkType == WorkType.SandboxMode && planetWorkManager.Planet.transport != null)
+                {
+                    planetWorkManager.Planet.transport.GameTick_SandboxMode();
+                }
+                else if (workPlan.Value.WorkType == WorkType.PresentCargoPathsData)
+                {
+                    _workerThreadExecutor.presentCargoPathsLocalPlanet = localPlanet;
+                    _workerThreadExecutor.presentCargoPathsFactories = [planetWorkManager.Planet];
+                    _workerThreadExecutor.presentCargoPathsFactoryCnt = 1;
+                    _workerThreadExecutor.presentCargoPathsTime = time;
+                    _workerThreadExecutor.PresentCargoPathsPartExecute();
+                }
+                else if (workPlan.Value.WorkType == WorkType.Digital && planetWorkManager.Planet.digitalSystem != null)
+                {
+                    planetWorkManager.Planet.digitalSystem.GameTick(isActive);
                 }
 
-                planetWorkManager = planetWorkPlan.Value.PlanetWorkManager;
-                workPlan = planetWorkPlan.Value.WorkPlan;
+                planetWorkManager.CompleteWork(workPlan.Value);
             }
-
-            _workerThreadExecutor.curThreadIdx = workPlan.Value.WorkIndex;
-            _workerThreadExecutor.usedThreadCnt = workPlan.Value.WorkParallelism;
-            if (workPlan.Value.WorkType == WorkType.BeforePower)
-            {
-                _workerThreadExecutor.beforePowerLocalPlanet = localPlanet;
-                _workerThreadExecutor.beforePowerFactories = [planetWorkManager.Planet];
-                _workerThreadExecutor.beforePowerFactoryCnt = 1;
-                _workerThreadExecutor.beforePowerTime = time;
-                //_workerThreadExecutor.threadMissionOrders |= 16u;
-                _workerThreadExecutor.BeforePowerPartExecute();
-            }
-            else if (workPlan.Value.WorkType == WorkType.Power && planetWorkManager.Planet.powerSystem != null)
-            {
-                planetWorkManager.Planet.powerSystem.multithreadPlayerPos = GameMain.mainPlayer.position;
-                _workerThreadExecutor.powerSystemLocalPlanet = localPlanet;
-                _workerThreadExecutor.powerSystemFactories = [planetWorkManager.Planet];
-                _workerThreadExecutor.powerSystemFactoryCnt = 1;
-                _workerThreadExecutor.powerSystemTime = time;
-                //_workerThreadExecutor.threadMissionOrders |= 32u;
-                _workerThreadExecutor.PowerSystemPartExecute();
-            }
-
-            planetWorkManager.CompleteWork(workPlan.Value);
         }
-
-        _workerThreadExecutor.curThreadIdx = originalWorkerThreadIndex;
-        _workerThreadExecutor.usedThreadCnt = originalWorkerUsedThreadCount;
+        catch (Exception e)
+        {
+            WeaverFixes.Logger.LogError(e.Message);
+            WeaverFixes.Logger.LogError(e.StackTrace);
+            throw;
+        }
+        finally
+        {
+            _workerThreadExecutor.curThreadIdx = originalWorkerThreadIndex;
+            _workerThreadExecutor.usedThreadCnt = originalWorkerUsedThreadCount;
+        }
     }
 }
 
 internal sealed class WorkStealingMultiThreadedFactorySimulation
 {
+    private readonly object _singleThreadedCodeLock = new();
     private StarClusterWorkManager _starClusterWorkManager;
     private WorkExecutor[] _workExecutors;
 
@@ -872,7 +1096,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             _workExecutors = new WorkExecutor[multithreadSystem.usedThreadCnt];
             for (int i = 0; i < _workExecutors.Length; i++)
             {
-                _workExecutors[i] = new WorkExecutor(_starClusterWorkManager, multithreadSystem.workerThreadExecutors[i]);
+                _workExecutors[i] = new WorkExecutor(_starClusterWorkManager, multithreadSystem.workerThreadExecutors[i], _singleThreadedCodeLock);
             }
         }
 

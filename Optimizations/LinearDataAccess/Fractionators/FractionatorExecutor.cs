@@ -11,6 +11,8 @@ internal sealed class FractionatorExecutor
     private FractionatorConfiguration[] _fractionatorConfigurations;
     public Dictionary<int, int> _fractionatorIdToOptimizedIndex;
 
+    public int FractionatorCount => _optimizedFractionators.Length;
+
     public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedFractionators.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))

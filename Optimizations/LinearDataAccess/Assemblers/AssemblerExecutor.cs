@@ -16,6 +16,8 @@ internal sealed class AssemblerExecutor
     public Dictionary<int, int> _assemblerIdToOptimizedIndex;
     public HashSet<int> _unOptimizedAssemblerIds;
 
+    public int AssemblerCount => _optimizedAssemblers.Length;
+
     public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];

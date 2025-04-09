@@ -34,7 +34,7 @@ internal sealed class InserterExecutor<T>
     private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
     private readonly NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
 
-    public int inserterCount => _optimizedInserters.Length;
+    public int InserterCount => _optimizedInserters.Length;
 
     public InserterExecutor(NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates,
         NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,

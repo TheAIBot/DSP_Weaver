@@ -190,7 +190,7 @@ internal static class OptimizedStarCluster
             int inserterCount;
             if (optimizedInserterExecutor != null)
             {
-                inserterCount = optimizedInserterExecutor.inserterCount;
+                inserterCount = optimizedInserterExecutor.InserterCount;
             }
             else if (runOriginalLogicOnUnoptimizedPlanets)
             {
@@ -219,7 +219,7 @@ internal static class OptimizedStarCluster
             int inserterCount;
             if (optimizedInserterExecutor != null)
             {
-                inserterCount = optimizedInserterExecutor.inserterCount;
+                inserterCount = optimizedInserterExecutor.InserterCount;
             }
             else if (runOriginalLogicOnUnoptimizedPlanets)
             {
@@ -248,7 +248,7 @@ internal static class OptimizedStarCluster
             int inserterCount;
             if (optimizedInserterExecutor != null)
             {
-                inserterCount = optimizedInserterExecutor.inserterCount;
+                inserterCount = optimizedInserterExecutor.InserterCount;
             }
             else if (runOriginalLogicOnUnoptimizedPlanets)
             {
@@ -485,25 +485,21 @@ internal static class OptimizedStarCluster
             new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.BeginSample)))
         ];
 
-        // PerformanceMonitor.EndSample(ECpuWorkEntry.PowerSystem);
-        CodeMatch[] endSamplePowerPerformanceMonitor = [
-            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.PowerSystem),
+        // PerformanceMonitor.EndSample(ECpuWorkEntry.Digital);
+        CodeMatch[] endSampleDigitalPerformanceMonitor = [
+            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Digital),
             new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.EndSample)))
         ];
 
         codeMatcher.MatchForward(true, multithreadedIfCondition)
                    .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}")
                    .MatchForward(true, beginSamplePowerPerformanceMonitor)
-                   .ThrowIfNotMatch($"Failed to find {nameof(beginSamplePowerPerformanceMonitor)} 1");
-        // Without +1 here i also remove the first PerformanceMonitor.BeginSample(ECpuWorkEntry.PowerSystem).
+                   .ThrowIfNotMatch($"Failed to find {nameof(beginSamplePowerPerformanceMonitor)}");
+        // Without +1 here i also remove the first PerformanceMonitor.BeginSample(ECpuWorkEntry.Digital).
         // I do not understand why that is the case.
         int startPosition = codeMatcher.Pos + 1;
-        codeMatcher.MatchForward(true, endSamplePowerPerformanceMonitor)
-                   .ThrowIfNotMatch($"Failed to find {nameof(endSamplePowerPerformanceMonitor)} 1")
-                   .MatchForward(true, beginSamplePowerPerformanceMonitor)
-                   .ThrowIfNotMatch($"Failed to find {nameof(beginSamplePowerPerformanceMonitor)} 2")
-                   .MatchForward(false, endSamplePowerPerformanceMonitor)
-                   .ThrowIfNotMatch($"Failed to find {nameof(endSamplePowerPerformanceMonitor)} 2");
+        codeMatcher.MatchForward(false, endSampleDigitalPerformanceMonitor)
+                   .ThrowIfNotMatch($"Failed to find {nameof(endSampleDigitalPerformanceMonitor)}");
         int endPosition = codeMatcher.Pos;
         codeMatcher.Start()
                    .Advance(startPosition)

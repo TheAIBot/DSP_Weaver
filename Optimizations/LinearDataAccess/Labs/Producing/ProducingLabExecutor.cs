@@ -14,6 +14,8 @@ internal sealed class ProducingLabExecutor
     public Dictionary<int, int> _labIdToOptimizedLabIndex;
     public HashSet<int> _unOptimizedLabIds;
 
+    public int ProducingLabCount => _optimizedLabs.Length;
+
     public void GameTickLabProduceMode(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedLabs.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
