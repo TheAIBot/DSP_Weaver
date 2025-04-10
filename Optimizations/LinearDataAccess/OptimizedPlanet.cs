@@ -602,7 +602,7 @@ internal struct WorkTracker : IDisposable
     public int ScheduledCount;
     public int CompletedCount;
     public int MaxWorkCount;
-    public readonly ManualResetEvent WaitForCompletion;
+    public readonly ManualResetEventSlim WaitForCompletion;
 
     public WorkTracker(int maxWorkCount)
     {
@@ -705,7 +705,7 @@ internal sealed class PlanetWorkManager
             return null;
         }
 
-        _workTrackers[(int)currentWorkType].WaitForCompletion.WaitOne();
+        _workTrackers[(int)currentWorkType].WaitForCompletion.Wait();
         return new WorkPlan(nextWorkType, workIndex, workTracker.MaxWorkCount);
     }
 
@@ -1032,8 +1032,14 @@ internal sealed class WorkExecutor
                 }
                 else if (workPlan.Value.WorkType == WorkType.Spraycoater && planetWorkManager.Planet.cargoTraffic != null)
                 {
-                    planetWorkManager.OptimizedPlanet._spraycoaterExecutor.SpraycoaterGameTick(planetWorkManager.Planet);
-                    //planetWorkManager.Planet.cargoTraffic.SpraycoaterGameTick();
+                    if (planetWorkManager.OptimizedPlanet.Status == OptimizedPlanetStatus.Running)
+                    {
+                        planetWorkManager.OptimizedPlanet._spraycoaterExecutor.SpraycoaterGameTick(planetWorkManager.Planet);
+                    }
+                    else
+                    {
+                        planetWorkManager.Planet.cargoTraffic.SpraycoaterGameTick();
+                    }
                 }
                 else if (workPlan.Value.WorkType == WorkType.Piler && planetWorkManager.Planet.cargoTraffic != null)
                 {
