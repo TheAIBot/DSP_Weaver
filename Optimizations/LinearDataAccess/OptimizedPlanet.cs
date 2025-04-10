@@ -489,14 +489,27 @@ internal sealed class OptimizedPlanet
         const int minimumWorkPerCore = 1_000;
         int beforePowerWorkCount = ((totalEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         beforePowerWorkCount = Math.Min(beforePowerWorkCount, maxParallelism);
-        work.Add(new WorkTracker(beforePowerWorkCount));
+        if (beforePowerWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.BeforePower, beforePowerWorkCount));
+        }
 
         int powerNetworkCount = _planet.powerSystem.netCursor;
-        work.Add(new WorkTracker(powerNetworkCount > 0 ? 1 : 0));
+        if (powerNetworkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Power, 1));
+        }
 
-        work.Add(new WorkTracker(1));
+        if (true)
+        {
+            work.Add(new WorkTracker(WorkType.Construction, 1));
+        }
 
-        work.Add(new WorkTracker(1));
+        if (true)
+        {
+            work.Add(new WorkTracker(WorkType.CheckBefore, 1));
+        }
+
 
         int assemblerStepEntityCount = minerCount +
                                        assemblerCount +
@@ -506,64 +519,98 @@ internal sealed class OptimizedPlanet
                                        producingLabCount;
         int assemblerWorkCount = ((assemblerStepEntityCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         assemblerWorkCount = Math.Min(assemblerWorkCount, maxParallelism);
-        work.Add(new WorkTracker(assemblerWorkCount));
+        if (assemblerWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Assembler, assemblerWorkCount));
+        }
 
-        work.Add(new WorkTracker(researchingLabCount > 0 ? 1 : 0));
+        if (researchingLabCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.LabResearchMode, 1));
+        }
 
         int labOutput2NextWorkCount = ((labCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         labOutput2NextWorkCount = Math.Min(labOutput2NextWorkCount, maxParallelism);
-        work.Add(new WorkTracker(labOutput2NextWorkCount));
+        if (labOutput2NextWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.LabOutput2NextData, labOutput2NextWorkCount));
+        }
 
         int transportWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         transportWorkCount = Math.Min(transportWorkCount, maxParallelism);
-        work.Add(new WorkTracker(transportWorkCount));
+        if (transportWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.TransportData, transportWorkCount));
+        }
 
-        work.Add(new WorkTracker(stationCount > 0 ? 1 : 0));
+        if (stationCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.InputFromBelt, 1));
+        }
 
         int inserterWorkCount = ((inserterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         inserterWorkCount = Math.Min(inserterWorkCount, maxParallelism);
-        work.Add(new WorkTracker(inserterWorkCount));
+        if (inserterWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.InserterData, inserterWorkCount));
+        }
 
-        work.Add(new WorkTracker((storageCount + tankCount) > 0 ? 1 : 0));
+        if ((storageCount + tankCount) > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Storage, 1));
+        }
 
         int cargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         cargoPathsWorkCount = Math.Min(cargoPathsWorkCount, maxParallelism);
-        work.Add(new WorkTracker(cargoPathsWorkCount));
+        if (cargoPathsWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.CargoPathsData, cargoPathsWorkCount));
+        }
 
-        work.Add(new WorkTracker(splitterCount > 0 ? 1 : 0));
+        if (splitterCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Splitter, 1));
+        }
 
-        work.Add(new WorkTracker(monitorCount > 0 ? 1 : 0));
 
-        work.Add(new WorkTracker(spraycoaterCount > 0 ? 1 : 0));
+        if (monitorCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Monitor, 1));
+        }
 
-        work.Add(new WorkTracker(pilerCount > 0 ? 1 : 0));
-        //int splitterWorkCount = ((splitterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        //splitterWorkCount = Math.Min(splitterWorkCount, maxParallelism);
-        //work.Add(new WorkTracker(splitterWorkCount));
+        if (spraycoaterCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Spraycoater, 1));
+        }
 
-        //int monitorWorkCount = ((monitorCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        //monitorWorkCount = Math.Min(monitorWorkCount, maxParallelism);
-        //work.Add(new WorkTracker(monitorWorkCount));
+        if (pilerCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Piler, 1));
+        }
 
-        //int spraycoaterWorkCount = ((spraycoaterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        //spraycoaterWorkCount = Math.Min(spraycoaterWorkCount, maxParallelism);
-        //work.Add(new WorkTracker(spraycoaterWorkCount));
-
-        //int pilerWorkCount = ((pilerCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        //pilerWorkCount = Math.Min(pilerWorkCount, maxParallelism);
-        //work.Add(new WorkTracker(pilerWorkCount));
-
-        work.Add(new WorkTracker(stationCount > 0 ? 1 : 0));
+        if (stationCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.OutputToBelt, 1));
+        }
 
         int sandboxModeWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         sandboxModeWorkCount = Math.Min(sandboxModeWorkCount, maxParallelism);
-        work.Add(new WorkTracker(GameMain.sandboxToolsEnabled ? sandboxModeWorkCount : 0));
+        if (GameMain.sandboxToolsEnabled && sandboxModeWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.SandboxMode, sandboxModeWorkCount));
+        }
 
         int presentCargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         presentCargoPathsWorkCount = Math.Min(presentCargoPathsWorkCount, maxParallelism);
-        work.Add(new WorkTracker(Status == OptimizedPlanetStatus.Stopped ? presentCargoPathsWorkCount : 0));
+        if (Status == OptimizedPlanetStatus.Stopped && presentCargoPathsWorkCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.PresentCargoPathsData, presentCargoPathsWorkCount));
+        }
 
-        work.Add(new WorkTracker(markerCount > 0 ? 1 : 0));
+        if (markerCount > 0)
+        {
+            work.Add(new WorkTracker(WorkType.Digital, 1));
+        }
 
         return work.ToArray();
     }
@@ -590,22 +637,23 @@ internal enum WorkType
     OutputToBelt,
     SandboxMode,
     PresentCargoPathsData,
-    Digital,
-    Done
+    Digital
 }
 
-internal record struct WorkPlan(WorkType WorkType, int WorkIndex, int WorkParallelism);
+internal record struct WorkPlan(WorkType WorkType, int WorkTrackerIndex, int WorkIndex, int WorkParallelism);
 internal record struct PlanetWorkPlan(PlanetWorkManager PlanetWorkManager, WorkPlan WorkPlan);
 
 internal struct WorkTracker : IDisposable
 {
+    public readonly WorkType WorkType;
     public int ScheduledCount;
     public int CompletedCount;
     public int MaxWorkCount;
     public readonly ManualResetEventSlim WaitForCompletion;
 
-    public WorkTracker(int maxWorkCount)
+    public WorkTracker(WorkType workType, int maxWorkCount)
     {
+        WorkType = workType;
         ScheduledCount = 0;
         CompletedCount = 0;
         MaxWorkCount = maxWorkCount;
@@ -628,7 +676,7 @@ internal struct WorkTracker : IDisposable
 internal sealed class PlanetWorkManager
 {
     private WorkTracker[] _workTrackers;
-    private int _currentWorkType;
+    private int _currentWorkTrackerIndex;
 
     public PlanetFactory Planet { get; }
     public OptimizedPlanet OptimizedPlanet { get; }
@@ -654,74 +702,68 @@ internal sealed class PlanetWorkManager
 
     public WorkPlan? TryGetWork(out bool canScheduleMoreWork)
     {
-        WorkType currentWorkType = (WorkType)_currentWorkType;
-        if (currentWorkType == WorkType.Done)
+        int currentWorkTrackerIndex = _currentWorkTrackerIndex;
+        if (currentWorkTrackerIndex == _workTrackers.Length)
         {
             canScheduleMoreWork = false;
             return null;
         }
 
-        WorkTracker workTracker = _workTrackers[(int)currentWorkType];
+        WorkTracker workTracker = _workTrackers[currentWorkTrackerIndex];
         if (workTracker.ScheduledCount >= workTracker.MaxWorkCount)
         {
-            canScheduleMoreWork = currentWorkType + 1 < WorkType.Done;
+            canScheduleMoreWork = currentWorkTrackerIndex + 1 < _workTrackers.Length;
             return null;
         }
 
-        int workIndex = Interlocked.Increment(ref _workTrackers[(int)currentWorkType].ScheduledCount) - 1;
+        int workIndex = Interlocked.Increment(ref _workTrackers[currentWorkTrackerIndex].ScheduledCount) - 1;
         if (workIndex >= workTracker.MaxWorkCount)
         {
-            canScheduleMoreWork = currentWorkType + 1 < WorkType.Done;
+            canScheduleMoreWork = currentWorkTrackerIndex + 1 < _workTrackers.Length;
             return null;
         }
 
         canScheduleMoreWork = true;
-        return new WorkPlan(currentWorkType, workIndex, workTracker.MaxWorkCount);
+        return new WorkPlan(workTracker.WorkType, currentWorkTrackerIndex, workIndex, workTracker.MaxWorkCount);
     }
 
     public WorkPlan? TryWaitForWork()
     {
-        WorkType currentWorkType = (WorkType)_currentWorkType;
-        if (currentWorkType == WorkType.Done)
+        int currentWorkTrackerIndex = _currentWorkTrackerIndex;
+        if (currentWorkTrackerIndex == _workTrackers.Length)
         {
             return null;
         }
 
-        WorkType nextWorkType = currentWorkType + 1;
-        if (nextWorkType == WorkType.Done)
+        int nextWorkTrackerIndex = currentWorkTrackerIndex + 1;
+        if (nextWorkTrackerIndex >= _workTrackers.Length)
         {
             return null;
         }
 
-        WorkTracker workTracker = _workTrackers[(int)nextWorkType];
+        WorkTracker workTracker = _workTrackers[nextWorkTrackerIndex];
         if (workTracker.ScheduledCount >= workTracker.MaxWorkCount)
         {
             return null;
         }
 
-        int workIndex = Interlocked.Increment(ref _workTrackers[(int)nextWorkType].ScheduledCount) - 1;
+        int workIndex = Interlocked.Increment(ref _workTrackers[nextWorkTrackerIndex].ScheduledCount) - 1;
         if (workIndex >= workTracker.MaxWorkCount)
         {
             return null;
         }
 
-        _workTrackers[(int)currentWorkType].WaitForCompletion.Wait();
-        return new WorkPlan(nextWorkType, workIndex, workTracker.MaxWorkCount);
+        _workTrackers[currentWorkTrackerIndex].WaitForCompletion.Wait();
+        return new WorkPlan(workTracker.WorkType, nextWorkTrackerIndex, workIndex, workTracker.MaxWorkCount);
     }
 
     public void CompleteWork(WorkPlan workPlan)
     {
-        ref WorkTracker workTracker = ref _workTrackers[(int)workPlan.WorkType];
+        ref WorkTracker workTracker = ref _workTrackers[workPlan.WorkTrackerIndex];
         int currentCount = Interlocked.Increment(ref workTracker.CompletedCount);
         if (currentCount == workTracker.MaxWorkCount)
         {
-            int nextWorkOffset = 1;
-            while (nextWorkOffset + _currentWorkType < _workTrackers.Length && _workTrackers[_currentWorkType + nextWorkOffset].MaxWorkCount == 0)
-            {
-                nextWorkOffset++;
-            }
-
-            _currentWorkType = Interlocked.Add(ref _currentWorkType, nextWorkOffset);
+            Interlocked.Increment(ref _currentWorkTrackerIndex);
             workTracker.WaitForCompletion.Set();
         }
         else if (currentCount > workTracker.MaxWorkCount)
@@ -736,7 +778,7 @@ internal sealed class PlanetWorkManager
         {
             _workTrackers[i].Reset();
         }
-        _currentWorkType = (int)WorkType.BeforePower;
+        _currentWorkTrackerIndex = 0;
     }
 }
 
