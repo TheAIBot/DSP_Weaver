@@ -494,6 +494,10 @@ internal sealed class OptimizedPlanet
         int powerNetworkCount = _planet.powerSystem.netCursor;
         work.Add(new WorkTracker(powerNetworkCount > 0 ? 1 : 0));
 
+        work.Add(new WorkTracker(1));
+
+        work.Add(new WorkTracker(1));
+
         int assemblerStepEntityCount = minerCount +
                                        assemblerCount +
                                        fractionatorCount +
@@ -569,8 +573,8 @@ internal enum WorkType
 {
     BeforePower = 0,
     Power,
-    //Construction,
-    //CheckBefore,
+    Construction,
+    CheckBefore,
     Assembler,
     LabResearchMode,
     LabOutput2NextData,
@@ -954,14 +958,15 @@ internal sealed class WorkExecutor
                     //_workerThreadExecutor.threadMissionOrders |= 32u;
                     //_workerThreadExecutor.PowerSystemPartExecute();
                 }
-                //else if (workPlan.Value.WorkType == WorkType.Assembler)
-                //{
-
-                //}
-                //else if (workPlan.Value.WorkType == WorkType.Assembler)
-                //{
-
-                //}
+                else if (workPlan.Value.WorkType == WorkType.Construction && planetWorkManager.Planet.constructionSystem != null)
+                {
+                    planetWorkManager.Planet.constructionSystem.GameTick(time, isActive);
+                    planetWorkManager.Planet.constructionSystem.ExcuteDeferredTargetChange();
+                }
+                else if (workPlan.Value.WorkType == WorkType.CheckBefore && planetWorkManager.Planet.factorySystem != null)
+                {
+                    planetWorkManager.Planet.factorySystem.CheckBeforeGameTick();
+                }
                 else if (workPlan.Value.WorkType == WorkType.Assembler)
                 {
                     _workerThreadExecutor.assemblerLocalPlanet = localPlanet;
