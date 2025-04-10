@@ -1,6 +1,8 @@
 ## 1.1.0
 * Optimized fractionators.
 * Additional assembler data access optimizations.
+* Optimized multithreaded work distribution method.
+* Parallelized stations belt logic, splitters, monitors, pilers, digital system.
 
 ## 1.0.1
 * Fixed sorters on active planets would be updated twice per tick which would sometimes result in a `DivideByZeroException`.
