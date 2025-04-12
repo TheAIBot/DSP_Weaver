@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Fractionators;
@@ -55,7 +54,7 @@ internal sealed class OptimizedPlanet
         _planet = planet;
     }
 
-    public void Save()
+    public void Save(int maxParallelism)
     {
         _optimizedBiInserterExecutor.Save(_planet);
         _optimizedInserterExecutor.Save(_planet);
@@ -66,6 +65,9 @@ internal sealed class OptimizedPlanet
         _fractionatorExecutor.Save(_planet);
 
         Status = OptimizedPlanetStatus.Stopped;
+
+        _workTrackers = CreateMultithreadedWork(maxParallelism);
+        _workTrackersParallelism = maxParallelism;
     }
 
     public void Initialize(int maxParallelism)
@@ -84,9 +86,6 @@ internal sealed class OptimizedPlanet
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
-
-        _workTrackers = CreateMultithreadedWork(maxParallelism);
-        _workTrackersParallelism = maxParallelism;
     }
 
     private void InitializeInserters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -281,32 +280,6 @@ internal sealed class OptimizedPlanet
                 }
             }
         }
-    }
-
-    public static void ParallelSpraycoaterLogic()
-    {
-        PerformanceMonitor.BeginSample(ECpuWorkEntry.Belt);
-
-        PlanetFactory? localFactory = GameMain.localPlanet?.factory;
-        Parallel.For(0, GameMain.data.factoryCount, i =>
-        {
-            PlanetFactory planet = GameMain.data.factories[i];
-            if (planet.cargoTraffic == null)
-            {
-                return;
-            }
-
-            OptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(planet);
-            if (optimizedPlanet.Status != OptimizedPlanetStatus.Running)
-            {
-                planet.cargoTraffic.SpraycoaterGameTick();
-                return;
-            }
-
-            optimizedPlanet._spraycoaterExecutor.SpraycoaterGameTick(planet);
-        });
-
-        PerformanceMonitor.EndSample(ECpuWorkEntry.Belt);
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)

@@ -76,7 +76,7 @@ internal static class OptimizedStarCluster
             }
 
             WeaverFixes.Logger.LogInfo($"Saving planet: {planetToOptimizedPlanet.Key.planet.displayName}");
-            planetToOptimizedPlanet.Value.Save();
+            planetToOptimizedPlanet.Value.Save(GameMain.multithreadSystem.usedThreadCnt);
         }
     }
 
@@ -127,7 +127,7 @@ internal static class OptimizedStarCluster
             }
 
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
-            planetToOptimizedPlanet.Value.Save();
+            planetToOptimizedPlanet.Value.Save(GameMain.multithreadSystem.usedThreadCnt);
         }
 
         if (_planetsToReOptimize.Count > 0)
@@ -141,7 +141,7 @@ internal static class OptimizedStarCluster
             }
 
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
-            optimizedPlanet.Save();
+            optimizedPlanet.Save(GameMain.multithreadSystem.usedThreadCnt);
         }
     }
 
@@ -525,7 +525,7 @@ internal static class OptimizedStarCluster
         if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
         {
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planet.planet.displayName}");
-            optimizedPlanet.Save();
+            optimizedPlanet.Save(GameMain.multithreadSystem.usedThreadCnt);
         }
         optimizedPlanet.OptimizeDelayInTicks = 200;
     }
