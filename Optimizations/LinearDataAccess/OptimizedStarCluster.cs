@@ -439,38 +439,6 @@ internal static class OptimizedStarCluster
     }
 
     [HarmonyTranspiler, HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
-    static IEnumerable<CodeInstruction> ReplaceSingleThreadedSpraycoaterLogicWithParallelOptimizedLogic(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-    {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        CodeMatch[] sprayCoaterGameTickCall = [
-            // factories[num3].cargoTraffic.SpraycoaterGameTick();
-            new CodeMatch(OpCodes.Ldarg_0),
-            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(GameData), nameof(GameData.factories))),
-            new CodeMatch(OpCodes.Ldloc_S),
-            new CodeMatch(OpCodes.Ldelem_Ref),
-            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(PlanetFactory), nameof(PlanetFactory.cargoTraffic))),
-            new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(CargoTraffic), nameof(CargoTraffic.SpraycoaterGameTick))),
-        ];
-
-        CodeMatch[] afterSpraycoaterLoop = [
-            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Storage),
-            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.BeginSample)))
-        ];
-
-        codeMatcher.MatchForward(false, sprayCoaterGameTickCall)
-            .ThrowIfNotMatch($"Failed to find {nameof(sprayCoaterGameTickCall)}")
-            .RemoveInstructions(sprayCoaterGameTickCall.Length)
-            .MatchForward(false, afterSpraycoaterLoop)
-            .ThrowIfNotMatch($"Failed to find {nameof(afterSpraycoaterLoop)}")
-            .Insert([
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedPlanet), nameof(OptimizedPlanet.ParallelSpraycoaterLogic)))
-            ]);
-
-        return codeMatcher.InstructionEnumeration();
-    }
-
-    [HarmonyTranspiler, HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
     static IEnumerable<CodeInstruction> ReplaceMultithreadedSimulationLogic(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
     {
         var codeMatcher = new CodeMatcher(instructions, generator);
@@ -492,6 +460,23 @@ internal static class OptimizedStarCluster
             new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.EndSample)))
         ];
 
+        CodeInstruction[] optimizedMultithreading;
+        if (BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(ModDependencies.SampleAndHoldSimId, out var _))
+        {
+            optimizedMultithreading = [
+                new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(AccessTools.TypeByName("SampleAndHoldSim.GameData_Patch"), "workFactories")),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteSimulation)))
+            ];
+        }
+        else
+        {
+            optimizedMultithreading = [
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(GameData), nameof(GameData.factories))),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteSimulation)))
+            ];
+        }
+
         codeMatcher.MatchForward(true, multithreadedIfCondition)
                    .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}")
                    .MatchForward(false, beginSamplePowerPerformanceMonitor)
@@ -503,16 +488,23 @@ internal static class OptimizedStarCluster
         codeMatcher.Start()
                    .Advance(startPosition)
                    .RemoveInstructions(endPosition - startPosition + 1)
-                   .Insert([
-                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteSimulation)))
-                    ]);
+                   .Insert(optimizedMultithreading);
+
+        //codeMatcher.Start()
+        //           .Advance(startPosition);
+        //codeMatcher.Advance(-10);
+        //for (int i = 0; i < 50; i++)
+        //{
+        //    WeaverFixes.Logger.LogMessage(codeMatcher.Instruction);
+        //    codeMatcher.Advance(1);
+        //}
 
         return codeMatcher.InstructionEnumeration();
     }
 
-    private static void ExecuteSimulation()
+    private static void ExecuteSimulation(PlanetFactory[] planets)
     {
-        _workStealingMultiThreadedFactorySimulation.Simulate();
+        _workStealingMultiThreadedFactorySimulation.Simulate(planets);
     }
 
     private static void DeOptimizeDueToNonPlayerAction(PlanetFactory planet)

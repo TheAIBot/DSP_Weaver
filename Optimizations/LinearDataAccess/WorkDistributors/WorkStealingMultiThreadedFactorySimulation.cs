@@ -10,7 +10,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private StarClusterWorkManager _starClusterWorkManager;
     private WorkExecutor[] _workExecutors;
 
-    public void Simulate()
+    public void Simulate(PlanetFactory[] planets)
     {
         MultithreadSystem multithreadSystem = GameMain.multithreadSystem;
         if (_starClusterWorkManager == null)

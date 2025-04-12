@@ -13,7 +13,13 @@ internal static class ModInfo
     public const string Version = "1.0.1";
 }
 
+internal static class ModDependencies
+{
+    public const string SampleAndHoldSimId = "starfi5h.plugin.SampleAndHoldSim";
+}
+
 [BepInPlugin(ModInfo.Guid, ModInfo.Name, ModInfo.Version)]
+[BepInDependency(ModDependencies.SampleAndHoldSimId, BepInDependency.DependencyFlags.SoftDependency)]
 public class WeaverFixes : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(ModInfo.Name);
