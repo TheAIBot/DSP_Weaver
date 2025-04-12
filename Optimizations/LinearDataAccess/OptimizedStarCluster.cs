@@ -103,7 +103,7 @@ internal static class OptimizedStarCluster
                     }
 
                     WeaverFixes.Logger.LogInfo($"Optimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
-                    planetToOptimizedPlanet.Value.Initialize();
+                    planetToOptimizedPlanet.Value.Initialize(GameMain.multithreadSystem.usedThreadCnt);
                 }
 
                 continue;
@@ -502,7 +502,7 @@ internal static class OptimizedStarCluster
         return codeMatcher.InstructionEnumeration();
     }
 
-    private static void ExecuteSimulation(PlanetFactory[] planets)
+    private static void ExecuteSimulation(PlanetFactory?[] planets)
     {
         _workStealingMultiThreadedFactorySimulation.Simulate(planets);
     }

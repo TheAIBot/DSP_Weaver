@@ -47,6 +47,9 @@ internal sealed class OptimizedPlanet
 
     public OptimizedPowerSystem _optimizedPowerSystem;
 
+    private WorkTracker[] _workTrackers;
+    private int _workTrackersParallelism;
+
     public OptimizedPlanet(PlanetFactory planet)
     {
         _planet = planet;
@@ -65,7 +68,7 @@ internal sealed class OptimizedPlanet
         Status = OptimizedPlanetStatus.Stopped;
     }
 
-    public void Initialize()
+    public void Initialize(int maxParallelism)
     {
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
 
@@ -81,6 +84,9 @@ internal sealed class OptimizedPlanet
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
+
+        _workTrackers = CreateMultithreadedWork(maxParallelism);
+        _workTrackersParallelism = maxParallelism;
     }
 
     private void InitializeInserters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -435,6 +441,17 @@ internal sealed class OptimizedPlanet
     }
 
     public WorkTracker[] GetMultithreadedWork(int maxParallelism)
+    {
+        if (_workTrackersParallelism != maxParallelism)
+        {
+            _workTrackers = CreateMultithreadedWork(maxParallelism);
+            _workTrackersParallelism = maxParallelism;
+        }
+
+        return _workTrackers;
+    }
+
+    private WorkTracker[] CreateMultithreadedWork(int maxParallelism)
     {
         List<WorkTracker> work = [];
 

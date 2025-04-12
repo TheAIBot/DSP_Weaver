@@ -10,16 +10,17 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private StarClusterWorkManager _starClusterWorkManager;
     private WorkExecutor[] _workExecutors;
 
-    public void Simulate(PlanetFactory[] planets)
+    /// <summary>
+    /// Takes a list of planets that will be updated this tick. 
+    /// Solely exist to support SampleAndHoldSim which manipulates the list of planets every tick.
+    /// </summary>
+    /// <param name="planetsToUpdate"></param>
+    public void Simulate(PlanetFactory?[] planetsToUpdate)
     {
         MultithreadSystem multithreadSystem = GameMain.multithreadSystem;
         if (_starClusterWorkManager == null)
         {
-            _starClusterWorkManager = new StarClusterWorkManager(GameMain.data.factories, multithreadSystem.usedThreadCnt);
-        }
-        if (_starClusterWorkManager.Parallelism != multithreadSystem.usedThreadCnt)
-        {
-            _starClusterWorkManager.SetMaxWorkParallelism(multithreadSystem.usedThreadCnt);
+            _starClusterWorkManager = new StarClusterWorkManager();
         }
         if (_workExecutors == null || _workExecutors.Length != multithreadSystem.usedThreadCnt)
         {
@@ -30,6 +31,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             }
         }
 
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, planetsToUpdate, multithreadSystem.usedThreadCnt);
         _starClusterWorkManager.Reset();
         for (int i = 0; i < _workExecutors.Length; i++)
         {

@@ -11,23 +11,24 @@ internal sealed class PlanetWorkManager
     public PlanetFactory Planet { get; }
     public OptimizedPlanet OptimizedPlanet { get; }
 
-    public PlanetWorkManager(PlanetFactory planet, OptimizedPlanet optimizedPlanet, int parallelism)
+    public PlanetWorkManager(PlanetFactory planet, OptimizedPlanet optimizedPlanet)
     {
-        _workTrackers = optimizedPlanet.GetMultithreadedWork(parallelism);
-
         Planet = planet;
         OptimizedPlanet = optimizedPlanet;
     }
 
-    public void SetMaxWorkParallelism(int parallelism)
+    public void UpdatePlanetWork(int parallelism)
     {
-        for (int i = 0; i < _workTrackers.Length; i++)
+        WorkTracker[] updatedWorkTrackers = OptimizedPlanet.GetMultithreadedWork(parallelism);
+        if (_workTrackers != updatedWorkTrackers && _workTrackers != null)
         {
-            _workTrackers[i].Dispose();
+            for (int i = 0; i < _workTrackers.Length; i++)
+            {
+                _workTrackers[i].Dispose();
+            }
         }
 
-        OptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(Planet);
-        _workTrackers = optimizedPlanet.GetMultithreadedWork(parallelism);
+        _workTrackers = updatedWorkTrackers;
     }
 
     public WorkPlan? TryGetWork(out bool canScheduleMoreWork)

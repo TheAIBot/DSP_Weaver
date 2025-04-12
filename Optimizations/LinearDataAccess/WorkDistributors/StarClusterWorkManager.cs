@@ -5,43 +5,44 @@ namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 internal sealed class StarClusterWorkManager
 {
-    private PlanetWorkManager[] _planetWorkManagers;
-    private PlanetWorkManager[] _allPlanetWorkManagers;
+    private List<PlanetWorkManager> _planetWorkManagers = [];
+    private Dictionary<PlanetFactory, PlanetWorkManager> _planetToWorkManagers = [];
     private int _planetsWithWorkScheduledCount;
     private int _planetsNotCompletedCount;
 
-    public int Parallelism { get; private set; }
+    public int Parallelism { get; private set; } = -1;
 
-    public StarClusterWorkManager(PlanetFactory[] allPlanets, int parallelism)
+    public void UpdateListOfPlanets(PlanetFactory?[] allPlanets, PlanetFactory[] planetsToUpdate, int parallelism)
     {
-        _planetWorkManagers = new PlanetWorkManager[allPlanets.Length];
-        List<PlanetWorkManager> allPlanetWorkManagers = [];
         Parallelism = parallelism;
 
-        for (int i = 0; i < allPlanets.Length; i++)
+        foreach (PlanetFactory? planet in allPlanets)
         {
-            if (allPlanets[i] == null)
+            if (planet == null)
             {
                 continue;
             }
 
-            OptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(allPlanets[i]);
-            allPlanetWorkManagers.Add(new PlanetWorkManager(allPlanets[i], optimizedPlanet, parallelism));
+            if (_planetToWorkManagers.ContainsKey(planet))
+            {
+                continue;
+            }
+
+            OptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(planet);
+            _planetToWorkManagers.Add(planet, new PlanetWorkManager(planet, optimizedPlanet));
         }
 
-        _planetWorkManagers = allPlanetWorkManagers.ToArray();
-        _allPlanetWorkManagers = allPlanetWorkManagers.ToArray();
-
-        Reset();
-    }
-
-    public void SetMaxWorkParallelism(int parallelism)
-    {
-        Parallelism = parallelism;
-
-        for (int i = 0; i < _planetWorkManagers.Length; i++)
+        _planetWorkManagers.Clear();
+        foreach (PlanetFactory? planet in planetsToUpdate)
         {
-            _planetWorkManagers[i].SetMaxWorkParallelism(parallelism);
+            if (planet == null)
+            {
+                continue;
+            }
+
+            PlanetWorkManager workManager = _planetToWorkManagers[planet];
+            workManager.UpdatePlanetWork(parallelism);
+            _planetWorkManagers.Add(workManager);
         }
     }
 
@@ -101,14 +102,13 @@ internal sealed class StarClusterWorkManager
 
     public void Reset()
     {
-        _allPlanetWorkManagers.CopyTo(_planetWorkManagers, 0);
-        for (int i = 0; i < _planetWorkManagers.Length; i++)
+        for (int i = 0; i < _planetWorkManagers.Count; i++)
         {
             _planetWorkManagers[i].Reset();
         }
 
         _planetsWithWorkScheduledCount = 0;
-        _planetsNotCompletedCount = _planetWorkManagers.Length;
+        _planetsNotCompletedCount = _planetWorkManagers.Count;
     }
 
     private PlanetWorkPlan? TryGetWork(int planetIndex)
