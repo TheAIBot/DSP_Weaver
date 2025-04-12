@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 #nullable enable
 namespace Weaver.Optimizations.LinearDataAccess;
