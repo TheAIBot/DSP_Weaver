@@ -16,6 +16,7 @@ internal static class OptimizedStarCluster
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
     private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new();
+    private static bool _clearOptimizedPlanetsOnNextTick = false;
 
     public static void EnableOptimization(Harmony harmony)
     {
@@ -28,11 +29,13 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameMain), nameof(GameMain.End))]
     public static void End()
     {
-        WeaverFixes.Logger.LogInfo($"Clearing optimized planets");
-        // Clear optimized planets in the specific case where a new save is created which circumvents
-        // the logic in LoadCurrentGame_Postfix which is other wise supposed to do it
-        _planetToOptimizedPlanet.Clear();
-        _workStealingMultiThreadedFactorySimulation.Clear();
+        WeaverFixes.Logger.LogInfo($"Marking optimized planets to be cleared.");
+        // Set clear optimized planets in the specific case where a new save is created which circumvents
+        // the logic in LoadCurrentGame_Postfix which is other wise supposed to do it.
+        // Can not actually clear planets in here because this runs when exiting a game but before the
+        // "last save played" auto save is run which would result in the games data not being updated
+        // with the optimized information before the game is saved.
+        _clearOptimizedPlanetsOnNextTick = true;
     }
 
     [HarmonyPriority(1)]
@@ -44,6 +47,7 @@ internal static class OptimizedStarCluster
 
         _planetToOptimizedPlanet.Clear();
         _workStealingMultiThreadedFactorySimulation.Clear();
+        _clearOptimizedPlanetsOnNextTick = false;
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
@@ -62,16 +66,17 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.SaveCurrentGame))]
     private static void SaveCurrentGame_Prefix()
     {
-        WeaverFixes.Logger.LogInfo($"Saving {nameof(OptimizedPlanet)}");
+        WeaverFixes.Logger.LogInfo($"Saving optimized planets");
 
-        foreach (OptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
+        foreach (KeyValuePair<PlanetFactory, OptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedPlanet)
         {
-            if (optimizedPlanet.Status != OptimizedPlanetStatus.Running)
+            if (planetToOptimizedPlanet.Value.Status != OptimizedPlanetStatus.Running)
             {
                 continue;
             }
 
-            optimizedPlanet.Save();
+            WeaverFixes.Logger.LogInfo($"Saving planet: {planetToOptimizedPlanet.Key.planet.displayName}");
+            planetToOptimizedPlanet.Value.Save();
         }
     }
 
@@ -79,6 +84,13 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
     public static void GameData_GameTick()
     {
+        if (_clearOptimizedPlanetsOnNextTick)
+        {
+            _clearOptimizedPlanetsOnNextTick = false;
+            _planetToOptimizedPlanet.Clear();
+            _workStealingMultiThreadedFactorySimulation.Clear();
+        }
+
         lock (_newPlanets)
         {
             while (_newPlanets.Count > 0)
