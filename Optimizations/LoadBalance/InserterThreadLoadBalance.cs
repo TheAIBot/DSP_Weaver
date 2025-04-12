@@ -2,6 +2,7 @@
 using System;
 using System.Text;
 using Weaver.Benchmarking;
+using Weaver.Extensions;
 
 namespace Weaver.Optimizations.LoadBalance;
 

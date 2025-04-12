@@ -493,24 +493,18 @@ internal static class OptimizedStarCluster
 
         codeMatcher.MatchForward(true, multithreadedIfCondition)
                    .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}")
-                   .MatchForward(true, beginSamplePowerPerformanceMonitor)
+                   .MatchForward(false, beginSamplePowerPerformanceMonitor)
                    .ThrowIfNotMatch($"Failed to find {nameof(beginSamplePowerPerformanceMonitor)}");
-        // Without +1 here i also remove the first PerformanceMonitor.BeginSample(ECpuWorkEntry.Digital).
-        // I do not understand why that is the case.
-        int startPosition = codeMatcher.Pos + 1;
-        codeMatcher.MatchForward(false, endSampleDigitalPerformanceMonitor)
+        int startPosition = codeMatcher.Pos;
+        codeMatcher.MatchForward(true, endSampleDigitalPerformanceMonitor)
                    .ThrowIfNotMatch($"Failed to find {nameof(endSampleDigitalPerformanceMonitor)}");
         int endPosition = codeMatcher.Pos;
         codeMatcher.Start()
                    .Advance(startPosition)
-                   .RemoveInstructions(endPosition - startPosition)
+                   .RemoveInstructions(endPosition - startPosition + 1)
                    .Insert([
                         new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteSimulation)))
                     ]);
-
-        codeMatcher.Start()
-                   .MatchForward(true, multithreadedIfCondition)
-                   .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}");
 
         return codeMatcher.InstructionEnumeration();
     }

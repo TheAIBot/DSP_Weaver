@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Fractionators;
@@ -618,7 +620,7 @@ internal sealed class OptimizedPlanet
 
 internal enum WorkType
 {
-    BeforePower = 0,
+    BeforePower,
     Power,
     Construction,
     CheckBefore,
@@ -938,12 +940,15 @@ internal sealed class WorkExecutor
     private readonly StarClusterWorkManager _starClusterWorkManager;
     private readonly WorkerThreadExecutor _workerThreadExecutor;
     private readonly object _singleThreadedCodeLock;
+    private readonly HighStopwatch _stopWatch = new();
+    private readonly double[] _workTypeTimings;
 
     public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock)
     {
         _starClusterWorkManager = starClusterWorkManager;
         _workerThreadExecutor = workerThreadExecutor;
         _singleThreadedCodeLock = singleThreadedCodeLock;
+        _workTypeTimings = new double[ArrayExtensions.GetEnumValuesEnumerable<WorkType>().Max(x => (int)x) + 1];
     }
 
     public void Execute(PlanetData? localPlanet, long time)
@@ -976,6 +981,9 @@ internal sealed class WorkExecutor
                     planetWorkManager = planetWorkPlan.Value.PlanetWorkManager;
                     workPlan = planetWorkPlan.Value.WorkPlan;
                 }
+
+                _stopWatch.Begin();
+                bool recordTiming = true;
 
                 bool isActive = localPlanet == planetWorkManager.Planet.planet;
                 _workerThreadExecutor.curThreadIdx = workPlan.Value.WorkIndex;
@@ -1066,10 +1074,12 @@ internal sealed class WorkExecutor
                 }
                 else if (workPlan.Value.WorkType == WorkType.Splitter && planetWorkManager.Planet.cargoTraffic != null)
                 {
+                    recordTiming = false;
                     planetWorkManager.Planet.cargoTraffic.SplitterGameTick(time);
                 }
                 else if (workPlan.Value.WorkType == WorkType.Monitor && planetWorkManager.Planet.cargoTraffic != null)
                 {
+                    recordTiming = false;
                     planetWorkManager.Planet.cargoTraffic.MonitorGameTick();
                 }
                 else if (workPlan.Value.WorkType == WorkType.Spraycoater && planetWorkManager.Planet.cargoTraffic != null)
@@ -1080,11 +1090,13 @@ internal sealed class WorkExecutor
                     }
                     else
                     {
+                        recordTiming = false;
                         planetWorkManager.Planet.cargoTraffic.SpraycoaterGameTick();
                     }
                 }
                 else if (workPlan.Value.WorkType == WorkType.Piler && planetWorkManager.Planet.cargoTraffic != null)
                 {
+                    recordTiming = false;
                     planetWorkManager.Planet.cargoTraffic.PilerGameTick();
                 }
                 else if (workPlan.Value.WorkType == WorkType.OutputToBelt && planetWorkManager.Planet.transport != null)
@@ -1109,6 +1121,11 @@ internal sealed class WorkExecutor
                     planetWorkManager.Planet.digitalSystem.GameTick(isActive);
                 }
 
+                if (recordTiming)
+                {
+                    _workTypeTimings[(int)workPlan.Value.WorkType] += _stopWatch.duration;
+                }
+
                 planetWorkManager.CompleteWork(workPlan.Value);
             }
         }
@@ -1124,11 +1141,20 @@ internal sealed class WorkExecutor
             _workerThreadExecutor.usedThreadCnt = originalWorkerUsedThreadCount;
         }
     }
+
+    public double[] GetWorkTypeTimings() => _workTypeTimings;
+
+    public void Reset()
+    {
+        Array.Clear(_workTypeTimings, 0, _workTypeTimings.Length);
+    }
 }
 
 internal sealed class WorkStealingMultiThreadedFactorySimulation
 {
+    private readonly HighStopwatch _stopWatch = new();
     private readonly object _singleThreadedCodeLock = new();
+    private readonly PerformanceMonitorUpdater _performanceMonitorUpdater = PerformanceMonitorUpdater.Create();
     private StarClusterWorkManager _starClusterWorkManager;
     private WorkExecutor[] _workExecutors;
 
@@ -1139,7 +1165,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         {
             _starClusterWorkManager = new StarClusterWorkManager(GameMain.data.factories, multithreadSystem.usedThreadCnt);
         }
-        _starClusterWorkManager.Reset();
         if (_starClusterWorkManager.Parallelism != multithreadSystem.usedThreadCnt)
         {
             _starClusterWorkManager.SetMaxWorkParallelism(multithreadSystem.usedThreadCnt);
@@ -1153,17 +1178,122 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             }
         }
 
+        _starClusterWorkManager.Reset();
+        for (int i = 0; i < _workExecutors.Length; i++)
+        {
+            _workExecutors[i].Reset();
+        }
+
         var parallelOptions = new ParallelOptions
         {
             MaxDegreeOfParallelism = GameMain.multithreadSystem.usedThreadCnt,
         };
 
+        _stopWatch.Begin();
         Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(GameMain.localPlanet, GameMain.gameTick));
+        double totalTime = _stopWatch.duration;
+
+        _performanceMonitorUpdater.UpdateTimings(totalTime, _workExecutors);
     }
 
     public void Clear()
     {
         _starClusterWorkManager = null;
         _workExecutors = null;
+    }
+
+
+}
+
+internal sealed class PerformanceMonitorUpdater
+{
+    private readonly double[] _sumWorkerWorkTypeTimings = new double[ArrayExtensions.GetEnumValuesEnumerable<WorkType>().Max(x => (int)x) + 1];
+    private readonly HashSet<ECpuWorkEntry> _factoryWorkEntryChildren;
+    private readonly Dictionary<WorkType, ECpuWorkEntry[]> _workTypeToCpuWorkEntry = new()
+    {
+        {WorkType.BeforePower, [ECpuWorkEntry.PowerSystem] },
+        {WorkType.Power, [ECpuWorkEntry.PowerSystem]},
+        {WorkType.Construction, [ECpuWorkEntry.Construction]},
+        {WorkType.CheckBefore, [ECpuWorkEntry.Null]},
+        {WorkType.Assembler, [ECpuWorkEntry.Facility]},
+        {WorkType.LabResearchMode, [ECpuWorkEntry.Facility, ECpuWorkEntry.Lab]},
+        {WorkType.LabOutput2NextData, [ECpuWorkEntry.Facility, ECpuWorkEntry.Lab]},
+        {WorkType.TransportData, [ECpuWorkEntry.Transport]},
+        {WorkType.InputFromBelt, [ECpuWorkEntry.Storage]},
+        {WorkType.InserterData, [ECpuWorkEntry.Inserter]},
+        {WorkType.Storage, [ECpuWorkEntry.Storage]},
+        {WorkType.CargoPathsData, [ECpuWorkEntry.Belt]},
+        {WorkType.Splitter, [ECpuWorkEntry.Splitter]},
+        {WorkType.Monitor, [ECpuWorkEntry.Belt]},
+        {WorkType.Spraycoater, [ECpuWorkEntry.Belt]},
+        {WorkType.Piler, [ECpuWorkEntry.Belt]},
+        {WorkType.OutputToBelt, [ECpuWorkEntry.Storage]},
+        {WorkType.SandboxMode, [ECpuWorkEntry.Storage]}, // ????? This is what the game does so sure!
+        {WorkType.PresentCargoPathsData, [ECpuWorkEntry.LocalCargo]},
+        {WorkType.Digital, [ECpuWorkEntry.Digital]}
+    };
+
+    private PerformanceMonitorUpdater(HashSet<ECpuWorkEntry> factoryWorkEntryChildren)
+    {
+        _factoryWorkEntryChildren = factoryWorkEntryChildren;
+    }
+
+    public static PerformanceMonitorUpdater Create()
+    {
+        HashSet<ECpuWorkEntry> factoryWorkEntryChildren = [];
+        while (true)
+        {
+            int entryCountStart = factoryWorkEntryChildren.Count;
+            for (int i = 0; i < PerformanceMonitor.cpuWorkParents.Length; i++)
+            {
+                ECpuWorkEntry workEntryParent = PerformanceMonitor.cpuWorkParents[i];
+                if (workEntryParent == ECpuWorkEntry.Factory || factoryWorkEntryChildren.Contains(workEntryParent))
+                {
+                    factoryWorkEntryChildren.Add((ECpuWorkEntry)i);
+                }
+            }
+
+            if (entryCountStart == factoryWorkEntryChildren.Count)
+            {
+                break;
+            }
+        }
+
+        return new PerformanceMonitorUpdater(factoryWorkEntryChildren);
+    }
+
+    public void UpdateTimings(double totalDuration, WorkExecutor[] workExecutors)
+    {
+        Array.Clear(_sumWorkerWorkTypeTimings, 0, _sumWorkerWorkTypeTimings.Length);
+
+        foreach (WorkExecutor workExecutor in workExecutors)
+        {
+            double[] workerWorkTypeTimings = workExecutor.GetWorkTypeTimings();
+            if (_sumWorkerWorkTypeTimings.Length != workerWorkTypeTimings.Length)
+            {
+                throw new InvalidOperationException($"Work type timing arrays were not the same size. Sum array size: {_sumWorkerWorkTypeTimings.Length}, worker array size: {workerWorkTypeTimings.Length}");
+            }
+
+            for (int i = 0; i < _sumWorkerWorkTypeTimings.Length; i++)
+            {
+                _sumWorkerWorkTypeTimings[i] += workerWorkTypeTimings[i];
+            }
+        }
+
+        double totalCpuTime = _sumWorkerWorkTypeTimings.Sum();
+        double workTypeTimeRatio = totalDuration / totalCpuTime;
+
+        foreach (var workTypeToCpuWorkEntries in _workTypeToCpuWorkEntry)
+        {
+            for (int i = 0; i < workTypeToCpuWorkEntries.Value.Length; i++)
+            {
+                if (workTypeToCpuWorkEntries.Value[i] == ECpuWorkEntry.Null)
+                {
+                    continue;
+                }
+
+                PerformanceMonitor.timeCostsFrame[(int)workTypeToCpuWorkEntries.Value[i]] += _sumWorkerWorkTypeTimings[(int)workTypeToCpuWorkEntries.Key] * workTypeTimeRatio;
+            }
+        }
     }
 }
