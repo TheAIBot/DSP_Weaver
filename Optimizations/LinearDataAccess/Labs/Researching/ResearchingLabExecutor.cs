@@ -231,7 +231,7 @@ internal sealed class ResearchingLabExecutor
                 continue;
             }
 
-            optimizedLabs[optimizedIndex].Save(ref labComponents[i], labsPowerFields[i], _matrixPoints);
+            optimizedLabs[optimizedIndex].Save(ref labComponents[i], labsPowerFields[optimizedIndex], _matrixPoints);
         }
     }
 

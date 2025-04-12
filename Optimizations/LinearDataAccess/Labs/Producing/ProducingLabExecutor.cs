@@ -116,7 +116,7 @@ internal sealed class ProducingLabExecutor
 
             ref OptimizedProducingLab optimizedLab = ref _optimizedLabs[optimizedIndex];
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[optimizedLab.producingLabRecipeIndex];
-            optimizedLab.Save(ref labComponents[i], in producingLabRecipe, labsPowerFields[i]);
+            optimizedLab.Save(ref labComponents[i], in producingLabRecipe, labsPowerFields[optimizedIndex]);
         }
     }
 
