@@ -44,12 +44,6 @@ public sealed class TrafficStatisticsPatches
 
         Parallel.For(0, __instance.starTrafficPool.Length, parallelOptions, i =>
         {
-            if (!_isStarUpdated[i])
-            {
-                return;
-            }
-            _isStarUpdated[i] = false;
-
             AstroTrafficStat traffic = __instance.starTrafficPool[i];
             if (traffic == null)
             {
@@ -71,12 +65,6 @@ public sealed class TrafficStatisticsPatches
         });
         Parallel.For(0, __instance.factoryTrafficPool.Length, parallelOptions, i =>
         {
-            if (!_isPlanetUpdated[i])
-            {
-                return;
-            }
-            _isPlanetUpdated[i] = false;
-
             AstroTrafficStat traffic = __instance.factoryTrafficPool[i];
             if (traffic == null)
             {
@@ -98,98 +86,5 @@ public sealed class TrafficStatisticsPatches
         });
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.RegisterStarInputStat))]
-    public static void RegisterStarInputStat(int starId, int itemId, int count)
-    {
-        if (starId <= 0 || itemId <= 0 || count <= 0)
-        {
-            return;
-        }
-
-        if (_isStarUpdated != null)
-        {
-            _isStarUpdated[starId] = true;
-        }
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.RegisterStarOutputStat))]
-    public static void RegisterStarOutputStat(int starId, int itemId, int count)
-    {
-        if (starId <= 0 || itemId <= 0 || count <= 0)
-        {
-            return;
-        }
-
-        if (_isStarUpdated != null)
-        {
-            _isStarUpdated[starId] = true;
-        }
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.RegisterStarInternalStat))]
-    public static void RegisterStarInternalStat(int starId, int itemId, int count)
-    {
-        if (starId <= 0 || itemId <= 0 || count <= 0)
-        {
-            return;
-        }
-
-        if (_isStarUpdated != null)
-        {
-            _isStarUpdated[starId] = true;
-        }
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.RegisterPlanetInputStat))]
-    public static void RegisterPlanetInputStat(TrafficStatistics __instance, int planetId, int itemId, int count)
-    {
-        if (planetId <= 0 || itemId <= 0 || count <= 0)
-        {
-            return;
-        }
-
-        PlanetFactory planetFactory = __instance.gameData.galaxy.PlanetById(planetId)?.factory;
-        if (planetFactory != null && _isPlanetUpdated != null)
-        {
-            _isPlanetUpdated[planetFactory.index] = true;
-        }
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.RegisterPlanetOutputStat))]
-    public static void RegisterPlanetOutputStat(TrafficStatistics __instance, int planetId, int itemId, int count)
-    {
-        if (planetId <= 0 || itemId <= 0 || count <= 0)
-        {
-            return;
-        }
-
-        PlanetFactory planetFactory = __instance.gameData.galaxy.PlanetById(planetId)?.factory;
-        if (planetFactory != null && _isPlanetUpdated != null)
-        {
-            _isPlanetUpdated[planetFactory.index] = true;
-        }
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.RegisterPlanetInternalStat))]
-    public static void RegisterPlanetInternalStat(TrafficStatistics __instance, int planetId, int itemId, int count)
-    {
-        if (planetId <= 0 || itemId <= 0 || count <= 0)
-        {
-            return;
-        }
-
-        PlanetFactory planetFactory = __instance.gameData.galaxy.PlanetById(planetId)?.factory;
-        if (planetFactory != null && _isPlanetUpdated != null)
-        {
-            _isPlanetUpdated[planetFactory.index] = true;
-        }
     }
 }
