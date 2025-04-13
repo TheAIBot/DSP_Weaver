@@ -1,9 +1,12 @@
 ## 1.1.0
+* ~15% performance improvment compared to 1.0.1
 * Optimized fractionators.
 * Additional assembler data access optimizations.
 * Optimized multithreaded work distribution method.
-* Parallelized stations belt logic, splitters, monitors, pilers, digital system.
-* Fix import/export statistics was not updated correctly.
+	* Parallelized station belt logic, splitters, monitors, pilers, storage and the digital system.
+	* Smoothes out most lag spikes.
+* Fix import/export statistics were not updated correctly.
+* First stab at supporting SampleAndHoldSim. Loads but statistics are broken.
 
 ## 1.0.1
 * Fixed sorters on active planets would be updated twice per tick which would sometimes result in a `DivideByZeroException`.
