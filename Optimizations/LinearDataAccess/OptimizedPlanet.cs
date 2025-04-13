@@ -529,8 +529,6 @@ internal sealed class OptimizedPlanet
             work.Add(new WorkTracker(WorkType.LabOutput2NextData, labOutput2NextWorkCount));
         }
 
-        //int transportWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        //transportWorkCount = Math.Min(transportWorkCount, maxParallelism);
         if (transportEntities > 0)
         {
             work.Add(new WorkTracker(WorkType.TransportData, 1));
