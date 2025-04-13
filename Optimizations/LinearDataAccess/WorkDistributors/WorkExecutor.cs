@@ -20,7 +20,7 @@ internal sealed class WorkExecutor
         _workTypeTimings = new double[ArrayExtensions.GetEnumValuesEnumerable<WorkType>().Max(x => (int)x) + 1];
     }
 
-    public void Execute(PlanetData localPlanet, long time)
+    public void Execute(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         int originalWorkerThreadIndex = _workerThreadExecutor.curThreadIdx;
         int originalWorkerUsedThreadCount = _workerThreadExecutor.usedThreadCnt;
@@ -68,7 +68,7 @@ internal sealed class WorkExecutor
                 }
                 else if (workPlan.Value.WorkType == WorkType.Power && planetWorkManager.Planet.powerSystem != null)
                 {
-                    planetWorkManager.Planet.powerSystem.multithreadPlayerPos = GameMain.mainPlayer.position;
+                    planetWorkManager.Planet.powerSystem.multithreadPlayerPos = playerPosition;
                     planetWorkManager.Planet.powerSystem.GameTick(time, isActive, isMultithreadMode: true);
                     //_workerThreadExecutor.powerSystemLocalPlanet = localPlanet;
                     //_workerThreadExecutor.powerSystemFactories = [planetWorkManager.Planet];
@@ -79,12 +79,18 @@ internal sealed class WorkExecutor
                 }
                 else if (workPlan.Value.WorkType == WorkType.Construction && planetWorkManager.Planet.constructionSystem != null)
                 {
-                    planetWorkManager.Planet.constructionSystem.GameTick(time, isActive);
-                    planetWorkManager.Planet.constructionSystem.ExcuteDeferredTargetChange();
+                    //lock (_singleThreadedCodeLock)
+                    //{
+                    //    planetWorkManager.Planet.constructionSystem.GameTick(time, isActive);
+                    //    planetWorkManager.Planet.constructionSystem.ExcuteDeferredTargetChange();
+                    //}
                 }
                 else if (workPlan.Value.WorkType == WorkType.CheckBefore && planetWorkManager.Planet.factorySystem != null)
                 {
-                    planetWorkManager.Planet.factorySystem.CheckBeforeGameTick();
+                    //lock (_singleThreadedCodeLock)
+                    //{
+                    //    planetWorkManager.Planet.factorySystem.CheckBeforeGameTick();
+                    //}
                 }
                 else if (workPlan.Value.WorkType == WorkType.Assembler)
                 {
@@ -111,6 +117,7 @@ internal sealed class WorkExecutor
                 }
                 else if (workPlan.Value.WorkType == WorkType.TransportData && planetWorkManager.Planet.transport != null)
                 {
+                    planetWorkManager.Planet.transport.multithreadPlayerPos = playerPosition;
                     _workerThreadExecutor.transportLocalPlanet = localPlanet;
                     _workerThreadExecutor.transportFactories = [planetWorkManager.Planet];
                     _workerThreadExecutor.transportFactoryCnt = 1;
@@ -123,11 +130,19 @@ internal sealed class WorkExecutor
                 }
                 else if (workPlan.Value.WorkType == WorkType.InserterData)
                 {
-                    _workerThreadExecutor.inserterLocalPlanet = localPlanet;
-                    _workerThreadExecutor.inserterFactories = [planetWorkManager.Planet];
-                    _workerThreadExecutor.inserterFactoryCnt = 1;
-                    _workerThreadExecutor.inserterTime = time;
-                    _workerThreadExecutor.InserterPartExecute();
+                    if (planetWorkManager.OptimizedPlanet.Status == OptimizedPlanetStatus.Running)
+                    {
+                        planetWorkManager.OptimizedPlanet._optimizedBiInserterExecutor.GameTickInserters(planetWorkManager.Planet, planetWorkManager.OptimizedPlanet, time, workPlan.Value.WorkParallelism, workPlan.Value.WorkIndex);
+                        planetWorkManager.OptimizedPlanet._optimizedInserterExecutor.GameTickInserters(planetWorkManager.Planet, planetWorkManager.OptimizedPlanet, time, workPlan.Value.WorkParallelism, workPlan.Value.WorkIndex);
+                    }
+                    else
+                    {
+                        _workerThreadExecutor.inserterLocalPlanet = localPlanet;
+                        _workerThreadExecutor.inserterFactories = [planetWorkManager.Planet];
+                        _workerThreadExecutor.inserterFactoryCnt = 1;
+                        _workerThreadExecutor.inserterTime = time;
+                        _workerThreadExecutor.InserterPartExecute();
+                    }
                 }
                 else if (workPlan.Value.WorkType == WorkType.Storage && planetWorkManager.Planet.factoryStorage != null)
                 {
@@ -175,7 +190,10 @@ internal sealed class WorkExecutor
                 }
                 else if (workPlan.Value.WorkType == WorkType.SandboxMode && planetWorkManager.Planet.transport != null)
                 {
-                    planetWorkManager.Planet.transport.GameTick_SandboxMode();
+                    lock (_singleThreadedCodeLock)
+                    {
+                        planetWorkManager.Planet.transport.GameTick_SandboxMode();
+                    }
                 }
                 else if (workPlan.Value.WorkType == WorkType.PresentCargoPathsData)
                 {

@@ -50,12 +50,17 @@ internal sealed class InserterExecutor<T>
         return default(T).Create(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
 
-    public void GameTickInserters(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, int _start, int _end)
+    public void GameTickInserters(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, int _usedThreadCnt, int _curThreadIdx)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         InsertIntoConsumingPlant[] insertIntoConsumingPlants = _insertIntoConsumingPlants;
-        _end = _end > _optimizedInserters.Length ? _optimizedInserters.Length : _end;
+
+        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedInserters.Length - 1, _usedThreadCnt, _curThreadIdx, 4, out int _start, out int _end))
+        {
+            return;
+        }
+
         for (int inserterIndex = _start; inserterIndex < _end; inserterIndex++)
         {
             ref NetworkIdAndState<InserterState> networkIdAndState = ref _inserterNetworkIdAndStates[inserterIndex];

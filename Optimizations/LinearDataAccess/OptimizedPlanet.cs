@@ -54,7 +54,7 @@ internal sealed class OptimizedPlanet
         _planet = planet;
     }
 
-    public void Save(int maxParallelism)
+    public void Save()
     {
         _optimizedBiInserterExecutor.Save(_planet);
         _optimizedInserterExecutor.Save(_planet);
@@ -66,11 +66,11 @@ internal sealed class OptimizedPlanet
 
         Status = OptimizedPlanetStatus.Stopped;
 
-        _workTrackers = CreateMultithreadedWork(maxParallelism);
-        _workTrackersParallelism = maxParallelism;
+        _workTrackers = null;
+        _workTrackersParallelism = -1;
     }
 
-    public void Initialize(int maxParallelism)
+    public void Initialize()
     {
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
 
@@ -86,6 +86,9 @@ internal sealed class OptimizedPlanet
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
+
+        _workTrackers = null;
+        _workTrackersParallelism = -1;
     }
 
     private void InitializeInserters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -476,7 +479,7 @@ internal sealed class OptimizedPlanet
                             battleBaseCount +
                             markerCount;
 
-        const int minimumWorkPerCore = 1_000;
+        const int minimumWorkPerCore = 5_000;
         int beforePowerWorkCount = ((totalEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         beforePowerWorkCount = Math.Min(beforePowerWorkCount, maxParallelism);
         if (beforePowerWorkCount > 0)
@@ -526,11 +529,11 @@ internal sealed class OptimizedPlanet
             work.Add(new WorkTracker(WorkType.LabOutput2NextData, labOutput2NextWorkCount));
         }
 
-        int transportWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        transportWorkCount = Math.Min(transportWorkCount, maxParallelism);
-        if (transportWorkCount > 0)
+        //int transportWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
+        //transportWorkCount = Math.Min(transportWorkCount, maxParallelism);
+        if (transportEntities > 0)
         {
-            work.Add(new WorkTracker(WorkType.TransportData, transportWorkCount));
+            work.Add(new WorkTracker(WorkType.TransportData, 1));
         }
 
         if (stationCount > 0)

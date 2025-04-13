@@ -1,10 +1,7 @@
 ﻿using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using Weaver.Optimizations.LinearDataAccess.Inserters;
-using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 #nullable enable
@@ -76,7 +73,7 @@ internal static class OptimizedStarCluster
             }
 
             WeaverFixes.Logger.LogInfo($"Saving planet: {planetToOptimizedPlanet.Key.planet.displayName}");
-            planetToOptimizedPlanet.Value.Save(GameMain.multithreadSystem.usedThreadCnt);
+            planetToOptimizedPlanet.Value.Save();
         }
     }
 
@@ -115,7 +112,7 @@ internal static class OptimizedStarCluster
                     }
 
                     WeaverFixes.Logger.LogInfo($"Optimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
-                    planetToOptimizedPlanet.Value.Initialize(GameMain.multithreadSystem.usedThreadCnt);
+                    planetToOptimizedPlanet.Value.Initialize();
                 }
 
                 continue;
@@ -127,7 +124,7 @@ internal static class OptimizedStarCluster
             }
 
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
-            planetToOptimizedPlanet.Value.Save(GameMain.multithreadSystem.usedThreadCnt);
+            planetToOptimizedPlanet.Value.Save();
         }
 
         if (_planetsToReOptimize.Count > 0)
@@ -141,7 +138,7 @@ internal static class OptimizedStarCluster
             }
 
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
-            optimizedPlanet.Save(GameMain.multithreadSystem.usedThreadCnt);
+            optimizedPlanet.Save();
         }
     }
 
@@ -174,159 +171,6 @@ internal static class OptimizedStarCluster
     public static void PlanetFactory_UpgradeEntityWithComponents(PlanetFactory __instance)
     {
         DeOptimizeDueToNonPlayerAction(__instance);
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(WorkerThreadExecutor), nameof(WorkerThreadExecutor.InserterPartExecute))]
-    public static bool InserterPartExecute(WorkerThreadExecutor __instance)
-    {
-        InserterPartExecute(__instance, x => x._optimizedBiInserterExecutor, true);
-        InserterPartExecute(__instance, x => x._optimizedInserterExecutor, false);
-
-        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-    }
-
-    public static void InserterPartExecute<T>(WorkerThreadExecutor __instance, Func<OptimizedPlanet, InserterExecutor<T>?> inserterExecutorSelector, bool runOriginalLogicOnUnoptimizedPlanets)
-        where T : struct, IInserter<T>
-    {
-        if (__instance.inserterFactories == null)
-        {
-            return;
-        }
-        int totalGalaxyInserterCount = 0;
-        for (int planetIndex = 0; planetIndex < __instance.inserterFactoryCnt; planetIndex++)
-        {
-            PlanetFactory planet = __instance.inserterFactories[planetIndex];
-            OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
-            InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
-
-            int inserterCount;
-            if (optimizedInserterExecutor != null)
-            {
-                inserterCount = optimizedInserterExecutor.InserterCount;
-            }
-            else if (runOriginalLogicOnUnoptimizedPlanets)
-            {
-                inserterCount = planet.factorySystem.inserterCursor;
-            }
-            else
-            {
-                inserterCount = 0;
-            }
-
-            totalGalaxyInserterCount += inserterCount;
-        }
-        int minimumMissionCnt = 64;
-        if (!WorkerThreadExecutor.CalculateMissionIndex(totalGalaxyInserterCount, __instance.usedThreadCnt, __instance.curThreadIdx, minimumMissionCnt, out var _start, out var _end))
-        {
-            return;
-        }
-        int threadStartingPlanetIndex = 0;
-        int totalInsertersSeenOnPreviousPlanets = 0;
-        for (int planetIndex = 0; planetIndex < __instance.inserterFactoryCnt; planetIndex++)
-        {
-            PlanetFactory planet = __instance.inserterFactories[planetIndex];
-            OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
-            InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
-
-            int inserterCount;
-            if (optimizedInserterExecutor != null)
-            {
-                inserterCount = optimizedInserterExecutor.InserterCount;
-            }
-            else if (runOriginalLogicOnUnoptimizedPlanets)
-            {
-                inserterCount = planet.factorySystem.inserterCursor;
-            }
-            else
-            {
-                inserterCount = 0;
-            }
-
-            int totalInsertersIncludingOnThisPlanets = totalInsertersSeenOnPreviousPlanets + inserterCount;
-            if (totalInsertersIncludingOnThisPlanets <= _start)
-            {
-                totalInsertersSeenOnPreviousPlanets = totalInsertersIncludingOnThisPlanets;
-                continue;
-            }
-            threadStartingPlanetIndex = planetIndex;
-            break;
-        }
-        for (int planetIndex = threadStartingPlanetIndex; planetIndex < __instance.inserterFactoryCnt; planetIndex++)
-        {
-            PlanetFactory planet = __instance.inserterFactories[planetIndex];
-            OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
-            InserterExecutor<T>? optimizedInserterExecutor = inserterExecutorSelector(optimizedPlanet);
-
-            int inserterCount;
-            if (optimizedInserterExecutor != null)
-            {
-                inserterCount = optimizedInserterExecutor.InserterCount;
-            }
-            else if (runOriginalLogicOnUnoptimizedPlanets)
-            {
-                inserterCount = planet.factorySystem.inserterCursor;
-            }
-            else
-            {
-                inserterCount = 0;
-            }
-
-            int num5 = _start - totalInsertersSeenOnPreviousPlanets;
-            int num6 = _end - totalInsertersSeenOnPreviousPlanets;
-            if (_end - _start > inserterCount - num5)
-            {
-                try
-                {
-                    if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
-                    {
-                        if (optimizedInserterExecutor == null)
-                        {
-                            throw new InvalidOperationException("InserterExecutor was null while the optimized planet was running.");
-                        }
-
-                        optimizedInserterExecutor.GameTickInserters(planet, optimizedPlanet, __instance.inserterTime, num5, inserterCount);
-                    }
-                    else if (runOriginalLogicOnUnoptimizedPlanets)
-                    {
-                        bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[planetIndex].planet;
-                        __instance.inserterFactories[planetIndex].factorySystem.GameTickInserters(__instance.inserterTime, isActive, num5, inserterCount);
-                    }
-                    totalInsertersSeenOnPreviousPlanets += inserterCount;
-                    _start = totalInsertersSeenOnPreviousPlanets;
-                }
-                catch (Exception ex)
-                {
-                    __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + planetIndex.ToString() + " Inserter first gametick total cursor: " + inserterCount + "  Start & End: " + num5 + "/" + inserterCount + "  " + ex;
-                    __instance.hasErrorMessage = true;
-                }
-                continue;
-            }
-            try
-            {
-                if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
-                {
-                    if (optimizedInserterExecutor == null)
-                    {
-                        throw new InvalidOperationException("InserterExecutor was null while the optimized planet was running.");
-                    }
-
-                    optimizedInserterExecutor.GameTickInserters(planet, optimizedPlanet, __instance.inserterTime, num5, num6);
-                }
-                else if (runOriginalLogicOnUnoptimizedPlanets)
-                {
-                    bool isActive = __instance.inserterLocalPlanet == __instance.inserterFactories[planetIndex].planet;
-                    __instance.inserterFactories[planetIndex].factorySystem.GameTickInserters(__instance.inserterTime, isActive, num5, num6);
-                }
-                break;
-            }
-            catch (Exception ex2)
-            {
-                __instance.errorMessage = "Thread Error Exception!!! Thread idx:" + __instance.curThreadIdx + " Inserter Factory idx:" + planetIndex.ToString() + " Inserter second gametick total cursor: " + inserterCount + "  Start & End: " + num5 + "/" + num6 + "  " + ex2;
-                __instance.hasErrorMessage = true;
-                break;
-            }
-        }
     }
 
     [HarmonyPrefix]
@@ -525,7 +369,7 @@ internal static class OptimizedStarCluster
         if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
         {
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planet.planet.displayName}");
-            optimizedPlanet.Save(GameMain.multithreadSystem.usedThreadCnt);
+            optimizedPlanet.Save();
         }
         optimizedPlanet.OptimizeDelayInTicks = 200;
     }

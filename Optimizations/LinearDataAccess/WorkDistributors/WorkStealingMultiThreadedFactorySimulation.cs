@@ -44,7 +44,14 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         };
 
         _stopWatch.Begin();
-        Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(GameMain.localPlanet, GameMain.gameTick));
+
+        ExecuteSingleThreadedSteps(planetsToUpdate);
+
+        PlanetData? localPlanet = GameMain.localPlanet;
+        long time = GameMain.gameTick;
+        UnityEngine.Vector3 playerPosition = GameMain.mainPlayer.position;
+
+        Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(localPlanet, time, playerPosition));
         double totalTime = _stopWatch.duration;
 
         _performanceMonitorUpdater.UpdateTimings(totalTime, _workExecutors);
@@ -56,5 +63,28 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         _workExecutors = null;
     }
 
+    private static void ExecuteSingleThreadedSteps(PlanetFactory[] planetsToUpdate)
+    {
+        for (int i = 0; i < planetsToUpdate.Length; i++)
+        {
+            if (planetsToUpdate[i]?.constructionSystem == null)
+            {
+                continue;
+            }
 
+            bool isActive = planetsToUpdate[i].planet == GameMain.localPlanet;
+            planetsToUpdate[i].constructionSystem.GameTick(GameMain.gameTick, isActive);
+            planetsToUpdate[i].constructionSystem.ExcuteDeferredTargetChange();
+        }
+
+        for (int i = 0; i < planetsToUpdate.Length; i++)
+        {
+            if (planetsToUpdate[i]?.factorySystem == null)
+            {
+                continue;
+            }
+
+            planetsToUpdate[i].factorySystem.CheckBeforeGameTick();
+        }
+    }
 }
