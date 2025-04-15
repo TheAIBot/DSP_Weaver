@@ -151,6 +151,13 @@ internal sealed class ProducingLabExecutor
                 unOptimizedLabIds.Add(i);
                 continue;
             }
+            
+            // Need to check but pretty sure locked tech have negative recipe id
+            if (lab.recipeId < 0)
+            {
+                unOptimizedLabIds.Add(i);
+                continue;
+            }
 
             int? nextLabIndex = null;
             if (planet.factorySystem.labPool[lab.nextLabId].id != 0 &&
