@@ -505,13 +505,25 @@ internal sealed class OptimizedPowerSystem
 
     private void InitializeThreadLocalArrays()
     {
-        if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != GameMain.multithreadSystem.usedThreadCnt)
+        // this is to support single threaded mode where GameMain.multithreadSystem.usedThreadCnt is not set
+        // when starting the game
+        int threadCount;
+        if (GameMain.multithreadSystem.multithreadSystemEnable)
+        {
+            threadCount = GameMain.multithreadSystem.usedThreadCnt;
+        }
+        else
+        {
+            threadCount = 1;
+        }
+
+        if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != threadCount)
         {
             lock (this)
             {
-                if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != GameMain.multithreadSystem.usedThreadCnt)
+                if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != threadCount)
                 {
-                    var threadNetworkPowerConsumptionPrepared = new long[GameMain.multithreadSystem.usedThreadCnt][];
+                    var threadNetworkPowerConsumptionPrepared = new long[threadCount][];
                     for (int i = 0; i < threadNetworkPowerConsumptionPrepared.Length; i++)
                     {
                         threadNetworkPowerConsumptionPrepared[i] = new long[_networkNonOptimizedPowerConsumerIndexes.Length];

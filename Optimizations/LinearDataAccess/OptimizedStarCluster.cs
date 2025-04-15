@@ -207,6 +207,17 @@ internal static class OptimizedStarCluster
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
+    /// <summary>
+    /// This is only used by single threaded logic.
+    /// Forward method to parallel solution with hardcoded values for one thread.
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.GameTickBeforePower))]
+    public static bool FactorySystem_SingleThreadedGameTickBeforePower(FactorySystem __instance, long time, bool isActive)
+    {
+        return FactorySystem_ParallelGameTickBeforePower(__instance, time, isActive, 1, 0, 4);
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.ParallelGameTickBeforePower))]
     public static bool FactorySystem_ParallelGameTickBeforePower(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
@@ -220,6 +231,17 @@ internal static class OptimizedStarCluster
         optimizedPlanet._optimizedPowerSystem.FactorySystem_ParallelGameTickBeforePower(__instance.factory, optimizedPlanet, time, isActive, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    /// <summary>
+    /// This is only used by single threaded logic.
+    /// Forward method to parallel solution with hardcoded values for one thread.
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CargoTraffic), nameof(CargoTraffic.GameTickBeforePower))]
+    public static bool CargoTraffic_SingleThreadedGameTickBeforePower(CargoTraffic __instance, long time, bool isActive)
+    {
+        return CargoTraffic_ParallelGameTickBeforePower(__instance, time, isActive, 1, 0, 4);
     }
 
     [HarmonyPrefix]
