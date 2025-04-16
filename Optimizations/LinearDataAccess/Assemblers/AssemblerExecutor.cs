@@ -137,6 +137,7 @@ internal sealed class AssemblerExecutor
         List<AssemblerRecipe> assemblerRecipes = [];
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
         HashSet<int> unOptimizedAssemblerIds = [];
+        GameHistoryData historyData = planet.gameData.history;
 
         for (int i = 0; i < planet.factorySystem.assemblerCursor; i++)
         {
@@ -148,6 +149,15 @@ internal sealed class AssemblerExecutor
             }
 
             if (assembler.recipeId == 0)
+            {
+                unOptimizedAssemblerIds.Add(i);
+                continue;
+            }
+
+            // It is possible to put a locked recipe into a building by using blueprints.
+            // Such buildings should not run at all.
+            // Planet reoptimization will enable the recipe when it has been researched.
+            if (!historyData.RecipeUnlocked(assembler.recipeId))
             {
                 unOptimizedAssemblerIds.Add(i);
                 continue;

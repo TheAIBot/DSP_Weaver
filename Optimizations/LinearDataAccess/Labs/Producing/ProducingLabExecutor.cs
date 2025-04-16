@@ -130,6 +130,7 @@ internal sealed class ProducingLabExecutor
         List<int> entityIds = [];
         Dictionary<int, int> labIdToOptimizedLabIndex = [];
         HashSet<int> unOptimizedLabIds = [];
+        GameHistoryData historyData = planet.gameData.history;
 
         for (int i = 0; i < planet.factorySystem.labCursor; i++)
         {
@@ -151,9 +152,11 @@ internal sealed class ProducingLabExecutor
                 unOptimizedLabIds.Add(i);
                 continue;
             }
-            
-            // Need to check but pretty sure locked tech have negative recipe id
-            if (lab.recipeId < 0)
+
+            // It is possible to put a locked recipe into a building by using blueprints.
+            // Such buildings should not run at all.
+            // Planet reoptimization will enable the recipe when it has been researched.
+            if (!historyData.RecipeUnlocked(lab.recipeId))
             {
                 unOptimizedLabIds.Add(i);
                 continue;
