@@ -2,7 +2,7 @@
 * Fix researching tech would sometimes immediately crash the game due to UI code not being executed on the main thread.
 * Fix Weaver did not care if a recipe was unlocked or not.
 
-## 1,1,1
+## 1.1.1
 * Fix optimized power system in single threaded mode.
 
 ## 1.1.0
