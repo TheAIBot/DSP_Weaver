@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 #nullable enable
@@ -12,7 +13,8 @@ internal static class OptimizedStarCluster
     private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedPlanet = [];
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
-    private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new();
+    private static readonly StarClusterResearchManager _starClusterResearchManager = new();
+    private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
 
     public static void EnableOptimization(Harmony harmony)
@@ -55,7 +57,7 @@ internal static class OptimizedStarCluster
                 continue;
             }
 
-            _planetToOptimizedPlanet.Add(planet, new OptimizedPlanet(planet));
+            _planetToOptimizedPlanet.Add(planet, new OptimizedPlanet(planet, _starClusterResearchManager));
         }
     }
 
@@ -95,7 +97,7 @@ internal static class OptimizedStarCluster
                 PlanetFactory newPlanet = _newPlanets.Dequeue();
 
                 WeaverFixes.Logger.LogInfo($"Adding planet: {newPlanet.planet.displayName}");
-                _planetToOptimizedPlanet.Add(newPlanet, new OptimizedPlanet(newPlanet));
+                _planetToOptimizedPlanet.Add(newPlanet, new OptimizedPlanet(newPlanet, _starClusterResearchManager));
             }
         }
 
@@ -173,11 +175,25 @@ internal static class OptimizedStarCluster
         DeOptimizeDueToNonPlayerAction(__instance);
     }
 
+    /// <summary>
+    /// This is only used by single threaded logic.
+    /// WorkStealingMultiThreadedFactorySimulation normally handles running research logic but in single threaded mode that has to be done explicitly
+    /// since the multithreaded logic is not directly executed.
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(PlanetFactory),
+                  nameof(PlanetFactory.GameTick),
+                  [typeof(long)])]
+    public static void PlanetFactory_SingleThreadedGameTick()
+    {
+        _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(FactorySystem),
                   nameof(FactorySystem.GameTick),
                   [typeof(long), typeof(bool), typeof(int), typeof(int), typeof(int)])]
-    public static bool FactorySystem_GameTick(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public static bool FactorySystem_ParallelGameTick(FactorySystem __instance, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
     {
         OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[__instance.factory];
         if (optimizedPlanet.Status != OptimizedPlanetStatus.Running)

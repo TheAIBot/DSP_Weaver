@@ -5,6 +5,7 @@ using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Fractionators;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
@@ -16,6 +17,7 @@ namespace Weaver.Optimizations.LinearDataAccess;
 internal sealed class OptimizedPlanet
 {
     private readonly PlanetFactory _planet;
+    private readonly StarClusterResearchManager _starClusterResearchManager;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
@@ -49,9 +51,10 @@ internal sealed class OptimizedPlanet
     private WorkTracker[] _workTrackers;
     private int _workTrackersParallelism;
 
-    public OptimizedPlanet(PlanetFactory planet)
+    public OptimizedPlanet(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
     {
         _planet = planet;
+        _starClusterResearchManager = starClusterResearchManager;
     }
 
     public void Save()
@@ -160,7 +163,7 @@ internal sealed class OptimizedPlanet
 
     private void InitializeResearchingLabs(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
-        _researchingLabExecutor = new ResearchingLabExecutor();
+        _researchingLabExecutor = new ResearchingLabExecutor(_starClusterResearchManager);
         _researchingLabExecutor.Initialize(planet, optimizedPowerSystemBuilder);
         _researchingLabNetworkIdAndStates = _researchingLabExecutor._networkIdAndStates;
         _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;

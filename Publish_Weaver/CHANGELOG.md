@@ -1,3 +1,6 @@
+## 1.1.2
+* Fix researching tech would sometimes immediately crash the game due to UI code not being executed in the main thread.
+
 ## 1,1,1
 * Fix optimized power system in single threaded mode.
 

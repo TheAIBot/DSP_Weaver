@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Weaver.Optimizations.LinearDataAccess.Labs;
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
@@ -7,8 +8,14 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private readonly HighStopwatch _stopWatch = new();
     private readonly object _singleThreadedCodeLock = new();
     private readonly PerformanceMonitorUpdater _performanceMonitorUpdater = PerformanceMonitorUpdater.Create();
+    StarClusterResearchManager _starClusterResearchManager;
     private StarClusterWorkManager _starClusterWorkManager;
     private WorkExecutor[] _workExecutors;
+
+    public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager)
+    {
+        _starClusterResearchManager = starClusterResearchManager;
+    }
 
     /// <summary>
     /// Takes a list of planets that will be updated this tick. 
@@ -52,6 +59,8 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         UnityEngine.Vector3 playerPosition = GameMain.mainPlayer.position;
 
         Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(localPlanet, time, playerPosition));
+        _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
+
         double totalTime = _stopWatch.duration;
 
         _performanceMonitorUpdater.UpdateTimings(totalTime, _workExecutors);

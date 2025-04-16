@@ -7,6 +7,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 
 internal sealed class ResearchingLabExecutor
 {
+    private readonly StarClusterResearchManager _starClusterResearchManager;
     private int[] _matrixPoints;
     public NetworkIdAndState<LabState>[] _networkIdAndStates;
     public OptimizedResearchingLab[] _optimizedLabs;
@@ -16,6 +17,11 @@ internal sealed class ResearchingLabExecutor
     public HashSet<int> _unOptimizedLabIds;
 
     public int ResearchingLabCount => _optimizedLabs.Length;
+
+    public ResearchingLabExecutor(StarClusterResearchManager starClusterResearchManager)
+    {
+        _starClusterResearchManager = starClusterResearchManager;
+    }
 
     public bool GameTickLabResearchMode(PlanetFactory planet, long time)
     {
@@ -130,19 +136,7 @@ internal sealed class ResearchingLabExecutor
                 {
                     hasResearchedTechnology = true;
                     history.techStates[factorySystem.researchTechId] = ts;
-                    for (int l = 0; l < techProto.UnlockRecipes.Length; l++)
-                    {
-                        history.UnlockRecipe(techProto.UnlockRecipes[l]);
-                    }
-                    for (int m = 0; m < techProto.UnlockFunctions.Length; m++)
-                    {
-                        history.UnlockTechFunction(techProto.UnlockFunctions[m], techProto.UnlockValues[m], curLevel);
-                    }
-                    for (int n = 0; n < techProto.AddItems.Length; n++)
-                    {
-                        history.GainTechAwards(techProto.AddItems[n], techProto.AddItemCounts[n]);
-                    }
-                    history.NotifyTechUnlock(factorySystem.researchTechId, curLevel);
+                    _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto);
                     history.DequeueTech();
                     flag2 = false;
                 }
@@ -150,15 +144,7 @@ internal sealed class ResearchingLabExecutor
                 {
                     hasResearchedTechnology = true;
                     history.techStates[factorySystem.researchTechId] = ts;
-                    for (int num6 = 0; num6 < techProto.UnlockFunctions.Length; num6++)
-                    {
-                        history.UnlockTechFunction(techProto.UnlockFunctions[num6], techProto.UnlockValues[num6], curLevel);
-                    }
-                    for (int num7 = 0; num7 < techProto.AddItems.Length; num7++)
-                    {
-                        history.GainTechAwards(techProto.AddItems[num7], techProto.AddItemCounts[num7]);
-                    }
-                    history.NotifyTechUnlock(factorySystem.researchTechId, curLevel);
+                    _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto);
                     history.DequeueTech();
                     flag2 = false;
                 }
