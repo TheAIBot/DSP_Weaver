@@ -54,7 +54,7 @@ internal sealed class OptimizedPowerSystem
         // Could not be bothered to change the digital system. It runs planet wide as well.
     }
 
-    public void GameTick(PlanetFactory planet, long time, bool isActive, bool isMultithreadMode = false)
+    public void GameTick(PlanetFactory planet, long time)
     {
         PowerSystem powerSystem = planet.powerSystem;
         FactoryProductionStat factoryProductionStat = GameMain.statistics.production.factoryStatPool[planet.index];

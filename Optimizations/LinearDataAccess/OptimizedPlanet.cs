@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Fractionators;
@@ -14,6 +15,81 @@ using Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 namespace Weaver.Optimizations.LinearDataAccess;
+
+internal interface IWorkChunk
+{
+    void Execute(long time);
+}
+
+internal sealed class PlanetWideBeforePower : IWorkChunk
+{
+    private readonly OptimizedPlanet _optimizedPlanet;
+
+    public void Execute(long time)
+    {
+        _optimizedPlanet.BeforePowerStep(time);
+    }
+}
+
+internal sealed class SubFactoryBeforePower : IWorkChunk
+{
+    private readonly PlanetFactory _planet;
+    private readonly OptimizedPowerSystem _optimizedPowerSystem;
+    private readonly OptimizedSubFactory _subFactory;
+
+    public void Execute(long time)
+    {
+        _optimizedPowerSystem.BeforePower(_planet, _subFactory);
+    }
+}
+
+internal sealed class PlanetWidePower : IWorkChunk
+{
+    private readonly OptimizedPlanet _optimizedPlanet;
+
+    public void Execute(long time)
+    {
+        _optimizedPlanet.PowerStep(time);
+    }
+}
+
+internal sealed class SubFactoryGameTick : IWorkChunk
+{
+    private readonly OptimizedSubFactory _subFactory;
+
+    public void Execute(long time)
+    {
+        _subFactory.GameTick(time);
+    }
+}
+
+internal sealed class PlanetWideTransport : IWorkChunk
+{
+    private readonly OptimizedPlanet _optimizedPlanet;
+
+    public void Execute(long time)
+    {
+        _optimizedPlanet.TransportStep(time);
+    }
+}
+
+internal sealed class PlanetWideDigitalSystem : IWorkChunk
+{
+    private readonly OptimizedPlanet _optimizedPlanet;
+
+    public void Execute(long time)
+    {
+        _optimizedPlanet.DigitalSystemStep();
+    }
+}
+
+internal sealed class WorkStep
+{
+    private int _scheduledCount;
+    private int _completedCount;
+    private readonly int _maxWorkCount;
+    private readonly ManualResetEventSlim _waitForCompletion;
+}
 
 internal sealed class OptimizedPlanet
 {
@@ -65,8 +141,6 @@ internal sealed class OptimizedPlanet
         _workTrackers = null;
     }
 
-
-
     public WorkTracker[] GetMultithreadedWork(int maxParallelism)
     {
         if (_workTrackersParallelism != maxParallelism)
@@ -80,6 +154,28 @@ internal sealed class OptimizedPlanet
 
     private WorkTracker[] CreateMultithreadedWork(int maxParallelism)
     {
+    }
+
+    public void BeforePowerStep(long time)
+    {
+        _planet.transport.GameTickBeforePower(time, false);
+        _planet.defenseSystem.GameTickBeforePower(time, false);
+        _planet.digitalSystem.GameTickBeforePower(time, false);
+    }
+
+    public void PowerStep(long time)
+    {
+        _optimizedPowerSystem.GameTick(_planet, time);
+    }
+
+    public void TransportStep(long time)
+    {
+        _planet.transport.GameTick(time, false, false);
+    }
+
+    public void DigitalSystemStep()
+    {
+        _planet.digitalSystem.GameTick(false);
     }
 }
 
@@ -242,12 +338,6 @@ internal sealed class OptimizedSubFactory
         _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
-    private void InitializeStations(Graph subFactoryGraph)
-    {
-        _stationExecutor = new StationExecutor();
-        _stationExecutor.Initialize(_planet, subFactoryGraph);
-    }
-
     public void GameTick(long time)
     {
         _minerExecutor.GameTick(_planet);
@@ -255,6 +345,28 @@ internal sealed class OptimizedSubFactory
         _fractionatorExecutor.GameTick(_planet);
         _ejectorExecutor.GameTick(_planet, time);
         _siloExecutor.GameTick(_planet);
+
+        _producingLabExecutor.GameTickLabProduceMode(_planet);
+        _producingLabExecutor.GameTickLabOutputToNext();
+        _researchingLabExecutor.GameTickLabResearchMode(_planet);
+        _researchingLabExecutor.GameTickLabOutputToNext();
+
+        // Transport input from belt
+
+        _optimizedBiInserterExecutor.GameTickInserters(_planet);
+        _optimizedInserterExecutor.GameTickInserters(_planet);
+
+        // Storage
+        // CargoPathsData
+        // Splitter
+
+        _monitorExecutor.GameTick(_planet);
+        _spraycoaterExecutor.GameTick(_planet);
+        _pilerExecutor.GameTick(_planet);
+
+        // Transport output to belt
+        // Transport sandbox mode
+        // PresentCargoPathsData
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)
@@ -423,195 +535,5 @@ internal sealed class OptimizedSubFactory
         }
 
         throw new InvalidOperationException("Unknown entity type.");
-    }
-
-    public WorkTracker[] GetMultithreadedWork(int maxParallelism)
-    {
-        if (_workTrackersParallelism != maxParallelism)
-        {
-            _workTrackers = CreateMultithreadedWork(maxParallelism);
-            _workTrackersParallelism = maxParallelism;
-        }
-
-        return _workTrackers;
-    }
-
-    private WorkTracker[] CreateMultithreadedWork(int maxParallelism)
-    {
-        List<WorkTracker> work = [];
-
-        int minerCount = _planet.factorySystem.minerCursor;
-        int assemblerCount = Status == OptimizedPlanetStatus.Running ? _assemblerExecutor.AssemblerCount : _planet.factorySystem.assemblerCursor;
-        int fractionatorCount = Status == OptimizedPlanetStatus.Running ? _fractionatorExecutor.FractionatorCount : _planet.factorySystem.fractionatorCursor;
-        int ejectorCount = _planet.factorySystem.ejectorCursor;
-        int siloCount = _planet.factorySystem.siloCursor;
-
-        int monitorCount = _planet.cargoTraffic.monitorCursor;
-        int spraycoaterCount = Status == OptimizedPlanetStatus.Running ? _spraycoaterExecutor.SpraycoaterCount : _planet.cargoTraffic.spraycoaterCursor;
-        int pilerCount = _planet.cargoTraffic.pilerCursor;
-        int splitterCount = _planet.cargoTraffic.splitterCursor;
-        int cargoPathCount = _planet.cargoTraffic.pathCursor;
-
-        int stationCount = _planet.transport.stationCursor;
-        int dispenserCount = _planet.transport.dispenserCursor;
-        int transportEntities = stationCount + dispenserCount;
-
-        int turretCount = _planet.defenseSystem.turrets.cursor;
-        int fieldGeneratorCount = _planet.defenseSystem.fieldGenerators.cursor;
-        int battleBaseCount = _planet.defenseSystem.battleBases.cursor;
-
-        int markerCount = _planet.digitalSystem.markers.cursor;
-
-        int inserterCount = Status == OptimizedPlanetStatus.Running ? (_optimizedBiInserterExecutor.InserterCount + _optimizedInserterExecutor.InserterCount) : _planet.factorySystem.inserterCursor;
-
-        int producingLabCount = Status == OptimizedPlanetStatus.Running ? _producingLabExecutor.ProducingLabCount : _planet.factorySystem.labCursor;
-        int researchingLabCount = Status == OptimizedPlanetStatus.Running ? _researchingLabExecutor.ResearchingLabCount : _planet.factorySystem.labCursor;
-        int labCount = Status == OptimizedPlanetStatus.Running ? (producingLabCount + researchingLabCount) : _planet.factorySystem.labCursor;
-
-        int storageCount = _planet.factoryStorage.storageCursor;
-        int tankCount = _planet.factoryStorage.tankCursor;
-
-
-
-        int totalEntities = minerCount +
-                            assemblerCount +
-                            fractionatorCount +
-                            ejectorCount +
-                            siloCount +
-                            monitorCount +
-                            spraycoaterCount +
-                            pilerCount +
-                            stationCount +
-                            dispenserCount +
-                            turretCount +
-                            fieldGeneratorCount +
-                            battleBaseCount +
-                            markerCount;
-
-        const int minimumWorkPerCore = 5_000;
-        int beforePowerWorkCount = ((totalEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        beforePowerWorkCount = Math.Min(beforePowerWorkCount, maxParallelism);
-        if (beforePowerWorkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.BeforePower, beforePowerWorkCount));
-        }
-
-        int powerNetworkCount = _planet.powerSystem.netCursor;
-        if (powerNetworkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Power, 1));
-        }
-
-        if (true)
-        {
-            work.Add(new WorkTracker(WorkType.Construction, 1));
-        }
-
-        if (true)
-        {
-            work.Add(new WorkTracker(WorkType.CheckBefore, 1));
-        }
-
-
-        int assemblerStepEntityCount = minerCount +
-                                       assemblerCount +
-                                       fractionatorCount +
-                                       ejectorCount +
-                                       siloCount +
-                                       producingLabCount;
-        int assemblerWorkCount = ((assemblerStepEntityCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        assemblerWorkCount = Math.Min(assemblerWorkCount, maxParallelism);
-        if (assemblerWorkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Assembler, assemblerWorkCount));
-        }
-
-        if (researchingLabCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.LabResearchMode, 1));
-        }
-
-        int labOutput2NextWorkCount = ((labCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        labOutput2NextWorkCount = Math.Min(labOutput2NextWorkCount, maxParallelism);
-        if (labOutput2NextWorkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.LabOutput2NextData, labOutput2NextWorkCount));
-        }
-
-        if (transportEntities > 0)
-        {
-            work.Add(new WorkTracker(WorkType.TransportData, 1));
-        }
-
-        if (stationCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.InputFromBelt, 1));
-        }
-
-        int inserterWorkCount = ((inserterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        inserterWorkCount = Math.Min(inserterWorkCount, maxParallelism);
-        if (inserterWorkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.InserterData, inserterWorkCount));
-        }
-
-        if ((storageCount + tankCount) > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Storage, 1));
-        }
-
-        int cargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        cargoPathsWorkCount = Math.Min(cargoPathsWorkCount, maxParallelism);
-        if (cargoPathsWorkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.CargoPathsData, cargoPathsWorkCount));
-        }
-
-        if (splitterCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Splitter, 1));
-        }
-
-
-        if (monitorCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Monitor, 1));
-        }
-
-        if (spraycoaterCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Spraycoater, 1));
-        }
-
-        if (pilerCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Piler, 1));
-        }
-
-        if (stationCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.OutputToBelt, 1));
-        }
-
-        int sandboxModeWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        sandboxModeWorkCount = Math.Min(sandboxModeWorkCount, maxParallelism);
-        if (GameMain.sandboxToolsEnabled && sandboxModeWorkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.SandboxMode, sandboxModeWorkCount));
-        }
-
-        int presentCargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
-        presentCargoPathsWorkCount = Math.Min(presentCargoPathsWorkCount, maxParallelism);
-        if (Status == OptimizedPlanetStatus.Stopped && presentCargoPathsWorkCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.PresentCargoPathsData, presentCargoPathsWorkCount));
-        }
-
-        if (markerCount > 0)
-        {
-            work.Add(new WorkTracker(WorkType.Digital, 1));
-        }
-
-        return work.ToArray();
     }
 }
