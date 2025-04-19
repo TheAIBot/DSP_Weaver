@@ -27,7 +27,7 @@ internal static class GraphValidation
                 continue;
             }
 
-            List<Graph> graphs = Graphifier.ToInserterGraphs(factory);
+            List<Graph> graphs = Graphifier.ToGraphs(factory);
         }
     }
 }
