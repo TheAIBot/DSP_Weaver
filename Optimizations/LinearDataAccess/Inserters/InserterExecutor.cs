@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
@@ -806,7 +807,8 @@ internal sealed class InserterExecutor<T>
     }
 
     public void Initialize(PlanetFactory planet,
-                           OptimizedPlanet optimizedPlanet,
+                           OptimizedSubFactory subFactory,
+                           Graph subFactoryGraph,
                            Func<InserterComponent, bool> inserterSelector,
                            OptimizedPowerSystemInserterBuilder optimizedPowerSystemInserterBuilder)
     {
@@ -822,10 +824,13 @@ internal sealed class InserterExecutor<T>
         List<InsertIntoConsumingPlant> insertIntoConsumingPlants = [];
         Dictionary<int, int> inserterIdToOptimizedIndex = [];
 
-        for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
+        foreach (int inserterIndex in subFactoryGraph.GetAllNodes()
+                                                     .Where(x => x.EntityTypeIndex.EntityType == EntityType.Inserter)
+                                                     .Select(x => x.EntityTypeIndex.Index)
+                                                     .OrderBy(x => x))
         {
-            ref InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
-            if (inserter.id != i || !inserterSelector(inserter))
+            ref InserterComponent inserter = ref planet.factorySystem.inserterPool[inserterIndex];
+            if (inserter.id != inserterIndex || !inserterSelector(inserter))
             {
                 continue;
             }
@@ -834,7 +839,7 @@ internal sealed class InserterExecutor<T>
             TypedObjectIndex pickFrom = new TypedObjectIndex(EntityType.None, 0);
             if (inserter.pickTarget != 0)
             {
-                pickFrom = optimizedPlanet.GetAsGranularTypedObjectIndex(inserter.pickTarget, planet);
+                pickFrom = subFactory.GetAsGranularTypedObjectIndex(inserter.pickTarget, planet);
                 if (pickFrom.EntityType == EntityType.None)
                 {
                     continue;
@@ -854,13 +859,13 @@ internal sealed class InserterExecutor<T>
             int[] insertIntoNeeds = null;
             if (inserter.insertTarget != 0)
             {
-                insertInto = optimizedPlanet.GetAsGranularTypedObjectIndex(inserter.insertTarget, planet);
+                insertInto = subFactory.GetAsGranularTypedObjectIndex(inserter.insertTarget, planet);
                 if (insertInto.EntityType == EntityType.None)
                 {
                     continue;
                 }
 
-                insertIntoNeeds = OptimizedPlanet.GetEntityNeeds(planet, inserter.insertTarget);
+                insertIntoNeeds = OptimizedSubFactory.GetEntityNeeds(planet, inserter.insertTarget);
             }
             else
             {
@@ -877,7 +882,7 @@ internal sealed class InserterExecutor<T>
                 continue;
             }
 
-            inserterIdToOptimizedIndex.Add(i, optimizedInserters.Count);
+            inserterIdToOptimizedIndex.Add(inserterIndex, optimizedInserters.Count);
             int networkIndex = planet.powerSystem.consumerPool[inserter.pcId].networkId;
             inserterNetworkIdAndStates.Add(new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), networkIndex));
             inserterConnections.Add(new InserterConnections(pickFrom, insertInto));
@@ -940,14 +945,14 @@ internal sealed class InserterExecutor<T>
 
             if (pickFrom.EntityType == EntityType.Assembler)
             {
-                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._assemblerExecutor._optimizedAssemblers[pickFrom.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[optimizedPlanet._assemblerExecutor._assemblerRecipeIndexes[pickFrom.Index]];
+                ref readonly OptimizedAssembler assembler = ref subFactory._assemblerExecutor._optimizedAssemblers[pickFrom.Index];
+                ref readonly AssemblerRecipe assemblerRecipe = ref subFactory._assemblerExecutor._assemblerRecipes[subFactory._assemblerExecutor._assemblerRecipeIndexes[pickFrom.Index]];
                 pickFromProducingPlants.Add(new PickFromProducingPlant(assemblerRecipe.Products, assembler.produced));
             }
             else if (pickFrom.EntityType == EntityType.ProducingLab)
             {
-                ref readonly OptimizedProducingLab lab = ref optimizedPlanet._optimizedProducingLabs[pickFrom.Index];
-                ref readonly ProducingLabRecipe producingLabRecipe = ref optimizedPlanet._producingLabRecipes[lab.producingLabRecipeIndex];
+                ref readonly OptimizedProducingLab lab = ref subFactory._optimizedProducingLabs[pickFrom.Index];
+                ref readonly ProducingLabRecipe producingLabRecipe = ref subFactory._producingLabRecipes[lab.producingLabRecipeIndex];
                 pickFromProducingPlants.Add(new PickFromProducingPlant(producingLabRecipe.Products, lab.produced));
             }
             else
@@ -957,20 +962,20 @@ internal sealed class InserterExecutor<T>
 
             if (insertInto.EntityType == EntityType.Assembler)
             {
-                ref readonly OptimizedAssembler assembler = ref optimizedPlanet._assemblerExecutor._optimizedAssemblers[insertInto.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref optimizedPlanet._assemblerExecutor._assemblerRecipes[optimizedPlanet._assemblerExecutor._assemblerRecipeIndexes[insertInto.Index]];
-                ref readonly AssemblerNeeds assemblerNeeds = ref optimizedPlanet._assemblerExecutor._assemblersNeeds[insertInto.Index];
+                ref readonly OptimizedAssembler assembler = ref subFactory._assemblerExecutor._optimizedAssemblers[insertInto.Index];
+                ref readonly AssemblerRecipe assemblerRecipe = ref subFactory._assemblerExecutor._assemblerRecipes[subFactory._assemblerExecutor._assemblerRecipeIndexes[insertInto.Index]];
+                ref readonly AssemblerNeeds assemblerNeeds = ref subFactory._assemblerExecutor._assemblersNeeds[insertInto.Index];
                 insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assemblerNeeds.served, assembler.incServed));
             }
             else if (insertInto.EntityType == EntityType.ProducingLab)
             {
-                ref readonly OptimizedProducingLab lab = ref optimizedPlanet._optimizedProducingLabs[insertInto.Index];
-                ProducingLabRecipe producingLabRecipe = optimizedPlanet._producingLabRecipes[lab.producingLabRecipeIndex];
+                ref readonly OptimizedProducingLab lab = ref subFactory._optimizedProducingLabs[insertInto.Index];
+                ProducingLabRecipe producingLabRecipe = subFactory._producingLabRecipes[lab.producingLabRecipeIndex];
                 insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(producingLabRecipe.Requires, lab.served, lab.incServed));
             }
             else if (insertInto.EntityType == EntityType.ResearchingLab)
             {
-                ref readonly OptimizedResearchingLab lab = ref optimizedPlanet._optimizedResearchingLabs[insertInto.Index];
+                ref readonly OptimizedResearchingLab lab = ref subFactory._optimizedResearchingLabs[insertInto.Index];
                 insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(null, lab.matrixServed, lab.matrixIncServed));
             }
             else

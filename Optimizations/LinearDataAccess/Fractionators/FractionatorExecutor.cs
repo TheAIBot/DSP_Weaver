@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
@@ -88,7 +90,9 @@ internal sealed class FractionatorExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    public void Initialize(PlanetFactory planet,
+                           Graph subFactoryGraph,
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         List<int> fractionatorNetworkId = [];
         List<OptimizedFractionator> optimizedFractionators = [];
@@ -97,10 +101,13 @@ internal sealed class FractionatorExecutor
         List<FractionatorConfiguration> fractionatorConfigurations = [];
         Dictionary<int, int> fractionatorIdToOptimizedIndex = [];
 
-        for (int i = 0; i < planet.factorySystem.fractionatorCursor; i++)
+        foreach (int fractionatorIndex in subFactoryGraph.GetAllNodes()
+                                                         .Where(x => x.EntityTypeIndex.EntityType == EntityType.Fractionator)
+                                                         .Select(x => x.EntityTypeIndex.Index)
+                                                         .OrderBy(x => x))
         {
-            ref FractionatorComponent fractionator = ref planet.factorySystem.fractionatorPool[i];
-            if (fractionator.id != i)
+            ref FractionatorComponent fractionator = ref planet.factorySystem.fractionatorPool[fractionatorIndex];
+            if (fractionator.id != fractionatorIndex)
             {
                 continue;
             }
@@ -145,7 +152,6 @@ internal sealed class FractionatorExecutor
                                                                  in fractionator));
             fractionatorsPowerFields.Add(new FractionatorPowerFields(in fractionator));
             optimizedPowerSystemBuilder.AddFractionator(in fractionator, networkIndex);
-
         }
 
         _fractionatorNetworkId = fractionatorNetworkId.ToArray();

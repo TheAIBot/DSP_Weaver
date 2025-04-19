@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
@@ -221,7 +222,9 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    public void Initialize(PlanetFactory planet,
+                           Graph subFactoryGraph,
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         int[] matrixPoints = new int[LabComponent.matrixIds.Length];
         bool copiedMatrixPoints = false;
@@ -232,18 +235,21 @@ internal sealed class ResearchingLabExecutor
         Dictionary<int, int> labIdToOptimizedLabIndex = [];
         HashSet<int> unOptimizedLabIds = [];
 
-        for (int i = 0; i < planet.factorySystem.labCursor; i++)
+        foreach (int labIndex in subFactoryGraph.GetAllNodes()
+                                                .Where(x => x.EntityTypeIndex.EntityType == EntityType.ResearchingLab)
+                                                .Select(x => x.EntityTypeIndex.Index)
+                                                .OrderBy(x => x))
         {
-            ref LabComponent lab = ref planet.factorySystem.labPool[i];
-            if (lab.id != i)
+            ref LabComponent lab = ref planet.factorySystem.labPool[labIndex];
+            if (lab.id != labIndex)
             {
-                unOptimizedLabIds.Add(i);
+                unOptimizedLabIds.Add(labIndex);
                 continue;
             }
 
             if (!lab.researchMode)
             {
-                unOptimizedLabIds.Add(i);
+                unOptimizedLabIds.Add(labIndex);
                 continue;
             }
 
@@ -260,7 +266,7 @@ internal sealed class ResearchingLabExecutor
                 nextLabIndex = lab.nextLabId;
             }
 
-            labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
+            labIdToOptimizedLabIndex.Add(labIndex, optimizedLabs.Count);
             optimizedLabs.Add(new OptimizedResearchingLab(nextLabIndex, ref lab));
             labsPowerFields.Add(new LabPowerFields(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;

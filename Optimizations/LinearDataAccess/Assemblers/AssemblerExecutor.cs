@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
@@ -124,7 +126,9 @@ internal sealed class AssemblerExecutor
         }
     }
 
-    public void InitializeAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    public void InitializeAssemblers(PlanetFactory planet,
+                                     Graph subFactoryGraph,
+                                     OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         List<NetworkIdAndState<AssemblerState>> assemblerNetworkIdAndStates = [];
         List<OptimizedAssembler> optimizedAssemblers = [];
@@ -138,19 +142,21 @@ internal sealed class AssemblerExecutor
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
         HashSet<int> unOptimizedAssemblerIds = [];
         GameHistoryData historyData = planet.gameData.history;
-
-        for (int i = 0; i < planet.factorySystem.assemblerCursor; i++)
+        foreach (int assemblerIndex in subFactoryGraph.GetAllNodes()
+                                                      .Where(x => x.EntityTypeIndex.EntityType == EntityType.Assembler)
+                                                      .Select(x => x.EntityTypeIndex.Index)
+                                                      .OrderBy(x => x))
         {
-            ref AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
-            if (assembler.id != i)
+            ref AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[assemblerIndex];
+            if (assembler.id != assemblerIndex)
             {
-                unOptimizedAssemblerIds.Add(i);
+                unOptimizedAssemblerIds.Add(assemblerIndex);
                 continue;
             }
 
             if (assembler.recipeId == 0)
             {
-                unOptimizedAssemblerIds.Add(i);
+                unOptimizedAssemblerIds.Add(assemblerIndex);
                 continue;
             }
 
@@ -159,7 +165,7 @@ internal sealed class AssemblerExecutor
             // Planet reoptimization will enable the recipe when it has been researched.
             if (!historyData.RecipeUnlocked(assembler.recipeId))
             {
-                unOptimizedAssemblerIds.Add(i);
+                unOptimizedAssemblerIds.Add(assemblerIndex);
                 continue;
             }
 
