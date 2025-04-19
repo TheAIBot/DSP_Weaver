@@ -18,13 +18,8 @@ internal sealed class ProducingLabExecutor
 
     public int ProducingLabCount => _optimizedLabs.Length;
 
-    public void GameTickLabProduceMode(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void GameTickLabProduceMode(PlanetFactory planet)
     {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedLabs.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
-        {
-            return;
-        }
-
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
@@ -33,7 +28,7 @@ internal sealed class ProducingLabExecutor
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
-        for (int i = _start; i < _end; i++)
+        for (int i = 0; i < optimizedLabs.Length; i++)
         {
             ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[i];
             if ((LabState)networkIdAndState.State != LabState.Active)
@@ -79,27 +74,18 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    public void UpdatePower(OptimizedPlanet optimizedPlanet,
-                            int[] producingLabPowerConsumerIndexes,
+    public void UpdatePower(int[] producingLabPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
-                            long[] thisThreadNetworkPowerConsumption,
-                            int _usedThreadCnt,
-                            int _curThreadIdx,
-                            int _minimumMissionCnt)
+                            long[] thisSubFactoryNetworkPowerConsumption)
     {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedLabs.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
-        {
-            return;
-        }
-
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        for (int j = _start; j < _end; j++)
+        for (int j = 0; j < _optimizedLabs.Length; j++)
         {
             int networkIndex = networkIdAndStates[j].Index;
             int powerConsumerTypeIndex = producingLabPowerConsumerIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labsPowerFields[j]);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labsPowerFields[j]);
         }
     }
 

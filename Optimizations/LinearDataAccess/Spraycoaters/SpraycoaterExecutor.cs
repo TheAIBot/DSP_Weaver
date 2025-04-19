@@ -29,26 +29,18 @@ internal sealed class SpraycoaterExecutor
 
     public void UpdatePower(int[] spraycoaterPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
-                            long[] thisThreadNetworkPowerConsumption,
-                            int _usedThreadCnt,
-                            int _curThreadIdx,
-                            int _minimumMissionCnt)
+                            long[] thisSubFactoryNetworkPowerConsumption)
     {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, spraycoaterPowerConsumerTypeIndexes.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
-        {
-            return;
-        }
-
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
         int[] spraycoaterNetworkIds = _spraycoaterNetworkIds;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
-        for (int j = _start; j < _end; j++)
+        for (int j = 0; j < optimizedSpraycoaters.Length; j++)
         {
             int networkIndex = spraycoaterNetworkIds[j];
             int powerConsumerTypeIndex = spraycoaterPowerConsumerTypeIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItems[j], sprayTimes[j]);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItems[j], sprayTimes[j]);
         }
     }
 

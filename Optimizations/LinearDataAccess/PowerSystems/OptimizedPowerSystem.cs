@@ -15,7 +15,7 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _researchingLabPowerConsumerTypeIndexes;
     private readonly int[] _spraycoaterPowerConsumerTypeIndexes;
     private readonly int[] _fractionatorPowerConsumerTypeIndexes;
-    private long[][] _threadNetworkPowerConsumptionPrepared = null;
+    private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
                                 int[][] networkNonOptimizedPowerConsumerIndexes,
@@ -25,7 +25,8 @@ internal sealed class OptimizedPowerSystem
                                 int[] producingLabPowerConsumerTypeIndexes,
                                 int[] researchingLabPowerConsumerTypeIndexes,
                                 int[] spraycoaterPowerConsumerTypeIndexes,
-                                int[] fractionatorPowerConsumerTypeIndexes)
+                                int[] fractionatorPowerConsumerTypeIndexes,
+                                Dictionary<OptimizedSubFactory, long[]> subFactoryToNetworkPowerConsumptions)
     {
         _powerConsumerTypes = powerConsumerTypes;
         _networkNonOptimizedPowerConsumerIndexes = networkNonOptimizedPowerConsumerIndexes;
@@ -36,157 +37,21 @@ internal sealed class OptimizedPowerSystem
         _researchingLabPowerConsumerTypeIndexes = researchingLabPowerConsumerTypeIndexes;
         _spraycoaterPowerConsumerTypeIndexes = spraycoaterPowerConsumerTypeIndexes;
         _fractionatorPowerConsumerTypeIndexes = fractionatorPowerConsumerTypeIndexes;
+        _subFactoryToNetworkPowerConsumptions = subFactoryToNetworkPowerConsumptions;
     }
 
-    public void FactorySystem_ParallelGameTickBeforePower(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void BeforePower(PlanetFactory planet, OptimizedSubFactory subFactory)
     {
-        InitializeThreadLocalArrays();
+        long[] thisSubFactoryNetworkPowerConsumption = _subFactoryToNetworkPowerConsumptions[subFactory];
+        Array.Clear(thisSubFactoryNetworkPowerConsumption, 0, thisSubFactoryNetworkPowerConsumption.Length);
 
-        long[] thisThreadNetworkPowerConsumption = _threadNetworkPowerConsumptionPrepared[_curThreadIdx];
-        Array.Clear(thisThreadNetworkPowerConsumption, 0, thisThreadNetworkPowerConsumption.Length);
-
-        FactorySystem factory = planet.factorySystem;
-        EntityData[] entityPool = planet.entityPool;
-        StationComponent[] stationPool = planet.transport.stationPool;
-        PowerConsumerComponent[] consumerPool = planet.powerSystem.consumerPool;
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factory.minerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
-        {
-            for (int i = _start; i < _end; i++)
-            {
-                if (factory.minerPool[i].id != i)
-                {
-                    continue;
-                }
-                int stationId = entityPool[factory.minerPool[i].entityId].stationId;
-                if (stationId > 0)
-                {
-                    StationStore[] array = stationPool[stationId].storage;
-                    int num = array[0].count;
-                    if (array[0].localOrder < -4000)
-                    {
-                        num += array[0].localOrder + 4000;
-                    }
-                    int max = array[0].max;
-                    max = ((max < 3000) ? 3000 : max);
-                    float num2 = (float)num / (float)max;
-                    num2 = ((num2 > 1f) ? 1f : num2);
-                    float num3 = -2.45f * num2 + 2.47f;
-                    num3 = ((num3 > 1f) ? 1f : num3);
-                    factory.minerPool[i].speedDamper = num3;
-                }
-                else
-                {
-                    float num4 = (float)factory.minerPool[i].productCount / 50f;
-                    num4 = ((num4 > 1f) ? 1f : num4);
-                    float num5 = -2.45f * num4 + 2.47f;
-                    num5 = ((num5 > 1f) ? 1f : num5);
-                    factory.minerPool[i].speedDamper = num5;
-                }
-                factory.minerPool[i].SetPCState(consumerPool);
-            }
-        }
-
-        optimizedPlanet._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
-                                                       _powerConsumerTypes,
-                                                       thisThreadNetworkPowerConsumption,
-                                                       _usedThreadCnt,
-                                                       _curThreadIdx,
-                                                       _minimumMissionCnt);
-
-        optimizedPlanet._fractionatorExecutor.UpdatePower(_fractionatorPowerConsumerTypeIndexes,
-                                                          _powerConsumerTypes,
-                                                          thisThreadNetworkPowerConsumption,
-                                                          _usedThreadCnt,
-                                                          _curThreadIdx,
-                                                          _minimumMissionCnt);
-
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factory.ejectorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int l = _start; l < _end; l++)
-            {
-                if (factory.ejectorPool[l].id == l)
-                {
-                    factory.ejectorPool[l].SetPCState(consumerPool);
-                }
-            }
-        }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factory.siloCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            for (int m = _start; m < _end; m++)
-            {
-                if (factory.siloPool[m].id == m)
-                {
-                    factory.siloPool[m].SetPCState(consumerPool);
-                }
-            }
-        }
-
-        optimizedPlanet._producingLabExecutor.UpdatePower(optimizedPlanet,
-                                                          _producingLabPowerConsumerTypeIndexes,
-                                                          _powerConsumerTypes,
-                                                          thisThreadNetworkPowerConsumption,
-                                                          _usedThreadCnt,
-                                                          _curThreadIdx,
-                                                          _minimumMissionCnt);
-        optimizedPlanet._researchingLabExecutor.UpdatePower(optimizedPlanet,
-                                                            _researchingLabPowerConsumerTypeIndexes,
-                                                            _powerConsumerTypes,
-                                                            thisThreadNetworkPowerConsumption,
-                                                            _usedThreadCnt,
-                                                            _curThreadIdx,
-                                                            _minimumMissionCnt);
-
-        optimizedPlanet._optimizedBiInserterExecutor.UpdatePower(optimizedPlanet,
-                                                                 _inserterBiPowerConsumerTypeIndexes,
-                                                                 _powerConsumerTypes,
-                                                                 thisThreadNetworkPowerConsumption,
-                                                                 _usedThreadCnt,
-                                                                 _curThreadIdx,
-                                                                 _minimumMissionCnt);
-        optimizedPlanet._optimizedInserterExecutor.UpdatePower(optimizedPlanet,
-                                                               _inserterPowerConsumerTypeIndexes,
-                                                               _powerConsumerTypes,
-                                                               thisThreadNetworkPowerConsumption,
-                                                               _usedThreadCnt,
-                                                               _curThreadIdx,
-                                                               _minimumMissionCnt);
-    }
-
-    public void CargoTraffic_ParallelGameTickBeforePower(PlanetFactory planet, OptimizedPlanet optimizedPlanet, long time, bool isActive, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
-    {
-        long[] thisThreadNetworkPowerConsumption = _threadNetworkPowerConsumptionPrepared[_curThreadIdx];
-
-        CargoTraffic cargoTraffic = planet.cargoTraffic;
-        PowerConsumerComponent[] consumerPool = planet.powerSystem.consumerPool;
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, cargoTraffic.monitorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
-        {
-            for (int i = _start; i < _end; i++)
-            {
-                if (cargoTraffic.monitorPool[i].id == i)
-                {
-                    cargoTraffic.monitorPool[i].SetPCState(consumerPool);
-                }
-            }
-        }
-
-        optimizedPlanet._spraycoaterExecutor.UpdatePower(_spraycoaterPowerConsumerTypeIndexes,
-                                                         _powerConsumerTypes,
-                                                         thisThreadNetworkPowerConsumption,
-                                                         _usedThreadCnt,
-                                                         _curThreadIdx,
-                                                         _minimumMissionCnt);
-
-        if (!WorkerThreadExecutor.CalculateMissionIndex(1, cargoTraffic.pilerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            return;
-        }
-        for (int k = _start; k < _end; k++)
-        {
-            if (cargoTraffic.pilerPool[k].id == k)
-            {
-                cargoTraffic.pilerPool[k].SetPCState(consumerPool);
-            }
-        }
+        FactorySystemBeforePower(planet, subFactory, thisSubFactoryNetworkPowerConsumption);
+        CargoTrafficBeforePower(planet, subFactory, thisSubFactoryNetworkPowerConsumption);
+        // Transport has to be done on a per planet basis due to dispenser logic execution order.
+        // Might also be the case stations require it but i have not checked.
+        // Same seems to be true for field generators so everything defense will also be handled
+        // on a per planet basis.
+        // Could not be bothered to change the digital system. It runs planet wide as well.
     }
 
     public void GameTick(PlanetFactory planet, long time, bool isActive, bool isMultithreadMode = false)
@@ -248,10 +113,10 @@ internal sealed class OptimizedPowerSystem
                 num11 += requiredEnergy;
                 num2 += requiredEnergy;
             }
-            for (int zz = 0; zz < _threadNetworkPowerConsumptionPrepared.Length; zz++)
+            foreach (long[] subFactoryNetworkPowerConsumptionPrepared in _subFactoryToNetworkPowerConsumptions.Values)
             {
-                num11 += _threadNetworkPowerConsumptionPrepared[zz][i];
-                num2 += _threadNetworkPowerConsumptionPrepared[zz][i];
+                num11 += subFactoryNetworkPowerConsumptionPrepared[i];
+                num2 += subFactoryNetworkPowerConsumptionPrepared[i];
             }
             long num22 = 0L;
             List<int> exchangers = powerNetwork.exchangers;
@@ -503,35 +368,39 @@ internal sealed class OptimizedPowerSystem
         }
     }
 
-    private void InitializeThreadLocalArrays()
+    private void FactorySystemBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)
     {
-        // this is to support single threaded mode where GameMain.multithreadSystem.usedThreadCnt is not set
-        // when starting the game
-        int threadCount;
-        if (GameMain.multithreadSystem.multithreadSystemEnable)
-        {
-            threadCount = GameMain.multithreadSystem.usedThreadCnt;
-        }
-        else
-        {
-            threadCount = 1;
-        }
+        subFactory._minerExecutor.UpdatePower(planet);
+        subFactory._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
+                                                  _powerConsumerTypes,
+                                                  subFactoryNetworkPowerConsumption);
+        subFactory._fractionatorExecutor.UpdatePower(_fractionatorPowerConsumerTypeIndexes,
+                                                     _powerConsumerTypes,
+                                                     subFactoryNetworkPowerConsumption);
+        subFactory._ejectorExecutor.UpdatePower(planet);
+        subFactory._siloExecutor.UpdatePower(planet);
 
-        if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != threadCount)
-        {
-            lock (this)
-            {
-                if (_threadNetworkPowerConsumptionPrepared == null || _threadNetworkPowerConsumptionPrepared.Length != threadCount)
-                {
-                    var threadNetworkPowerConsumptionPrepared = new long[threadCount][];
-                    for (int i = 0; i < threadNetworkPowerConsumptionPrepared.Length; i++)
-                    {
-                        threadNetworkPowerConsumptionPrepared[i] = new long[_networkNonOptimizedPowerConsumerIndexes.Length];
-                    }
+        subFactory._producingLabExecutor.UpdatePower(_producingLabPowerConsumerTypeIndexes,
+                                                     _powerConsumerTypes,
+                                                     subFactoryNetworkPowerConsumption);
+        subFactory._researchingLabExecutor.UpdatePower(_researchingLabPowerConsumerTypeIndexes,
+                                                       _powerConsumerTypes,
+                                                       subFactoryNetworkPowerConsumption);
 
-                    _threadNetworkPowerConsumptionPrepared = threadNetworkPowerConsumptionPrepared;
-                }
-            }
-        }
+        subFactory._optimizedBiInserterExecutor.UpdatePower(_inserterBiPowerConsumerTypeIndexes,
+                                                           _powerConsumerTypes,
+                                                           subFactoryNetworkPowerConsumption);
+        subFactory._optimizedInserterExecutor.UpdatePower(_inserterPowerConsumerTypeIndexes,
+                                                          _powerConsumerTypes,
+                                                          subFactoryNetworkPowerConsumption);
+    }
+
+    private void CargoTrafficBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)
+    {
+        subFactory._monitorExecutor.UpdatePower(planet);
+        subFactory._spraycoaterExecutor.UpdatePower(_spraycoaterPowerConsumerTypeIndexes,
+                                                    _powerConsumerTypes,
+                                                    subFactoryNetworkPowerConsumption);
+        subFactory._pilerExecutor.UpdatePower(planet);
     }
 }

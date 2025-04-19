@@ -20,7 +20,7 @@ internal sealed class AssemblerExecutor
 
     public int AssemblerCount => _optimizedAssemblers.Length;
 
-    public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void GameTick(PlanetFactory planet)
     {
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
@@ -35,12 +35,7 @@ internal sealed class AssemblerExecutor
         AssemblerNeeds[] assemblersNeeds = _assemblersNeeds;
         int[] assemblerRecipeIndexes = _assemblerRecipeIndexes;
 
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, optimizedAssemblers.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
-        {
-            return;
-        }
-
-        for (int k = _start; k < _end; k++)
+        for (int k = 0; k < optimizedAssemblers.Length; k++)
         {
             ref NetworkIdAndState<AssemblerState> assemblerNetworkIdAndState = ref _assemblerNetworkIdAndStates[k];
             if ((AssemblerState)assemblerNetworkIdAndState.State != AssemblerState.Active)
@@ -75,26 +70,18 @@ internal sealed class AssemblerExecutor
 
     public void UpdatePower(int[] assemblerPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
-                            long[] thisThreadNetworkPowerConsumption,
-                            int _usedThreadCnt,
-                            int _curThreadIdx,
-                            int _minimumMissionCnt)
+                            long[] thisSubFactoryNetworkPowerConsumption)
     {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, assemblerPowerConsumerTypeIndexes.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
-        {
-            return;
-        }
-
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
         NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates = _assemblerNetworkIdAndStates;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
-        for (int j = _start; j < _end; j++)
+        for (int j = 0; j < optimizedAssemblers.Length; j++)
         {
             int networkIndex = assemblerNetworkIdAndStates[j].Index;
             int powerConsumerTypeIndex = assemblerPowerConsumerTypeIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, assemblerReplicatings[j], assemblerExtraPowerRatios[j]);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, assemblerReplicatings[j], assemblerExtraPowerRatios[j]);
         }
     }
 
