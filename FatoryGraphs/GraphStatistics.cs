@@ -31,7 +31,7 @@ internal static class GraphStatistics
                 continue;
             }
 
-            List<Graph> graphs = Graphifier.ToInserterGraphs(factory);
+            List<Graph> graphs = Graphifier.ToGraphs(factory);
             allGraphs.AddRange(graphs);
 
             WeaverFixes.Logger.LogInfo($"Name: {planet.planet.displayName}");
