@@ -49,28 +49,16 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void GameTickLabOutputToNext()
     {
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
-        int num = 0;
-        int num2 = 0;
         for (int i = (int)(GameMain.gameTick % 5); i < _optimizedLabs.Length; i += 5)
         {
-            if (num == _curThreadIdx)
-            {
-                ref OptimizedProducingLab lab = ref optimizedLabs[i];
-                ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
-                lab.UpdateOutputToNext(i, optimizedLabs, networkIdAndStates, in producingLabRecipe);
-            }
-            num2++;
-            if (num2 >= _minimumMissionCnt)
-            {
-                num2 = 0;
-                num++;
-                num %= _usedThreadCnt;
-            }
+            ref OptimizedProducingLab lab = ref optimizedLabs[i];
+            ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
+            lab.UpdateOutputToNext(i, optimizedLabs, networkIdAndStates, in producingLabRecipe);
         }
     }
 

@@ -15,7 +15,7 @@ internal sealed class SpraycoaterExecutor
 
     public int SpraycoaterCount => _optimizedSpraycoaters.Length;
 
-    public void SpraycoaterGameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet)
     {
         int[] consumeRegister = GameMain.statistics.production.factoryStatPool[planet.index].consumeRegister;
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
