@@ -15,13 +15,8 @@ internal sealed class FractionatorExecutor
 
     public int FractionatorCount => _optimizedFractionators.Length;
 
-    public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    public void GameTick(PlanetFactory planet)
     {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedFractionators.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
-        {
-            return;
-        }
-
         CargoTraffic cargoTraffic = planet.cargoTraffic;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
@@ -33,7 +28,7 @@ internal sealed class FractionatorExecutor
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         FractionatorConfiguration[] fractionatorConfigurations = _fractionatorConfigurations;
 
-        for (int i = _start; i < _end; i++)
+        for (int i = 0; i < optimizedFractionators.Length; i++)
         {
             float power2 = networkServes[fractionatorNetworkId[i]];
             ref OptimizedFractionator fractionator = ref optimizedFractionators[i];
@@ -50,24 +45,16 @@ internal sealed class FractionatorExecutor
 
     public void UpdatePower(int[] fractionatorPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
-                            long[] thisThreadNetworkPowerConsumption,
-                            int _usedThreadCnt,
-                            int _curThreadIdx,
-                            int _minimumMissionCnt)
+                            long[] thisSubFactoryNetworkPowerConsumption)
     {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, fractionatorPowerConsumerTypeIndexes.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
-        {
-            return;
-        }
-
         int[] fractionatorNetworkId = _fractionatorNetworkId;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
-        for (int j = _start; j < _end; j++)
+        for (int j = 0; j < fractionatorsPowerFields.Length; j++)
         {
             int networkIndex = fractionatorNetworkId[j];
             int powerConsumerTypeIndex = fractionatorPowerConsumerTypeIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorsPowerFields[j]);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorsPowerFields[j]);
         }
     }
 

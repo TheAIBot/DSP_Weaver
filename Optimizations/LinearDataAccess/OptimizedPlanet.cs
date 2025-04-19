@@ -8,6 +8,7 @@ using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
+using Weaver.Optimizations.LinearDataAccess.Miners;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
@@ -19,6 +20,7 @@ internal sealed class OptimizedPlanet
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private OptimizedSubFactory[] _subFactories;
+    private OptimizedPowerSystem _optimizedPowerSystem;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
@@ -47,12 +49,16 @@ internal sealed class OptimizedPlanet
         List<Graph> subFactoryGraphs = Graphifier.ToGraphs(_planet.factorySystem);
         Graphifier.CombineSmallGraphs(subFactoryGraphs);
 
+        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
+
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
         {
             _subFactories[i] = new OptimizedSubFactory(_planet, _starClusterResearchManager);
-            _subFactories[i].Initialize(subFactoryGraphs[i]);
+            _subFactories[i].Initialize(subFactoryGraphs[i], optimizedPowerSystemBuilder);
         }
+
+        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
 
@@ -89,9 +95,11 @@ internal sealed class OptimizedSubFactory
 
     public AssemblerExecutor _assemblerExecutor;
 
-    private int[] _minerNetworkIds;
+    public MinerExecutor _minerExecutor;
 
-    private int[] _ejectorNetworkIds;
+    public EjectorExecutor _ejectorExecutor;
+
+    public SiloExecutor _siloExecutor;
 
     //private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
     public ProducingLabExecutor _producingLabExecutor;
@@ -105,11 +113,11 @@ internal sealed class OptimizedSubFactory
     public OptimizedResearchingLab[] _optimizedResearchingLabs;
     public Dictionary<int, int> _researchingLabIdToOptimizedIndex;
 
+    public MonitorExecutor _monitorExecutor;
     public SpraycoaterExecutor _spraycoaterExecutor;
+    public PilerExecutor _pilerExecutor;
 
     public FractionatorExecutor _fractionatorExecutor;
-
-    public OptimizedPowerSystem _optimizedPowerSystem;
 
     private WorkTracker[] _workTrackers;
     private int _workTrackersParallelism;
@@ -136,20 +144,21 @@ internal sealed class OptimizedSubFactory
         _workTrackersParallelism = -1;
     }
 
-    public void Initialize(Graph subFactoryGraph)
+    public void Initialize(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
-        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
+        optimizedPowerSystemBuilder.AddSubFactory(this);
 
         InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeMiners(subFactoryGraph);
         InitializeEjectors(subFactoryGraph);
+        InitializeSilos(subFactoryGraph);
         InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeResearchingLabs(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeMonitors(subFactoryGraph);
         InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializePilers(subFactoryGraph);
         InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder);
-
-        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
 
@@ -174,44 +183,20 @@ internal sealed class OptimizedSubFactory
 
     private void InitializeMiners(Graph subFactoryGraph)
     {
-        int[] minerNetworkIds = new int[_planet.factorySystem.minerCursor];
-
-        for (int i = 0; i < _planet.factorySystem.minerCursor; i++)
-        {
-            ref readonly MinerComponent miner = ref _planet.factorySystem.minerPool[i];
-            if (miner.id != i)
-            {
-                continue;
-            }
-
-            minerNetworkIds[i] = _planet.powerSystem.consumerPool[miner.pcId].networkId;
-
-        }
-
-        _minerNetworkIds = minerNetworkIds;
+        _minerExecutor = new MinerExecutor();
+        _minerExecutor.Initialize(_planet, subFactoryGraph);
     }
 
     private void InitializeEjectors(Graph subFactoryGraph)
     {
-        int[] ejectorNetworkIds = new int[_planet.factorySystem.ejectorCursor];
+        _ejectorExecutor = new EjectorExecutor();
+        _ejectorExecutor.Initialize(_planet, subFactoryGraph);
+    }
 
-        for (int i = 0; i < _planet.factorySystem.ejectorCursor; i++)
-        {
-            ref EjectorComponent ejector = ref _planet.factorySystem.ejectorPool[i];
-            if (ejector.id != i)
-            {
-                continue;
-            }
-
-            ejectorNetworkIds[i] = _planet.powerSystem.consumerPool[ejector.pcId].networkId;
-
-            // set it here so we don't have to set it in the update loop.
-            // Need to investigate when i need to update it.
-            ejector.needs ??= new int[6];
-            _planet.entityNeeds[ejector.entityId] = ejector.needs;
-        }
-
-        _ejectorNetworkIds = ejectorNetworkIds;
+    private void InitializeSilos(Graph subFactoryGraph)
+    {
+        _siloExecutor = new SiloExecutor();
+        _siloExecutor.Initialize(_planet, subFactoryGraph);
     }
 
     private void InitializeLabAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -233,10 +218,22 @@ internal sealed class OptimizedSubFactory
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
     }
 
+    private void InitializeMonitors(Graph subFactoryGraph)
+    {
+        _monitorExecutor = new MonitorExecutor();
+        _monitorExecutor.Initialize(_planet, subFactoryGraph);
+    }
+
     private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
         _spraycoaterExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
+    }
+
+    private void InitializePilers(Graph subFactoryGraph)
+    {
+        _pilerExecutor = new PilerExecutor();
+        _pilerExecutor.Initialize(_planet, subFactoryGraph);
     }
 
     private void InitializeFractionators(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -245,110 +242,19 @@ internal sealed class OptimizedSubFactory
         _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
-    public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)
+    private void InitializeStations(Graph subFactoryGraph)
     {
-        GameHistoryData history = GameMain.history;
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = obj.productRegister;
-        int[] consumeRegister = obj.consumeRegister;
-        PowerSystem powerSystem = planet.powerSystem;
-        float[] networkServes = powerSystem.networkServes;
-        EntityData[] entityPool = planet.entityPool;
-        VeinData[] veinPool = planet.veinPool;
-        AnimData[] entityAnimPool = planet.entityAnimPool;
-        SignData[] entitySignPool = planet.entitySignPool;
-        int[][] entityNeeds = planet.entityNeeds;
-        FactorySystem factorySystem = planet.factorySystem;
-        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
-        AstroData[] astroPoses = null;
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.minerCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out var _start, out var _end))
-        {
-            float num2;
-            float num3 = (num2 = planet.gameData.gameDesc.resourceMultiplier);
-            if (num2 < 5f / 12f)
-            {
-                num2 = 5f / 12f;
-            }
-            float num4 = history.miningCostRate;
-            float miningSpeedScale = history.miningSpeedScale;
-            float num5 = history.miningCostRate * 0.40111667f / num2;
-            if (num3 > 99.5f)
-            {
-                num4 = 0f;
-                num5 = 0f;
-            }
+        _stationExecutor = new StationExecutor();
+        _stationExecutor.Initialize(_planet, subFactoryGraph);
+    }
 
-            int[] minerNetworkIds = _minerNetworkIds;
-            int num6 = MinerComponent.InsufficientWarningThresAmount(num3, num4);
-            for (int i = _start; i < _end; i++)
-            {
-                if (factorySystem.minerPool[i].id != i)
-                {
-                    continue;
-                }
-
-                float num7 = networkServes[minerNetworkIds[i]];
-                factorySystem.minerPool[i].InternalUpdate(planet, veinPool, num7, (factorySystem.minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
-            }
-        }
-
-        _assemblerExecutor.GameTick(planet, time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
-
-        _fractionatorExecutor.GameTick(planet, time, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt);
-
-        lock (factorySystem.ejectorPool)
-        {
-            if (factorySystem.ejectorCursor - factorySystem.ejectorRecycleCursor > 1)
-            {
-                astroPoses = factorySystem.planet.galaxy.astrosData;
-            }
-        }
-        DysonSwarm swarm = null;
-        if (factorySystem.factory.dysonSphere != null)
-        {
-            swarm = factorySystem.factory.dysonSphere.swarm;
-        }
-        if (WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.ejectorCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            int[] ejectorNetworkIds = _ejectorNetworkIds;
-            for (int m = _start; m < _end; m++)
-            {
-                if (factorySystem.ejectorPool[m].id == m)
-                {
-                    float power3 = networkServes[ejectorNetworkIds[m]];
-                    factorySystem.ejectorPool[m].InternalUpdate(power3, time, swarm, astroPoses, entityAnimPool, consumeRegister);
-                }
-            }
-        }
-        lock (factorySystem.siloPool)
-        {
-            if (factorySystem.siloCursor - factorySystem.siloRecycleCursor > 1)
-            {
-                astroPoses = factorySystem.planet.galaxy.astrosData;
-            }
-        }
-        DysonSphere dysonSphere = factorySystem.factory.dysonSphere;
-        bool flag3 = dysonSphere != null && dysonSphere.autoNodeCount > 0;
-        if (!WorkerThreadExecutor.CalculateMissionIndex(1, factorySystem.siloCursor - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out _start, out _end))
-        {
-            return;
-        }
-        for (int n = _start; n < _end; n++)
-        {
-            if (factorySystem.siloPool[n].id == n)
-            {
-                int entityId6 = factorySystem.siloPool[n].entityId;
-                uint num12 = 0u;
-                float power4 = networkServes[consumerPool[factorySystem.siloPool[n].pcId].networkId];
-                num12 = factorySystem.siloPool[n].InternalUpdate(power4, dysonSphere, entityAnimPool, consumeRegister);
-                entityAnimPool[entityId6].state = num12;
-                entityNeeds[entityId6] = factorySystem.siloPool[n].needs;
-                if (entitySignPool[entityId6].signType == 0 || entitySignPool[entityId6].signType > 3)
-                {
-                    entitySignPool[entityId6].signType = ((!flag3) ? 9u : 0u);
-                }
-            }
-        }
+    public void GameTick(long time)
+    {
+        _minerExecutor.GameTick(_planet);
+        _assemblerExecutor.GameTick(_planet);
+        _fractionatorExecutor.GameTick(_planet);
+        _ejectorExecutor.GameTick(_planet, time);
+        _siloExecutor.GameTick(_planet);
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)

@@ -24,7 +24,7 @@ internal sealed class ResearchingLabExecutor
         _starClusterResearchManager = starClusterResearchManager;
     }
 
-    public void GameTickLabResearchMode(PlanetFactory planet, long time)
+    public void GameTickLabResearchMode(PlanetFactory planet)
     {
         FactorySystem factorySystem = planet.factorySystem;
         GameHistoryData history = GameMain.history;
@@ -177,27 +177,18 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    public void UpdatePower(OptimizedPlanet optimizedPlanet,
-                            int[] researchingLabPowerConsumerIndexes,
+    public void UpdatePower(int[] researchingLabPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
-                            long[] thisThreadNetworkPowerConsumption,
-                            int _usedThreadCnt,
-                            int _curThreadIdx,
-                            int _minimumMissionCnt)
+                            long[] thisSubFactoryNetworkPowerConsumption)
     {
-        if (!WorkerThreadExecutor.CalculateMissionIndex(0, _optimizedLabs.Length - 1, _usedThreadCnt, _curThreadIdx, _minimumMissionCnt, out int _start, out int _end))
-        {
-            return;
-        }
-
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        for (int j = _start; j < _end; j++)
+        for (int j = 0; j < _optimizedLabs.Length; j++)
         {
             int networkIndex = networkIdAndStates[j].Index;
             int powerConsumerTypeIndex = researchingLabPowerConsumerIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisThreadNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labsPowerFields[j]);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labsPowerFields[j]);
         }
     }
 
