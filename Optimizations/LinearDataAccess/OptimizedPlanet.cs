@@ -18,6 +18,69 @@ internal sealed class OptimizedPlanet
 {
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
+    private OptimizedSubFactory[] _subFactories;
+    public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
+    public int OptimizeDelayInTicks { get; set; } = 0;
+
+    private WorkTracker[] _workTrackers;
+
+    public OptimizedPlanet(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
+    {
+        _planet = planet;
+        _starClusterResearchManager = starClusterResearchManager;
+    }
+
+    public void Save()
+    {
+        foreach (var subFactory in _subFactories)
+        {
+            subFactory.Save();
+        }
+
+        Status = OptimizedPlanetStatus.Stopped;
+
+        _workTrackers = null;
+    }
+
+    public void Initialize()
+    {
+        List<Graph> subFactoryGraphs = Graphifier.ToGraphs(_planet.factorySystem);
+        Graphifier.CombineSmallGraphs(subFactoryGraphs);
+
+        _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
+        for (int i = 0; i < _subFactories.Length; i++)
+        {
+            _subFactories[i] = new OptimizedSubFactory(_planet, _starClusterResearchManager);
+            _subFactories[i].Initialize(subFactoryGraphs[i]);
+        }
+
+        Status = OptimizedPlanetStatus.Running;
+
+        _workTrackers = null;
+    }
+
+
+
+    public WorkTracker[] GetMultithreadedWork(int maxParallelism)
+    {
+        if (_workTrackersParallelism != maxParallelism)
+        {
+            _workTrackers = CreateMultithreadedWork(maxParallelism);
+            _workTrackersParallelism = maxParallelism;
+        }
+
+        return _workTrackers;
+    }
+
+    private WorkTracker[] CreateMultithreadedWork(int maxParallelism)
+    {
+    }
+}
+
+internal sealed class OptimizedSubFactory
+{
+    private readonly PlanetFactory _planet;
+    private readonly StarClusterResearchManager _starClusterResearchManager;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
@@ -51,7 +114,7 @@ internal sealed class OptimizedPlanet
     private WorkTracker[] _workTrackers;
     private int _workTrackersParallelism;
 
-    public OptimizedPlanet(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
+    public OptimizedSubFactory(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
     {
         _planet = planet;
         _starClusterResearchManager = starClusterResearchManager;
@@ -73,18 +136,18 @@ internal sealed class OptimizedPlanet
         _workTrackersParallelism = -1;
     }
 
-    public void Initialize()
+    public void Initialize(Graph subFactoryGraph)
     {
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
 
-        InitializeAssemblers(_planet, optimizedPowerSystemBuilder);
-        InitializeMiners(_planet);
-        InitializeEjectors(_planet);
-        InitializeLabAssemblers(_planet, optimizedPowerSystemBuilder);
-        InitializeResearchingLabs(_planet, optimizedPowerSystemBuilder);
-        InitializeInserters(_planet, optimizedPowerSystemBuilder);
-        InitializeSpraycoaters(_planet, optimizedPowerSystemBuilder);
-        InitializeFractionators(_planet, optimizedPowerSystemBuilder);
+        InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeMiners(subFactoryGraph);
+        InitializeEjectors(subFactoryGraph);
+        InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeResearchingLabs(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder);
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
 
@@ -94,92 +157,92 @@ internal sealed class OptimizedPlanet
         _workTrackersParallelism = -1;
     }
 
-    private void InitializeInserters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeInserters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
-        _optimizedBiInserterExecutor.Initialize(planet, this, x => x.bidirectional, optimizedPowerSystemBuilder.CreateBiInserterBuilder());
+        _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, optimizedPowerSystemBuilder.CreateBiInserterBuilder());
 
         _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
-        _optimizedInserterExecutor.Initialize(planet, this, x => !x.bidirectional, optimizedPowerSystemBuilder.CreateInserterBuilder());
+        _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, optimizedPowerSystemBuilder.CreateInserterBuilder());
     }
 
-    private void InitializeAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _assemblerExecutor = new AssemblerExecutor();
-        _assemblerExecutor.InitializeAssemblers(planet, optimizedPowerSystemBuilder);
+        _assemblerExecutor.InitializeAssemblers(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
-    private void InitializeMiners(PlanetFactory planet)
+    private void InitializeMiners(Graph subFactoryGraph)
     {
-        int[] minerNetworkIds = new int[planet.factorySystem.minerCursor];
+        int[] minerNetworkIds = new int[_planet.factorySystem.minerCursor];
 
-        for (int i = 0; i < planet.factorySystem.minerCursor; i++)
+        for (int i = 0; i < _planet.factorySystem.minerCursor; i++)
         {
-            ref readonly MinerComponent miner = ref planet.factorySystem.minerPool[i];
+            ref readonly MinerComponent miner = ref _planet.factorySystem.minerPool[i];
             if (miner.id != i)
             {
                 continue;
             }
 
-            minerNetworkIds[i] = planet.powerSystem.consumerPool[miner.pcId].networkId;
+            minerNetworkIds[i] = _planet.powerSystem.consumerPool[miner.pcId].networkId;
 
         }
 
         _minerNetworkIds = minerNetworkIds;
     }
 
-    private void InitializeEjectors(PlanetFactory planet)
+    private void InitializeEjectors(Graph subFactoryGraph)
     {
-        int[] ejectorNetworkIds = new int[planet.factorySystem.ejectorCursor];
+        int[] ejectorNetworkIds = new int[_planet.factorySystem.ejectorCursor];
 
-        for (int i = 0; i < planet.factorySystem.ejectorCursor; i++)
+        for (int i = 0; i < _planet.factorySystem.ejectorCursor; i++)
         {
-            ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[i];
+            ref EjectorComponent ejector = ref _planet.factorySystem.ejectorPool[i];
             if (ejector.id != i)
             {
                 continue;
             }
 
-            ejectorNetworkIds[i] = planet.powerSystem.consumerPool[ejector.pcId].networkId;
+            ejectorNetworkIds[i] = _planet.powerSystem.consumerPool[ejector.pcId].networkId;
 
             // set it here so we don't have to set it in the update loop.
             // Need to investigate when i need to update it.
             ejector.needs ??= new int[6];
-            planet.entityNeeds[ejector.entityId] = ejector.needs;
+            _planet.entityNeeds[ejector.entityId] = ejector.needs;
         }
 
         _ejectorNetworkIds = ejectorNetworkIds;
     }
 
-    private void InitializeLabAssemblers(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeLabAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _producingLabExecutor = new ProducingLabExecutor();
-        _producingLabExecutor.Initialize(planet, optimizedPowerSystemBuilder);
+        _producingLabExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
         _producingLabNetworkIdAndStates = _producingLabExecutor._networkIdAndStates;
         _optimizedProducingLabs = _producingLabExecutor._optimizedLabs;
         _producingLabRecipes = _producingLabExecutor._producingLabRecipes;
         _producingLabIdToOptimizedIndex = _producingLabExecutor._labIdToOptimizedLabIndex;
     }
 
-    private void InitializeResearchingLabs(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeResearchingLabs(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _researchingLabExecutor = new ResearchingLabExecutor(_starClusterResearchManager);
-        _researchingLabExecutor.Initialize(planet, optimizedPowerSystemBuilder);
+        _researchingLabExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
         _researchingLabNetworkIdAndStates = _researchingLabExecutor._networkIdAndStates;
         _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
     }
 
-    private void InitializeSpraycoaters(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
-        _spraycoaterExecutor.Initialize(planet, optimizedPowerSystemBuilder);
+        _spraycoaterExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
-    private void InitializeFractionators(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeFractionators(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _fractionatorExecutor = new FractionatorExecutor();
-        _fractionatorExecutor.Initialize(planet, optimizedPowerSystemBuilder);
+        _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
     public void GameTick(PlanetFactory planet, long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)

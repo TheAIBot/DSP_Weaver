@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Spraycoaters;
@@ -72,7 +74,9 @@ internal sealed class SpraycoaterExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    public void Initialize(PlanetFactory planet,
+                           Graph subFactoryGraph,
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         List<int> spraycoaterNetworkIds = [];
         List<OptimizedSpraycoater> optimizedSpraycoaters = [];
@@ -80,10 +84,13 @@ internal sealed class SpraycoaterExecutor
         List<int> sprayTimes = [];
         Dictionary<int, int> spraycoaterIdToOptimizedSpraycoaterIndex = [];
 
-        for (int i = 1; i < planet.cargoTraffic.spraycoaterCursor; i++)
+        foreach (int spraycoaterIndex in subFactoryGraph.GetAllNodes()
+                                                        .Where(x => x.EntityTypeIndex.EntityType == EntityType.SprayCoater)
+                                                        .Select(x => x.EntityTypeIndex.Index)
+                                                        .OrderBy(x => x))
         {
-            ref readonly SpraycoaterComponent spraycoater = ref planet.cargoTraffic.spraycoaterPool[i];
-            if (spraycoater.id != i)
+            ref readonly SpraycoaterComponent spraycoater = ref planet.cargoTraffic.spraycoaterPool[spraycoaterIndex];
+            if (spraycoater.id != spraycoaterIndex)
             {
                 continue;
             }
@@ -121,7 +128,7 @@ internal sealed class SpraycoaterExecutor
             int networkId = planet.powerSystem.consumerPool[spraycoater.pcId].networkId;
             PowerNetwork powerNetwork = networkId != 0 ? planet.powerSystem.netPool[networkId] : null;
 
-            spraycoaterIdToOptimizedSpraycoaterIndex.Add(i, optimizedSpraycoaters.Count);
+            spraycoaterIdToOptimizedSpraycoaterIndex.Add(spraycoaterIndex, optimizedSpraycoaters.Count);
             spraycoaterNetworkIds.Add(networkId);
             optimizedSpraycoaters.Add(new OptimizedSpraycoater(incommingBeltSegIndexPlusSegPivotOffset,
                                                                incommingCargoPath,

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
@@ -120,7 +122,9 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    public void Initialize(PlanetFactory planet,
+                           Graph subFactoryGraph,
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         List<NetworkIdAndState<LabState>> networkIdAndStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
@@ -132,24 +136,27 @@ internal sealed class ProducingLabExecutor
         HashSet<int> unOptimizedLabIds = [];
         GameHistoryData historyData = planet.gameData.history;
 
-        for (int i = 0; i < planet.factorySystem.labCursor; i++)
+        foreach (int labIndex in subFactoryGraph.GetAllNodes()
+                                                .Where(x => x.EntityTypeIndex.EntityType == EntityType.ProducingLab)
+                                                .Select(x => x.EntityTypeIndex.Index)
+                                                .OrderBy(x => x))
         {
-            ref LabComponent lab = ref planet.factorySystem.labPool[i];
-            if (lab.id != i)
+            ref LabComponent lab = ref planet.factorySystem.labPool[labIndex];
+            if (lab.id != labIndex)
             {
-                unOptimizedLabIds.Add(i);
+                unOptimizedLabIds.Add(labIndex);
                 continue;
             }
 
             if (lab.researchMode)
             {
-                unOptimizedLabIds.Add(i);
+                unOptimizedLabIds.Add(labIndex);
                 continue;
             }
 
             if (lab.recipeId == 0)
             {
-                unOptimizedLabIds.Add(i);
+                unOptimizedLabIds.Add(labIndex);
                 continue;
             }
 
@@ -158,7 +165,7 @@ internal sealed class ProducingLabExecutor
             // Planet reoptimization will enable the recipe when it has been researched.
             if (!historyData.RecipeUnlocked(lab.recipeId))
             {
-                unOptimizedLabIds.Add(i);
+                unOptimizedLabIds.Add(labIndex);
                 continue;
             }
 
@@ -177,7 +184,7 @@ internal sealed class ProducingLabExecutor
                 producingLabRecipes.Add(producingLabRecipe);
             }
 
-            labIdToOptimizedLabIndex.Add(i, optimizedLabs.Count);
+            labIdToOptimizedLabIndex.Add(labIndex, optimizedLabs.Count);
             optimizedLabs.Add(new OptimizedProducingLab(producingLabRecipeIndex, nextLabIndex, ref lab));
             labsPowerFields.Add(new LabPowerFields(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
