@@ -315,15 +315,15 @@ internal sealed class WorkStep : IDisposable
             return null;
         }
 
-        int workChunkIndex = Interlocked.Increment(ref _scheduledCount);
-        if (workChunkIndex > _workChunks.Length)
+        int workChunkIndex = Interlocked.Increment(ref _scheduledCount) - 1;
+        if (workChunkIndex >= _workChunks.Length)
         {
             canNoLongerProvideWork = true;
             return null;
         }
 
         canNoLongerProvideWork = false;
-        return _workChunks[workChunkIndex - 1];
+        return _workChunks[workChunkIndex];
     }
 
     public void WaitForCompletion()

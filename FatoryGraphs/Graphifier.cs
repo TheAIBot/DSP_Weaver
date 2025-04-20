@@ -7,7 +7,7 @@ namespace Weaver.FatoryGraphs;
 internal static class Graphifier
 {
     const int minNodePerGraph = 200;
-    const int maxCombinedGraphSize = 500;
+    const int maxCombinedGraphSize = 20000;
 
     public static List<Graph> ToGraphs(PlanetFactory planet)
     {
@@ -66,14 +66,14 @@ internal static class Graphifier
         }
 
 
-        return graphs;
+        return graphs.OrderBy(GraphOrder).ToList();
     }
 
     public static void CombineSmallGraphs(List<Graph> graphs)
     {
         List<Graph> combinedGraphs = new List<Graph>();
         Graph? smallerGraphsCombined = null;
-        foreach (Graph smallGraph in graphs.Where(x => x.NodeCount < minNodePerGraph))
+        foreach (Graph smallGraph in graphs.Where(x => x.NodeCount < maxCombinedGraphSize).OrderBy(GraphOrder))
         {
             smallerGraphsCombined ??= new Graph();
 
@@ -95,8 +95,23 @@ internal static class Graphifier
             smallerGraphsCombined = null;
         }
 
-        graphs.RemoveAll(x => x.NodeCount < minNodePerGraph);
+        graphs.RemoveAll(x => x.NodeCount < maxCombinedGraphSize);
         graphs.AddRange(combinedGraphs);
+
+        var temp = graphs.ToList();
+        graphs.Clear();
+        graphs.AddRange(temp.OrderBy(GraphOrder));
+    }
+
+    private static int GraphOrder(Graph graph)
+    {
+        Node[] inserterNodes = graph.GetAllNodes().Where(x => x.EntityTypeIndex.EntityType == EntityType.Inserter).ToArray();
+        if (inserterNodes.Length == 0)
+        {
+            return int.MaxValue;
+        }
+
+        return inserterNodes.Min(x => x.EntityTypeIndex.Index);
     }
 
     private static void AddInsertersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)

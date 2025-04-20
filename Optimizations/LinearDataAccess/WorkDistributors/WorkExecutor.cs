@@ -77,16 +77,7 @@ internal sealed class WorkExecutor
                     workChunk = planetWorkPlan.Value.WorkChunk;
                 }
 
-                //_stopWatch.Begin();
-                //bool recordTiming = true;
-
                 workChunk.Execute(_workerTimings, time);
-
-
-                //if (recordTiming)
-                //{
-                //    _workTypeTimings[(int)workChunk.Value.WorkType] += _stopWatch.duration;
-                //}
 
                 planetWorkManager.CompleteWork(workChunk);
             }
