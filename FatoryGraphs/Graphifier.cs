@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Weaver.Extensions;
 
 namespace Weaver.FatoryGraphs;
 
 internal static class Graphifier
 {
-    const int minNodePerGraph = 20;
-    const int maxCombinedGraphSize = 2000;
+    const int minNodePerGraph = 200;
+    const int maxCombinedGraphSize = 500;
 
     public static List<Graph> ToGraphs(PlanetFactory planet)
     {
@@ -73,18 +72,27 @@ internal static class Graphifier
     public static void CombineSmallGraphs(List<Graph> graphs)
     {
         List<Graph> combinedGraphs = new List<Graph>();
-        foreach (Node[] nodeChunk in graphs.Where(x => x.NodeCount < minNodePerGraph)
-                                           .SelectMany(x => x.GetAllNodes())
-                                           .OrderBy(x => x.EntityTypeIndex.Index)
-                                           .Chunk(maxCombinedGraphSize))
+        Graph? smallerGraphsCombined = null;
+        foreach (Graph smallGraph in graphs.Where(x => x.NodeCount < minNodePerGraph))
         {
-            Graph smallerGraphsCombined = new Graph();
-            foreach (Node node in nodeChunk)
+            smallerGraphsCombined ??= new Graph();
+
+            foreach (Node node in smallGraph.GetAllNodes())
             {
                 smallerGraphsCombined.AddNode(node);
             }
 
+            if (smallerGraphsCombined.NodeCount >= maxCombinedGraphSize)
+            {
+                combinedGraphs.Add(smallerGraphsCombined);
+                smallerGraphsCombined = null;
+            }
+        }
+
+        if (smallerGraphsCombined != null)
+        {
             combinedGraphs.Add(smallerGraphsCombined);
+            smallerGraphsCombined = null;
         }
 
         graphs.RemoveAll(x => x.NodeCount < minNodePerGraph);
@@ -106,19 +114,13 @@ internal static class Graphifier
             if (inserter.pickTarget != 0)
             {
                 EntityTypeIndex pickEntityTypeIndex = GetEntityTypeIndex(inserter.pickTarget, planet.factorySystem);
-                Node pickNode = GetOrCreateNode(entityTypeIndexToNode, pickEntityTypeIndex);
-
-                inserterNode.ReceivingFrom.Add(pickNode);
-                pickNode.SendingTo.Add(inserterNode);
+                ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, pickEntityTypeIndex);
             }
 
             if (inserter.insertTarget != 0)
             {
                 EntityTypeIndex targetEntityTypeIndex = GetEntityTypeIndex(inserter.insertTarget, planet.factorySystem);
-                Node targetNode = GetOrCreateNode(entityTypeIndexToNode, targetEntityTypeIndex);
-
-                inserterNode.SendingTo.Add(targetNode);
-                targetNode.ReceivingFrom.Add(inserterNode);
+                ConnectSendTo(entityTypeIndexToNode, inserterNode, targetEntityTypeIndex);
             }
         }
     }
