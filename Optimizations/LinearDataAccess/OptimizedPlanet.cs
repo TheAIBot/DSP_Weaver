@@ -378,7 +378,7 @@ internal sealed class OptimizedPlanet
 
     public void Initialize()
     {
-        List<Graph> subFactoryGraphs = Graphifier.ToGraphs(_planet.factorySystem);
+        List<Graph> subFactoryGraphs = Graphifier.ToGraphs(_planet);
         Graphifier.CombineSmallGraphs(subFactoryGraphs);
 
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);

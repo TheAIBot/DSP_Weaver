@@ -10,27 +10,26 @@ internal static class Graphifier
     const int minNodePerGraph = 20;
     const int maxCombinedGraphSize = 2000;
 
-    public static List<Graph> ToGraphs(FactorySystem factorySystem)
+    public static List<Graph> ToGraphs(PlanetFactory planet)
     {
-        HashSet<Node> nodes = new HashSet<Node>();
         Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode = new Dictionary<EntityTypeIndex, Node>();
+        AddInsertersToGraph(planet, entityTypeIndexToNode);
+        AddAssemblersToGraph(planet, entityTypeIndexToNode);
+        AddMonitorsToGraph(planet, entityTypeIndexToNode);
+        AddSpraycoatersToGraph(planet, entityTypeIndexToNode);
+        AddPilersToGraph(planet, entityTypeIndexToNode);
+        AddMinersToGraph(planet, entityTypeIndexToNode);
+        AddFractionatorsToGraph(planet, entityTypeIndexToNode);
+        AddEjectorsToGraph(planet, entityTypeIndexToNode);
+        AddSilosToGraph(planet, entityTypeIndexToNode);
+        AddLabsToGraph(planet, entityTypeIndexToNode);
+        AddStationsToGraph(planet, entityTypeIndexToNode);
+        AddDispensersToGraph(planet, entityTypeIndexToNode);
+        AddStoragesToGraph(planet, entityTypeIndexToNode);
+        AddTanksToGraph(planet, entityTypeIndexToNode);
+        AddSplittersToGraph(planet, entityTypeIndexToNode);
 
-        AddInsertersToGraph(factorySystem, nodes, entityTypeIndexToNode);
-        AddAssemblersToGraph(factorySystem, nodes, entityTypeIndexToNode);
-        AddMonitorsToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddSpraycoatersToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddPilersToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddMinersToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddFractionatorsToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddEjectorsToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddSilosToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddLabsToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddStationsToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddDispensersToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddStoragesToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddTanksToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-        AddSplittersToGraph(factorySystem.factory, nodes, entityTypeIndexToNode);
-
+        HashSet<Node> nodes = entityTypeIndexToNode.Values.ToHashSet();
         List<Graph> graphs = new List<Graph>();
         while (nodes.Count > 0)
         {
@@ -92,22 +91,22 @@ internal static class Graphifier
         graphs.AddRange(combinedGraphs);
     }
 
-    private static void AddInsertersToGraph(FactorySystem factory, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddInsertersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
-        for (int i = 1; i < factory.inserterCursor; i++)
+        for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
-            ref InserterComponent inserter = ref factory.inserterPool[i];
+            ref InserterComponent inserter = ref planet.factorySystem.inserterPool[i];
             if (inserter.id != i)
             {
                 continue;
             }
 
-            var inserterNode = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Inserter, i));
+            var inserterNode = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Inserter, i));
 
             if (inserter.pickTarget != 0)
             {
-                EntityTypeIndex pickEntityTypeIndex = GetEntityTypeIndex(inserter.pickTarget, factory);
-                Node pickNode = GetOrCreateNode(nodes, entityTypeIndexToNode, pickEntityTypeIndex);
+                EntityTypeIndex pickEntityTypeIndex = GetEntityTypeIndex(inserter.pickTarget, planet.factorySystem);
+                Node pickNode = GetOrCreateNode(entityTypeIndexToNode, pickEntityTypeIndex);
 
                 inserterNode.ReceivingFrom.Add(pickNode);
                 pickNode.SendingTo.Add(inserterNode);
@@ -115,8 +114,8 @@ internal static class Graphifier
 
             if (inserter.insertTarget != 0)
             {
-                EntityTypeIndex targetEntityTypeIndex = GetEntityTypeIndex(inserter.insertTarget, factory);
-                Node targetNode = GetOrCreateNode(nodes, entityTypeIndexToNode, targetEntityTypeIndex);
+                EntityTypeIndex targetEntityTypeIndex = GetEntityTypeIndex(inserter.insertTarget, planet.factorySystem);
+                Node targetNode = GetOrCreateNode(entityTypeIndexToNode, targetEntityTypeIndex);
 
                 inserterNode.SendingTo.Add(targetNode);
                 targetNode.ReceivingFrom.Add(inserterNode);
@@ -124,21 +123,21 @@ internal static class Graphifier
         }
     }
 
-    private static void AddAssemblersToGraph(FactorySystem factory, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddAssemblersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
-        for (int i = 1; i < factory.assemblerCursor; i++)
+        for (int i = 1; i < planet.factorySystem.assemblerCursor; i++)
         {
-            ref AssemblerComponent assembler = ref factory.assemblerPool[i];
+            ref AssemblerComponent assembler = ref planet.factorySystem.assemblerPool[i];
             if (assembler.id != i)
             {
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Assembler, i));
+            GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Assembler, i));
         }
     }
 
-    private static void AddMonitorsToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddMonitorsToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.cargoTraffic.monitorCursor; i++)
         {
@@ -148,17 +147,17 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Monitor, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Monitor, i));
 
             if (component.targetBeltId > 0)
             {
                 EntityTypeIndex incBelt = GetBeltSegmentTypeIndex(component.targetBeltId, planet);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, incBelt);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt);
             }
         }
     }
 
-    private static void AddSpraycoatersToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddSpraycoatersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.cargoTraffic.spraycoaterCursor; i++)
         {
@@ -168,23 +167,23 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.SprayCoater, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.SprayCoater, i));
 
             if (component.incBeltId > 0)
             {
                 EntityTypeIndex incBelt = GetBeltSegmentTypeIndex(component.incBeltId, planet);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, incBelt);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt);
             }
 
             if (component.cargoBeltId > 0)
             {
                 EntityTypeIndex cargoBelt = GetBeltSegmentTypeIndex(component.cargoBeltId, planet);
-                ConnectSendTo(nodes, entityTypeIndexToNode, node, cargoBelt);
+                ConnectSendTo(entityTypeIndexToNode, node, cargoBelt);
             }
         }
     }
 
-    private static void AddPilersToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddPilersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.cargoTraffic.pilerCursor; i++)
         {
@@ -194,23 +193,23 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Piler, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Piler, i));
 
             if (component.inputBeltId > 0)
             {
                 EntityTypeIndex incBelt = GetBeltSegmentTypeIndex(component.inputBeltId, planet);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, incBelt);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt);
             }
 
             if (component.outputBeltId > 0)
             {
                 EntityTypeIndex cargoBelt = GetBeltSegmentTypeIndex(component.outputBeltId, planet);
-                ConnectSendTo(nodes, entityTypeIndexToNode, node, cargoBelt);
+                ConnectSendTo(entityTypeIndexToNode, node, cargoBelt);
             }
         }
     }
 
-    private static void AddMinersToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddMinersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.factorySystem.minerCursor; i++)
         {
@@ -220,17 +219,17 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Miner, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Miner, i));
 
             if (component.insertTarget > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.insertTarget, planet.factorySystem);
-                ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
     }
 
-    private static void AddFractionatorsToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddFractionatorsToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.factorySystem.fractionatorCursor; i++)
         {
@@ -240,18 +239,18 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Fractionator, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Fractionator, i));
 
             if (component.belt0 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt0, planet.factorySystem);
                 if (component.isOutput0)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
             if (component.belt1 > 0)
@@ -259,11 +258,11 @@ internal static class Graphifier
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt1, planet.factorySystem);
                 if (component.isOutput1)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
             if (component.belt2 > 0)
@@ -271,17 +270,17 @@ internal static class Graphifier
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt2, planet.factorySystem);
                 if (component.isOutput2)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
         }
     }
 
-    private static void AddEjectorsToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddEjectorsToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.factorySystem.ejectorCursor; i++)
         {
@@ -291,11 +290,11 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Ejector, i));
+            GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Ejector, i));
         }
     }
 
-    private static void AddSilosToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddSilosToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.factorySystem.siloCursor; i++)
         {
@@ -305,11 +304,11 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Silo, i));
+            GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Silo, i));
         }
     }
 
-    private static void AddLabsToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddLabsToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.factorySystem.labCursor; i++)
         {
@@ -319,12 +318,12 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.ProducingLab, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.ProducingLab, i));
 
             if (component.nextLabId > 0)
             {
                 EntityTypeIndex connectedEntityIndex = new EntityTypeIndex(EntityType.ProducingLab, component.nextLabId);
-                ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
 
@@ -336,17 +335,17 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.ResearchingLab, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.ResearchingLab, i));
 
             if (component.nextLabId > 0)
             {
                 EntityTypeIndex connectedEntityIndex = new EntityTypeIndex(EntityType.ResearchingLab, component.nextLabId);
-                ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
     }
 
-    private static void AddStationsToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddStationsToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.transport.stationCursor; i++)
         {
@@ -356,7 +355,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Station, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Station, i));
 
             foreach (SlotData slot in component.slots)
             {
@@ -368,17 +367,17 @@ internal static class Graphifier
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(slot.beltId, planet.factorySystem);
                 if (slot.dir == IODir.Output)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else if (slot.dir == IODir.Input)
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
         }
     }
 
-    private static void AddDispensersToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddDispensersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.transport.dispenserCursor; i++)
         {
@@ -388,7 +387,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Dispenser, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Dispenser, i));
 
             if (component.storage != null)
             {
@@ -398,20 +397,20 @@ internal static class Graphifier
                     component.playerMode == EPlayerDeliveryMode.Both ||
                     component.storageMode == EStorageDeliveryMode.Supply)
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
 
                 if (component.playerMode == EPlayerDeliveryMode.Recycle ||
                     component.playerMode == EPlayerDeliveryMode.Both ||
                     component.storageMode == EStorageDeliveryMode.Demand)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
         }
     }
 
-    private static void AddStoragesToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddStoragesToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.factoryStorage.storageCursor; i++)
         {
@@ -421,23 +420,23 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Storage, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Storage, i));
 
             if (component.previousStorage != null && component.previousStorage.id != 0)
             {
                 EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Storage, component.previousStorage.id);
-                BiDirectionConnection(nodes, entityTypeIndexToNode, node, connectedStorage);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
             }
 
             if (component.nextStorage != null && component.nextStorage.id != 0)
             {
                 EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Storage, component.nextStorage.id);
-                BiDirectionConnection(nodes, entityTypeIndexToNode, node, connectedStorage);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
             }
         }
     }
 
-    private static void AddTanksToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddTanksToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.factoryStorage.tankCursor; i++)
         {
@@ -447,18 +446,18 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Tank, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Tank, i));
 
             if (component.lastTankId != 0 && planet.factoryStorage.tankPool[component.lastTankId].id == component.lastTankId)
             {
                 EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Storage, component.lastTankId);
-                BiDirectionConnection(nodes, entityTypeIndexToNode, node, connectedStorage);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
             }
 
             if (component.nextTankId != 0 && planet.factoryStorage.tankPool[component.nextTankId].id == component.nextTankId)
             {
                 EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Storage, component.nextTankId);
-                BiDirectionConnection(nodes, entityTypeIndexToNode, node, connectedStorage);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
             }
 
             if (component.belt0 > 0)
@@ -466,11 +465,11 @@ internal static class Graphifier
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt0, planet.factorySystem);
                 if (component.isOutput0)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
             if (component.belt1 > 0)
@@ -478,11 +477,11 @@ internal static class Graphifier
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt1, planet.factorySystem);
                 if (component.isOutput1)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
             if (component.belt2 > 0)
@@ -490,11 +489,11 @@ internal static class Graphifier
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt2, planet.factorySystem);
                 if (component.isOutput2)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
             if (component.belt3 > 0)
@@ -502,17 +501,17 @@ internal static class Graphifier
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt3, planet.factorySystem);
                 if (component.isOutput3)
                 {
-                    ConnectSendTo(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
                 else
                 {
-                    ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
                 }
             }
         }
     }
 
-    private static void AddSplittersToGraph(PlanetFactory planet, HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    private static void AddSplittersToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
     {
         for (int i = 1; i < planet.cargoTraffic.splitterCursor; i++)
         {
@@ -522,78 +521,77 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(nodes, entityTypeIndexToNode, new EntityTypeIndex(EntityType.Tank, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Tank, i));
 
             if (component.input0 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input0, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.input1 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input1, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.input2 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input2, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.input3 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input3, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
 
             if (component.output0 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output0, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.output1 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output1, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.output2 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output2, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.output3 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output3, planet.factorySystem);
-                ConnectReceiveFrom(nodes, entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
     }
 
-    private static void BiDirectionConnection(HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, Node a, EntityTypeIndex b)
+    private static void BiDirectionConnection(Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, Node a, EntityTypeIndex b)
     {
-        ConnectReceiveFrom(nodes, entityTypeIndexToNode, a, b);
-        ConnectSendTo(nodes, entityTypeIndexToNode, a, b);
+        ConnectReceiveFrom(entityTypeIndexToNode, a, b);
+        ConnectSendTo(entityTypeIndexToNode, a, b);
     }
 
-    private static void ConnectReceiveFrom(HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, Node receiverNode, EntityTypeIndex senderTypeIndex)
+    private static void ConnectReceiveFrom(Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, Node receiverNode, EntityTypeIndex senderTypeIndex)
     {
-        Node senderNode = GetOrCreateNode(nodes, entityTypeIndexToNode, senderTypeIndex);
+        Node senderNode = GetOrCreateNode(entityTypeIndexToNode, senderTypeIndex);
         receiverNode.ReceivingFrom.Add(senderNode);
         senderNode.SendingTo.Add(receiverNode);
     }
 
-    private static void ConnectSendTo(HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, Node senderNode, EntityTypeIndex receiverTypeIndex)
+    private static void ConnectSendTo(Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, Node senderNode, EntityTypeIndex receiverTypeIndex)
     {
-        Node receiverNode = GetOrCreateNode(nodes, entityTypeIndexToNode, receiverTypeIndex);
+        Node receiverNode = GetOrCreateNode(entityTypeIndexToNode, receiverTypeIndex);
         senderNode.SendingTo.Add(receiverNode);
         receiverNode.ReceivingFrom.Add(senderNode);
     }
 
-    private static Node GetOrCreateNode(HashSet<Node> nodes, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, EntityTypeIndex entityTypeIndex)
+    private static Node GetOrCreateNode(Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, EntityTypeIndex entityTypeIndex)
     {
         if (!entityTypeIndexToNode.TryGetValue(entityTypeIndex, out Node node))
         {
             node = new Node(entityTypeIndex);
-            nodes.Add(node);
             entityTypeIndexToNode.Add(entityTypeIndex, node);
         }
 
