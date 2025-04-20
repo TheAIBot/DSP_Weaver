@@ -647,8 +647,6 @@ internal sealed class OptimizedSubFactory
 {
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
-    public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
-    public int OptimizeDelayInTicks { get; set; } = 0;
 
     public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
     public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
@@ -679,8 +677,13 @@ internal sealed class OptimizedSubFactory
 
     public FractionatorExecutor _fractionatorExecutor;
 
-    private WorkTracker[] _workTrackers;
-    private int _workTrackersParallelism;
+    public StationExecutor _stationExecutor;
+    public DispenserExecutor _dispenserExecutor;
+
+    public TankExecutor _tankExecutor;
+
+    public BeltExecutor _beltExecutor;
+    public SplitterExecutor _splitterExecutor;
 
     public OptimizedSubFactory(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
     {
@@ -697,11 +700,6 @@ internal sealed class OptimizedSubFactory
         _researchingLabExecutor.Save(_planet);
         _spraycoaterExecutor.Save(_planet);
         _fractionatorExecutor.Save(_planet);
-
-        Status = OptimizedPlanetStatus.Stopped;
-
-        _workTrackers = null;
-        _workTrackersParallelism = -1;
     }
 
     public void Initialize(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -719,11 +717,11 @@ internal sealed class OptimizedSubFactory
         InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializePilers(subFactoryGraph);
         InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder);
-
-        Status = OptimizedPlanetStatus.Running;
-
-        _workTrackers = null;
-        _workTrackersParallelism = -1;
+        InitializeStations(subFactoryGraph);
+        InitializeDispensers(subFactoryGraph);
+        InitializeTanks(subFactoryGraph);
+        InitializeBelts(subFactoryGraph);
+        InitializeSplitters(subFactoryGraph);
     }
 
     private void InitializeInserters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -802,6 +800,36 @@ internal sealed class OptimizedSubFactory
         _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
+    private void InitializeStations(Graph subFactoryGraph)
+    {
+        _stationExecutor = new StationExecutor();
+        _stationExecutor.Initialize(subFactoryGraph);
+    }
+
+    private void InitializeDispensers(Graph subFactoryGraph)
+    {
+        _dispenserExecutor = new DispenserExecutor();
+        _dispenserExecutor.Initialize(subFactoryGraph);
+    }
+
+    private void InitializeTanks(Graph subFactoryGraph)
+    {
+        _tankExecutor = new TankExecutor();
+        _tankExecutor.Initialize(subFactoryGraph);
+    }
+
+    private void InitializeBelts(Graph subFactoryGraph)
+    {
+        _beltExecutor = new BeltExecutor();
+        _beltExecutor.Initialize(subFactoryGraph);
+    }
+
+    private void InitializeSplitters(Graph subFactoryGraph)
+    {
+        _splitterExecutor = new SplitterExecutor();
+        _splitterExecutor.Initialize(subFactoryGraph);
+    }
+
     public void GameTick(long time)
     {
         _minerExecutor.GameTick(_planet);
@@ -815,22 +843,23 @@ internal sealed class OptimizedSubFactory
         _researchingLabExecutor.GameTickLabResearchMode(_planet);
         _researchingLabExecutor.GameTickLabOutputToNext();
 
-        // Transport input from belt
+        _stationExecutor.InputFromBelt(_planet, time);
 
         _optimizedBiInserterExecutor.GameTickInserters(_planet);
         _optimizedInserterExecutor.GameTickInserters(_planet);
 
-        // Storage
-        // CargoPathsData
-        // Splitter
+        // Storage has no logic on planets the player isn't on which is why it is omitted
+        _tankExecutor.GameTick(_planet);
 
+        _beltExecutor.GameTick(_planet);
+        _splitterExecutor.GameTick(_planet, time);
         _monitorExecutor.GameTick(_planet);
         _spraycoaterExecutor.GameTick(_planet);
         _pilerExecutor.GameTick(_planet);
 
-        // Transport output to belt
-        // Transport sandbox mode
-        // PresentCargoPathsData
+        _stationExecutor.OutputToBelt(_planet, time);
+        _stationExecutor.SandboxMode(_planet);
+        _dispenserExecutor.SandboxMode(_planet);
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)
