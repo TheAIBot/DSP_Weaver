@@ -119,7 +119,7 @@ internal sealed class StarClusterWorkManager
             return null;
         }
 
-        WorkPlan? workPlan = planetWorkManager.TryGetWork(out bool canScheduleMoreWork);
+        IWorkChunk? workChunk = planetWorkManager.TryGetWork(out bool canScheduleMoreWork);
         if (!canScheduleMoreWork)
         {
             int lastPlanetNotCompletedIndex = Interlocked.Decrement(ref _planetsNotCompletedCount);
@@ -128,12 +128,12 @@ internal sealed class StarClusterWorkManager
                 _planetWorkManagers[planetIndex] = _planetWorkManagers[lastPlanetNotCompletedIndex];
             }
         }
-        if (workPlan == null)
+        if (workChunk == null)
         {
             return null;
         }
 
-        return new PlanetWorkPlan(planetWorkManager, workPlan.Value);
+        return new PlanetWorkPlan(planetWorkManager, workChunk);
     }
 
     private PlanetWorkPlan? TryWaitForWork(int planetIndex)
@@ -144,12 +144,12 @@ internal sealed class StarClusterWorkManager
             return null;
         }
 
-        WorkPlan? workPlan = planetWorkManager.TryWaitForWork();
-        if (workPlan == null)
+        IWorkChunk? workChunk = planetWorkManager.TryWaitForWork();
+        if (workChunk == null)
         {
             return null;
         }
 
-        return new PlanetWorkPlan(planetWorkManager, workPlan.Value);
+        return new PlanetWorkPlan(planetWorkManager, workChunk);
     }
 }

@@ -1,12 +1,11 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 internal sealed class PlanetWorkManager
 {
-    private WorkTracker[] _workTrackers;
-    private int _currentWorkTrackerIndex;
+    private WorkStep[] _workSteps;
+    private int _currentWorkStepIndex;
 
     public PlanetFactory Planet { get; }
     public OptimizedPlanet OptimizedPlanet { get; }
@@ -19,96 +18,79 @@ internal sealed class PlanetWorkManager
 
     public void UpdatePlanetWork(int parallelism)
     {
-        WorkTracker[] updatedWorkTrackers = OptimizedPlanet.GetMultithreadedWork(parallelism);
-        if (_workTrackers != updatedWorkTrackers && _workTrackers != null)
+        WorkStep[] updatedWorkSteps = OptimizedPlanet.GetMultithreadedWork(parallelism);
+        if (_workSteps != updatedWorkSteps && _workSteps != null)
         {
-            for (int i = 0; i < _workTrackers.Length; i++)
+            for (int i = 0; i < _workSteps.Length; i++)
             {
-                _workTrackers[i].Dispose();
+                _workSteps[i].Dispose();
             }
         }
 
-        _workTrackers = updatedWorkTrackers;
+        _workSteps = updatedWorkSteps;
     }
 
-    public WorkPlan? TryGetWork(out bool canScheduleMoreWork)
+    public IWorkChunk? TryGetWork(out bool canScheduleMoreWork)
     {
-        int currentWorkTrackerIndex = _currentWorkTrackerIndex;
-        if (currentWorkTrackerIndex == _workTrackers.Length)
+        int currentWorkTrackerIndex = _currentWorkStepIndex;
+        if (currentWorkTrackerIndex == _workSteps.Length)
         {
             canScheduleMoreWork = false;
             return null;
         }
 
-        WorkTracker workTracker = _workTrackers[currentWorkTrackerIndex];
-        if (workTracker.ScheduledCount >= workTracker.MaxWorkCount)
+        WorkStep workStep = _workSteps[currentWorkTrackerIndex];
+        IWorkChunk? workChunk = workStep.TryGetWork(out bool canNoLongerProvideWork);
+        if (canNoLongerProvideWork)
         {
-            canScheduleMoreWork = currentWorkTrackerIndex + 1 < _workTrackers.Length;
-            return null;
+            canScheduleMoreWork = false;
         }
-
-        int workIndex = Interlocked.Increment(ref _workTrackers[currentWorkTrackerIndex].ScheduledCount) - 1;
-        if (workIndex >= workTracker.MaxWorkCount)
-        {
-            canScheduleMoreWork = currentWorkTrackerIndex + 1 < _workTrackers.Length;
-            return null;
-        }
-
         canScheduleMoreWork = true;
-        return new WorkPlan(workTracker.WorkType, currentWorkTrackerIndex, workIndex, workTracker.MaxWorkCount);
+
+        return workChunk;
     }
 
-    public WorkPlan? TryWaitForWork()
+    public IWorkChunk? TryWaitForWork()
     {
-        int currentWorkTrackerIndex = _currentWorkTrackerIndex;
-        if (currentWorkTrackerIndex == _workTrackers.Length)
+        int currentWorkStepIndex = _currentWorkStepIndex;
+        if (currentWorkStepIndex == _workSteps.Length)
         {
             return null;
         }
 
-        int nextWorkTrackerIndex = currentWorkTrackerIndex + 1;
-        if (nextWorkTrackerIndex >= _workTrackers.Length)
+        int nextWorkStepIndex = currentWorkStepIndex + 1;
+        if (nextWorkStepIndex >= _workSteps.Length)
         {
             return null;
         }
 
-        WorkTracker workTracker = _workTrackers[nextWorkTrackerIndex];
-        if (workTracker.ScheduledCount >= workTracker.MaxWorkCount)
+        WorkStep currentWorkStep = _workSteps[currentWorkStepIndex];
+        WorkStep nextWorkStep = _workSteps[nextWorkStepIndex];
+        IWorkChunk? workChunk = nextWorkStep.TryGetWork(out bool canNoLongerProvideWork);
+        if (workChunk == null)
         {
-            return null;
+            return workChunk;
         }
 
-        int workIndex = Interlocked.Increment(ref _workTrackers[nextWorkTrackerIndex].ScheduledCount) - 1;
-        if (workIndex >= workTracker.MaxWorkCount)
-        {
-            return null;
-        }
-
-        _workTrackers[currentWorkTrackerIndex].WaitForCompletion.Wait();
-        return new WorkPlan(workTracker.WorkType, nextWorkTrackerIndex, workIndex, workTracker.MaxWorkCount);
+        currentWorkStep.WaitForCompletion();
+        return workChunk;
     }
 
-    public void CompleteWork(WorkPlan workPlan)
+    public void CompleteWork(IWorkChunk workChunk)
     {
-        ref WorkTracker workTracker = ref _workTrackers[workPlan.WorkTrackerIndex];
-        int currentCount = Interlocked.Increment(ref workTracker.CompletedCount);
-        if (currentCount == workTracker.MaxWorkCount)
+        if (workChunk.Complete())
         {
-            Interlocked.Increment(ref _currentWorkTrackerIndex);
-            workTracker.WaitForCompletion.Set();
-        }
-        else if (currentCount > workTracker.MaxWorkCount)
-        {
-            throw new InvalidOperationException($"Completed more work for {workPlan.WorkType} than the max {workTracker.MaxWorkCount}");
+            Interlocked.Increment(ref _currentWorkStepIndex);
+            workChunk.CompleteStep();
         }
     }
 
     public void Reset()
     {
-        for (int i = 0; i < _workTrackers.Length; i++)
+        for (int i = 0; i < _workSteps.Length; i++)
         {
-            _workTrackers[i].Reset();
+            _workSteps[i].Reset();
         }
-        _currentWorkTrackerIndex = 0;
+        _currentWorkStepIndex = 0;
     }
 }

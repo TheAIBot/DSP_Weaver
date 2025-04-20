@@ -1,3 +1,3 @@
 ﻿namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
-internal record struct PlanetWorkPlan(PlanetWorkManager PlanetWorkManager, WorkPlan WorkPlan);
+internal record struct PlanetWorkPlan(PlanetWorkManager PlanetWorkManager, IWorkChunk WorkChunk);
