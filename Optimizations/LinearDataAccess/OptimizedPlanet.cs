@@ -18,7 +18,7 @@ namespace Weaver.Optimizations.LinearDataAccess;
 
 internal interface IWorkChunk
 {
-    void Execute(long time);
+    void Execute(WorkerTimings workerTimings, long time);
     void TieToWorkStep(WorkStep workStep);
     bool Complete();
 
@@ -35,9 +35,11 @@ internal sealed class PlanetWideBeforePower : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(long time)
+    public void Execute(WorkerTimings workerTimings, long time)
     {
+        workerTimings.StartTimer();
         _optimizedPlanet.BeforePowerStep(time);
+        workerTimings.RecordTime(WorkType.BeforePower);
     }
 
     public void TieToWorkStep(WorkStep workStep)
@@ -82,9 +84,11 @@ internal sealed class SubFactoryBeforePower : IWorkChunk
         _subFactory = subFactory;
     }
 
-    public void Execute(long time)
+    public void Execute(WorkerTimings workerTimings, long time)
     {
+        workerTimings.StartTimer();
         _optimizedPowerSystem.BeforePower(_planet, _subFactory);
+        workerTimings.RecordTime(WorkType.BeforePower);
     }
 
     public void TieToWorkStep(WorkStep workStep)
@@ -123,9 +127,11 @@ internal sealed class PlanetWidePower : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(long time)
+    public void Execute(WorkerTimings workerTimings, long time)
     {
+        workerTimings.StartTimer();
         _optimizedPlanet.PowerStep(time);
+        workerTimings.RecordTime(WorkType.Power);
     }
 
     public void TieToWorkStep(WorkStep workStep)
@@ -164,9 +170,9 @@ internal sealed class SubFactoryGameTick : IWorkChunk
         _subFactory = subFactory;
     }
 
-    public void Execute(long time)
+    public void Execute(WorkerTimings workerTimings, long time)
     {
-        _subFactory.GameTick(time);
+        _subFactory.GameTick(workerTimings, time);
     }
 
     public void TieToWorkStep(WorkStep workStep)
@@ -205,9 +211,11 @@ internal sealed class PlanetWideTransport : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(long time)
+    public void Execute(WorkerTimings workerTimings, long time)
     {
+        workerTimings.StartTimer();
         _optimizedPlanet.TransportStep(time);
+        workerTimings.RecordTime(WorkType.TransportData);
     }
 
     public void TieToWorkStep(WorkStep workStep)
@@ -246,9 +254,11 @@ internal sealed class PlanetWideDigitalSystem : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(long time)
+    public void Execute(WorkerTimings workerTimings, long time)
     {
+        workerTimings.StartTimer();
         _optimizedPlanet.DigitalSystemStep();
+        workerTimings.RecordTime(WorkType.Digital);
     }
 
     public void TieToWorkStep(WorkStep workStep)
@@ -844,36 +854,65 @@ internal sealed class OptimizedSubFactory
         _splitterExecutor.Initialize(subFactoryGraph);
     }
 
-    public void GameTick(long time)
+    public void GameTick(WorkerTimings workerTimings, long time)
     {
+        workerTimings.StartTimer();
         _minerExecutor.GameTick(_planet);
         _assemblerExecutor.GameTick(_planet);
         _fractionatorExecutor.GameTick(_planet);
         _ejectorExecutor.GameTick(_planet, time);
         _siloExecutor.GameTick(_planet);
-
         _producingLabExecutor.GameTickLabProduceMode(_planet);
         _producingLabExecutor.GameTickLabOutputToNext();
+        workerTimings.RecordTime(WorkType.Assembler);
+
+        workerTimings.StartTimer();
         _researchingLabExecutor.GameTickLabResearchMode(_planet);
         _researchingLabExecutor.GameTickLabOutputToNext();
+        workerTimings.RecordTime(WorkType.LabResearchMode);
 
+        workerTimings.StartTimer();
         _stationExecutor.InputFromBelt(_planet, time);
+        workerTimings.RecordTime(WorkType.InputFromBelt);
 
+        workerTimings.StartTimer();
         _optimizedBiInserterExecutor.GameTickInserters(_planet);
         _optimizedInserterExecutor.GameTickInserters(_planet);
+        workerTimings.RecordTime(WorkType.InserterData);
 
+        workerTimings.StartTimer();
         // Storage has no logic on planets the player isn't on which is why it is omitted
         _tankExecutor.GameTick(_planet);
+        workerTimings.RecordTime(WorkType.Storage);
 
+        workerTimings.StartTimer();
         _beltExecutor.GameTick(_planet);
-        _splitterExecutor.GameTick(_planet, time);
-        _monitorExecutor.GameTick(_planet);
-        _spraycoaterExecutor.GameTick(_planet);
-        _pilerExecutor.GameTick(_planet);
+        workerTimings.RecordTime(WorkType.CargoPathsData);
 
+        workerTimings.StartTimer();
+        _splitterExecutor.GameTick(_planet, time);
+        workerTimings.RecordTime(WorkType.Splitter);
+
+        workerTimings.StartTimer();
+        _monitorExecutor.GameTick(_planet);
+        workerTimings.RecordTime(WorkType.Monitor);
+
+        workerTimings.StartTimer();
+        _spraycoaterExecutor.GameTick(_planet);
+        workerTimings.RecordTime(WorkType.Spraycoater);
+
+        workerTimings.StartTimer();
+        _pilerExecutor.GameTick(_planet);
+        workerTimings.RecordTime(WorkType.Piler);
+
+        workerTimings.StartTimer();
         _stationExecutor.OutputToBelt(_planet, time);
+        workerTimings.RecordTime(WorkType.OutputToBelt);
+
+        workerTimings.StartTimer();
         _stationExecutor.SandboxMode(_planet);
         _dispenserExecutor.SandboxMode(_planet);
+        workerTimings.RecordTime(WorkType.SandboxMode);
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)
