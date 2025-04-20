@@ -1,3 +1,6 @@
+## 1.2.0
+* Fix spray coaters did not consume power.
+
 ## 1.1.2
 * Fix researching tech would sometimes immediately crash the game due to UI code not being executed on the main thread.
 * Fix Weaver did not care if a recipe was unlocked or not.

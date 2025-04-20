@@ -290,6 +290,11 @@ internal sealed class WorkStep : IDisposable
         _workChunks = workChunks;
         _scheduledCount = 0;
         _completedCount = 0;
+
+        foreach (IWorkChunk workChunk in workChunks)
+        {
+            workChunk.TieToWorkStep(this);
+        }
     }
 
     public IWorkChunk? TryGetWork(out bool canNoLongerProvideWork)
@@ -301,14 +306,14 @@ internal sealed class WorkStep : IDisposable
         }
 
         int workChunkIndex = Interlocked.Increment(ref _scheduledCount);
-        if (workChunkIndex >= _workChunks.Length)
+        if (workChunkIndex > _workChunks.Length)
         {
             canNoLongerProvideWork = true;
             return null;
         }
 
         canNoLongerProvideWork = false;
-        return _workChunks[workChunkIndex];
+        return _workChunks[workChunkIndex - 1];
     }
 
     public void WaitForCompletion()
@@ -381,6 +386,8 @@ internal sealed class OptimizedPlanet
         List<Graph> subFactoryGraphs = Graphifier.ToGraphs(_planet);
         Graphifier.CombineSmallGraphs(subFactoryGraphs);
 
+        WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
+
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
@@ -413,8 +420,15 @@ internal sealed class OptimizedPlanet
     {
         if (Status == OptimizedPlanetStatus.Stopped)
         {
-            throw new InvalidOperationException("Does currently not support simulating non optimized planets.");
+            // Temp while i figure out another issue
+            return [];
+            //throw new InvalidOperationException("Does currently not support simulating non optimized planets.");
             //return CreateParallelWorkForNonRunningOptimizedPlanet(maxParallelism);
+        }
+
+        if (_subFactories.Length == 0)
+        {
+            return [];
         }
 
         List<WorkStep> workSteps = [];
@@ -785,7 +799,7 @@ internal sealed class OptimizedSubFactory
     private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
-        _spraycoaterExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
+        _spraycoaterExecutor.Initialize(_planet, this, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
     private void InitializePilers(Graph subFactoryGraph)

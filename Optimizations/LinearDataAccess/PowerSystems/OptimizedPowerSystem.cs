@@ -13,7 +13,7 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _inserterPowerConsumerTypeIndexes;
     private readonly int[] _producingLabPowerConsumerTypeIndexes;
     private readonly int[] _researchingLabPowerConsumerTypeIndexes;
-    private readonly int[] _spraycoaterPowerConsumerTypeIndexes;
+    private readonly Dictionary<OptimizedSubFactory, int[]> _subFactoryToSpraycoaterPowerConsumerTypeIndexes;
     private readonly int[] _fractionatorPowerConsumerTypeIndexes;
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
 
@@ -24,7 +24,7 @@ internal sealed class OptimizedPowerSystem
                                 int[] inserterPowerConsumerTypeIndexes,
                                 int[] producingLabPowerConsumerTypeIndexes,
                                 int[] researchingLabPowerConsumerTypeIndexes,
-                                int[] spraycoaterPowerConsumerTypeIndexes,
+                                Dictionary<OptimizedSubFactory, int[]> subFactoryToSpraycoaterPowerConsumerTypeIndexes,
                                 int[] fractionatorPowerConsumerTypeIndexes,
                                 Dictionary<OptimizedSubFactory, long[]> subFactoryToNetworkPowerConsumptions)
     {
@@ -35,7 +35,7 @@ internal sealed class OptimizedPowerSystem
         _inserterPowerConsumerTypeIndexes = inserterPowerConsumerTypeIndexes;
         _producingLabPowerConsumerTypeIndexes = producingLabPowerConsumerTypeIndexes;
         _researchingLabPowerConsumerTypeIndexes = researchingLabPowerConsumerTypeIndexes;
-        _spraycoaterPowerConsumerTypeIndexes = spraycoaterPowerConsumerTypeIndexes;
+        _subFactoryToSpraycoaterPowerConsumerTypeIndexes = subFactoryToSpraycoaterPowerConsumerTypeIndexes;
         _fractionatorPowerConsumerTypeIndexes = fractionatorPowerConsumerTypeIndexes;
         _subFactoryToNetworkPowerConsumptions = subFactoryToNetworkPowerConsumptions;
     }
@@ -398,7 +398,7 @@ internal sealed class OptimizedPowerSystem
     private void CargoTrafficBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)
     {
         subFactory._monitorExecutor.UpdatePower(planet);
-        subFactory._spraycoaterExecutor.UpdatePower(_spraycoaterPowerConsumerTypeIndexes,
+        subFactory._spraycoaterExecutor.UpdatePower(_subFactoryToSpraycoaterPowerConsumerTypeIndexes[subFactory],
                                                     _powerConsumerTypes,
                                                     subFactoryNetworkPowerConsumption);
         subFactory._pilerExecutor.UpdatePower(planet);

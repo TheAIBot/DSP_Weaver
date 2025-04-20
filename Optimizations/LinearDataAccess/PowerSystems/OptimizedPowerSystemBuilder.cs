@@ -13,7 +13,7 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly List<int> _inserterPowerConsumerTypeIndexes = [];
     private readonly List<int> _producingLabPowerConsumerTypeIndexes = [];
     private readonly List<int> _researchingLabPowerConsumerTypeIndexes = [];
-    private readonly List<int> _spraycoaterPowerConsumerTypeIndexes = [];
+    private readonly Dictionary<OptimizedSubFactory, List<int>> _subFactoryToSpraycoaterPowerConsumerTypeIndexes = [];
     private readonly List<int> _fractionatorPowerConsumerTypeIndexes = [];
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions = [];
@@ -26,6 +26,7 @@ internal sealed class OptimizedPowerSystemBuilder
     public void AddSubFactory(OptimizedSubFactory subFactory)
     {
         _subFactoryToNetworkPowerConsumptions.Add(subFactory, new long[_powerSystem.netCursor]);
+        _subFactoryToSpraycoaterPowerConsumerTypeIndexes.Add(subFactory, []);
     }
 
     public void AddAssembler(ref readonly AssemblerComponent assembler, int networkIndex)
@@ -53,9 +54,9 @@ internal sealed class OptimizedPowerSystemBuilder
         AddEntity(_researchingLabPowerConsumerTypeIndexes, lab.pcId, networkIndex);
     }
 
-    public void AddSpraycoater(ref readonly SpraycoaterComponent spraycoater, int networkIndex)
+    public void AddSpraycoater(OptimizedSubFactory subFactory, ref readonly SpraycoaterComponent spraycoater, int networkIndex)
     {
-        AddEntity(_spraycoaterPowerConsumerTypeIndexes, spraycoater.pcId, networkIndex);
+        AddEntity(_subFactoryToSpraycoaterPowerConsumerTypeIndexes[subFactory], spraycoater.pcId, networkIndex);
     }
 
     public void AddFractionator(ref readonly FractionatorComponent fractionator, int networkIndex)
@@ -84,7 +85,7 @@ internal sealed class OptimizedPowerSystemBuilder
                                         _inserterPowerConsumerTypeIndexes.ToArray(),
                                         _producingLabPowerConsumerTypeIndexes.ToArray(),
                                         _researchingLabPowerConsumerTypeIndexes.ToArray(),
-                                        _spraycoaterPowerConsumerTypeIndexes.ToArray(),
+                                        _subFactoryToSpraycoaterPowerConsumerTypeIndexes.ToDictionary(x => x.Key, x => x.Value.ToArray()),
                                         _fractionatorPowerConsumerTypeIndexes.ToArray(),
                                         _subFactoryToNetworkPowerConsumptions);
     }
