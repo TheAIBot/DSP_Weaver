@@ -7,7 +7,6 @@ namespace Weaver.FatoryGraphs;
 
 internal static class Graphifier
 {
-    private const int NO_ENTITY_ID_YET = -1;
     const int minNodePerGraph = 20;
     const int maxCombinedGraphSize = 2000;
 
@@ -100,7 +99,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var inserterNode = new Node(inserter.entityId, new EntityTypeIndex(EntityType.Inserter, i));
+            var inserterNode = new Node(new EntityTypeIndex(EntityType.Inserter, i));
             nodes.Add(inserterNode);
             entityTypeIndexToNode.Add(inserterNode.EntityTypeIndex, inserterNode);
 
@@ -110,7 +109,7 @@ internal static class Graphifier
                 Node pickNode;
                 if (!entityTypeIndexToNode.TryGetValue(pickEntityTypeIndex, out pickNode))
                 {
-                    pickNode = new Node(inserter.pickTarget, pickEntityTypeIndex);
+                    pickNode = new Node(pickEntityTypeIndex);
                     nodes.Add(pickNode);
                     entityTypeIndexToNode.Add(pickEntityTypeIndex, pickNode);
                 }
@@ -125,7 +124,7 @@ internal static class Graphifier
                 Node targetNode;
                 if (!entityTypeIndexToNode.TryGetValue(targetEntityTypeIndex, out targetNode))
                 {
-                    targetNode = new Node(inserter.insertTarget, targetEntityTypeIndex);
+                    targetNode = new Node(targetEntityTypeIndex);
                     nodes.Add(targetNode);
                     entityTypeIndexToNode.Add(targetEntityTypeIndex, targetNode);
                 }
@@ -146,7 +145,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(assembler.entityId, new EntityTypeIndex(EntityType.Assembler, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Assembler, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
         }
@@ -162,7 +161,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Monitor, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Monitor, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -184,7 +183,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.SprayCoater, i));
+            var node = new Node(new EntityTypeIndex(EntityType.SprayCoater, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -212,7 +211,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Piler, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Piler, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -240,7 +239,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Miner, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Miner, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -262,7 +261,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Fractionator, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Fractionator, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -315,7 +314,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Ejector, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Ejector, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
         }
@@ -331,7 +330,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Silo, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Silo, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
         }
@@ -347,7 +346,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.ProducingLab, i));
+            var node = new Node(new EntityTypeIndex(EntityType.ProducingLab, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -366,7 +365,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.ResearchingLab, i));
+            var node = new Node(new EntityTypeIndex(EntityType.ResearchingLab, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -388,7 +387,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Station, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Station, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -422,7 +421,7 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = new Node(component.entityId, new EntityTypeIndex(EntityType.Dispenser, i));
+            var node = new Node(new EntityTypeIndex(EntityType.Dispenser, i));
             nodes.Add(node);
             entityTypeIndexToNode.Add(node.EntityTypeIndex, node);
 
@@ -452,7 +451,7 @@ internal static class Graphifier
         Node senderNode;
         if (!entityTypeIndexToNode.TryGetValue(senderTypeIndex, out senderNode))
         {
-            senderNode = new Node(NO_ENTITY_ID_YET, senderTypeIndex);
+            senderNode = new Node(senderTypeIndex);
             nodes.Add(senderNode);
             entityTypeIndexToNode.Add(senderTypeIndex, senderNode);
         }
@@ -466,7 +465,7 @@ internal static class Graphifier
         Node receiverNode;
         if (!entityTypeIndexToNode.TryGetValue(receiverTypeIndex, out receiverNode))
         {
-            receiverNode = new Node(NO_ENTITY_ID_YET, receiverTypeIndex);
+            receiverNode = new Node(receiverTypeIndex);
             nodes.Add(receiverNode);
             entityTypeIndexToNode.Add(receiverTypeIndex, receiverNode);
         }
