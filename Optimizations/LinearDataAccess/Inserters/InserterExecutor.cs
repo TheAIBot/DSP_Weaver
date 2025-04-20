@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
@@ -210,44 +209,23 @@ internal sealed class InserterExecutor<T>
                 case 1:
                     if (produced[0] > 0 && products[0] > 0 && (filter == 0 || filter == products[0]) && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
                     {
-                        int value = Interlocked.Decrement(ref produced[0]);
-                        if (value >= 0)
-                        {
-                            _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                            return products[0];
-                        }
-                        else
-                        {
-                            Interlocked.Increment(ref produced[0]);
-                        }
+                        produced[0]--;
+                        _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                        return products[0];
                     }
                     break;
                 case 2:
                     if ((filter == products[0] || filter == 0) && produced[0] > 0 && products[0] > 0 && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
                     {
-                        int value = Interlocked.Decrement(ref produced[0]);
-                        if (value >= 0)
-                        {
-                            _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                            return products[0];
-                        }
-                        else
-                        {
-                            Interlocked.Increment(ref produced[0]);
-                        }
+                        produced[0]--;
+                        _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                        return products[0];
                     }
                     if ((filter == products[1] || filter == 0) && produced[1] > 0 && products[1] > 0 && (needs == null || needs[0] == products[1] || needs[1] == products[1] || needs[2] == products[1] || needs[3] == products[1] || needs[4] == products[1] || needs[5] == products[1]))
                     {
-                        int value = Interlocked.Decrement(ref produced[1]);
-                        if (value >= 0)
-                        {
-                            _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                            return products[1];
-                        }
-                        else
-                        {
-                            Interlocked.Increment(ref produced[1]);
-                        }
+                        produced[1]--;
+                        _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                        return products[1];
                     }
                     break;
                 default:
@@ -256,16 +234,9 @@ internal sealed class InserterExecutor<T>
                         {
                             if ((filter == products[i] || filter == 0) && produced[i] > 0 && products[i] > 0 && (needs == null || needs[0] == products[i] || needs[1] == products[i] || needs[2] == products[i] || needs[3] == products[i] || needs[4] == products[i] || needs[5] == products[i]))
                             {
-                                int value = Interlocked.Decrement(ref produced[i]);
-                                if (value >= 0)
-                                {
-                                    _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                                    return products[i];
-                                }
-                                else
-                                {
-                                    Interlocked.Increment(ref produced[i]);
-                                }
+                                produced[i]--;
+                                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                                return products[i];
                             }
                         }
                         break;
@@ -276,30 +247,24 @@ internal sealed class InserterExecutor<T>
         else if (typedObjectIndex.EntityType == EntityType.Ejector)
         {
             ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[objectIndex];
-            lock (planet.entityMutexs[ejector.entityId])
+            int bulletId = ejector.bulletId;
+            int bulletCount = ejector.bulletCount;
+            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && (needs == null || needs[0] == bulletId || needs[1] == bulletId || needs[2] == bulletId || needs[3] == bulletId || needs[4] == bulletId || needs[5] == bulletId))
             {
-                int bulletId = ejector.bulletId;
-                int bulletCount = ejector.bulletCount;
-                if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && (needs == null || needs[0] == bulletId || needs[1] == bulletId || needs[2] == bulletId || needs[3] == bulletId || needs[4] == bulletId || needs[5] == bulletId))
-                {
-                    ejector.TakeOneBulletUnsafe(out inc);
-                    return bulletId;
-                }
+                ejector.TakeOneBulletUnsafe(out inc);
+                return bulletId;
             }
             return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Silo)
         {
             ref SiloComponent silo = ref planet.factorySystem.siloPool[objectIndex];
-            lock (planet.entityMutexs[silo.entityId])
+            int bulletId2 = silo.bulletId;
+            int bulletCount2 = silo.bulletCount;
+            if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && (needs == null || needs[0] == bulletId2 || needs[1] == bulletId2 || needs[2] == bulletId2 || needs[3] == bulletId2 || needs[4] == bulletId2 || needs[5] == bulletId2))
             {
-                int bulletId2 = silo.bulletId;
-                int bulletCount2 = silo.bulletCount;
-                if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && (needs == null || needs[0] == bulletId2 || needs[1] == bulletId2 || needs[2] == bulletId2 || needs[3] == bulletId2 || needs[4] == bulletId2 || needs[5] == bulletId2))
-                {
-                    silo.TakeOneBulletUnsafe(out inc);
-                    return bulletId2;
-                }
+                silo.TakeOneBulletUnsafe(out inc);
+                return bulletId2;
             }
             return 0;
         }
@@ -313,42 +278,39 @@ internal sealed class InserterExecutor<T>
                 storageComponent = storageComponent.topStorage;
                 while (storageComponent != null)
                 {
-                    lock (planet.entityMutexs[storageComponent.entityId])
+                    if (storageComponent.lastEmptyItem != 0 && storageComponent.lastEmptyItem != filter)
                     {
-                        if (storageComponent.lastEmptyItem != 0 && storageComponent.lastEmptyItem != filter)
+                        int itemId = filter;
+                        int count = 1;
+                        bool flag = false;
+                        if (needs == null)
                         {
-                            int itemId = filter;
-                            int count = 1;
-                            bool flag = false;
-                            if (needs == null)
-                            {
-                                storageComponent.TakeTailItems(ref itemId, ref count, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
-                                inc = (byte)inc2;
-                                flag = count == 1;
-                            }
-                            else
-                            {
-                                bool flag2 = storageComponent.TakeTailItems(ref itemId, ref count, needs, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
-                                inc = (byte)inc2;
-                                flag = count == 1 || flag2;
-                            }
-                            if (count == 1)
-                            {
-                                storageComponent.lastEmptyItem = -1;
-                                return itemId;
-                            }
-                            if (!flag)
-                            {
-                                storageComponent.lastEmptyItem = filter;
-                            }
+                            storageComponent.TakeTailItems(ref itemId, ref count, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                            inc = (byte)inc2;
+                            flag = count == 1;
                         }
-                        if (storageComponent == storageComponent2)
+                        else
                         {
-                            break;
+                            bool flag2 = storageComponent.TakeTailItems(ref itemId, ref count, needs, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                            inc = (byte)inc2;
+                            flag = count == 1 || flag2;
                         }
-                        storageComponent = storageComponent.previousStorage;
-                        continue;
+                        if (count == 1)
+                        {
+                            storageComponent.lastEmptyItem = -1;
+                            return itemId;
+                        }
+                        if (!flag)
+                        {
+                            storageComponent.lastEmptyItem = filter;
+                        }
                     }
+                    if (storageComponent == storageComponent2)
+                    {
+                        break;
+                    }
+                    storageComponent = storageComponent.previousStorage;
+                    continue;
                 }
             }
             return 0;
@@ -359,24 +321,21 @@ internal sealed class InserterExecutor<T>
             StationComponent stationComponent = planet.transport.stationPool[objectIndex];
             if (stationComponent != null)
             {
-                lock (planet.entityMutexs[stationComponent.entityId])
+                int _itemId = filter;
+                int _count = 1;
+                if (needs == null)
                 {
-                    int _itemId = filter;
-                    int _count = 1;
-                    if (needs == null)
-                    {
-                        stationComponent.TakeItem(ref _itemId, ref _count, out inc2);
-                        inc = (byte)inc2;
-                    }
-                    else
-                    {
-                        stationComponent.TakeItem(ref _itemId, ref _count, needs, out inc2);
-                        inc = (byte)inc2;
-                    }
-                    if (_count == 1)
-                    {
-                        return _itemId;
-                    }
+                    stationComponent.TakeItem(ref _itemId, ref _count, out inc2);
+                    inc = (byte)inc2;
+                }
+                else
+                {
+                    stationComponent.TakeItem(ref _itemId, ref _count, needs, out inc2);
+                    inc = (byte)inc2;
+                }
+                if (_count == 1)
+                {
+                    return _itemId;
                 }
             }
             return 0;
@@ -402,16 +361,9 @@ internal sealed class InserterExecutor<T>
             {
                 if (produced2[j] > 0 && products2[j] > 0 && (filter == 0 || filter == products2[j]) && (needs == null || needs[0] == products2[j] || needs[1] == products2[j] || needs[2] == products2[j] || needs[3] == products2[j] || needs[4] == products2[j] || needs[5] == products2[j]))
                 {
-                    int value = Interlocked.Decrement(ref produced2[j]);
-                    if (value >= 0)
-                    {
-                        _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
-                        return products2[j];
-                    }
-                    else
-                    {
-                        Interlocked.Increment(ref produced2[j]);
-                    }
+                    produced2[j]--;
+                    _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
+                    return products2[j];
                 }
             }
             return 0;
@@ -422,14 +374,11 @@ internal sealed class InserterExecutor<T>
             int inc2;
             if (offset > 0 && planet.powerSystem.genPool[offset].id == offset)
             {
-                lock (planet.entityMutexs[powerGenerator.entityId])
+                if (planet.powerSystem.genPool[offset].fuelCount <= 8)
                 {
-                    if (planet.powerSystem.genPool[offset].fuelCount <= 8)
-                    {
-                        int result = planet.powerSystem.genPool[objectIndex].PickFuelFrom(filter, out inc2);
-                        inc = (byte)inc2;
-                        return result;
-                    }
+                    int result = planet.powerSystem.genPool[objectIndex].PickFuelFrom(filter, out inc2);
+                    inc = (byte)inc2;
+                    return result;
                 }
             }
             return 0;
@@ -487,48 +436,48 @@ internal sealed class InserterExecutor<T>
             int num = requires.Length;
             if (0 < num && requires[0] == itemId)
             {
-                Interlocked.Add(ref served[0], itemCount);
-                Interlocked.Add(ref incServed[0], itemInc);
+                served[0] += itemCount;
+                incServed[0] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (1 < num && requires[1] == itemId)
             {
-                Interlocked.Add(ref served[1], itemCount);
-                Interlocked.Add(ref incServed[1], itemInc);
+                served[1] += itemCount;
+                incServed[1] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (2 < num && requires[2] == itemId)
             {
-                Interlocked.Add(ref served[2], itemCount);
-                Interlocked.Add(ref incServed[2], itemInc);
+                served[2] += itemCount;
+                incServed[2] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (3 < num && requires[3] == itemId)
             {
-                Interlocked.Add(ref served[3], itemCount);
-                Interlocked.Add(ref incServed[3], itemInc);
+                served[3] += itemCount;
+                incServed[3] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (4 < num && requires[4] == itemId)
             {
-                Interlocked.Add(ref served[4], itemCount);
-                Interlocked.Add(ref incServed[4], itemInc);
+                served[4] += itemCount;
+                incServed[4] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (5 < num && requires[5] == itemId)
             {
-                Interlocked.Add(ref served[5], itemCount);
-                Interlocked.Add(ref incServed[5], itemInc);
+                served[5] += itemCount;
+                incServed[5] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
@@ -543,8 +492,8 @@ internal sealed class InserterExecutor<T>
             }
             if (entityNeeds[0] == itemId && planet.factorySystem.ejectorPool[objectIndex].bulletId == itemId)
             {
-                Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletCount, itemCount);
-                Interlocked.Add(ref planet.factorySystem.ejectorPool[objectIndex].bulletInc, itemInc);
+                planet.factorySystem.ejectorPool[objectIndex].bulletCount += itemCount;
+                planet.factorySystem.ejectorPool[objectIndex].bulletInc += itemInc;
                 remainInc = 0;
                 return itemCount;
             }
@@ -558,8 +507,8 @@ internal sealed class InserterExecutor<T>
             }
             if (entityNeeds[0] == itemId && planet.factorySystem.siloPool[objectIndex].bulletId == itemId)
             {
-                Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletCount, itemCount);
-                Interlocked.Add(ref planet.factorySystem.siloPool[objectIndex].bulletInc, itemInc);
+                planet.factorySystem.siloPool[objectIndex].bulletCount += itemCount;
+                planet.factorySystem.siloPool[objectIndex].bulletInc += itemInc;
                 remainInc = 0;
                 return itemCount;
             }
@@ -592,8 +541,8 @@ internal sealed class InserterExecutor<T>
             {
                 if (requires2[i] == itemId)
                 {
-                    Interlocked.Add(ref served[i], itemCount);
-                    Interlocked.Add(ref incServed[i], itemInc);
+                    served[i] += itemCount;
+                    incServed[i] += itemInc;
                     remainInc = 0;
                     _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                     return itemCount;
@@ -625,8 +574,8 @@ internal sealed class InserterExecutor<T>
             int num2 = itemId - 6001;
             if (num2 >= 0 && num2 < 6)
             {
-                Interlocked.Add(ref matrixServed[num2], 3600 * itemCount);
-                Interlocked.Add(ref matrixIncServed[num2], 3600 * itemInc);
+                matrixServed[num2] += 3600 * itemCount;
+                matrixIncServed[num2] += 3600 * itemInc;
                 remainInc = 0;
                 _researchingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                 return itemCount;
@@ -638,28 +587,25 @@ internal sealed class InserterExecutor<T>
             StorageComponent storageComponent = planet.factoryStorage.storagePool[objectIndex];
             while (storageComponent != null)
             {
-                lock (planet.entityMutexs[storageComponent.entityId])
+                if (storageComponent.lastFullItem != itemId)
                 {
-                    if (storageComponent.lastFullItem != itemId)
+                    int num4 = 0;
+                    num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
+                    remainInc = (byte)remainInc2;
+                    if (num4 == itemCount)
                     {
-                        int num4 = 0;
-                        num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
-                        remainInc = (byte)remainInc2;
-                        if (num4 == itemCount)
-                        {
-                            storageComponent.lastFullItem = -1;
-                        }
-                        else
-                        {
-                            storageComponent.lastFullItem = itemId;
-                        }
-                        if (num4 != 0 || storageComponent.nextStorage == null)
-                        {
-                            return num4;
-                        }
+                        storageComponent.lastFullItem = -1;
                     }
-                    storageComponent = storageComponent.nextStorage;
+                    else
+                    {
+                        storageComponent.lastFullItem = itemId;
+                    }
+                    if (num4 != 0 || storageComponent.nextStorage == null)
+                    {
+                        return num4;
+                    }
                 }
+                storageComponent = storageComponent.nextStorage;
             }
             return 0;
         }
@@ -672,23 +618,17 @@ internal sealed class InserterExecutor<T>
             StationComponent stationComponent = planet.transport.stationPool[objectIndex];
             if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
             {
-                lock (planet.entityMutexs[stationComponent.entityId])
-                {
-                    if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
-                    {
-                        stationComponent.warperCount += itemCount;
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                }
+                stationComponent.warperCount += itemCount;
+                remainInc = 0;
+                return itemCount;
             }
             StationStore[] storage = stationComponent.storage;
             for (int j = 0; j < entityNeeds.Length && j < storage.Length; j++)
             {
                 if (entityNeeds[j] == itemId && storage[j].itemId == itemId)
                 {
-                    Interlocked.Add(ref storage[j].count, itemCount);
-                    Interlocked.Add(ref storage[j].inc, itemInc);
+                    storage[j].count += itemCount;
+                    storage[j].inc += itemInc;
                     remainInc = 0;
                     return itemCount;
                 }
@@ -700,39 +640,36 @@ internal sealed class InserterExecutor<T>
         {
             PowerGeneratorComponent[] genPool = planet.powerSystem.genPool;
             ref PowerGeneratorComponent powerGenerator = ref genPool[objectIndex];
-            lock (planet.entityMutexs[powerGenerator.entityId])
+            if (itemId == powerGenerator.fuelId)
             {
-                if (itemId == powerGenerator.fuelId)
+                if (powerGenerator.fuelCount < 10)
                 {
-                    if (powerGenerator.fuelCount < 10)
+                    ref short fuelCount = ref powerGenerator.fuelCount;
+                    fuelCount += itemCount;
+                    ref short fuelInc = ref powerGenerator.fuelInc;
+                    fuelInc += itemInc;
+                    remainInc = 0;
+                    return itemCount;
+                }
+                return 0;
+            }
+            if (powerGenerator.fuelId == 0)
+            {
+                int[] array = ItemProto.fuelNeeds[powerGenerator.fuelMask];
+                if (array == null || array.Length == 0)
+                {
+                    return 0;
+                }
+                for (int k = 0; k < array.Length; k++)
+                {
+                    if (array[k] == itemId)
                     {
-                        ref short fuelCount = ref powerGenerator.fuelCount;
-                        fuelCount += itemCount;
-                        ref short fuelInc = ref powerGenerator.fuelInc;
-                        fuelInc += itemInc;
+                        powerGenerator.SetNewFuel(itemId, itemCount, itemInc);
                         remainInc = 0;
                         return itemCount;
                     }
-                    return 0;
                 }
-                if (powerGenerator.fuelId == 0)
-                {
-                    int[] array = ItemProto.fuelNeeds[powerGenerator.fuelMask];
-                    if (array == null || array.Length == 0)
-                    {
-                        return 0;
-                    }
-                    for (int k = 0; k < array.Length; k++)
-                    {
-                        if (array[k] == itemId)
-                        {
-                            powerGenerator.SetNewFuel(itemId, itemCount, itemInc);
-                            remainInc = 0;
-                            return itemCount;
-                        }
-                    }
-                    return 0;
-                }
+                return 0;
             }
             return 0;
         }
