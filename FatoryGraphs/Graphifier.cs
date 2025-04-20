@@ -29,7 +29,7 @@ internal static class Graphifier
         AddTanksToGraph(planet, entityTypeIndexToNode);
         AddSplittersToGraph(planet, entityTypeIndexToNode);
 
-        HashSet<Node> nodes = entityTypeIndexToNode.Values.ToHashSet();
+        HashSet<Node> nodes = new(entityTypeIndexToNode.Values);
         List<Graph> graphs = new List<Graph>();
         while (nodes.Count > 0)
         {
@@ -243,7 +243,7 @@ internal static class Graphifier
 
             if (component.belt0 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt0, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt0, planet);
                 if (component.isOutput0)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -255,7 +255,7 @@ internal static class Graphifier
             }
             if (component.belt1 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt1, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt1, planet);
                 if (component.isOutput1)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -267,7 +267,7 @@ internal static class Graphifier
             }
             if (component.belt2 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt2, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt2, planet);
                 if (component.isOutput2)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -364,7 +364,7 @@ internal static class Graphifier
                     continue;
                 }
 
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(slot.beltId, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(slot.beltId, planet);
                 if (slot.dir == IODir.Output)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -450,19 +450,19 @@ internal static class Graphifier
 
             if (component.lastTankId != 0 && planet.factoryStorage.tankPool[component.lastTankId].id == component.lastTankId)
             {
-                EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Storage, component.lastTankId);
+                EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Tank, component.lastTankId);
                 BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
             }
 
             if (component.nextTankId != 0 && planet.factoryStorage.tankPool[component.nextTankId].id == component.nextTankId)
             {
-                EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Storage, component.nextTankId);
+                EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Tank, component.nextTankId);
                 BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
             }
 
             if (component.belt0 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt0, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt0, planet);
                 if (component.isOutput0)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -474,7 +474,7 @@ internal static class Graphifier
             }
             if (component.belt1 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt1, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt1, planet);
                 if (component.isOutput1)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -486,7 +486,7 @@ internal static class Graphifier
             }
             if (component.belt2 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt2, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt2, planet);
                 if (component.isOutput2)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -498,7 +498,7 @@ internal static class Graphifier
             }
             if (component.belt3 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.belt3, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt3, planet);
                 if (component.isOutput3)
                 {
                     ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
@@ -521,47 +521,47 @@ internal static class Graphifier
                 continue;
             }
 
-            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Tank, i));
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Splitter, i));
 
             if (component.input0 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input0, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input0, planet);
                 ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.input1 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input1, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input1, planet);
                 ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.input2 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input2, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input2, planet);
                 ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.input3 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.input3, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input3, planet);
                 ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
 
             if (component.output0 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output0, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output0, planet);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.output1 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output1, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output1, planet);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.output2 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output2, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output2, planet);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
             if (component.output3 > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.output3, planet.factorySystem);
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output3, planet);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
