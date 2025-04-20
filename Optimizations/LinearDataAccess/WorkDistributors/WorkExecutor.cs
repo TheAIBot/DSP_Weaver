@@ -4,20 +4,46 @@ using Weaver.Extensions;
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
+internal sealed class WorkerTimings
+{
+    private readonly HighStopwatch _stopWatch = new();
+    public double[] WorkTypeTimings { get; }
+
+    public WorkerTimings()
+    {
+        WorkTypeTimings = new double[ArrayExtensions.GetEnumValuesEnumerable<WorkType>().Max(x => (int)x) + 1];
+    }
+
+    public void StartTimer()
+    {
+        _stopWatch.Begin();
+    }
+
+    public void RecordTime(WorkType workType)
+    {
+        WorkTypeTimings[(int)workType] += _stopWatch.duration;
+    }
+
+    public void Reset()
+    {
+        Array.Clear(WorkTypeTimings, 0, WorkTypeTimings.Length);
+    }
+}
+
 internal sealed class WorkExecutor
 {
     private readonly StarClusterWorkManager _starClusterWorkManager;
     private readonly WorkerThreadExecutor _workerThreadExecutor;
     private readonly object _singleThreadedCodeLock;
-    private readonly HighStopwatch _stopWatch = new();
-    private readonly double[] _workTypeTimings;
+    private readonly WorkerTimings _workerTimings;
+
 
     public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock)
     {
         _starClusterWorkManager = starClusterWorkManager;
         _workerThreadExecutor = workerThreadExecutor;
         _singleThreadedCodeLock = singleThreadedCodeLock;
-        _workTypeTimings = new double[ArrayExtensions.GetEnumValuesEnumerable<WorkType>().Max(x => (int)x) + 1];
+        _workerTimings = new WorkerTimings();
     }
 
     public void Execute(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
@@ -54,7 +80,7 @@ internal sealed class WorkExecutor
                 //_stopWatch.Begin();
                 //bool recordTiming = true;
 
-                workChunk.Execute(time);
+                workChunk.Execute(_workerTimings, time);
 
 
                 //if (recordTiming)
@@ -78,10 +104,10 @@ internal sealed class WorkExecutor
         }
     }
 
-    public double[] GetWorkTypeTimings() => _workTypeTimings;
+    public double[] GetWorkTypeTimings() => _workerTimings.WorkTypeTimings;
 
     public void Reset()
     {
-        Array.Clear(_workTypeTimings, 0, _workTypeTimings.Length);
+        _workerTimings.Reset();
     }
 }
