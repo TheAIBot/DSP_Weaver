@@ -185,7 +185,7 @@ internal sealed class OptimizedSubFactory
     private void InitializeStations(Graph subFactoryGraph)
     {
         _stationExecutor = new StationExecutor();
-        _stationExecutor.Initialize(subFactoryGraph);
+        _stationExecutor.Initialize(_planet, subFactoryGraph);
     }
 
     private void InitializeDispensers(Graph subFactoryGraph)
