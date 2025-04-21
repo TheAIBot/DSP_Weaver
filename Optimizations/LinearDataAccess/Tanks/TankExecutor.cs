@@ -1,33 +1,67 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations.LinearDataAccess.Tanks;
 
 internal sealed class TankExecutor
 {
-    private int[] _tankIndexes;
+    public OptimizedTank[] _optimizedTanks;
+    private Dictionary<int, int> _tankIdToOptimizedTankIndex;
 
     public void GameTick(PlanetFactory planet)
     {
-        FactoryStorage storage = planet.factoryStorage;
-        for (int tankIndexIndex = 0; tankIndexIndex < _tankIndexes.Length; tankIndexIndex++)
+        OptimizedTank[] optimizedTanks = _optimizedTanks;
+
+        for (int i = 0; i < optimizedTanks.Length; i++)
         {
-            int tankIndex = _tankIndexes[tankIndexIndex];
-            storage.tankPool[tankIndex].GameTick(planet);
-            storage.tankPool[tankIndex].TickOutput(planet);
-            if (storage.tankPool[tankIndex].fluidCount == 0)
+            ref OptimizedTank tank = ref optimizedTanks[i];
+            tank.GameTick(planet, this);
+            tank.TickOutput(planet, this);
+            if (tank.fluidCount == 0)
             {
-                storage.tankPool[tankIndex].fluidId = 0;
+                tank.fluidId = 0;
             }
         }
     }
 
-    public void Initialize(Graph subFactoryGraph)
+    public void Save(PlanetFactory planet)
     {
-        _tankIndexes = subFactoryGraph.GetAllNodes()
-                                      .Where(x => x.EntityTypeIndex.EntityType == EntityType.Tank)
-                                      .Select(x => x.EntityTypeIndex.Index)
-                                      .OrderBy(x => x)
-                                      .ToArray();
+        TankComponent[] tanks = planet.factoryStorage.tankPool;
+        OptimizedTank[] optimizedTanks = _optimizedTanks;
+        for (int i = 1; i < planet.factoryStorage.tankCursor; i++)
+        {
+            if (!_tankIdToOptimizedTankIndex.TryGetValue(i, out int optimizedIndex))
+            {
+                continue;
+            }
+
+            optimizedTanks[optimizedIndex].Save(ref tanks[i]);
+        }
+    }
+
+    public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
+    {
+        List<OptimizedTank> optimizedTanks = [];
+        Dictionary<int, int> tankIdToOptimizedTankIndex = [];
+
+        foreach (int tankIndex in subFactoryGraph.GetAllNodes()
+                                                 .Where(x => x.EntityTypeIndex.EntityType == EntityType.Tank)
+                                                 .Select(x => x.EntityTypeIndex.Index)
+                                                 .OrderBy(x => x))
+        {
+            ref readonly TankComponent tank = ref planet.factoryStorage.tankPool[tankIndex];
+
+            CargoPath belt0 = tank.belt0 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt0].segPathId] : null;
+            CargoPath belt1 = tank.belt1 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt1].segPathId] : null;
+            CargoPath belt2 = tank.belt2 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt2].segPathId] : null;
+            CargoPath belt3 = tank.belt3 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt3].segPathId] : null;
+
+            tankIdToOptimizedTankIndex.Add(tank.id, optimizedTanks.Count);
+            optimizedTanks.Add(new OptimizedTank(in tank, belt0, belt1, belt2, belt3));
+        }
+
+        _optimizedTanks = optimizedTanks.ToArray();
+        _tankIdToOptimizedTankIndex = tankIdToOptimizedTankIndex;
     }
 }

@@ -579,6 +579,59 @@ internal static class CargoPathMethods
             Assert.CannotBeReached("断言失败：插入货物逻辑有误");
         }
     }
+
+    // Takes CargoPath instead of belt id
+    public static int TryPickItemAtRear(CargoTraffic cargoTraffic, CargoPath cargoPath, int filter, int[] needs, out byte stack, out byte inc)
+    {
+        stack = 1;
+        inc = 0;
+        int cargoIdAtRear = cargoPath.GetCargoIdAtRear();
+        if (cargoIdAtRear == -1)
+        {
+            return 0;
+        }
+        int item = cargoTraffic.container.cargoPool[cargoIdAtRear].item;
+        stack = cargoTraffic.container.cargoPool[cargoIdAtRear].stack;
+        inc = cargoTraffic.container.cargoPool[cargoIdAtRear].inc;
+        if (filter != 0)
+        {
+            if (item == filter)
+            {
+                cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
+                return item;
+            }
+        }
+        else
+        {
+            if (needs == null)
+            {
+                cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
+                return item;
+            }
+            for (int i = 0; i < needs.Length; i++)
+            {
+                if (needs[i] == item)
+                {
+                    cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
+                    return item;
+                }
+            }
+        }
+        stack = 1;
+        inc = 0;
+        return 0;
+    }
+
+    // Takes CargoPath instead of belt id
+    public static int GetItemIdAtRear(CargoTraffic cargoTraffic, CargoPath cargoPath)
+    {
+        int cargoIdAtRear = cargoPath.GetCargoIdAtRear();
+        if (cargoIdAtRear == -1)
+        {
+            return 0;
+        }
+        return cargoTraffic.container.cargoPool[cargoIdAtRear].item;
+    }
 }
 
 internal record struct PickFromProducingPlant(int[] Products, int[] Produced);

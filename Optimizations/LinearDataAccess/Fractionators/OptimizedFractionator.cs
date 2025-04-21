@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using UnityEngine;
+using Weaver.Optimizations.LinearDataAccess.Inserters;
 #nullable enable
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
@@ -167,7 +168,7 @@ internal struct OptimizedFractionator
             {
                 if (fluidId > 0)
                 {
-                    if (TryPickItemAtRear(cargoTraffic, belt1, fluidId, null, out stack, out inc) > 0)
+                    if (CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt1, fluidId, null, out stack, out inc) > 0)
                     {
                         fractionatorPowerFields.fluidInputCount += stack;
                         fractionatorPowerFields.fluidInputInc += inc;
@@ -176,7 +177,7 @@ internal struct OptimizedFractionator
                 }
                 else
                 {
-                    int num5 = TryPickItemAtRear(cargoTraffic, belt1, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
+                    int num5 = CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt1, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
                     if (num5 > 0)
                     {
                         fractionatorPowerFields.fluidInputCount += stack;
@@ -214,7 +215,7 @@ internal struct OptimizedFractionator
             {
                 if (fluidId > 0)
                 {
-                    if (TryPickItemAtRear(cargoTraffic, belt2, fluidId, null, out stack, out inc) > 0)
+                    if (CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt2, fluidId, null, out stack, out inc) > 0)
                     {
                         fractionatorPowerFields.fluidInputCount += stack;
                         fractionatorPowerFields.fluidInputInc += inc;
@@ -223,7 +224,7 @@ internal struct OptimizedFractionator
                 }
                 else
                 {
-                    int num7 = TryPickItemAtRear(cargoTraffic, belt2, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
+                    int num7 = CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt2, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
                     if (num7 > 0)
                     {
                         fractionatorPowerFields.fluidInputCount += stack;
@@ -286,46 +287,5 @@ internal struct OptimizedFractionator
                 break;
             }
         }
-    }
-
-    private static int TryPickItemAtRear(CargoTraffic cargoTraffic, CargoPath cargoPath, int filter, int[] needs, out byte stack, out byte inc)
-    {
-        stack = 1;
-        inc = 0;
-        int cargoIdAtRear = cargoPath.GetCargoIdAtRear();
-        if (cargoIdAtRear == -1)
-        {
-            return 0;
-        }
-        int item = cargoTraffic.container.cargoPool[cargoIdAtRear].item;
-        stack = cargoTraffic.container.cargoPool[cargoIdAtRear].stack;
-        inc = cargoTraffic.container.cargoPool[cargoIdAtRear].inc;
-        if (filter != 0)
-        {
-            if (item == filter)
-            {
-                cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
-                return item;
-            }
-        }
-        else
-        {
-            if (needs == null)
-            {
-                cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
-                return item;
-            }
-            for (int i = 0; i < needs.Length; i++)
-            {
-                if (needs[i] == item)
-                {
-                    cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
-                    return item;
-                }
-            }
-        }
-        stack = 1;
-        inc = 0;
-        return 0;
     }
 }

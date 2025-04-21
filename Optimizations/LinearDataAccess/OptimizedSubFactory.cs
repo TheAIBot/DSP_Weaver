@@ -81,6 +81,7 @@ internal sealed class OptimizedSubFactory
         _researchingLabExecutor.Save(_planet);
         _spraycoaterExecutor.Save(_planet);
         _fractionatorExecutor.Save(_planet);
+        _tankExecutor.Save(_planet);
     }
 
     public void Initialize(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -196,7 +197,7 @@ internal sealed class OptimizedSubFactory
     private void InitializeTanks(Graph subFactoryGraph)
     {
         _tankExecutor = new TankExecutor();
-        _tankExecutor.Initialize(subFactoryGraph);
+        _tankExecutor.Initialize(_planet, subFactoryGraph);
     }
 
     private void InitializeBelts(Graph subFactoryGraph)
