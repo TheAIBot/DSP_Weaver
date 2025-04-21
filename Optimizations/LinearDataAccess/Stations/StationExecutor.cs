@@ -51,6 +51,10 @@ internal sealed class StationExecutor
                                                     .OrderBy(x => x))
         {
             StationComponent station = planet.transport.stationPool[stationIndex];
+            if (station.id != stationIndex)
+            {
+                continue;
+            }
 
             CargoPath[] belts = new CargoPath[station.slots.Length];
             for (int i = 0; i < belts.Length; i++)

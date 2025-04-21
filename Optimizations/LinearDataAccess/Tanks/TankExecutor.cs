@@ -51,6 +51,10 @@ internal sealed class TankExecutor
                                                  .OrderBy(x => x))
         {
             ref readonly TankComponent tank = ref planet.factoryStorage.tankPool[tankIndex];
+            if (tank.id != tankIndex)
+            {
+                continue;
+            }
 
             CargoPath belt0 = tank.belt0 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt0].segPathId] : null;
             CargoPath belt1 = tank.belt1 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt1].segPathId] : null;
