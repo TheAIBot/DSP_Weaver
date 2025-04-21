@@ -1,0 +1,265 @@
+﻿using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Inserters;
+
+namespace Weaver.Optimizations.LinearDataAccess.Tanks;
+
+[StructLayout(LayoutKind.Auto)]
+internal struct OptimizedTank
+{
+    private int id;
+    private readonly int lastTankIndex;
+    private readonly int nextTankIndex;
+    private readonly CargoPath belt0;
+    private readonly CargoPath belt1;
+    private readonly CargoPath belt2;
+    private readonly CargoPath belt3;
+    private readonly bool isOutput0;
+    private readonly bool isOutput1;
+    private readonly bool isOutput2;
+    private readonly bool isOutput3;
+    private readonly int fluidCapacity;
+    private readonly bool outputSwitch;
+    private readonly bool inputSwitch;
+    private readonly bool isBottom;
+    private int fluidInc;
+    public int fluidCount;
+    public int fluidId;
+
+    public OptimizedTank(ref readonly TankComponent tank,
+                         CargoPath belt0,
+                         CargoPath belt1,
+                         CargoPath belt2,
+                         CargoPath belt3)
+    {
+        id = tank.id;
+        lastTankIndex = tank.lastTankId;
+        nextTankIndex = tank.nextTankId;
+        this.belt0 = belt0;
+        this.belt1 = belt1;
+        this.belt2 = belt2;
+        this.belt3 = belt3;
+        isOutput0 = tank.isOutput0;
+        isOutput1 = tank.isOutput1;
+        isOutput2 = tank.isOutput2;
+        isOutput3 = tank.isOutput3;
+        fluidCapacity = tank.fluidCapacity;
+        outputSwitch = tank.outputSwitch;
+        inputSwitch = tank.inputSwitch;
+        isBottom = tank.isBottom;
+        fluidCount = tank.fluidCount;
+        fluidInc = tank.fluidInc;
+        fluidId = tank.fluidId;
+    }
+
+    public void TickOutput(PlanetFactory factory, TankExecutor tankExecutor)
+    {
+        if (lastTankIndex <= 0 || !outputSwitch)
+        {
+            return;
+        }
+        OptimizedTank tankComponent = tankExecutor._optimizedTanks[lastTankIndex];
+        if (!tankComponent.inputSwitch || (tankComponent.fluidId > 0 && tankComponent.fluidId != fluidId))
+        {
+            return;
+        }
+        if (tankComponent.fluidCount <= tankComponent.fluidCapacity - 2)
+        {
+            if (fluidCount >= 2)
+            {
+                if (tankComponent.fluidId == 0)
+                {
+                    tankExecutor._optimizedTanks[lastTankIndex].fluidId = fluidId;
+                }
+                int n = fluidCount;
+                int m = fluidInc;
+                int num = 2;
+                int num2 = split_inc(ref n, ref m, num);
+                fluidCount -= num;
+                fluidInc -= num2;
+                tankExecutor._optimizedTanks[lastTankIndex].fluidCount += num;
+                tankExecutor._optimizedTanks[lastTankIndex].fluidInc += num2;
+            }
+            else if (fluidCount > 0 && fluidCount < 2)
+            {
+                if (tankComponent.fluidId == 0)
+                {
+                    tankExecutor._optimizedTanks[lastTankIndex].fluidId = fluidId;
+                }
+                int num3 = fluidCount;
+                int num4 = fluidInc;
+                fluidCount = 0;
+                fluidInc = 0;
+                if (fluidId != 0)
+                {
+                    fluidId = 0;
+                }
+                tankExecutor._optimizedTanks[lastTankIndex].fluidCount += num3;
+                tankExecutor._optimizedTanks[lastTankIndex].fluidInc += num4;
+            }
+        }
+        else
+        {
+            if (tankComponent.fluidCount >= tankComponent.fluidCapacity || tankComponent.fluidCount <= tankComponent.fluidCapacity - 2)
+            {
+                return;
+            }
+            int num5 = tankComponent.fluidCapacity - tankComponent.fluidCount;
+            if (fluidCount >= num5)
+            {
+                if (tankComponent.fluidId == 0)
+                {
+                    tankExecutor._optimizedTanks[lastTankIndex].fluidId = fluidId;
+                }
+                int n2 = fluidCount;
+                int m2 = fluidInc;
+                int num6 = num5;
+                int num7 = split_inc(ref n2, ref m2, num6);
+                fluidCount -= num6;
+                fluidInc -= num7;
+                tankExecutor._optimizedTanks[lastTankIndex].fluidCount += num6;
+                tankExecutor._optimizedTanks[lastTankIndex].fluidInc += num7;
+            }
+            else if (fluidCount > 0 && fluidCount < num5)
+            {
+                if (tankComponent.fluidId == 0)
+                {
+                    tankExecutor._optimizedTanks[lastTankIndex].fluidId = fluidId;
+                }
+                int num8 = fluidCount;
+                int num9 = fluidInc;
+                fluidCount = 0;
+                fluidInc = 0;
+                if (fluidId != 0)
+                {
+                    fluidId = 0;
+                }
+                tankExecutor._optimizedTanks[lastTankIndex].fluidCount += num8;
+                tankExecutor._optimizedTanks[lastTankIndex].fluidInc += num9;
+            }
+        }
+    }
+
+    public void GameTick(PlanetFactory factory, TankExecutor tankExecutor)
+    {
+        if (fluidInc < 0)
+        {
+            fluidInc = 0;
+        }
+        if (!isBottom)
+        {
+            return;
+        }
+        CargoTraffic cargoTraffic = factory.cargoTraffic;
+        byte stack = 0;
+        byte inc = 0;
+        UpdateTankBelt(belt0, isOutput0, tankExecutor, cargoTraffic, ref stack, ref inc);
+        UpdateTankBelt(belt1, isOutput1, tankExecutor, cargoTraffic, ref stack, ref inc);
+        UpdateTankBelt(belt2, isOutput2, tankExecutor, cargoTraffic, ref stack, ref inc);
+        UpdateTankBelt(belt3, isOutput3, tankExecutor, cargoTraffic, ref stack, ref inc);
+    }
+
+    public void Save(ref TankComponent tank)
+    {
+        tank.fluidCount = fluidCount;
+        tank.fluidInc = fluidInc;
+        tank.fluidId = fluidId;
+    }
+
+    private void UpdateTankBelt(CargoPath belt, bool isOutput, TankExecutor tankExecutor, CargoTraffic cargoTraffic, ref byte stack, ref byte inc)
+    {
+        if (belt != null)
+        {
+            if (isOutput && outputSwitch)
+            {
+                if (fluidId > 0 && fluidCount > 0)
+                {
+                    int num = ((fluidInc != 0) ? (fluidInc / fluidCount) : 0);
+                    if (belt.TryInsertItemAtHeadAndFillBlank(fluidId, 1, (byte)num))
+                    {
+                        fluidCount--;
+                        fluidInc -= num;
+                    }
+                }
+            }
+            else if (!isOutput && inputSwitch)
+            {
+                if (fluidId > 0 && fluidCount < fluidCapacity && CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt, fluidId, null, out stack, out inc) > 0)
+                {
+                    fluidCount += stack;
+                    fluidInc += inc;
+                }
+                if (fluidId == 0)
+                {
+                    int num2 = CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt, 0, ItemProto.fluids, out stack, out inc);
+                    if (num2 > 0)
+                    {
+                        fluidId = num2;
+                        fluidCount += stack;
+                        fluidInc += inc;
+                    }
+                }
+                if (fluidCount >= fluidCapacity && CargoPathMethods.GetItemIdAtRear(cargoTraffic, belt) == fluidId && nextTankIndex > 0)
+                {
+                    OptimizedTank tankComponent = tankExecutor._optimizedTanks[nextTankIndex];
+                    OptimizedTank tankComponent2 = tankComponent;
+                    while (tankComponent.fluidCount >= tankComponent.fluidCapacity)
+                    {
+                        OptimizedTank tankComponent3 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
+                        if (tankComponent.fluidId != tankComponent3.fluidId)
+                        {
+                            tankComponent2 = tankComponent3;
+                            break;
+                        }
+                        if (tankComponent.inputSwitch)
+                        {
+                            if (tankComponent.nextTankIndex > 0)
+                            {
+                                tankComponent = tankExecutor._optimizedTanks[tankComponent.nextTankIndex];
+                                tankComponent2 = tankComponent;
+                                continue;
+                            }
+                            tankComponent2.id = id;
+                            break;
+                        }
+                        tankComponent2 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
+                        break;
+                    }
+                    OptimizedTank tankComponent4 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
+                    if (!tankComponent2.inputSwitch || (tankComponent2.fluidId != tankComponent4.fluidId && tankComponent2.fluidId != 0))
+                    {
+                        tankComponent2 = tankComponent4;
+                    }
+                    bool flag = true;
+                    if (tankComponent2.id == id || tankComponent2.fluidCount >= tankComponent2.fluidCapacity || !tankComponent4.outputSwitch)
+                    {
+                        flag = false;
+                    }
+                    if (flag && CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt, fluidId, null, out stack, out inc) > 0)
+                    {
+                        if (tankExecutor._optimizedTanks[tankComponent2.id].fluidCount == 0)
+                        {
+                            tankExecutor._optimizedTanks[tankComponent2.id].fluidId = fluidId;
+                        }
+                        tankExecutor._optimizedTanks[tankComponent2.id].fluidCount += stack;
+                        tankExecutor._optimizedTanks[tankComponent2.id].fluidInc += inc;
+                    }
+                }
+            }
+        }
+    }
+
+    private int split_inc(ref int n, ref int m, int p)
+    {
+        if (n == 0)
+        {
+            return 0;
+        }
+        int num = m / n;
+        int num2 = m - num * n;
+        n -= p;
+        num2 -= n;
+        num = ((num2 > 0) ? (num * p + num2) : (num * p));
+        m -= num;
+        return num;
+    }
+}
