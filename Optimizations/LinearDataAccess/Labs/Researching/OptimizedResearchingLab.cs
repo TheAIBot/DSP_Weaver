@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Assemblers;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 
@@ -8,8 +9,7 @@ internal struct OptimizedResearchingLab
 {
     public const int NO_NEXT_LAB = -1;
     public readonly int[] needs;
-    public readonly int[] matrixServed;
-    public readonly int[] matrixIncServed;
+    public readonly ServedWithIncLarge[] matrixServed;
     public readonly int nextLabIndex;
     public bool incUsed;
     public int hashBytes;
@@ -19,8 +19,7 @@ internal struct OptimizedResearchingLab
                                    ref readonly LabComponent lab)
     {
         needs = lab.needs;
-        matrixServed = lab.matrixServed;
-        matrixIncServed = lab.matrixIncServed;
+        matrixServed = ServedWithIncLarge.ToServedWithIncArray(lab.matrixServed, lab.matrixIncServed);
         this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
         incUsed = lab.incUsed;
         hashBytes = lab.hashBytes;
@@ -32,7 +31,6 @@ internal struct OptimizedResearchingLab
     {
         needs = lab.needs;
         matrixServed = lab.matrixServed;
-        matrixIncServed = lab.matrixIncServed;
         this.nextLabIndex = nextLabIndex;
         incUsed = lab.incUsed;
         hashBytes = lab.hashBytes;
@@ -56,12 +54,12 @@ internal struct OptimizedResearchingLab
 
     public void UpdateNeedsResearch()
     {
-        needs[0] = matrixServed[0] < 36000 ? 6001 : 0;
-        needs[1] = matrixServed[1] < 36000 ? 6002 : 0;
-        needs[2] = matrixServed[2] < 36000 ? 6003 : 0;
-        needs[3] = matrixServed[3] < 36000 ? 6004 : 0;
-        needs[4] = matrixServed[4] < 36000 ? 6005 : 0;
-        needs[5] = matrixServed[5] < 36000 ? 6006 : 0;
+        needs[0] = matrixServed[0].Served < 36000 ? 6001 : 0;
+        needs[1] = matrixServed[1].Served < 36000 ? 6002 : 0;
+        needs[2] = matrixServed[2].Served < 36000 ? 6003 : 0;
+        needs[3] = matrixServed[3].Served < 36000 ? 6004 : 0;
+        needs[4] = matrixServed[4].Served < 36000 ? 6005 : 0;
+        needs[5] = matrixServed[5].Served < 36000 ? 6006 : 0;
     }
 
     public LabState InternalUpdateResearch(float power,
@@ -84,7 +82,7 @@ internal struct OptimizedResearchingLab
         int num2 = 0;
         if (matrixPoints[0] > 0)
         {
-            num2 = matrixServed[0] / matrixPoints[0];
+            num2 = matrixServed[0].Served / matrixPoints[0];
             if (num2 < num)
             {
                 num = num2;
@@ -97,7 +95,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[1] > 0)
         {
-            num2 = matrixServed[1] / matrixPoints[1];
+            num2 = matrixServed[1].Served / matrixPoints[1];
             if (num2 < num)
             {
                 num = num2;
@@ -110,7 +108,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[2] > 0)
         {
-            num2 = matrixServed[2] / matrixPoints[2];
+            num2 = matrixServed[2].Served / matrixPoints[2];
             if (num2 < num)
             {
                 num = num2;
@@ -123,7 +121,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[3] > 0)
         {
-            num2 = matrixServed[3] / matrixPoints[3];
+            num2 = matrixServed[3].Served / matrixPoints[3];
             if (num2 < num)
             {
                 num = num2;
@@ -136,7 +134,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[4] > 0)
         {
-            num2 = matrixServed[4] / matrixPoints[4];
+            num2 = matrixServed[4].Served / matrixPoints[4];
             if (num2 < num)
             {
                 num = num2;
@@ -149,7 +147,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[5] > 0)
         {
-            num2 = matrixServed[5] / matrixPoints[5];
+            num2 = matrixServed[5].Served / matrixPoints[5];
             if (num2 < num)
             {
                 num = num2;
@@ -178,13 +176,13 @@ internal struct OptimizedResearchingLab
             {
                 if (matrixPoints[i] > 0)
                 {
-                    int num9 = matrixServed[i] / 3600;
-                    int num10 = split_inc_level(ref matrixServed[i], ref matrixIncServed[i], matrixPoints[i] * num6);
+                    int num9 = matrixServed[i].Served / 3600;
+                    int num10 = split_inc_level(ref matrixServed[i].Served, ref matrixServed[i].IncServed, matrixPoints[i] * num6);
                     num8 = num8 < num10 ? num8 : num10;
-                    int num11 = matrixServed[i] / 3600;
-                    if (matrixServed[i] <= 0 || matrixIncServed[i] < 0)
+                    int num11 = matrixServed[i].Served / 3600;
+                    if (matrixServed[i].Served <= 0 || matrixServed[i].IncServed < 0)
                     {
-                        matrixIncServed[i] = 0;
+                        matrixServed[i].IncServed = 0;
                     }
                     int num12 = num9 - num11;
                     if (num12 > 0 && !incUsed)
@@ -254,82 +252,82 @@ internal struct OptimizedResearchingLab
         bool movedItems = false;
         if (matrixServed != null && labPool[nextLabIndex].matrixServed != null)
         {
-            int[] obj = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? matrixServed : labPool[nextLabIndex].matrixServed;
-            int[] array = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? labPool[nextLabIndex].matrixServed : matrixServed;
+            ServedWithIncLarge[] obj = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? matrixServed : labPool[nextLabIndex].matrixServed;
+            ServedWithIncLarge[] array = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? labPool[nextLabIndex].matrixServed : matrixServed;
             lock (obj)
             {
                 lock (array)
                 {
-                    if (labPool[nextLabIndex].needs[0] == 6001 && matrixServed[0] >= 7200)
+                    if (labPool[nextLabIndex].needs[0] == 6001 && matrixServed[0].Served >= 7200)
                     {
-                        int num = (matrixServed[0] - 7200) / 3600 * 3600;
+                        int num = (matrixServed[0].Served - 7200) / 3600 * 3600;
                         if (num > 36000)
                         {
                             num = 36000;
                         }
-                        int num2 = split_inc(ref matrixServed[0], ref matrixIncServed[0], num);
-                        labPool[nextLabIndex].matrixIncServed[0] += num2;
-                        labPool[nextLabIndex].matrixServed[0] += num;
+                        int num2 = split_inc(ref matrixServed[0].Served, ref matrixServed[0].IncServed, num);
+                        labPool[nextLabIndex].matrixServed[0].IncServed += num2;
+                        labPool[nextLabIndex].matrixServed[0].Served += num;
                         movedItems = true;
                     }
-                    if (labPool[nextLabIndex].needs[1] == 6002 && matrixServed[1] >= 7200)
+                    if (labPool[nextLabIndex].needs[1] == 6002 && matrixServed[1].Served >= 7200)
                     {
-                        int num3 = (matrixServed[1] - 7200) / 3600 * 3600;
+                        int num3 = (matrixServed[1].Served - 7200) / 3600 * 3600;
                         if (num3 > 36000)
                         {
                             num3 = 36000;
                         }
-                        int num4 = split_inc(ref matrixServed[1], ref matrixIncServed[1], num3);
-                        labPool[nextLabIndex].matrixIncServed[1] += num4;
-                        labPool[nextLabIndex].matrixServed[1] += num3;
+                        int num4 = split_inc(ref matrixServed[1].Served, ref matrixServed[1].IncServed, num3);
+                        labPool[nextLabIndex].matrixServed[1].IncServed += num4;
+                        labPool[nextLabIndex].matrixServed[1].Served += num3;
                         movedItems = true;
                     }
-                    if (labPool[nextLabIndex].needs[2] == 6003 && matrixServed[2] >= 7200)
+                    if (labPool[nextLabIndex].needs[2] == 6003 && matrixServed[2].Served >= 7200)
                     {
-                        int num5 = (matrixServed[2] - 7200) / 3600 * 3600;
+                        int num5 = (matrixServed[2].Served - 7200) / 3600 * 3600;
                         if (num5 > 36000)
                         {
                             num5 = 36000;
                         }
-                        int num6 = split_inc(ref matrixServed[2], ref matrixIncServed[2], num5);
-                        labPool[nextLabIndex].matrixIncServed[2] += num6;
-                        labPool[nextLabIndex].matrixServed[2] += num5;
+                        int num6 = split_inc(ref matrixServed[2].Served, ref matrixServed[2].IncServed, num5);
+                        labPool[nextLabIndex].matrixServed[2].IncServed += num6;
+                        labPool[nextLabIndex].matrixServed[2].Served += num5;
                         movedItems = true;
                     }
-                    if (labPool[nextLabIndex].needs[3] == 6004 && matrixServed[3] >= 7200)
+                    if (labPool[nextLabIndex].needs[3] == 6004 && matrixServed[3].Served >= 7200)
                     {
-                        int num7 = (matrixServed[3] - 7200) / 3600 * 3600;
+                        int num7 = (matrixServed[3].Served - 7200) / 3600 * 3600;
                         if (num7 > 36000)
                         {
                             num7 = 36000;
                         }
-                        int num8 = split_inc(ref matrixServed[3], ref matrixIncServed[3], num7);
-                        labPool[nextLabIndex].matrixIncServed[3] += num8;
-                        labPool[nextLabIndex].matrixServed[3] += num7;
+                        int num8 = split_inc(ref matrixServed[3].Served, ref matrixServed[3].IncServed, num7);
+                        labPool[nextLabIndex].matrixServed[3].IncServed += num8;
+                        labPool[nextLabIndex].matrixServed[3].Served += num7;
                         movedItems = true;
                     }
-                    if (labPool[nextLabIndex].needs[4] == 6005 && matrixServed[4] >= 7200)
+                    if (labPool[nextLabIndex].needs[4] == 6005 && matrixServed[4].Served >= 7200)
                     {
-                        int num9 = (matrixServed[4] - 7200) / 3600 * 3600;
+                        int num9 = (matrixServed[4].Served - 7200) / 3600 * 3600;
                         if (num9 > 36000)
                         {
                             num9 = 36000;
                         }
-                        int num10 = split_inc(ref matrixServed[4], ref matrixIncServed[4], num9);
-                        labPool[nextLabIndex].matrixIncServed[4] += num10;
-                        labPool[nextLabIndex].matrixServed[4] += num9;
+                        int num10 = split_inc(ref matrixServed[4].Served, ref matrixServed[4].IncServed, num9);
+                        labPool[nextLabIndex].matrixServed[4].IncServed += num10;
+                        labPool[nextLabIndex].matrixServed[4].Served += num9;
                         movedItems = true;
                     }
-                    if (labPool[nextLabIndex].needs[5] == 6006 && matrixServed[5] >= 7200)
+                    if (labPool[nextLabIndex].needs[5] == 6006 && matrixServed[5].Served >= 7200)
                     {
-                        int num11 = (matrixServed[5] - 7200) / 3600 * 3600;
+                        int num11 = (matrixServed[5].Served - 7200) / 3600 * 3600;
                         if (num11 > 36000)
                         {
                             num11 = 36000;
                         }
-                        int num12 = split_inc(ref matrixServed[5], ref matrixIncServed[5], num11);
-                        labPool[nextLabIndex].matrixIncServed[5] += num12;
-                        labPool[nextLabIndex].matrixServed[5] += num11;
+                        int num12 = split_inc(ref matrixServed[5].Served, ref matrixServed[5].IncServed, num11);
+                        labPool[nextLabIndex].matrixServed[5].IncServed += num12;
+                        labPool[nextLabIndex].matrixServed[5].Served += num11;
                         movedItems = true;
                     }
                 }
@@ -348,8 +346,7 @@ internal struct OptimizedResearchingLab
                      int[] matrixPoints)
     {
         lab.needs = needs;
-        lab.matrixServed = matrixServed;
-        lab.matrixIncServed = matrixIncServed;
+        ServedWithIncLarge.SaveIntoArrays(matrixServed, lab.matrixServed, lab.matrixIncServed);
         lab.replicating = labPowerFields.replicating;
         lab.incUsed = incUsed;
         lab.hashBytes = hashBytes;

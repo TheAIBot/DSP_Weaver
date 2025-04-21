@@ -31,14 +31,114 @@ internal struct AssemblerTimingData
     }
 }
 
+internal struct ServedWithIncLarge
+{
+    public int Served;
+    public int IncServed;
+
+    public ServedWithIncLarge(int served, int incServed)
+    {
+        Served = served;
+        IncServed = incServed;
+    }
+
+    public static ServedWithIncLarge[] ToServedWithIncArray(int[] served, int[] incServed)
+    {
+        if (served.Length != incServed.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(incServed)}. {nameof(served)}: {served.Length}, {nameof(incServed)}: {incServed.Length}");
+        }
+
+        ServedWithIncLarge[] servedWithInc = new ServedWithIncLarge[served.Length];
+        for (int i = 0; i < served.Length; i++)
+        {
+            servedWithInc[i] = new ServedWithIncLarge(served[i], incServed[i]);
+        }
+
+        return servedWithInc;
+    }
+
+    public static void SaveIntoArrays(ServedWithIncLarge[] servedWithInc, int[] served, int[] incServed)
+    {
+        if (served.Length != incServed.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(incServed)}. {nameof(served)}: {served.Length}, {nameof(incServed)}: {incServed.Length}");
+        }
+        if (servedWithInc.Length != served.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(servedWithInc)}. {nameof(served)}: {served.Length}, {nameof(servedWithInc)}: {servedWithInc.Length}");
+        }
+        if (servedWithInc.Length != incServed.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(servedWithInc)}. {nameof(incServed)}: {incServed.Length}, {nameof(servedWithInc)}: {servedWithInc.Length}");
+        }
+
+        for (int i = 0; i < served.Length; i++)
+        {
+            served[i] = servedWithInc[i].Served;
+            incServed[i] = servedWithInc[i].IncServed;
+        }
+    }
+}
+
+internal struct ServedWithInc
+{
+    public short Served;
+    public short IncServed;
+
+    public ServedWithInc(int served, int incServed)
+    {
+        Served = (short)served;
+        IncServed = (short)incServed;
+    }
+
+    public static ServedWithInc[] ToServedWithIncArray(int[] served, int[] incServed)
+    {
+        if (served.Length != incServed.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(incServed)}. {nameof(served)}: {served.Length}, {nameof(incServed)}: {incServed.Length}");
+        }
+
+        ServedWithInc[] servedWithInc = new ServedWithInc[served.Length];
+        for (int i = 0; i < served.Length; i++)
+        {
+            servedWithInc[i] = new ServedWithInc(served[i], incServed[i]);
+        }
+
+        return servedWithInc;
+    }
+
+    public static void SaveIntoArrays(ServedWithInc[] servedWithInc, int[] served, int[] incServed)
+    {
+        if (served.Length != incServed.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(incServed)}. {nameof(served)}: {served.Length}, {nameof(incServed)}: {incServed.Length}");
+        }
+        if (servedWithInc.Length != served.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(servedWithInc)}. {nameof(served)}: {served.Length}, {nameof(servedWithInc)}: {servedWithInc.Length}");
+        }
+        if (servedWithInc.Length != incServed.Length)
+        {
+            throw new ArgumentException($"{nameof(served)} was not the same length as {nameof(servedWithInc)}. {nameof(incServed)}: {incServed.Length}, {nameof(servedWithInc)}: {servedWithInc.Length}");
+        }
+
+        for (int i = 0; i < served.Length; i++)
+        {
+            served[i] = servedWithInc[i].Served;
+            incServed[i] = servedWithInc[i].IncServed;
+        }
+    }
+}
+
 internal struct AssemblerNeeds
 {
-    public readonly int[] served;
+    public readonly ServedWithInc[] served;
     public readonly int[] needs;
 
     public AssemblerNeeds(ref readonly AssemblerComponent assembler)
     {
-        served = assembler.served;
+        served = ServedWithInc.ToServedWithIncArray(assembler.served, assembler.incServed);
         needs = assembler.needs;
     }
 }
@@ -48,7 +148,6 @@ internal struct OptimizedAssembler
 {
     public readonly bool forceAccMode;
     public readonly int speed;
-    public readonly int[] incServed;
     public readonly int[] produced;
     public bool incUsed;
     public int cycleCount;
@@ -58,7 +157,6 @@ internal struct OptimizedAssembler
     {
         forceAccMode = assembler.forceAccMode;
         speed = assembler.speed;
-        incServed = assembler.incServed;
         produced = assembler.produced;
         incUsed = assembler.incUsed;
         cycleCount = assembler.cycleCount;
@@ -76,14 +174,14 @@ internal struct OptimizedAssembler
             num2 = 2;
         }
 
-        int[] served = assemblerNeeds.served;
+        ServedWithInc[] served = assemblerNeeds.served;
         int[] needs = assemblerNeeds.needs;
-        needs[0] = 0 < num && served[0] < assemblerRecipeData.RequireCounts[0] * num2 ? assemblerRecipeData.Requires[0] : 0;
-        needs[1] = 1 < num && served[1] < assemblerRecipeData.RequireCounts[1] * num2 ? assemblerRecipeData.Requires[1] : 0;
-        needs[2] = 2 < num && served[2] < assemblerRecipeData.RequireCounts[2] * num2 ? assemblerRecipeData.Requires[2] : 0;
-        needs[3] = 3 < num && served[3] < assemblerRecipeData.RequireCounts[3] * num2 ? assemblerRecipeData.Requires[3] : 0;
-        needs[4] = 4 < num && served[4] < assemblerRecipeData.RequireCounts[4] * num2 ? assemblerRecipeData.Requires[4] : 0;
-        needs[5] = 5 < num && served[5] < assemblerRecipeData.RequireCounts[5] * num2 ? assemblerRecipeData.Requires[5] : 0;
+        needs[0] = 0 < num && served[0].Served < assemblerRecipeData.RequireCounts[0] * num2 ? assemblerRecipeData.Requires[0] : 0;
+        needs[1] = 1 < num && served[1].Served < assemblerRecipeData.RequireCounts[1] * num2 ? assemblerRecipeData.Requires[1] : 0;
+        needs[2] = 2 < num && served[2].Served < assemblerRecipeData.RequireCounts[2] * num2 ? assemblerRecipeData.Requires[2] : 0;
+        needs[3] = 3 < num && served[3].Served < assemblerRecipeData.RequireCounts[3] * num2 ? assemblerRecipeData.Requires[3] : 0;
+        needs[4] = 4 < num && served[4].Served < assemblerRecipeData.RequireCounts[4] * num2 ? assemblerRecipeData.Requires[4] : 0;
+        needs[5] = 5 < num && served[5].Served < assemblerRecipeData.RequireCounts[5] * num2 ? assemblerRecipeData.Requires[5] : 0;
     }
 
     public AssemblerState Update(float power,
@@ -241,11 +339,11 @@ internal struct OptimizedAssembler
             int num5 = assemblerRecipeData.RequireCounts.Length;
             for (int num6 = 0; num6 < num5; num6++)
             {
-                if (incServed[num6] <= 0)
+                if (assemblerNeeds.served[num6].IncServed <= 0)
                 {
-                    incServed[num6] = 0;
+                    assemblerNeeds.served[num6].IncServed = 0;
                 }
-                if (assemblerNeeds.served[num6] < assemblerRecipeData.RequireCounts[num6] || assemblerNeeds.served[num6] == 0)
+                if (assemblerNeeds.served[num6].Served < assemblerRecipeData.RequireCounts[num6] || assemblerNeeds.served[num6].Served == 0)
                 {
                     assemblerTimingData.time = 0;
                     return AssemblerState.InactiveInputMissing;
@@ -254,15 +352,15 @@ internal struct OptimizedAssembler
             int num7 = num5 > 0 ? 10 : 0;
             for (int num8 = 0; num8 < num5; num8++)
             {
-                int num9 = split_inc_level(ref assemblerNeeds.served[num8], ref incServed[num8], assemblerRecipeData.RequireCounts[num8]);
+                int num9 = split_inc_level(ref assemblerNeeds.served[num8].Served, ref assemblerNeeds.served[num8].IncServed, assemblerRecipeData.RequireCounts[num8]);
                 num7 = num7 < num9 ? num7 : num9;
                 if (!incUsed)
                 {
                     incUsed = num9 > 0;
                 }
-                if (assemblerNeeds.served[num8] == 0)
+                if (assemblerNeeds.served[num8].Served == 0)
                 {
-                    incServed[num8] = 0;
+                    assemblerNeeds.served[num8].IncServed = 0;
                 }
                 lock (consumeRegister)
                 {
@@ -306,8 +404,7 @@ internal struct OptimizedAssembler
         assembler.requireCounts = assemblerRecipeData.RequireCounts;
         assembler.products = assemblerRecipeData.Products;
         assembler.productCounts = assemblerRecipeData.ProductCounts;
-        assembler.served = assemblerNeeds.served;
-        assembler.incServed = incServed;
+        ServedWithInc.SaveIntoArrays(assemblerNeeds.served, assembler.served, assembler.incServed);
         assembler.needs = assemblerNeeds.needs;
         assembler.produced = produced;
         assembler.incUsed = incUsed;
@@ -321,13 +418,13 @@ internal struct OptimizedAssembler
         assembler.extraPowerRatio = extraPowerRatio;
     }
 
-    private int split_inc_level(ref int n, ref int m, int p)
+    private int split_inc_level(ref short n, ref short m, int p)
     {
         int num = m / n;
         int num2 = m - num * n;
-        n -= p;
+        n -= (short)p;
         num2 -= n;
-        m -= num2 > 0 ? num * p + num2 : num * p;
+        m -= (short)(num2 > 0 ? num * p + num2 : num * p);
         return num;
     }
 }

@@ -584,7 +584,7 @@ internal record struct PickFromProducingPlant(int[] Products, int[] Produced);
 
 internal record struct ConnectionBelts(CargoPath PickFrom, CargoPath InsertInto);
 
-internal record struct InsertIntoConsumingPlant(int[] Requires, int[] Served, int[] IncServed);
+internal record struct InsertIntoConsumingPlant(int[] Requires, object Served);
 
 internal sealed class InserterExecutor<T>
     where T : struct, IInserter<T>
@@ -1001,53 +1001,52 @@ internal sealed class InserterExecutor<T>
             }
             InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
             int[] requires = insertIntoConsumingPlant.Requires;
-            int[] served = insertIntoConsumingPlant.Served;
-            int[] incServed = insertIntoConsumingPlant.IncServed;
+            ServedWithInc[] served = (ServedWithInc[])insertIntoConsumingPlant.Served;
             int num = requires.Length;
             if (0 < num && requires[0] == itemId)
             {
-                served[0] += itemCount;
-                incServed[0] += itemInc;
+                served[0].Served += itemCount;
+                served[0].IncServed += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (1 < num && requires[1] == itemId)
             {
-                served[1] += itemCount;
-                incServed[1] += itemInc;
+                served[1].Served += itemCount;
+                served[1].IncServed += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (2 < num && requires[2] == itemId)
             {
-                served[2] += itemCount;
-                incServed[2] += itemInc;
+                served[2].Served += itemCount;
+                served[2].IncServed += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (3 < num && requires[3] == itemId)
             {
-                served[3] += itemCount;
-                incServed[3] += itemInc;
+                served[3].Served += itemCount;
+                served[3].IncServed += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (4 < num && requires[4] == itemId)
             {
-                served[4] += itemCount;
-                incServed[4] += itemInc;
+                served[4].Served += itemCount;
+                served[4].IncServed += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
             if (5 < num && requires[5] == itemId)
             {
-                served[5] += itemCount;
-                incServed[5] += itemInc;
+                served[5].Served += itemCount;
+                served[5].IncServed += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
@@ -1100,8 +1099,7 @@ internal sealed class InserterExecutor<T>
             }
             InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
             int[] requires2 = insertIntoConsumingPlant.Requires;
-            int[] served = insertIntoConsumingPlant.Served;
-            int[] incServed = insertIntoConsumingPlant.IncServed;
+            ServedWithInc[] served = (ServedWithInc[])insertIntoConsumingPlant.Served;
             if (requires2 == null)
             {
                 return 0;
@@ -1111,8 +1109,8 @@ internal sealed class InserterExecutor<T>
             {
                 if (requires2[i] == itemId)
                 {
-                    served[i] += itemCount;
-                    incServed[i] += itemInc;
+                    served[i].Served += itemCount;
+                    served[i].IncServed += itemInc;
                     remainInc = 0;
                     _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                     return itemCount;
@@ -1135,8 +1133,7 @@ internal sealed class InserterExecutor<T>
                 throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if researching lab is inactive which the above if statement should have caught.");
             }
             InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            int[] matrixServed = insertIntoConsumingPlant.Served;
-            int[] matrixIncServed = insertIntoConsumingPlant.IncServed;
+            ServedWithIncLarge[] matrixServed = (ServedWithIncLarge[])insertIntoConsumingPlant.Served;
             if (matrixServed == null)
             {
                 return 0;
@@ -1144,8 +1141,8 @@ internal sealed class InserterExecutor<T>
             int num2 = itemId - 6001;
             if (num2 >= 0 && num2 < 6)
             {
-                matrixServed[num2] += 3600 * itemCount;
-                matrixIncServed[num2] += 3600 * itemInc;
+                matrixServed[num2].Served += 3600 * itemCount;
+                matrixServed[num2].IncServed += 3600 * itemInc;
                 remainInc = 0;
                 _researchingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                 return itemCount;
@@ -1457,18 +1454,18 @@ internal sealed class InserterExecutor<T>
                 ref readonly OptimizedAssembler assembler = ref subFactory._assemblerExecutor._optimizedAssemblers[insertInto.Index];
                 ref readonly AssemblerRecipe assemblerRecipe = ref subFactory._assemblerExecutor._assemblerRecipes[subFactory._assemblerExecutor._assemblerRecipeIndexes[insertInto.Index]];
                 ref readonly AssemblerNeeds assemblerNeeds = ref subFactory._assemblerExecutor._assemblersNeeds[insertInto.Index];
-                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assemblerNeeds.served, assembler.incServed));
+                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assemblerNeeds.served));
             }
             else if (insertInto.EntityType == EntityType.ProducingLab)
             {
                 ref readonly OptimizedProducingLab lab = ref subFactory._optimizedProducingLabs[insertInto.Index];
                 ProducingLabRecipe producingLabRecipe = subFactory._producingLabRecipes[lab.producingLabRecipeIndex];
-                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(producingLabRecipe.Requires, lab.served, lab.incServed));
+                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(producingLabRecipe.Requires, lab.served));
             }
             else if (insertInto.EntityType == EntityType.ResearchingLab)
             {
                 ref readonly OptimizedResearchingLab lab = ref subFactory._optimizedResearchingLabs[insertInto.Index];
-                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(null, lab.matrixServed, lab.matrixIncServed));
+                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(null, lab.matrixServed));
             }
             else
             {
