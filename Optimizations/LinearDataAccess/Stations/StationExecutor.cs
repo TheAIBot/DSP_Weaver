@@ -1,38 +1,29 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations.LinearDataAccess.Stations;
 
 internal sealed class StationExecutor
 {
-    private int[] _stationIndexes;
+    private OptimizedStation[] _optimizedStations;
 
     public void InputFromBelt(PlanetFactory planet, long time)
     {
-        PlanetTransport transport = planet.transport;
-        CargoTraffic cargoTraffic = planet.cargoTraffic;
-        SignData[] entitySignPool = planet.entitySignPool;
-        bool active = (time + planet.index) % 30 == 0L;
-
-        for (int stationIndexIndex = 0; stationIndexIndex < _stationIndexes.Length; stationIndexIndex++)
+        OptimizedStation[] optimizedStations = _optimizedStations;
+        for (int i = 0; i < optimizedStations.Length; i++)
         {
-            int stationIndex = _stationIndexes[stationIndexIndex];
-            transport.stationPool[stationIndex].UpdateInputSlots(cargoTraffic, entitySignPool, active);
+            optimizedStations[i].UpdateInputSlots();
         }
     }
 
     public void OutputToBelt(PlanetFactory planet, long time)
     {
-        PlanetTransport transport = planet.transport;
-        CargoTraffic cargoTraffic = planet.cargoTraffic;
-        SignData[] entitySignPool = planet.entitySignPool;
+        OptimizedStation[] optimizedStations = _optimizedStations;
         int stationPilerLevel = GameMain.history.stationPilerLevel;
-        bool active = (time + planet.index) % 30 == 0L;
-
-        for (int stationIndexIndex = 0; stationIndexIndex < _stationIndexes.Length; stationIndexIndex++)
+        for (int i = 0; i < optimizedStations.Length; i++)
         {
-            int stationIndex = _stationIndexes[stationIndexIndex];
-            transport.stationPool[stationIndex].UpdateOutputSlots(cargoTraffic, entitySignPool, stationPilerLevel, active);
+            optimizedStations[i].UpdateOutputSlots(stationPilerLevel);
         }
     }
 
@@ -43,20 +34,33 @@ internal sealed class StationExecutor
             return;
         }
 
-        PlanetTransport transport = planet.transport;
-        for (int stationIndexIndex = 0; stationIndexIndex < _stationIndexes.Length; stationIndexIndex++)
+        OptimizedStation[] optimizedStations = _optimizedStations;
+        for (int i = 0; i < optimizedStations.Length; i++)
         {
-            int stationIndex = _stationIndexes[stationIndexIndex];
-            transport.stationPool[stationIndex].UpdateKeepMode();
+            optimizedStations[i].UpdateKeepMode();
         }
     }
 
-    public void Initialize(Graph subFactoryGraph)
+    public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
     {
-        _stationIndexes = subFactoryGraph.GetAllNodes()
-                                         .Where(x => x.EntityTypeIndex.EntityType == EntityType.Station)
-                                         .Select(x => x.EntityTypeIndex.Index)
-                                         .OrderBy(x => x)
-                                         .ToArray();
+        List<OptimizedStation> optimizedStations = [];
+
+        foreach (int stationIndex in subFactoryGraph.GetAllNodes()
+                                                    .Where(x => x.EntityTypeIndex.EntityType == EntityType.Station)
+                                                    .Select(x => x.EntityTypeIndex.Index)
+                                                    .OrderBy(x => x))
+        {
+            StationComponent station = planet.transport.stationPool[stationIndex];
+
+            CargoPath[] belts = new CargoPath[station.slots.Length];
+            for (int i = 0; i < belts.Length; i++)
+            {
+                belts[i] = station.slots[i].beltId > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[station.slots[i].beltId].segPathId] : null;
+            }
+
+            optimizedStations.Add(new OptimizedStation(station, belts));
+        }
+
+        _optimizedStations = optimizedStations.ToArray();
     }
 }
