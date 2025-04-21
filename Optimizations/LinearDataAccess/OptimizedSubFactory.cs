@@ -209,7 +209,7 @@ internal sealed class OptimizedSubFactory
     private void InitializeSplitters(Graph subFactoryGraph)
     {
         _splitterExecutor = new SplitterExecutor();
-        _splitterExecutor.Initialize(subFactoryGraph);
+        _splitterExecutor.Initialize(_planet, subFactoryGraph);
     }
 
     public void GameTick(WorkerTimings workerTimings, long time)
