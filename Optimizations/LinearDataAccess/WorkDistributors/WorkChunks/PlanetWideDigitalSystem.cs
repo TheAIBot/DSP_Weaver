@@ -1,0 +1,46 @@
+﻿using System;
+
+namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
+
+internal sealed class PlanetWideDigitalSystem : IWorkChunk
+{
+    private readonly OptimizedPlanet _optimizedPlanet;
+    private WorkStep _workStep;
+
+    public PlanetWideDigitalSystem(OptimizedPlanet optimizedPlanet)
+    {
+        _optimizedPlanet = optimizedPlanet;
+    }
+
+    public void Execute(WorkerTimings workerTimings, long time)
+    {
+        workerTimings.StartTimer();
+        _optimizedPlanet.DigitalSystemStep();
+        workerTimings.RecordTime(WorkType.Digital);
+    }
+
+    public void TieToWorkStep(WorkStep workStep)
+    {
+        _workStep = workStep;
+    }
+
+    public bool Complete()
+    {
+        if (_workStep == null)
+        {
+            throw new InvalidOperationException("No work step was assigned.");
+        }
+
+        return _workStep.CompleteWorkChunk();
+    }
+
+    public void CompleteStep()
+    {
+        if (_workStep == null)
+        {
+            throw new InvalidOperationException("No work step was assigned.");
+        }
+
+        _workStep.CompleteStep();
+    }
+}

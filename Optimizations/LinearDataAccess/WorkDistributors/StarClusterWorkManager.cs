@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
