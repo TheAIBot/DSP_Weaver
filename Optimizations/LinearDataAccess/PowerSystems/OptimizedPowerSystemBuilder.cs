@@ -15,6 +15,7 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly List<int> _researchingLabPowerConsumerTypeIndexes = [];
     private readonly Dictionary<OptimizedSubFactory, List<int>> _subFactoryToSpraycoaterPowerConsumerTypeIndexes = [];
     private readonly List<int> _fractionatorPowerConsumerTypeIndexes = [];
+    private readonly List<int> _pilerPowerConsumerTypeIndexes = [];
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions = [];
 
@@ -64,6 +65,11 @@ internal sealed class OptimizedPowerSystemBuilder
         AddEntity(_fractionatorPowerConsumerTypeIndexes, fractionator.pcId, networkIndex);
     }
 
+    public void AddPiler(ref readonly PilerComponent piler, int networkIndex)
+    {
+        AddEntity(_pilerPowerConsumerTypeIndexes, piler.pcId, networkIndex);
+    }
+
     public OptimizedPowerSystem Build()
     {
         int[][] networkNonOptimizedPowerConsumerIndexes = new int[_powerSystem.netCursor][];
@@ -87,6 +93,7 @@ internal sealed class OptimizedPowerSystemBuilder
                                         _researchingLabPowerConsumerTypeIndexes.ToArray(),
                                         _subFactoryToSpraycoaterPowerConsumerTypeIndexes.ToDictionary(x => x.Key, x => x.Value.ToArray()),
                                         _fractionatorPowerConsumerTypeIndexes.ToArray(),
+                                        _pilerPowerConsumerTypeIndexes.ToArray(),
                                         _subFactoryToNetworkPowerConsumptions);
     }
 

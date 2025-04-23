@@ -97,7 +97,7 @@ internal sealed class OptimizedSubFactory
         InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeMonitors(subFactoryGraph);
         InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializePilers(subFactoryGraph);
+        InitializePilers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeStations(subFactoryGraph);
         InitializeDispensers(subFactoryGraph);
@@ -170,10 +170,10 @@ internal sealed class OptimizedSubFactory
         _spraycoaterExecutor.Initialize(_planet, this, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
-    private void InitializePilers(Graph subFactoryGraph)
+    private void InitializePilers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _pilerExecutor = new PilerExecutor();
-        _pilerExecutor.Initialize(_planet, subFactoryGraph);
+        _pilerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
     private void InitializeFractionators(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)

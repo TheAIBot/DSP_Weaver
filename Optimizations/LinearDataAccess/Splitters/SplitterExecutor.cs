@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations.LinearDataAccess.Splitters;
 
+[StructLayout(LayoutKind.Auto)]
 internal struct OptimizedSplitter
 {
     private readonly int beltA;

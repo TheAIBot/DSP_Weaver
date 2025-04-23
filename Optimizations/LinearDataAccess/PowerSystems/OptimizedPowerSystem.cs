@@ -15,6 +15,7 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _researchingLabPowerConsumerTypeIndexes;
     private readonly Dictionary<OptimizedSubFactory, int[]> _subFactoryToSpraycoaterPowerConsumerTypeIndexes;
     private readonly int[] _fractionatorPowerConsumerTypeIndexes;
+    private readonly int[] _pilerPowerConsumerTypeIndexes;
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
@@ -26,6 +27,7 @@ internal sealed class OptimizedPowerSystem
                                 int[] researchingLabPowerConsumerTypeIndexes,
                                 Dictionary<OptimizedSubFactory, int[]> subFactoryToSpraycoaterPowerConsumerTypeIndexes,
                                 int[] fractionatorPowerConsumerTypeIndexes,
+                                int[] pilerPowerConsumerTypeIndexes,
                                 Dictionary<OptimizedSubFactory, long[]> subFactoryToNetworkPowerConsumptions)
     {
         _powerConsumerTypes = powerConsumerTypes;
@@ -37,6 +39,7 @@ internal sealed class OptimizedPowerSystem
         _researchingLabPowerConsumerTypeIndexes = researchingLabPowerConsumerTypeIndexes;
         _subFactoryToSpraycoaterPowerConsumerTypeIndexes = subFactoryToSpraycoaterPowerConsumerTypeIndexes;
         _fractionatorPowerConsumerTypeIndexes = fractionatorPowerConsumerTypeIndexes;
+        _pilerPowerConsumerTypeIndexes = pilerPowerConsumerTypeIndexes;
         _subFactoryToNetworkPowerConsumptions = subFactoryToNetworkPowerConsumptions;
     }
 
@@ -401,6 +404,8 @@ internal sealed class OptimizedPowerSystem
         subFactory._spraycoaterExecutor.UpdatePower(_subFactoryToSpraycoaterPowerConsumerTypeIndexes[subFactory],
                                                     _powerConsumerTypes,
                                                     subFactoryNetworkPowerConsumption);
-        subFactory._pilerExecutor.UpdatePower(planet);
+        subFactory._pilerExecutor.UpdatePower(_pilerPowerConsumerTypeIndexes,
+                                              _powerConsumerTypes,
+                                              subFactoryNetworkPowerConsumption);
     }
 }
