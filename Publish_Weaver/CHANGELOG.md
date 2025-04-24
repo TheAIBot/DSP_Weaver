@@ -1,3 +1,6 @@
+## 1.1.3
+* Fix researching tech on unoptimized planet would crash the game.
+
 ## 1.1.2
 * Fix researching tech would sometimes immediately crash the game due to UI code not being executed on the main thread.
 * Fix Weaver did not care if a recipe was unlocked or not.

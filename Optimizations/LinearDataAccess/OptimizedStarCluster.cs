@@ -13,7 +13,7 @@ internal static class OptimizedStarCluster
     private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedPlanet = [];
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
-    private static readonly StarClusterResearchManager _starClusterResearchManager = new();
+    public static readonly StarClusterResearchManager _starClusterResearchManager = new();
     private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
 
@@ -300,18 +300,47 @@ internal static class OptimizedStarCluster
             return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
 
-        bool hasResearchedTechnology = optimizedPlanet._researchingLabExecutor.GameTickLabResearchMode(__instance.factory, time);
-        if (hasResearchedTechnology)
-        {
-            foreach (PlanetFactory planetToReOptimize in _planetToOptimizedPlanet.Where(x => x.Value.Status == OptimizedPlanetStatus.Running)
-                                                                                 .Select(x => x.Key))
-            {
-                _planetsToReOptimize.Enqueue(planetToReOptimize);
-            }
-
-        }
+        optimizedPlanet._researchingLabExecutor.GameTickLabResearchMode(__instance.factory, time);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    [HarmonyTranspiler, HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.GameTickLabResearchMode))]
+    static IEnumerable<CodeInstruction> DeferResearchUnlockToStarClusterResearchManager(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+    {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        CodeMatch[] startOfResearchCompletedBlockToMove = [
+            new CodeMatch(OpCodes.Ldloc_1),
+            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(GameHistoryData), nameof(GameHistoryData.techStates))),
+            new CodeMatch(OpCodes.Ldarg_0),
+            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(FactorySystem), nameof(FactorySystem.researchTechId))),
+            new CodeMatch(OpCodes.Ldloc_S),
+            new CodeMatch(OpCodes.Callvirt, AccessTools.PropertySetter(typeof(Dictionary<int, TechState>), "Item"))
+        ];
+
+        CodeMatch[] endOfResearchCompletedBlockToMove = [
+            new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(GameHistoryData), nameof(GameHistoryData.NotifyTechUnlock)))
+        ];
+
+        CodeInstruction[] queueResearchCompleted = [
+            // No idea why i need to add it but it gets deleted for some reason
+            new CodeInstruction(OpCodes.Callvirt, AccessTools.PropertySetter(typeof(Dictionary<int, TechState>), "Item")),
+
+            // _starClusterResearchManager.AddResearchedTech(researchTechId, curLevel, ts, techProto)
+            new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(OptimizedStarCluster), nameof(OptimizedStarCluster._starClusterResearchManager))),
+            new CodeInstruction(OpCodes.Ldarg_0),
+            new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(FactorySystem), nameof(FactorySystem.researchTechId))),
+            new CodeInstruction(OpCodes.Ldloc_S, 29), // curLevel
+            new CodeInstruction(OpCodes.Ldloc_S, 13), // ts
+            new CodeInstruction(OpCodes.Ldloc_S, 12), // techProto
+            new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(StarClusterResearchManager), nameof(StarClusterResearchManager.AddResearchedTech)))
+        ];
+
+        codeMatcher.ReplaceCode(startOfResearchCompletedBlockToMove, false, endOfResearchCompletedBlockToMove, false, queueResearchCompleted);
+        codeMatcher.ReplaceCode(startOfResearchCompletedBlockToMove, false, endOfResearchCompletedBlockToMove, false, queueResearchCompleted);
+
+        return codeMatcher.InstructionEnumeration();
     }
 
     [HarmonyPrefix]
@@ -372,28 +401,22 @@ internal static class OptimizedStarCluster
         }
 
         codeMatcher.MatchForward(true, multithreadedIfCondition)
-                   .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}")
-                   .MatchForward(false, beginSamplePowerPerformanceMonitor)
-                   .ThrowIfNotMatch($"Failed to find {nameof(beginSamplePowerPerformanceMonitor)}");
-        int startPosition = codeMatcher.Pos;
-        codeMatcher.MatchForward(true, endSampleDigitalPerformanceMonitor)
-                   .ThrowIfNotMatch($"Failed to find {nameof(endSampleDigitalPerformanceMonitor)}");
-        int endPosition = codeMatcher.Pos;
-        codeMatcher.Start()
-                   .Advance(startPosition)
-                   .RemoveInstructions(endPosition - startPosition + 1)
-                   .Insert(optimizedMultithreading);
-
-        //codeMatcher.Start()
-        //           .Advance(startPosition);
-        //codeMatcher.Advance(-10);
-        //for (int i = 0; i < 50; i++)
-        //{
-        //    WeaverFixes.Logger.LogMessage(codeMatcher.Instruction);
-        //    codeMatcher.Advance(1);
-        //}
+                   .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}");
+        codeMatcher.ReplaceCode(beginSamplePowerPerformanceMonitor, true, endSampleDigitalPerformanceMonitor, true, optimizedMultithreading);
 
         return codeMatcher.InstructionEnumeration();
+    }
+
+    public static void ReOptimizeAllPlanets()
+    {
+        lock (_planetsToReOptimize)
+        {
+            foreach (PlanetFactory planetToReOptimize in _planetToOptimizedPlanet.Where(x => x.Value.Status == OptimizedPlanetStatus.Running)
+                                                                     .Select(x => x.Key))
+            {
+                _planetsToReOptimize.Enqueue(planetToReOptimize);
+            }
+        }
     }
 
     private static void ExecuteSimulation(PlanetFactory?[] planets)

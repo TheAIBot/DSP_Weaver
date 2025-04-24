@@ -23,7 +23,7 @@ internal sealed class ResearchingLabExecutor
         _starClusterResearchManager = starClusterResearchManager;
     }
 
-    public bool GameTickLabResearchMode(PlanetFactory planet, long time)
+    public void GameTickLabResearchMode(PlanetFactory planet, long time)
     {
         FactorySystem factorySystem = planet.factorySystem;
         GameHistoryData history = GameMain.history;
@@ -107,7 +107,6 @@ internal sealed class ResearchingLabExecutor
             }
         }
 
-        bool hasResearchedTechnology = false;
         for (int k = 0; k < optimizedLabs.Length; k++)
         {
             ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[k];
@@ -134,7 +133,6 @@ internal sealed class ResearchingLabExecutor
                                                                                 ref labsPowerFields[k]);
                 if (ts.unlocked)
                 {
-                    hasResearchedTechnology = true;
                     history.techStates[factorySystem.researchTechId] = ts;
                     _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto);
                     history.DequeueTech();
@@ -142,7 +140,6 @@ internal sealed class ResearchingLabExecutor
                 }
                 if (ts.curLevel > curLevel)
                 {
-                    hasResearchedTechnology = true;
                     history.techStates[factorySystem.researchTechId] = ts;
                     _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto);
                     history.DequeueTech();
@@ -155,8 +152,6 @@ internal sealed class ResearchingLabExecutor
         statistics.techHashedThisFrame = techHashedThisFrame;
         history.universeMatrixPointUploaded = uMatrixPoint;
         factoryProductionStat.hashRegister = hashRegister;
-
-        return hasResearchedTechnology;
     }
 
     public void GameTickLabOutputToNext(long time, int _usedThreadCnt, int _curThreadIdx, int _minimumMissionCnt)

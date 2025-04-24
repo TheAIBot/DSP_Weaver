@@ -19,10 +19,12 @@ internal sealed class StarClusterResearchManager
     /// </summary>
     public void UIThreadUnlockResearchedTechnologies(GameHistoryData history)
     {
+        bool hasResearchedAnything = false;
         foreach (ResearchedTech technology in _tickResearchedTech)
         {
             if (technology.State.unlocked)
             {
+                hasResearchedAnything = true;
                 history.techStates[technology.ResearchTechId] = technology.State;
                 for (int l = 0; l < technology.Proto.UnlockRecipes.Length; l++)
                 {
@@ -40,6 +42,7 @@ internal sealed class StarClusterResearchManager
             }
             if (technology.State.curLevel > technology.PreviousTechLevel)
             {
+                hasResearchedAnything = true;
                 history.techStates[technology.ResearchTechId] = technology.State;
                 for (int num6 = 0; num6 < technology.Proto.UnlockFunctions.Length; num6++)
                 {
@@ -54,5 +57,12 @@ internal sealed class StarClusterResearchManager
         }
 
         _tickResearchedTech.Clear();
+
+        if (hasResearchedAnything)
+        {
+            // Optimized planets never change their settings so reoptimization is required
+            // if the technology changes any configuration in the factory
+            OptimizedStarCluster.ReOptimizeAllPlanets();
+        }
     }
 }
