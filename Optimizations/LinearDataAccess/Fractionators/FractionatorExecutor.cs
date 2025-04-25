@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
@@ -17,7 +18,6 @@ internal sealed class FractionatorExecutor
 
     public void GameTick(PlanetFactory planet)
     {
-        CargoTraffic cargoTraffic = planet.cargoTraffic;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
@@ -34,8 +34,7 @@ internal sealed class FractionatorExecutor
             ref OptimizedFractionator fractionator = ref optimizedFractionators[i];
             ref readonly FractionatorConfiguration configuration = ref fractionatorConfigurations[fractionator.configurationIndex];
             ref FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[i];
-            fractionator.InternalUpdate(cargoTraffic,
-                                        power2,
+            fractionator.InternalUpdate(power2,
                                         in configuration,
                                         ref fractionatorPowerFields,
                                         productRegister,
@@ -79,7 +78,8 @@ internal sealed class FractionatorExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           BeltExecutor beltExecutor)
     {
         List<int> fractionatorNetworkId = [];
         List<OptimizedFractionator> optimizedFractionators = [];
@@ -112,21 +112,24 @@ internal sealed class FractionatorExecutor
                 fractionatorConfigurations.Add(configuration);
             }
 
-            CargoPath? belt0 = null;
-            CargoPath? belt1 = null;
-            CargoPath? belt2 = null;
+            OptimizedCargoPath? belt0 = null;
+            OptimizedCargoPath? belt1 = null;
+            OptimizedCargoPath? belt2 = null;
 
             if (fractionator.belt0 > 0)
             {
-                belt0 = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[fractionator.belt0].segPathId];
+                CargoPath cargoPath0 = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[fractionator.belt0].segPathId];
+                belt0 = cargoPath0 != null ? beltExecutor.GetOptimizedCargoPath(cargoPath0) : null;
             }
             if (fractionator.belt1 > 0)
             {
-                belt1 = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[fractionator.belt1].segPathId);
+                CargoPath cargoPat1 = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[fractionator.belt1].segPathId);
+                belt1 = cargoPat1 != null ? beltExecutor.GetOptimizedCargoPath(cargoPat1) : null;
             }
             if (fractionator.belt2 > 0)
             {
-                belt2 = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[fractionator.belt2].segPathId);
+                CargoPath cargoPat2 = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[fractionator.belt2].segPathId);
+                belt2 = cargoPat2 != null ? beltExecutor.GetOptimizedCargoPath(cargoPat2) : null;
             }
 
             fractionatorIdToOptimizedIndex.Add(fractionator.id, optimizedFractionators.Count);

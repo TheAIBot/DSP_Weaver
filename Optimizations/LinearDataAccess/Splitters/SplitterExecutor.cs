@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Splitters;
 
@@ -49,7 +50,7 @@ internal struct OptimizedSplitter
         output3 = splitter.output3;
     }
 
-    public void UpdateSplitter(CargoTraffic cargoTraffic)
+    public void UpdateSplitter(CargoTraffic cargoTraffic, OptimizedSubFactory subFactory, BeltExecutor beltExecutor)
     {
         CheckPriorityPreset();
         if (topId == 0)
@@ -63,11 +64,11 @@ internal struct OptimizedSplitter
         {
             return;
         }
-        CargoPath us_tmp_inputPath = null;
-        CargoPath us_tmp_inputPath0 = null;
-        CargoPath us_tmp_inputPath1 = null;
-        CargoPath us_tmp_inputPath2 = null;
-        CargoPath us_tmp_inputPath3 = null;
+        OptimizedCargoPath us_tmp_inputPath = null;
+        OptimizedCargoPath us_tmp_inputPath0 = null;
+        OptimizedCargoPath us_tmp_inputPath1 = null;
+        OptimizedCargoPath us_tmp_inputPath2 = null;
+        OptimizedCargoPath us_tmp_inputPath3 = null;
         int us_tmp_inputCargo = -1;
         int us_tmp_inputCargo0 = -1;
         int us_tmp_inputCargo1 = -1;
@@ -77,13 +78,14 @@ internal struct OptimizedSplitter
         int us_tmp_inputIndex1 = -1;
         int us_tmp_inputIndex2 = -1;
         int us_tmp_inputIndex3 = -1;
-        CargoPath us_tmp_outputPath;
-        CargoPath us_tmp_outputPath0;
+        OptimizedCargoPath us_tmp_outputPath;
+        OptimizedCargoPath us_tmp_outputPath0;
         int us_tmp_outputIdx;
 
         if (input0 != 0)
         {
-            us_tmp_inputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input0].segPathId);
+            // SUPER HACK!!!!
+            us_tmp_inputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input0].segPathId));
             us_tmp_inputCargo = us_tmp_inputPath.GetCargoIdAtRear();
             if (us_tmp_inputCargo != -1)
             {
@@ -93,7 +95,8 @@ internal struct OptimizedSplitter
             }
             if (input1 != 0)
             {
-                us_tmp_inputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input1].segPathId);
+                // SUPER HACK!!!!
+                us_tmp_inputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input1].segPathId));
                 us_tmp_inputCargo = us_tmp_inputPath.GetCargoIdAtRear();
                 if (us_tmp_inputCargo != -1)
                 {
@@ -112,7 +115,8 @@ internal struct OptimizedSplitter
                 }
                 if (input2 != 0)
                 {
-                    us_tmp_inputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input2].segPathId);
+                    // SUPER HACK!!!!
+                    us_tmp_inputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input2].segPathId));
                     us_tmp_inputCargo = us_tmp_inputPath.GetCargoIdAtRear();
                     if (us_tmp_inputCargo != -1)
                     {
@@ -137,7 +141,8 @@ internal struct OptimizedSplitter
                     }
                     if (input3 != 0)
                     {
-                        us_tmp_inputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input3].segPathId);
+                        // SUPER HACK!!!!
+                        us_tmp_inputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[input3].segPathId));
                         us_tmp_inputCargo = us_tmp_inputPath.GetCargoIdAtRear();
                         if (us_tmp_inputCargo != -1)
                         {
@@ -175,7 +180,7 @@ internal struct OptimizedSplitter
             bool flag = true;
             if (outFilter != 0)
             {
-                flag = cargoTraffic.container.cargoPool[us_tmp_inputCargo0].item == outFilter;
+                flag = beltExecutor.OptimizedCargoContainer.cargoPool[us_tmp_inputCargo0].item == outFilter;
             }
             us_tmp_outputPath = null;
             us_tmp_outputPath0 = null;
@@ -187,7 +192,8 @@ internal struct OptimizedSplitter
             }
             if (output0 != 0)
             {
-                us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output0].segPathId);
+                // SUPER HACK!!!!
+                us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output0].segPathId));
                 num = us_tmp_outputPath.TestBlankAtHead();
                 if (us_tmp_outputPath.pathLength <= 10 || num < 0)
                 {
@@ -200,7 +206,8 @@ internal struct OptimizedSplitter
         IL_03e5:
             if ((!flag || outFilter == 0) && output1 != 0)
             {
-                us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output1].segPathId);
+                // SUPER HACK!!!!
+                us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output1].segPathId));
                 num = us_tmp_outputPath.TestBlankAtHead();
                 if (us_tmp_outputPath.pathLength > 10 && num >= 0)
                 {
@@ -209,7 +216,8 @@ internal struct OptimizedSplitter
                 }
                 else if (output2 != 0)
                 {
-                    us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output2].segPathId);
+                    // SUPER HACK!!!!
+                    us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output2].segPathId));
                     num = us_tmp_outputPath.TestBlankAtHead();
                     if (us_tmp_outputPath.pathLength > 10 && num >= 0)
                     {
@@ -218,7 +226,8 @@ internal struct OptimizedSplitter
                     }
                     else if (output3 != 0)
                     {
-                        us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output3].segPathId);
+                        // SUPER HACK!!!!
+                        us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output3].segPathId));
                         num = us_tmp_outputPath.TestBlankAtHead();
                         if (us_tmp_outputPath.pathLength > 10 && num >= 0)
                         {
@@ -238,11 +247,11 @@ internal struct OptimizedSplitter
                 InputAlternate(us_tmp_inputIndex0);
                 OutputAlternate(us_tmp_outputIdx);
             }
-            else if (topId != 0 && (flag || outFilter == 0) && cargoTraffic.factory.InsertCargoIntoStorage(topId, ref cargoTraffic.container.cargoPool[us_tmp_inputCargo0]))
+            else if (topId != 0 && (flag || outFilter == 0) && subFactory.InsertCargoIntoStorage(topId, ref beltExecutor.OptimizedCargoContainer.cargoPool[us_tmp_inputCargo0]))
             {
                 int num3 = us_tmp_inputPath0.TryPickCargoAtEnd();
                 Assert.True(num3 >= 0);
-                cargoTraffic.container.RemoveCargo(num3);
+                beltExecutor.OptimizedCargoContainer.RemoveCargo(num3);
                 InputAlternate(us_tmp_inputIndex0);
             }
             us_tmp_inputPath0 = us_tmp_inputPath1;
@@ -273,7 +282,8 @@ internal struct OptimizedSplitter
                 int num5 = -1;
                 if (output0 != 0)
                 {
-                    us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output0].segPathId);
+                    // SUPER HACK!!!!
+                    us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output0].segPathId));
                     num5 = us_tmp_outputPath.TestBlankAtHead();
                     if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
                     {
@@ -282,7 +292,8 @@ internal struct OptimizedSplitter
                     }
                     else if (output1 != 0)
                     {
-                        us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output1].segPathId);
+                        // SUPER HACK!!!!
+                        us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output1].segPathId));
                         num5 = us_tmp_outputPath.TestBlankAtHead();
                         if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
                         {
@@ -291,7 +302,8 @@ internal struct OptimizedSplitter
                         }
                         else if (output2 != 0)
                         {
-                            us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output2].segPathId);
+                            // SUPER HACK!!!!
+                            us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output2].segPathId));
                             num5 = us_tmp_outputPath.TestBlankAtHead();
                             if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
                             {
@@ -300,7 +312,8 @@ internal struct OptimizedSplitter
                             }
                             else if (output3 != 0)
                             {
-                                us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output3].segPathId);
+                                // SUPER HACK!!!!
+                                us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output3].segPathId));
                                 num5 = us_tmp_outputPath.TestBlankAtHead();
                                 if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
                                 {
@@ -315,10 +328,10 @@ internal struct OptimizedSplitter
                 {
                     int filter = us_tmp_outputIdx == 0 ? outFilter : -outFilter;
                     int inc;
-                    int num6 = cargoTraffic.factory.PickFromStorageFiltered(topId, ref filter, 1, out inc);
+                    int num6 = subFactory.PickFromStorageFiltered(topId, ref filter, 1, out inc);
                     if (filter > 0 && num6 > 0)
                     {
-                        int cargoId = cargoTraffic.container.AddCargo((short)filter, (byte)num6, (byte)inc);
+                        int cargoId = beltExecutor.OptimizedCargoContainer.AddCargo((short)filter, (byte)num6, (byte)inc);
                         us_tmp_outputPath0.InsertCargoAtHeadDirect(cargoId, num5);
                         OutputAlternate(us_tmp_outputIdx);
                         continue;
@@ -335,7 +348,8 @@ internal struct OptimizedSplitter
         int num7 = -1;
         if (output0 != 0)
         {
-            us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output0].segPathId);
+            // SUPER HACK!!!!
+            us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output0].segPathId));
             num7 = us_tmp_outputPath.TestBlankAtHead();
             if (us_tmp_outputPath.pathLength > 10 && num7 >= 0)
             {
@@ -347,10 +361,10 @@ internal struct OptimizedSplitter
         {
             int filter2 = outFilter;
             int inc2;
-            int num8 = cargoTraffic.factory.PickFromStorageFiltered(topId, ref filter2, 1, out inc2);
+            int num8 = subFactory.PickFromStorageFiltered(topId, ref filter2, 1, out inc2);
             if (filter2 > 0 && num8 > 0)
             {
-                int cargoId2 = cargoTraffic.container.AddCargo((short)filter2, (byte)num8, (byte)inc2);
+                int cargoId2 = beltExecutor.OptimizedCargoContainer.AddCargo((short)filter2, (byte)num8, (byte)inc2);
                 us_tmp_outputPath0.InsertCargoAtHeadDirect(cargoId2, num7);
                 OutputAlternate(us_tmp_outputIdx);
             }
@@ -364,7 +378,8 @@ internal struct OptimizedSplitter
             int num10 = -1;
             if (output1 != 0)
             {
-                us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output1].segPathId);
+                // SUPER HACK!!!!
+                us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output1].segPathId));
                 num10 = us_tmp_outputPath.TestBlankAtHead();
                 if (us_tmp_outputPath.pathLength > 10 && num10 >= 0)
                 {
@@ -373,7 +388,8 @@ internal struct OptimizedSplitter
                 }
                 else if (output2 != 0)
                 {
-                    us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output2].segPathId);
+                    // SUPER HACK!!!!
+                    us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output2].segPathId));
                     num10 = us_tmp_outputPath.TestBlankAtHead();
                     if (us_tmp_outputPath.pathLength > 10 && num10 >= 0)
                     {
@@ -382,7 +398,8 @@ internal struct OptimizedSplitter
                     }
                     else if (output3 != 0)
                     {
-                        us_tmp_outputPath = cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output3].segPathId);
+                        // SUPER HACK!!!!
+                        us_tmp_outputPath = beltExecutor.GetOptimizedCargoPath(cargoTraffic.GetCargoPath(cargoTraffic.beltPool[output3].segPathId));
                         num10 = us_tmp_outputPath.TestBlankAtHead();
                         if (us_tmp_outputPath.pathLength > 10 && num10 >= 0)
                         {
@@ -396,10 +413,10 @@ internal struct OptimizedSplitter
             {
                 int filter3 = -outFilter;
                 int inc3;
-                int num11 = cargoTraffic.factory.PickFromStorageFiltered(topId, ref filter3, 1, out inc3);
+                int num11 = subFactory.PickFromStorageFiltered(topId, ref filter3, 1, out inc3);
                 if (filter3 > 0 && num11 > 0)
                 {
-                    int cargoId3 = cargoTraffic.container.AddCargo((short)filter3, (byte)num11, (byte)inc3);
+                    int cargoId3 = beltExecutor.OptimizedCargoContainer.AddCargo((short)filter3, (byte)num11, (byte)inc3);
                     us_tmp_outputPath0.InsertCargoAtHeadDirect(cargoId3, num10);
                     OutputAlternate(us_tmp_outputIdx);
                     continue;
@@ -714,17 +731,17 @@ internal sealed class SplitterExecutor
 {
     private OptimizedSplitter[] _optimizedSplitters;
 
-    public void GameTick(PlanetFactory planet, long time)
+    public void GameTick(PlanetFactory planet, OptimizedSubFactory subFactory, BeltExecutor beltExecutor, long time)
     {
         CargoTraffic cargoTraffic = planet.cargoTraffic;
         OptimizedSplitter[] optimizedSplitters = _optimizedSplitters;
         for (int i = 0; i < optimizedSplitters.Length; i++)
         {
-            optimizedSplitters[i].UpdateSplitter(cargoTraffic);
+            optimizedSplitters[i].UpdateSplitter(cargoTraffic, subFactory, beltExecutor);
         }
     }
 
-    public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
+    public void Initialize(PlanetFactory planet, Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         List<OptimizedSplitter> optimizedSplitters = [];
         foreach (int splitterIndex in subFactoryGraph.GetAllNodes()

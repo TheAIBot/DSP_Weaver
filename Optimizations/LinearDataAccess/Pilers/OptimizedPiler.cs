@@ -1,12 +1,13 @@
 ﻿using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Pilers;
 
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedPiler
 {
-    private readonly CargoPath inputBelt;
-    private readonly CargoPath outputBelt;
+    private readonly OptimizedCargoPath inputBelt;
+    private readonly OptimizedCargoPath outputBelt;
     private readonly int inputBeltSpeed;
     private readonly int outputBeltSpeed;
     private byte cacheCargoStack1;
@@ -19,8 +20,8 @@ internal struct OptimizedPiler
     private PilerState pilerState;
     private int slowlyBeltSpeed;
 
-    public OptimizedPiler(CargoPath inputBelt,
-                          CargoPath outputBelt,
+    public OptimizedPiler(OptimizedCargoPath inputBelt,
+                          OptimizedCargoPath outputBelt,
                           int inputBeltSpeed,
                           int outputBeltSpeed,
                           ref readonly PilerComponent piler)
@@ -63,7 +64,7 @@ internal struct OptimizedPiler
                     int num = inputBelt.TryPickCargoAtEnd();
                     if (num >= 0)
                     {
-                        Cargo cargo = inputBelt.cargoContainer.cargoPool[num];
+                        OptimizedCargo cargo = inputBelt.cargoContainer.cargoPool[num];
                         if (cacheItemId1 != 0)
                         {
                             cacheItemId2 = cacheItemId1;
@@ -84,7 +85,7 @@ internal struct OptimizedPiler
                 int num2 = inputBelt.TryPickCargoAtEnd();
                 if (num2 >= 0)
                 {
-                    Cargo cargo2 = inputBelt.cargoContainer.cargoPool[num2];
+                    OptimizedCargo cargo2 = inputBelt.cargoContainer.cargoPool[num2];
                     cacheItemId1 = cargo2.item;
                     cacheCargoStack1 = cargo2.stack;
                     cacheCargoInc1 = cargo2.inc;
@@ -151,7 +152,7 @@ internal struct OptimizedPiler
                 {
                     if (num6 >= 0)
                     {
-                        Cargo cargo3 = inputBelt.cargoContainer.cargoPool[num6];
+                        OptimizedCargo cargo3 = inputBelt.cargoContainer.cargoPool[num6];
                         byte b2 = (byte)((float)(int)cargo3.stack / 2f + 0.5f);
                         byte b3 = (byte)((float)(int)cargo3.inc / (float)(int)cargo3.stack * (float)(int)b2 + 0.5f);
                         cacheItemId2 = cargo3.item;
@@ -170,7 +171,7 @@ internal struct OptimizedPiler
                 }
                 else if (num6 >= 0)
                 {
-                    Cargo cargo4 = inputBelt.cargoContainer.cargoPool[num6];
+                    OptimizedCargo cargo4 = inputBelt.cargoContainer.cargoPool[num6];
                     cacheItemId2 = cargo4.item;
                     cacheCargoStack2 = cargo4.stack;
                     cacheCargoInc2 = cargo4.inc;

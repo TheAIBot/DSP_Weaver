@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Pilers;
@@ -61,7 +62,8 @@ internal sealed class PilerExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           BeltExecutor beltExecutor)
     {
         List<int> networkIndices = [];
         List<OptimizedPiler> optimizedPilers = [];
@@ -83,14 +85,16 @@ internal sealed class PilerExecutor
             }
 
             BeltComponent inputBeltComponent = planet.cargoTraffic.beltPool[piler.inputBeltId];
-            CargoPath inputBelt = planet.cargoTraffic.GetCargoPath(inputBeltComponent.segPathId);
+            CargoPath? inputCargoPath = planet.cargoTraffic.GetCargoPath(inputBeltComponent.segPathId);
+            OptimizedCargoPath? inputBelt = inputCargoPath != null ? beltExecutor.GetOptimizedCargoPath(inputCargoPath) : null;
             if (inputBelt == null)
             {
                 continue;
             }
 
             BeltComponent outputBeltComponent = planet.cargoTraffic.beltPool[piler.outputBeltId];
-            CargoPath outputBelt = planet.cargoTraffic.GetCargoPath(outputBeltComponent.segPathId);
+            CargoPath? outputCargoPath = planet.cargoTraffic.GetCargoPath(outputBeltComponent.segPathId);
+            OptimizedCargoPath? outputBelt = outputCargoPath != null ? beltExecutor.GetOptimizedCargoPath(outputCargoPath) : null;
             if (outputBelt == null)
             {
                 continue;

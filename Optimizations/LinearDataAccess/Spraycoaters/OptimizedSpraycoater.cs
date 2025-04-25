@@ -1,14 +1,15 @@
 ﻿using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 
 [StructLayout(LayoutKind.Auto)]
-public struct OptimizedSpraycoater
+internal struct OptimizedSpraycoater
 {
     public readonly int incommingBeltSegIndexPlusSegPivotOffset;
-    public readonly CargoPath incommingCargoPath;
+    public readonly OptimizedCargoPath? incommingCargoPath;
     public readonly int[] incItemIds;
-    public readonly CargoPath outgoingCargoPath;
+    public readonly OptimizedCargoPath? outgoingCargoPath;
     public readonly int outgoingBeltSegIndexPlusSegPivotOffset;
     public readonly int outgoingBeltSpeed;
     public readonly PowerNetwork powerNetwork;
@@ -21,9 +22,9 @@ public struct OptimizedSpraycoater
     public bool incUsed;
 
     public OptimizedSpraycoater(int incommingBeltSegIndexPlusSegPivotOffset,
-                                CargoPath incommingCargoPath,
+                                OptimizedCargoPath? incommingCargoPath,
                                 int[] incItemIds,
-                                CargoPath outgoingCargoPath,
+                                OptimizedCargoPath? outgoingCargoPath,
                                 int outgoingBeltSegIndexPlusSegPivotOffset,
                                 int outgoingBeltSpeed,
                                 PowerNetwork powerNetwork,

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Stations;
 
@@ -41,7 +42,7 @@ internal sealed class StationExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
+    public void Initialize(PlanetFactory planet, Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         List<OptimizedStation> optimizedStations = [];
 
@@ -56,10 +57,11 @@ internal sealed class StationExecutor
                 continue;
             }
 
-            CargoPath[] belts = new CargoPath[station.slots.Length];
+            OptimizedCargoPath[] belts = new OptimizedCargoPath[station.slots.Length];
             for (int i = 0; i < belts.Length; i++)
             {
-                belts[i] = station.slots[i].beltId > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[station.slots[i].beltId].segPathId] : null;
+                CargoPath? belt = station.slots[i].beltId > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[station.slots[i].beltId].segPathId] : null;
+                belts[i] = belt != null ? beltExecutor.GetOptimizedCargoPath(belt) : null;
             }
 
             optimizedStations.Add(new OptimizedStation(station, belts));

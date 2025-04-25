@@ -1,5 +1,6 @@
 ## 1.2.0
 * Fix spray coaters did not consume power.
+* !!!!!! Inserter code can not put into spiltter belt  !!!!!
 
 ## 1.1.5
 * Fix sorter inserting into assembler or lab without a recipe set would crash the game.

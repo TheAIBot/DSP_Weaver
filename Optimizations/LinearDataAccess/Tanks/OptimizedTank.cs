@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 
 namespace Weaver.Optimizations.LinearDataAccess.Tanks;
@@ -9,10 +10,10 @@ internal struct OptimizedTank
     private int id;
     private readonly int lastTankIndex;
     private readonly int nextTankIndex;
-    private readonly CargoPath belt0;
-    private readonly CargoPath belt1;
-    private readonly CargoPath belt2;
-    private readonly CargoPath belt3;
+    private readonly OptimizedCargoPath? belt0;
+    private readonly OptimizedCargoPath? belt1;
+    private readonly OptimizedCargoPath? belt2;
+    private readonly OptimizedCargoPath? belt3;
     private readonly bool isOutput0;
     private readonly bool isOutput1;
     private readonly bool isOutput2;
@@ -26,10 +27,10 @@ internal struct OptimizedTank
     public int fluidId;
 
     public OptimizedTank(ref readonly TankComponent tank,
-                         CargoPath belt0,
-                         CargoPath belt1,
-                         CargoPath belt2,
-                         CargoPath belt3)
+                         OptimizedCargoPath? belt0,
+                         OptimizedCargoPath? belt1,
+                         OptimizedCargoPath? belt2,
+                         OptimizedCargoPath? belt3)
     {
         id = tank.id;
         lastTankIndex = tank.lastTankId;
@@ -51,7 +52,7 @@ internal struct OptimizedTank
         fluidId = tank.fluidId;
     }
 
-    public void TickOutput(PlanetFactory factory, TankExecutor tankExecutor)
+    public void TickOutput(TankExecutor tankExecutor)
     {
         if (lastTankIndex <= 0 || !outputSwitch)
         {
@@ -139,7 +140,7 @@ internal struct OptimizedTank
         }
     }
 
-    public void GameTick(PlanetFactory factory, TankExecutor tankExecutor)
+    public void GameTick(TankExecutor tankExecutor)
     {
         if (fluidInc < 0)
         {
@@ -149,13 +150,13 @@ internal struct OptimizedTank
         {
             return;
         }
-        CargoTraffic cargoTraffic = factory.cargoTraffic;
+
         byte stack = 0;
         byte inc = 0;
-        UpdateTankBelt(belt0, isOutput0, tankExecutor, cargoTraffic, ref stack, ref inc);
-        UpdateTankBelt(belt1, isOutput1, tankExecutor, cargoTraffic, ref stack, ref inc);
-        UpdateTankBelt(belt2, isOutput2, tankExecutor, cargoTraffic, ref stack, ref inc);
-        UpdateTankBelt(belt3, isOutput3, tankExecutor, cargoTraffic, ref stack, ref inc);
+        UpdateTankBelt(belt0, isOutput0, tankExecutor, ref stack, ref inc);
+        UpdateTankBelt(belt1, isOutput1, tankExecutor, ref stack, ref inc);
+        UpdateTankBelt(belt2, isOutput2, tankExecutor, ref stack, ref inc);
+        UpdateTankBelt(belt3, isOutput3, tankExecutor, ref stack, ref inc);
     }
 
     public void Save(ref TankComponent tank)
@@ -165,7 +166,7 @@ internal struct OptimizedTank
         tank.fluidId = fluidId;
     }
 
-    private void UpdateTankBelt(CargoPath belt, bool isOutput, TankExecutor tankExecutor, CargoTraffic cargoTraffic, ref byte stack, ref byte inc)
+    private void UpdateTankBelt(OptimizedCargoPath belt, bool isOutput, TankExecutor tankExecutor, ref byte stack, ref byte inc)
     {
         if (belt != null)
         {
@@ -183,14 +184,14 @@ internal struct OptimizedTank
             }
             else if (!isOutput && inputSwitch)
             {
-                if (fluidId > 0 && fluidCount < fluidCapacity && CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt, fluidId, null, out stack, out inc) > 0)
+                if (fluidId > 0 && fluidCount < fluidCapacity && CargoPathMethods.TryPickItemAtRear(belt, fluidId, null, out stack, out inc) > 0)
                 {
                     fluidCount += stack;
                     fluidInc += inc;
                 }
                 if (fluidId == 0)
                 {
-                    int num2 = CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt, 0, ItemProto.fluids, out stack, out inc);
+                    int num2 = CargoPathMethods.TryPickItemAtRear(belt, 0, ItemProto.fluids, out stack, out inc);
                     if (num2 > 0)
                     {
                         fluidId = num2;
@@ -198,7 +199,7 @@ internal struct OptimizedTank
                         fluidInc += inc;
                     }
                 }
-                if (fluidCount >= fluidCapacity && CargoPathMethods.GetItemIdAtRear(cargoTraffic, belt) == fluidId && nextTankIndex > 0)
+                if (fluidCount >= fluidCapacity && CargoPathMethods.GetItemIdAtRear(belt) == fluidId && nextTankIndex > 0)
                 {
                     OptimizedTank tankComponent = tankExecutor._optimizedTanks[nextTankIndex];
                     OptimizedTank tankComponent2 = tankComponent;
@@ -234,7 +235,7 @@ internal struct OptimizedTank
                     {
                         flag = false;
                     }
-                    if (flag && CargoPathMethods.TryPickItemAtRear(cargoTraffic, belt, fluidId, null, out stack, out inc) > 0)
+                    if (flag && CargoPathMethods.TryPickItemAtRear(belt, fluidId, null, out stack, out inc) > 0)
                     {
                         if (tankExecutor._optimizedTanks[tankComponent2.id].fluidCount == 0)
                         {

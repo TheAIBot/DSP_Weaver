@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Spraycoaters;
@@ -69,7 +70,8 @@ internal sealed class SpraycoaterExecutor
     public void Initialize(PlanetFactory planet,
                            OptimizedSubFactory subFactory,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           BeltExecutor beltExecutor)
     {
         List<int> spraycoaterNetworkIds = [];
         List<OptimizedSpraycoater> optimizedSpraycoaters = [];
@@ -94,23 +96,25 @@ internal sealed class SpraycoaterExecutor
             }
 
             BeltComponent? incommingBeltComponent = default;
-            CargoPath incommingCargoPath = null;
+            OptimizedCargoPath? incommingCargoPath = null;
             int incommingBeltSegIndexPlusSegPivotOffset = 0;
             if (spraycoater.incBeltId > 0)
             {
                 incommingBeltComponent = planet.cargoTraffic.beltPool[spraycoater.incBeltId];
-                incommingCargoPath = planet.cargoTraffic.GetCargoPath(incommingBeltComponent.Value.segPathId);
+                CargoPath? incommingBelt = planet.cargoTraffic.GetCargoPath(incommingBeltComponent.Value.segPathId);
+                incommingCargoPath = incommingBelt != null ? beltExecutor.GetOptimizedCargoPath(incommingBelt) : null;
                 incommingBeltSegIndexPlusSegPivotOffset = incommingBeltComponent.Value.segIndex + incommingBeltComponent.Value.segPivotOffset;
             }
 
             BeltComponent? outgoingBeltComponent = default;
-            CargoPath outgoingCargoPath = null;
+            OptimizedCargoPath? outgoingCargoPath = null;
             int outgoingBeltSegIndexPlusSegPivotOffset = 0;
             int outgoingBeltSpeed = 0;
             if (spraycoater.cargoBeltId > 0)
             {
                 outgoingBeltComponent = planet.cargoTraffic.beltPool[spraycoater.cargoBeltId];
-                outgoingCargoPath = planet.cargoTraffic.GetCargoPath(outgoingBeltComponent.Value.segPathId);
+                CargoPath? outgoingbelt = planet.cargoTraffic.GetCargoPath(outgoingBeltComponent.Value.segPathId);
+                outgoingCargoPath = outgoingbelt != null ? beltExecutor.GetOptimizedCargoPath(outgoingbelt) : null;
                 outgoingBeltSegIndexPlusSegPivotOffset = outgoingBeltComponent.Value.segIndex + outgoingBeltComponent.Value.segPivotOffset;
                 outgoingBeltSpeed = outgoingBeltComponent.Value.speed;
             }

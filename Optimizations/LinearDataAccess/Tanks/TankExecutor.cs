@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Tanks;
 
@@ -9,15 +10,15 @@ internal sealed class TankExecutor
     public OptimizedTank[] _optimizedTanks;
     private Dictionary<int, int> _tankIdToOptimizedTankIndex;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick()
     {
         OptimizedTank[] optimizedTanks = _optimizedTanks;
 
         for (int i = 0; i < optimizedTanks.Length; i++)
         {
             ref OptimizedTank tank = ref optimizedTanks[i];
-            tank.GameTick(planet, this);
-            tank.TickOutput(planet, this);
+            tank.GameTick(this);
+            tank.TickOutput(this);
             if (tank.fluidCount == 0)
             {
                 tank.fluidId = 0;
@@ -40,7 +41,7 @@ internal sealed class TankExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
+    public void Initialize(PlanetFactory planet, Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         List<OptimizedTank> optimizedTanks = [];
         Dictionary<int, int> tankIdToOptimizedTankIndex = [];
@@ -56,13 +57,18 @@ internal sealed class TankExecutor
                 continue;
             }
 
-            CargoPath belt0 = tank.belt0 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt0].segPathId] : null;
-            CargoPath belt1 = tank.belt1 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt1].segPathId] : null;
-            CargoPath belt2 = tank.belt2 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt2].segPathId] : null;
-            CargoPath belt3 = tank.belt3 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt3].segPathId] : null;
+            CargoPath? belt0 = tank.belt0 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt0].segPathId] : null;
+            CargoPath? belt1 = tank.belt1 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt1].segPathId] : null;
+            CargoPath? belt2 = tank.belt2 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt2].segPathId] : null;
+            CargoPath? belt3 = tank.belt3 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt3].segPathId] : null;
+
+            OptimizedCargoPath? optimizedBelt0 = belt0 != null ? beltExecutor.GetOptimizedCargoPath(belt0) : null;
+            OptimizedCargoPath? optimizedBelt1 = belt1 != null ? beltExecutor.GetOptimizedCargoPath(belt1) : null;
+            OptimizedCargoPath? optimizedBelt2 = belt2 != null ? beltExecutor.GetOptimizedCargoPath(belt2) : null;
+            OptimizedCargoPath? optimizedBelt3 = belt3 != null ? beltExecutor.GetOptimizedCargoPath(belt3) : null;
 
             tankIdToOptimizedTankIndex.Add(tank.id, optimizedTanks.Count);
-            optimizedTanks.Add(new OptimizedTank(in tank, belt0, belt1, belt2, belt3));
+            optimizedTanks.Add(new OptimizedTank(in tank, optimizedBelt0, optimizedBelt1, optimizedBelt2, optimizedBelt3));
         }
 
         _optimizedTanks = optimizedTanks.ToArray();

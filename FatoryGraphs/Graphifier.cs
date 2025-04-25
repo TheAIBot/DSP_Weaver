@@ -27,6 +27,7 @@ internal static class Graphifier
         AddStoragesToGraph(planet, entityTypeIndexToNode);
         AddTanksToGraph(planet, entityTypeIndexToNode);
         AddSplittersToGraph(planet, entityTypeIndexToNode);
+        AddBeltsToGraph(planet, entityTypeIndexToNode);
 
         HashSet<Node> nodes = new(entityTypeIndexToNode.Values);
         List<Graph> graphs = new List<Graph>();
@@ -579,6 +580,26 @@ internal static class Graphifier
             if (component.output3 > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output3, planet);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+            }
+        }
+    }
+
+    private static void AddBeltsToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    {
+        for (int i = 1; i < planet.cargoTraffic.pathCursor; i++)
+        {
+            CargoPath component = planet.cargoTraffic.pathPool[i];
+            if (component == null || component.id != i)
+            {
+                continue;
+            }
+
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Belt, i));
+
+            if (component.outputPath != null)
+            {
+                EntityTypeIndex connectedEntityIndex = new EntityTypeIndex(EntityType.Belt, component.outputPath.id);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }

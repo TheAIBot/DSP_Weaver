@@ -88,31 +88,31 @@ internal sealed class OptimizedSubFactory
     {
         optimizedPowerSystemBuilder.AddSubFactory(this);
 
+        InitializeBelts(subFactoryGraph);
         InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeMiners(subFactoryGraph);
         InitializeEjectors(subFactoryGraph);
         InitializeSilos(subFactoryGraph);
         InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeResearchingLabs(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeMonitors(subFactoryGraph);
-        InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializePilers(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializeStations(subFactoryGraph);
+        InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
+        InitializePilers(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
+        InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
+        InitializeStations(subFactoryGraph, _beltExecutor);
         InitializeDispensers(subFactoryGraph);
-        InitializeTanks(subFactoryGraph);
-        InitializeBelts(subFactoryGraph);
-        InitializeSplitters(subFactoryGraph);
+        InitializeTanks(subFactoryGraph, _beltExecutor);
+        InitializeSplitters(subFactoryGraph, _beltExecutor);
     }
 
-    private void InitializeInserters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeInserters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
     {
         _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
-        _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, optimizedPowerSystemBuilder.CreateBiInserterBuilder());
+        _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, optimizedPowerSystemBuilder.CreateBiInserterBuilder(), beltExecutor);
 
         _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
-        _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, optimizedPowerSystemBuilder.CreateInserterBuilder());
+        _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, optimizedPowerSystemBuilder.CreateInserterBuilder(), beltExecutor);
     }
 
     private void InitializeAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -164,28 +164,28 @@ internal sealed class OptimizedSubFactory
         _monitorExecutor.Initialize(_planet, subFactoryGraph);
     }
 
-    private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
-        _spraycoaterExecutor.Initialize(_planet, this, subFactoryGraph, optimizedPowerSystemBuilder);
+        _spraycoaterExecutor.Initialize(_planet, this, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializePilers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializePilers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
     {
         _pilerExecutor = new PilerExecutor();
-        _pilerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
+        _pilerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializeFractionators(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeFractionators(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
     {
         _fractionatorExecutor = new FractionatorExecutor();
-        _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
+        _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializeStations(Graph subFactoryGraph)
+    private void InitializeStations(Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         _stationExecutor = new StationExecutor();
-        _stationExecutor.Initialize(_planet, subFactoryGraph);
+        _stationExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
     }
 
     private void InitializeDispensers(Graph subFactoryGraph)
@@ -194,22 +194,22 @@ internal sealed class OptimizedSubFactory
         _dispenserExecutor.Initialize(subFactoryGraph);
     }
 
-    private void InitializeTanks(Graph subFactoryGraph)
+    private void InitializeTanks(Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         _tankExecutor = new TankExecutor();
-        _tankExecutor.Initialize(_planet, subFactoryGraph);
+        _tankExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
     }
 
     private void InitializeBelts(Graph subFactoryGraph)
     {
         _beltExecutor = new BeltExecutor();
-        _beltExecutor.Initialize(subFactoryGraph);
+        _beltExecutor.Initialize(_planet, subFactoryGraph);
     }
 
-    private void InitializeSplitters(Graph subFactoryGraph)
+    private void InitializeSplitters(Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         _splitterExecutor = new SplitterExecutor();
-        _splitterExecutor.Initialize(_planet, subFactoryGraph);
+        _splitterExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
     }
 
     public void GameTick(WorkerTimings workerTimings, long time)
@@ -240,7 +240,7 @@ internal sealed class OptimizedSubFactory
 
         workerTimings.StartTimer();
         // Storage has no logic on planets the player isn't on which is why it is omitted
-        _tankExecutor.GameTick(_planet);
+        _tankExecutor.GameTick();
         workerTimings.RecordTime(WorkType.Storage);
 
         workerTimings.StartTimer();
@@ -248,7 +248,7 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.CargoPathsData);
 
         workerTimings.StartTimer();
-        _splitterExecutor.GameTick(_planet, time);
+        _splitterExecutor.GameTick(_planet, this, _beltExecutor, time);
         workerTimings.RecordTime(WorkType.Splitter);
 
         workerTimings.StartTimer();
@@ -402,5 +402,149 @@ internal sealed class OptimizedSubFactory
         }
 
         throw new InvalidOperationException("Unknown entity type.");
+    }
+
+    public bool InsertCargoIntoStorage(int entityId, ref OptimizedCargo cargo, bool useBan = true)
+    {
+        int storageId = _planet.entityPool[entityId].storageId;
+        if (storageId > 0)
+        {
+            StorageComponent storageComponent = _planet.factoryStorage.storagePool[storageId];
+            while (storageComponent != null)
+            {
+                if (!useBan || storageComponent.lastFullItem != cargo.item)
+                {
+                    if (AddWholeCargo(storageComponent, ref cargo, useBan))
+                    {
+                        return true;
+                    }
+                    if (storageComponent.nextStorage == null)
+                    {
+                        return false;
+                    }
+                }
+                storageComponent = storageComponent.nextStorage;
+            }
+        }
+        return false;
+    }
+
+    public int PickFromStorageFiltered(int entityId, ref int filter, int count, out int inc)
+    {
+        inc = 0;
+        int num = count;
+        int storageId = _planet.entityPool[entityId].storageId;
+        if (storageId > 0)
+        {
+            StorageComponent storageComponent = _planet.factoryStorage.storagePool[storageId];
+            StorageComponent storageComponent2 = storageComponent;
+            if (storageComponent != null)
+            {
+                storageComponent = storageComponent.topStorage;
+                while (storageComponent != null)
+                {
+                    if (storageComponent.lastEmptyItem != 0 && storageComponent.lastEmptyItem != filter)
+                    {
+                        int filter2 = filter;
+                        int count2 = count;
+                        storageComponent.TakeTailItemsFiltered(ref filter2, ref count2, out var inc2, _planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                        count -= count2;
+                        inc += inc2;
+                        if (filter2 > 0)
+                        {
+                            filter = filter2;
+                        }
+                        if (count == 0)
+                        {
+                            storageComponent.lastEmptyItem = -1;
+                            return num;
+                        }
+                        if (filter >= 0)
+                        {
+                            storageComponent.lastEmptyItem = filter;
+                        }
+                    }
+                    if (storageComponent == storageComponent2)
+                    {
+                        break;
+                    }
+                    storageComponent = storageComponent.previousStorage;
+                    continue;
+                }
+            }
+        }
+        return num - count;
+    }
+
+    private bool AddWholeCargo(StorageComponent storage, ref OptimizedCargo cargo, bool useBan = false)
+    {
+        if (cargo.item <= 0 || cargo.stack == 0 || cargo.item >= 12000)
+        {
+            return false;
+        }
+        bool flag = storage.type > EStorageType.Default;
+        if (flag)
+        {
+            if (storage.type == EStorageType.Fuel && !StorageComponent.itemIsFuel[cargo.item])
+            {
+                return false;
+            }
+            if (storage.type == EStorageType.Ammo && (!StorageComponent.itemIsAmmo[cargo.item] || StorageComponent.itemIsBomb[cargo.item]))
+            {
+                return false;
+            }
+            if (storage.type == EStorageType.Bomb && !StorageComponent.itemIsBomb[cargo.item])
+            {
+                return false;
+            }
+            if (storage.type == EStorageType.Fighter && !StorageComponent.itemIsFighter[cargo.item])
+            {
+                return false;
+            }
+        }
+        bool flag2 = false;
+        int num = 0;
+        int num2 = (useBan ? (storage.size - storage.bans) : storage.size);
+        for (int i = 0; i < num2; i++)
+        {
+            if (storage.grids[i].itemId == 0)
+            {
+                if (flag && (storage.type == EStorageType.DeliveryFiltered || storage.grids[i].filter > 0) && cargo.item != storage.grids[i].filter)
+                {
+                    continue;
+                }
+                if (num == 0)
+                {
+                    num = StorageComponent.itemStackCount[cargo.item];
+                }
+                storage.grids[i].itemId = cargo.item;
+                if (storage.grids[i].filter == 0)
+                {
+                    storage.grids[i].stackSize = num;
+                }
+            }
+            if (storage.grids[i].itemId == cargo.item)
+            {
+                if (num == 0)
+                {
+                    num = storage.grids[i].stackSize;
+                }
+                int num3 = num - storage.grids[i].count;
+                if (cargo.stack <= num3)
+                {
+                    storage.grids[i].count += cargo.stack;
+                    storage.grids[i].inc += cargo.inc;
+                    flag2 = true;
+                    break;
+                }
+            }
+        }
+        if (flag2)
+        {
+            storage.searchStart = 0;
+            storage.lastEmptyItem = -1;
+            storage.NotifyStorageChange();
+        }
+        return flag2;
     }
 }

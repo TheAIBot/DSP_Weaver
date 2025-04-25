@@ -1,4 +1,6 @@
-﻿namespace Weaver.Optimizations.LinearDataAccess.Stations;
+﻿using Weaver.Optimizations.LinearDataAccess.Belts;
+
+namespace Weaver.Optimizations.LinearDataAccess.Stations;
 
 /// <summary>
 /// This optimized station only optimizes belt interactions.
@@ -10,9 +12,9 @@
 internal struct OptimizedStation
 {
     private readonly StationComponent stationComponent;
-    private readonly CargoPath[] _cargoPaths;
+    private readonly OptimizedCargoPath[] _cargoPaths;
 
-    public OptimizedStation(StationComponent stationComponent, CargoPath[] cargoPaths)
+    public OptimizedStation(StationComponent stationComponent, OptimizedCargoPath[] cargoPaths)
     {
         this.stationComponent = stationComponent;
         _cargoPaths = cargoPaths;
@@ -43,7 +45,7 @@ internal struct OptimizedStation
                             {
                                 continue;
                             }
-                            CargoPath cargoPath = _cargoPaths[i];
+                            OptimizedCargoPath cargoPath = _cargoPaths[i];
                             if (cargoPath == null || cargoPath.buffer[9] != 0)
                             {
                                 continue;
@@ -102,7 +104,7 @@ internal struct OptimizedStation
                         {
                             continue;
                         }
-                        CargoPath cargoPath2 = _cargoPaths[j];
+                        OptimizedCargoPath cargoPath2 = _cargoPaths[j];
                         if (cargoPath2 == null)
                         {
                             continue;
@@ -161,7 +163,7 @@ internal struct OptimizedStation
                         {
                             continue;
                         }
-                        CargoPath cargoPath = _cargoPaths[i];
+                        OptimizedCargoPath cargoPath = _cargoPaths[i];
                         if (cargoPath == null)
                         {
                             continue;
