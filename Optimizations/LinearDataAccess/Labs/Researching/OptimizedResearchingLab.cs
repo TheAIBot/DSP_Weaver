@@ -246,93 +246,80 @@ internal struct OptimizedResearchingLab
             return;
         }
 
-        // This should never be possible. All labs in a column always share their settings
-        //if (labPool[nextLabId].needs == null || recipeId != labPool[nextLabId].recipeId || techId != labPool[nextLabId].techId)
-        //{
-        //    return;
-        //}
         bool movedItems = false;
         if (matrixServed != null && labPool[nextLabIndex].matrixServed != null)
         {
-            int[] obj = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? matrixServed : labPool[nextLabIndex].matrixServed;
-            int[] array = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? labPool[nextLabIndex].matrixServed : matrixServed;
-            lock (obj)
+            if (labPool[nextLabIndex].needs[0] == 6001 && matrixServed[0] >= 7200)
             {
-                lock (array)
+                int num = (matrixServed[0] - 7200) / 3600 * 3600;
+                if (num > 36000)
                 {
-                    if (labPool[nextLabIndex].needs[0] == 6001 && matrixServed[0] >= 7200)
-                    {
-                        int num = (matrixServed[0] - 7200) / 3600 * 3600;
-                        if (num > 36000)
-                        {
-                            num = 36000;
-                        }
-                        int num2 = split_inc(ref matrixServed[0], ref matrixIncServed[0], num);
-                        labPool[nextLabIndex].matrixIncServed[0] += num2;
-                        labPool[nextLabIndex].matrixServed[0] += num;
-                        movedItems = true;
-                    }
-                    if (labPool[nextLabIndex].needs[1] == 6002 && matrixServed[1] >= 7200)
-                    {
-                        int num3 = (matrixServed[1] - 7200) / 3600 * 3600;
-                        if (num3 > 36000)
-                        {
-                            num3 = 36000;
-                        }
-                        int num4 = split_inc(ref matrixServed[1], ref matrixIncServed[1], num3);
-                        labPool[nextLabIndex].matrixIncServed[1] += num4;
-                        labPool[nextLabIndex].matrixServed[1] += num3;
-                        movedItems = true;
-                    }
-                    if (labPool[nextLabIndex].needs[2] == 6003 && matrixServed[2] >= 7200)
-                    {
-                        int num5 = (matrixServed[2] - 7200) / 3600 * 3600;
-                        if (num5 > 36000)
-                        {
-                            num5 = 36000;
-                        }
-                        int num6 = split_inc(ref matrixServed[2], ref matrixIncServed[2], num5);
-                        labPool[nextLabIndex].matrixIncServed[2] += num6;
-                        labPool[nextLabIndex].matrixServed[2] += num5;
-                        movedItems = true;
-                    }
-                    if (labPool[nextLabIndex].needs[3] == 6004 && matrixServed[3] >= 7200)
-                    {
-                        int num7 = (matrixServed[3] - 7200) / 3600 * 3600;
-                        if (num7 > 36000)
-                        {
-                            num7 = 36000;
-                        }
-                        int num8 = split_inc(ref matrixServed[3], ref matrixIncServed[3], num7);
-                        labPool[nextLabIndex].matrixIncServed[3] += num8;
-                        labPool[nextLabIndex].matrixServed[3] += num7;
-                        movedItems = true;
-                    }
-                    if (labPool[nextLabIndex].needs[4] == 6005 && matrixServed[4] >= 7200)
-                    {
-                        int num9 = (matrixServed[4] - 7200) / 3600 * 3600;
-                        if (num9 > 36000)
-                        {
-                            num9 = 36000;
-                        }
-                        int num10 = split_inc(ref matrixServed[4], ref matrixIncServed[4], num9);
-                        labPool[nextLabIndex].matrixIncServed[4] += num10;
-                        labPool[nextLabIndex].matrixServed[4] += num9;
-                        movedItems = true;
-                    }
-                    if (labPool[nextLabIndex].needs[5] == 6006 && matrixServed[5] >= 7200)
-                    {
-                        int num11 = (matrixServed[5] - 7200) / 3600 * 3600;
-                        if (num11 > 36000)
-                        {
-                            num11 = 36000;
-                        }
-                        int num12 = split_inc(ref matrixServed[5], ref matrixIncServed[5], num11);
-                        labPool[nextLabIndex].matrixIncServed[5] += num12;
-                        labPool[nextLabIndex].matrixServed[5] += num11;
-                        movedItems = true;
-                    }
+                    num = 36000;
                 }
+                int num2 = split_inc(ref matrixServed[0], ref matrixIncServed[0], num);
+                labPool[nextLabIndex].matrixIncServed[0] += num2;
+                labPool[nextLabIndex].matrixServed[0] += num;
+                movedItems = true;
+            }
+            if (labPool[nextLabIndex].needs[1] == 6002 && matrixServed[1] >= 7200)
+            {
+                int num3 = (matrixServed[1] - 7200) / 3600 * 3600;
+                if (num3 > 36000)
+                {
+                    num3 = 36000;
+                }
+                int num4 = split_inc(ref matrixServed[1], ref matrixIncServed[1], num3);
+                labPool[nextLabIndex].matrixIncServed[1] += num4;
+                labPool[nextLabIndex].matrixServed[1] += num3;
+                movedItems = true;
+            }
+            if (labPool[nextLabIndex].needs[2] == 6003 && matrixServed[2] >= 7200)
+            {
+                int num5 = (matrixServed[2] - 7200) / 3600 * 3600;
+                if (num5 > 36000)
+                {
+                    num5 = 36000;
+                }
+                int num6 = split_inc(ref matrixServed[2], ref matrixIncServed[2], num5);
+                labPool[nextLabIndex].matrixIncServed[2] += num6;
+                labPool[nextLabIndex].matrixServed[2] += num5;
+                movedItems = true;
+            }
+            if (labPool[nextLabIndex].needs[3] == 6004 && matrixServed[3] >= 7200)
+            {
+                int num7 = (matrixServed[3] - 7200) / 3600 * 3600;
+                if (num7 > 36000)
+                {
+                    num7 = 36000;
+                }
+                int num8 = split_inc(ref matrixServed[3], ref matrixIncServed[3], num7);
+                labPool[nextLabIndex].matrixIncServed[3] += num8;
+                labPool[nextLabIndex].matrixServed[3] += num7;
+                movedItems = true;
+            }
+            if (labPool[nextLabIndex].needs[4] == 6005 && matrixServed[4] >= 7200)
+            {
+                int num9 = (matrixServed[4] - 7200) / 3600 * 3600;
+                if (num9 > 36000)
+                {
+                    num9 = 36000;
+                }
+                int num10 = split_inc(ref matrixServed[4], ref matrixIncServed[4], num9);
+                labPool[nextLabIndex].matrixIncServed[4] += num10;
+                labPool[nextLabIndex].matrixServed[4] += num9;
+                movedItems = true;
+            }
+            if (labPool[nextLabIndex].needs[5] == 6006 && matrixServed[5] >= 7200)
+            {
+                int num11 = (matrixServed[5] - 7200) / 3600 * 3600;
+                if (num11 > 36000)
+                {
+                    num11 = 36000;
+                }
+                int num12 = split_inc(ref matrixServed[5], ref matrixIncServed[5], num11);
+                labPool[nextLabIndex].matrixIncServed[5] += num12;
+                labPool[nextLabIndex].matrixServed[5] += num11;
+                movedItems = true;
             }
         }
 

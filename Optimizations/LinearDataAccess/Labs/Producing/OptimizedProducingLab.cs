@@ -214,58 +214,37 @@ internal struct OptimizedProducingLab
             return;
         }
 
-        // This should never be possible. All labs in a column always share their settings
-        //if (labPool[nextLabIndex].needs == null || recipeId != labPool[nextLabIndex].recipeId || techId != labPool[nextLabIndex].techId)
-        //{
-        //    return;
-        //}
         bool movedItems = false;
         if (served != null && labPool[nextLabIndex].served != null)
         {
-            int[] obj2 = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? served : labPool[nextLabIndex].served;
-            int[] array2 = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? labPool[nextLabIndex].served : served;
-            lock (obj2)
+            int num13 = served.Length;
+            int num14 = producingLabRecipe.TimeSpend > 5400000 ? 1 : 1 + speedOverride / 20000;
+            for (int i = 0; i < num13; i++)
             {
-                lock (array2)
+                if (labPool[nextLabIndex].needs[i] == producingLabRecipe.Requires[i] && served[i] >= producingLabRecipe.RequireCounts[i] + num14)
                 {
-                    int num13 = served.Length;
-                    int num14 = producingLabRecipe.TimeSpend > 5400000 ? 1 : 1 + speedOverride / 20000;
-                    for (int i = 0; i < num13; i++)
+                    int num15 = served[i] - producingLabRecipe.RequireCounts[i] - num14;
+                    if (num15 > 5)
                     {
-                        if (labPool[nextLabIndex].needs[i] == producingLabRecipe.Requires[i] && served[i] >= producingLabRecipe.RequireCounts[i] + num14)
-                        {
-                            int num15 = served[i] - producingLabRecipe.RequireCounts[i] - num14;
-                            if (num15 > 5)
-                            {
-                                num15 = 5;
-                            }
-                            int num16 = num15 * incServed[i] / served[i];
-                            served[i] -= num15;
-                            incServed[i] -= num16;
-                            labPool[nextLabIndex].served[i] += num15;
-                            labPool[nextLabIndex].incServed[i] += num16;
-                            movedItems = true;
-                        }
+                        num15 = 5;
                     }
+                    int num16 = num15 * incServed[i] / served[i];
+                    served[i] -= num15;
+                    incServed[i] -= num16;
+                    labPool[nextLabIndex].served[i] += num15;
+                    labPool[nextLabIndex].incServed[i] += num16;
+                    movedItems = true;
                 }
             }
         }
 
-        int[] obj3 = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? produced : labPool[nextLabIndex].produced;
-        int[] array3 = nextLabIndex > labPool[nextLabIndex].nextLabIndex ? labPool[nextLabIndex].produced : produced;
-        lock (obj3)
+        int num17 = 10 * ((speedOverride + 9999) / 10000) - 2;
+        if (produced[0] < num17 && labPool[nextLabIndex].produced[0] > 0)
         {
-            lock (array3)
-            {
-                int num17 = 10 * ((speedOverride + 9999) / 10000) - 2;
-                if (produced[0] < num17 && labPool[nextLabIndex].produced[0] > 0)
-                {
-                    int num18 = num17 - produced[0] < labPool[nextLabIndex].produced[0] ? num17 - produced[0] : labPool[nextLabIndex].produced[0];
-                    produced[0] += num18;
-                    labPool[nextLabIndex].produced[0] -= num18;
-                    movedItems = true;
-                }
-            }
+            int num18 = num17 - produced[0] < labPool[nextLabIndex].produced[0] ? num17 - produced[0] : labPool[nextLabIndex].produced[0];
+            produced[0] += num18;
+            labPool[nextLabIndex].produced[0] -= num18;
+            movedItems = true;
         }
 
         if (movedItems)
