@@ -7,7 +7,7 @@ namespace Weaver.FatoryGraphs;
 internal static class Graphifier
 {
     const int minNodePerGraph = 200;
-    const int maxCombinedGraphSize = 20000;
+    const int maxCombinedGraphSize = 1000;
 
     public static List<Graph> ToGraphs(PlanetFactory planet)
     {
