@@ -217,7 +217,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 int num5 = itemCount;
                 int num6 = itemInc;
                 ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
-                CargoPathMethods.TryInsertItemWithStackIncreasement(connectionBelts.InsertInto, insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
+                connectionBelts.InsertInto.TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
                 if (num5 < itemCount)
                 {
                     num3 = itemId;

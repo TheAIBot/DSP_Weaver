@@ -208,7 +208,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         int num3 = itemCount;
                         int num4 = itemInc;
                         ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
-                        CargoPathMethods.TryInsertItemWithStackIncreasement(connectionBelts.InsertInto, insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
+                        connectionBelts.InsertInto.TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
                         itemCount = (short)num3;
                         itemInc = (short)num4;
                         stackCount = itemCount > 0 ? (itemCount - 1) / 4 + 1 : 0;
