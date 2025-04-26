@@ -366,19 +366,49 @@ internal sealed class OptimizedSubFactory
         }
         else if (entity.assemblerId != 0)
         {
-            return planet.factorySystem.assemblerPool[entity.assemblerId].needs;
+            int[] needs = planet.factorySystem.assemblerPool[entity.assemblerId].needs;
+            if (needs == null)
+            {
+                throw new InvalidOperationException("Need must not be null for assembler.");
+            }
+
+            return needs;
         }
         else if (entity.ejectorId != 0)
         {
-            return planet.factorySystem.ejectorPool[entity.ejectorId].needs;
+            ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[entity.ejectorId];
+            int[] needs = ejector.needs;
+            if (needs == null)
+            {
+                ejector.needs = new int[6];
+                planet.entityNeeds[ejector.entityId] = ejector.needs;
+                needs = ejector.needs;
+            }
+
+            return needs;
         }
         else if (entity.siloId != 0)
         {
-            return planet.factorySystem.siloPool[entity.siloId].needs;
+            ref SiloComponent silo = ref planet.factorySystem.siloPool[entity.siloId];
+            int[] needs = silo.needs;
+            if (needs == null)
+            {
+                silo.needs = new int[6];
+                planet.entityNeeds[silo.entityId] = silo.needs;
+                needs = silo.needs;
+            }
+
+            return needs;
         }
         else if (entity.labId != 0)
         {
-            return planet.factorySystem.labPool[entity.labId].needs;
+            int[] needs = planet.factorySystem.labPool[entity.labId].needs;
+            if (needs == null)
+            {
+                throw new InvalidOperationException("Need must not be null for lab.");
+            }
+
+            return needs;
         }
         else if (entity.storageId != 0)
         {
@@ -386,7 +416,13 @@ internal sealed class OptimizedSubFactory
         }
         else if (entity.stationId != 0)
         {
-            return planet.transport.stationPool[entity.stationId].needs;
+            int[] needs = planet.transport.stationPool[entity.stationId].needs;
+            if (needs == null)
+            {
+                throw new InvalidOperationException("Need must not be null for station.");
+            }
+
+            return needs;
         }
         else if (entity.powerGenId != 0)
         {
