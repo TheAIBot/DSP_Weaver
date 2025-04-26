@@ -553,7 +553,7 @@ internal sealed class InserterExecutor<T>
         {
             if (entityNeeds == null)
             {
-                return 0;
+                throw new InvalidOperationException("Need was null for active ejector.");
             }
             if (entityNeeds[0] == itemId && planet.factorySystem.ejectorPool[objectIndex].bulletId == itemId)
             {
@@ -568,7 +568,7 @@ internal sealed class InserterExecutor<T>
         {
             if (entityNeeds == null)
             {
-                return 0;
+                throw new InvalidOperationException("Need was null for active silo.");
             }
             if (entityNeeds[0] == itemId && planet.factorySystem.siloPool[objectIndex].bulletId == itemId)
             {
@@ -681,7 +681,7 @@ internal sealed class InserterExecutor<T>
         {
             if (entityNeeds == null)
             {
-                return 0;
+                throw new InvalidOperationException("Need was null for active station.");
             }
             StationComponent stationComponent = planet.transport.stationPool[objectIndex];
             if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)

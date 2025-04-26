@@ -186,7 +186,6 @@ internal sealed class ProducingLabExecutor
             optimizedPowerSystemBuilder.AddProducingLab(in lab, networkIndex);
 
             // set it here so we don't have to set it in the update loop.
-            // Need to investigate when i need to update it.
             planet.entityNeeds[lab.entityId] = lab.needs;
         }
 

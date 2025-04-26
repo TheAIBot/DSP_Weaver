@@ -1,3 +1,6 @@
+## 1.1.4
+* Fix sorters could not insert into silos after loading save. Player needed to visit silos planets before sorters would function again.
+
 ## 1.1.3
 * Fix researching tech on unoptimized planet would crash the game.
 

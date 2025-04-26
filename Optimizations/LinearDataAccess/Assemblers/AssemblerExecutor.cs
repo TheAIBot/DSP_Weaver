@@ -193,7 +193,6 @@ internal sealed class AssemblerExecutor
 
 
             // set it here so we don't have to set it in the update loop.
-            // Need to remember to update it when the assemblers recipe is changed.
             planet.entityNeeds[assembler.entityId] = assembler.needs;
         }
 
