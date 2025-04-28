@@ -16,6 +16,7 @@ internal sealed class OptimizedPowerSystem
     private readonly Dictionary<OptimizedSubFactory, int[]> _subFactoryToSpraycoaterPowerConsumerTypeIndexes;
     private readonly int[] _fractionatorPowerConsumerTypeIndexes;
     private readonly int[] _pilerPowerConsumerTypeIndexes;
+    private readonly int[] _monitorPowerConsumerTypeIndexes;
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
@@ -28,6 +29,7 @@ internal sealed class OptimizedPowerSystem
                                 Dictionary<OptimizedSubFactory, int[]> subFactoryToSpraycoaterPowerConsumerTypeIndexes,
                                 int[] fractionatorPowerConsumerTypeIndexes,
                                 int[] pilerPowerConsumerTypeIndexes,
+                                int[] monitorPowerConsumerTypeIndexes,
                                 Dictionary<OptimizedSubFactory, long[]> subFactoryToNetworkPowerConsumptions)
     {
         _powerConsumerTypes = powerConsumerTypes;
@@ -40,6 +42,7 @@ internal sealed class OptimizedPowerSystem
         _subFactoryToSpraycoaterPowerConsumerTypeIndexes = subFactoryToSpraycoaterPowerConsumerTypeIndexes;
         _fractionatorPowerConsumerTypeIndexes = fractionatorPowerConsumerTypeIndexes;
         _pilerPowerConsumerTypeIndexes = pilerPowerConsumerTypeIndexes;
+        _monitorPowerConsumerTypeIndexes = monitorPowerConsumerTypeIndexes;
         _subFactoryToNetworkPowerConsumptions = subFactoryToNetworkPowerConsumptions;
     }
 
@@ -400,7 +403,9 @@ internal sealed class OptimizedPowerSystem
 
     private void CargoTrafficBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)
     {
-        subFactory._monitorExecutor.UpdatePower(planet);
+        subFactory._monitorExecutor.UpdatePower(_monitorPowerConsumerTypeIndexes,
+                                                _powerConsumerTypes,
+                                                subFactoryNetworkPowerConsumption);
         subFactory._spraycoaterExecutor.UpdatePower(_subFactoryToSpraycoaterPowerConsumerTypeIndexes[subFactory],
                                                     _powerConsumerTypes,
                                                     subFactoryNetworkPowerConsumption);

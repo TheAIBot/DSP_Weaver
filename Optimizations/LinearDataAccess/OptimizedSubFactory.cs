@@ -96,7 +96,7 @@ internal sealed class OptimizedSubFactory
         InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeResearchingLabs(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
-        InitializeMonitors(subFactoryGraph);
+        InitializeMonitors(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializePilers(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
@@ -158,10 +158,10 @@ internal sealed class OptimizedSubFactory
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
     }
 
-    private void InitializeMonitors(Graph subFactoryGraph)
+    private void InitializeMonitors(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
     {
         _monitorExecutor = new MonitorExecutor();
-        _monitorExecutor.Initialize(_planet, subFactoryGraph);
+        _monitorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
     private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
