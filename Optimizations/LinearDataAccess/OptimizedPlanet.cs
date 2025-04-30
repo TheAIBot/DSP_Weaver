@@ -78,10 +78,7 @@ internal sealed class OptimizedPlanet
     {
         if (Status == OptimizedPlanetStatus.Stopped)
         {
-            // Temp while i figure out another issue
-            return [];
-            //throw new InvalidOperationException("Does currently not support simulating non optimized planets.");
-            //return CreateParallelWorkForNonRunningOptimizedPlanet(maxParallelism);
+            return CreateParallelWorkForNonRunningOptimizedPlanet(maxParallelism);
         }
 
         if (_subFactories.Length == 0)
@@ -137,9 +134,9 @@ internal sealed class OptimizedPlanet
         _planet.digitalSystem.GameTick(false);
     }
 
-    private WorkTracker[] CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
+    private WorkStep[] CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
     {
-        List<WorkTracker> work = [];
+        List<WorkStep> work = [];
 
         int minerCount = _planet.factorySystem.minerCursor;
         int assemblerCount = _planet.factorySystem.assemblerCursor;
@@ -192,25 +189,14 @@ internal sealed class OptimizedPlanet
         beforePowerWorkCount = Math.Min(beforePowerWorkCount, maxParallelism);
         if (beforePowerWorkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.BeforePower, beforePowerWorkCount));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.BeforePower, beforePowerWorkCount)));
         }
 
         int powerNetworkCount = _planet.powerSystem.netCursor;
         if (powerNetworkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.Power, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Power, 1)));
         }
-
-        if (true)
-        {
-            work.Add(new WorkTracker(WorkType.Construction, 1));
-        }
-
-        if (true)
-        {
-            work.Add(new WorkTracker(WorkType.CheckBefore, 1));
-        }
-
 
         int assemblerStepEntityCount = minerCount +
                                        assemblerCount +
@@ -222,93 +208,95 @@ internal sealed class OptimizedPlanet
         assemblerWorkCount = Math.Min(assemblerWorkCount, maxParallelism);
         if (assemblerWorkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.Assembler, assemblerWorkCount));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Assembler, assemblerWorkCount)));
         }
 
         if (researchingLabCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.LabResearchMode, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.LabResearchMode, 1)));
         }
 
         int labOutput2NextWorkCount = ((labCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         labOutput2NextWorkCount = Math.Min(labOutput2NextWorkCount, maxParallelism);
         if (labOutput2NextWorkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.LabOutput2NextData, labOutput2NextWorkCount));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.LabOutput2NextData, labOutput2NextWorkCount)));
         }
 
         if (transportEntities > 0)
         {
-            work.Add(new WorkTracker(WorkType.TransportData, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.TransportData, 1)));
         }
 
         if (stationCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.InputFromBelt, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.InputFromBelt, 1)));
         }
 
         int inserterWorkCount = ((inserterCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         inserterWorkCount = Math.Min(inserterWorkCount, maxParallelism);
         if (inserterWorkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.InserterData, inserterWorkCount));
+            // Work count set to 1 because of lock in cargo container which causes inserters that interact with
+            // belts to wait for each other
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.InserterData, 1)));
         }
 
         if ((storageCount + tankCount) > 0)
         {
-            work.Add(new WorkTracker(WorkType.Storage, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Storage, 1)));
         }
 
         int cargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         cargoPathsWorkCount = Math.Min(cargoPathsWorkCount, maxParallelism);
         if (cargoPathsWorkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.CargoPathsData, cargoPathsWorkCount));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.CargoPathsData, cargoPathsWorkCount)));
         }
 
         if (splitterCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.Splitter, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Splitter, 1)));
         }
 
 
         if (monitorCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.Monitor, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Monitor, 1)));
         }
 
         if (spraycoaterCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.Spraycoater, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Spraycoater, 1)));
         }
 
         if (pilerCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.Piler, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Piler, 1)));
         }
 
         if (stationCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.OutputToBelt, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.OutputToBelt, 1)));
         }
 
         int sandboxModeWorkCount = ((transportEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         sandboxModeWorkCount = Math.Min(sandboxModeWorkCount, maxParallelism);
         if (GameMain.sandboxToolsEnabled && sandboxModeWorkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.SandboxMode, sandboxModeWorkCount));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.SandboxMode, sandboxModeWorkCount)));
         }
 
         int presentCargoPathsWorkCount = ((cargoPathCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore);
         presentCargoPathsWorkCount = Math.Min(presentCargoPathsWorkCount, maxParallelism);
         if (presentCargoPathsWorkCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.PresentCargoPathsData, presentCargoPathsWorkCount));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.PresentCargoPathsData, presentCargoPathsWorkCount)));
         }
 
         if (markerCount > 0)
         {
-            work.Add(new WorkTracker(WorkType.Digital, 1));
+            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Digital, 1)));
         }
 
         return work.ToArray();

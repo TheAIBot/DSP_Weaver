@@ -12,7 +12,7 @@ internal sealed class SubFactoryGameTick : IWorkChunk
         _subFactory = subFactory;
     }
 
-    public void Execute(WorkerTimings workerTimings, long time)
+    public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         _subFactory.GameTick(workerTimings, time);
     }

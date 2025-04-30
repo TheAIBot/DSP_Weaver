@@ -19,7 +19,7 @@ internal sealed class SubFactoryBeforePower : IWorkChunk
         _subFactory = subFactory;
     }
 
-    public void Execute(WorkerTimings workerTimings, long time)
+    public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         workerTimings.StartTimer();
         _optimizedPowerSystem.BeforePower(_planet, _subFactory);

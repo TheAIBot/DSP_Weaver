@@ -50,7 +50,7 @@ internal sealed class WorkExecutor
                     workChunk = planetWorkPlan.Value.WorkChunk;
                 }
 
-                workChunk.Execute(_workerTimings, time);
+                workChunk.Execute(_workerTimings, _workerThreadExecutor, _singleThreadedCodeLock, localPlanet, time, playerPosition);
 
                 planetWorkManager.CompleteWork(workChunk);
             }

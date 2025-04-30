@@ -2,7 +2,7 @@
 
 internal interface IWorkChunk
 {
-    void Execute(WorkerTimings workerTimings, long time);
+    void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition);
     void TieToWorkStep(WorkStep workStep);
     bool Complete();
 
