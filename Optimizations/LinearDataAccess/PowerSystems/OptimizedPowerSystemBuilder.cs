@@ -17,6 +17,10 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly List<int> _fractionatorPowerConsumerTypeIndexes = [];
     private readonly List<int> _pilerPowerConsumerTypeIndexes = [];
     private readonly List<int> _monitorPowerConsumerTypeIndexes = [];
+    private readonly List<int> _waterMinerPowerConsumerTypeIndexes = [];
+    private readonly List<int> _oilMinerPowerConsumerTypeIndexes = [];
+    private readonly List<int> _beltVeinMinerPowerConsumerTypeIndexes = [];
+    private readonly List<int> _stationVeinMinerPowerConsumerTypeIndexes = [];
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions = [];
 
@@ -76,6 +80,26 @@ internal sealed class OptimizedPowerSystemBuilder
         AddEntity(_monitorPowerConsumerTypeIndexes, monitor.pcId, networkIndex);
     }
 
+    public void AddWaterMiner(ref readonly MinerComponent miner, int networkIndex)
+    {
+        AddEntity(_waterMinerPowerConsumerTypeIndexes, miner.pcId, networkIndex);
+    }
+
+    public void AddOilMiner(ref readonly MinerComponent miner, int networkIndex)
+    {
+        AddEntity(_oilMinerPowerConsumerTypeIndexes, miner.pcId, networkIndex);
+    }
+
+    public OptimizedPowerSystemVeinMinerBuilder CreateBeltVeinMinerBuilder()
+    {
+        return new OptimizedPowerSystemVeinMinerBuilder(_powerSystem, this, _beltVeinMinerPowerConsumerTypeIndexes);
+    }
+
+    public OptimizedPowerSystemVeinMinerBuilder CreateStationVeinMinerBuilder()
+    {
+        return new OptimizedPowerSystemVeinMinerBuilder(_powerSystem, this, _stationVeinMinerPowerConsumerTypeIndexes);
+    }
+
     public OptimizedPowerSystem Build()
     {
         int[][] networkNonOptimizedPowerConsumerIndexes = new int[_powerSystem.netCursor][];
@@ -101,6 +125,10 @@ internal sealed class OptimizedPowerSystemBuilder
                                         _fractionatorPowerConsumerTypeIndexes.ToArray(),
                                         _pilerPowerConsumerTypeIndexes.ToArray(),
                                         _monitorPowerConsumerTypeIndexes.ToArray(),
+                                        _waterMinerPowerConsumerTypeIndexes.ToArray(),
+                                        _oilMinerPowerConsumerTypeIndexes.ToArray(),
+                                        _beltVeinMinerPowerConsumerTypeIndexes.ToArray(),
+                                        _stationVeinMinerPowerConsumerTypeIndexes.ToArray(),
                                         _subFactoryToNetworkPowerConsumptions);
     }
 

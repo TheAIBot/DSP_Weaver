@@ -11,4 +11,9 @@ internal record struct PowerConsumerType(long WorkEnergyPerTick, long IdleEnergy
     {
         return (working ? WorkEnergyPerTick : IdleEnergyPerTick);
     }
+
+    public long GetRequiredEnergy(double ratio)
+    {
+        return (long)((double)WorkEnergyPerTick * ratio + (double)IdleEnergyPerTick * (1.0 - ratio));
+    }
 }

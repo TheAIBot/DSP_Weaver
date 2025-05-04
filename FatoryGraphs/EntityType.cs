@@ -24,5 +24,6 @@ internal enum EntityType : byte
     Turret = 19,
     FieldGenerator = 20,
     BattleBase = 21,
-    Marker = 22
+    Marker = 22,
+    VeinGroup = 23 // Ensure miners do not update vein group in parallel
 }

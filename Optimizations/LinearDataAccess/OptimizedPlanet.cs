@@ -44,7 +44,7 @@ internal sealed class OptimizedPlanet
         List<Graph> subFactoryGraphs = Graphifier.ToGraphs(_planet);
         Graphifier.CombineSmallGraphs(subFactoryGraphs);
 
-        WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
+        //WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
 
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
 

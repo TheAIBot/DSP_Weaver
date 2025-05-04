@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -17,6 +16,10 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _fractionatorPowerConsumerTypeIndexes;
     private readonly int[] _pilerPowerConsumerTypeIndexes;
     private readonly int[] _monitorPowerConsumerTypeIndexes;
+    private readonly int[] _waterMinerPowerConsumerTypeIndexes;
+    private readonly int[] _oilMinerPowerConsumerTypeIndexes;
+    private readonly int[] _beltVeinMinerPowerConsumerTypeIndexes;
+    private readonly int[] _stationVeinMinerPowerConsumerTypeIndexes;
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
@@ -30,6 +33,10 @@ internal sealed class OptimizedPowerSystem
                                 int[] fractionatorPowerConsumerTypeIndexes,
                                 int[] pilerPowerConsumerTypeIndexes,
                                 int[] monitorPowerConsumerTypeIndexes,
+                                int[] waterMinerPowerConsumerTypeIndexes,
+                                int[] oilMinerPowerConsumerTypeIndexes,
+                                int[] beltVeinMinerPowerConsumerTypeIndexes,
+                                int[] stationVeinMinerPowerConsumerTypeIndexes,
                                 Dictionary<OptimizedSubFactory, long[]> subFactoryToNetworkPowerConsumptions)
     {
         _powerConsumerTypes = powerConsumerTypes;
@@ -43,6 +50,10 @@ internal sealed class OptimizedPowerSystem
         _fractionatorPowerConsumerTypeIndexes = fractionatorPowerConsumerTypeIndexes;
         _pilerPowerConsumerTypeIndexes = pilerPowerConsumerTypeIndexes;
         _monitorPowerConsumerTypeIndexes = monitorPowerConsumerTypeIndexes;
+        _waterMinerPowerConsumerTypeIndexes = waterMinerPowerConsumerTypeIndexes;
+        _oilMinerPowerConsumerTypeIndexes = oilMinerPowerConsumerTypeIndexes;
+        _beltVeinMinerPowerConsumerTypeIndexes = beltVeinMinerPowerConsumerTypeIndexes;
+        _stationVeinMinerPowerConsumerTypeIndexes = stationVeinMinerPowerConsumerTypeIndexes;
         _subFactoryToNetworkPowerConsumptions = subFactoryToNetworkPowerConsumptions;
     }
 
@@ -74,7 +85,7 @@ internal sealed class OptimizedPowerSystem
         PlanetData planetData = powerSystem.factory.planet;
         float windStrength = planetData.windStrength;
         float luminosity = planetData.luminosity;
-        Vector3 normalized = planetData.runtimeLocalSunDirection.normalized;
+        UnityEngine.Vector3 normalized = planetData.runtimeLocalSunDirection.normalized;
         AnimData[] entityAnimPool = powerSystem.factory.entityAnimPool;
         if (powerSystem.networkServes == null || powerSystem.networkServes.Length != powerSystem.netPool.Length)
         {
@@ -376,7 +387,18 @@ internal sealed class OptimizedPowerSystem
 
     private void FactorySystemBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)
     {
-        subFactory._minerExecutor.UpdatePower(planet);
+        subFactory._beltVeinMinerExecutor.UpdatePower(_beltVeinMinerPowerConsumerTypeIndexes,
+                                                     _powerConsumerTypes,
+                                                     subFactoryNetworkPowerConsumption);
+        subFactory._stationVeinMinerExecutor.UpdatePower(_stationVeinMinerPowerConsumerTypeIndexes,
+                                                         _powerConsumerTypes,
+                                                         subFactoryNetworkPowerConsumption);
+        subFactory._oilMinerExecutor.UpdatePower(_oilMinerPowerConsumerTypeIndexes,
+                                                 _powerConsumerTypes,
+                                                 subFactoryNetworkPowerConsumption);
+        subFactory._waterMinerExecutor.UpdatePower(_waterMinerPowerConsumerTypeIndexes,
+                                                   _powerConsumerTypes,
+                                                   subFactoryNetworkPowerConsumption);
         subFactory._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
                                                   _powerConsumerTypes,
                                                   subFactoryNetworkPowerConsumption);

@@ -242,7 +242,17 @@ internal static class Graphifier
             if (component.insertTarget > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.insertTarget, planet.factorySystem);
+                WeaverFixes.Logger.LogMessage(connectedEntityIndex.EntityType);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+            }
+
+            // Veins will also connect things together since miners should not update
+            // veins or vein groups in parallel.
+            for (int veinIndex = 0; veinIndex < component.veinCount; veinIndex++)
+            {
+                int veinGroupIndex = planet.veinPool[component.veins[veinIndex]].groupIndex;
+                EntityTypeIndex veinGroup = new EntityTypeIndex(EntityType.VeinGroup, veinGroupIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, veinGroup);
             }
         }
     }

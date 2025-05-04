@@ -34,7 +34,10 @@ internal sealed class OptimizedSubFactory
 
     public AssemblerExecutor _assemblerExecutor;
 
-    public MinerExecutor _minerExecutor;
+    public VeinMinerExecutor<BeltMinerOutput> _beltVeinMinerExecutor;
+    public VeinMinerExecutor<StationMinerOutput> _stationVeinMinerExecutor;
+    public OilMinerExecutor _oilMinerExecutor;
+    public WaterMinerExecutor _waterMinerExecutor;
 
     public EjectorExecutor _ejectorExecutor;
 
@@ -66,6 +69,8 @@ internal sealed class OptimizedSubFactory
     public BeltExecutor _beltExecutor;
     public SplitterExecutor _splitterExecutor;
 
+    public MiningFlags _miningFlags;
+
     public OptimizedSubFactory(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
     {
         _planet = planet;
@@ -90,7 +95,7 @@ internal sealed class OptimizedSubFactory
 
         InitializeBelts(subFactoryGraph);
         InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializeMiners(subFactoryGraph);
+        InitializeMiners(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeEjectors(subFactoryGraph);
         InitializeSilos(subFactoryGraph);
         InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
@@ -121,10 +126,19 @@ internal sealed class OptimizedSubFactory
         _assemblerExecutor.InitializeAssemblers(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
-    private void InitializeMiners(Graph subFactoryGraph)
+    private void InitializeMiners(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
     {
-        _minerExecutor = new MinerExecutor();
-        _minerExecutor.Initialize(_planet, subFactoryGraph);
+        _beltVeinMinerExecutor = new VeinMinerExecutor<BeltMinerOutput>();
+        _beltVeinMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder.CreateBeltVeinMinerBuilder(), beltExecutor);
+
+        _stationVeinMinerExecutor = new VeinMinerExecutor<StationMinerOutput>();
+        _stationVeinMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder.CreateStationVeinMinerBuilder(), beltExecutor);
+
+        _oilMinerExecutor = new OilMinerExecutor();
+        _oilMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
+
+        _waterMinerExecutor = new WaterMinerExecutor();
+        _waterMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
     private void InitializeEjectors(Graph subFactoryGraph)
@@ -215,7 +229,11 @@ internal sealed class OptimizedSubFactory
     public void GameTick(WorkerTimings workerTimings, long time)
     {
         workerTimings.StartTimer();
-        _minerExecutor.GameTick(_planet);
+        _miningFlags = new MiningFlags();
+        _beltVeinMinerExecutor.GameTick(_planet, ref _miningFlags);
+        _stationVeinMinerExecutor.GameTick(_planet, ref _miningFlags);
+        _oilMinerExecutor.GameTick(_planet);
+        _waterMinerExecutor.GameTick(_planet);
         _assemblerExecutor.GameTick(_planet);
         _fractionatorExecutor.GameTick(_planet);
         _ejectorExecutor.GameTick(_planet, time);
