@@ -5,39 +5,22 @@ namespace Weaver.Optimizations.LinearDataAccess.Miners;
 
 internal readonly struct StationMinerOutput : IMinerOutput<StationMinerOutput>
 {
-    private readonly StationComponent outputStation;
-    private readonly int[] needs;
+    private readonly StationComponent _outputStation;
 
-    public StationMinerOutput(StationComponent outputStation, int[] needs)
+    public StationMinerOutput(StationComponent outputStation)
     {
-        this.outputStation = outputStation;
-        this.needs = needs;
+        _outputStation = outputStation;
     }
 
     public readonly int InsertInto(int itemId, byte itemCount)
     {
-        if (itemId == 1210 && outputStation.warperCount < outputStation.warperMaxCount)
-        {
-            outputStation.warperCount += itemCount;
-            return itemCount;
-        }
-        StationStore[] storage = outputStation.storage;
-        for (int j = 0; j < needs.Length && j < storage.Length; j++)
-        {
-            if (needs[j] == itemId && storage[j].itemId == itemId)
-            {
-                storage[j].count += itemCount;
-                return itemCount;
-            }
-        }
-
         return 0;
     }
 
     public readonly void PrePowerUpdate<T>(ref T miner)
         where T : IMiner
     {
-        StationStore[] array = outputStation.storage;
+        StationStore[] array = _outputStation.storage;
         int num = array[0].count;
         if (array[0].localOrder < -4000)
         {
@@ -54,28 +37,25 @@ internal readonly struct StationMinerOutput : IMinerOutput<StationMinerOutput>
 
     public readonly bool TryGetMinerOutput(PlanetFactory planet, BeltExecutor beltExecutor, ref readonly MinerComponent miner, out StationMinerOutput minerOutput)
     {
-        if (miner.insertTarget <= 0)
-        {
-            minerOutput = default;
-            return false;
-        }
-
-
-        int outputStationId = planet.entityPool[miner.insertTarget].stationId;
+        int outputStationId = planet.entityPool[miner.entityId].stationId;
         if (outputStationId <= 0)
         {
             minerOutput = default;
             return false;
         }
 
-        StationComponent outputStation = planet.transport.stationPool[outputStationId];
-        int[] stationNeeds = outputStation.needs;// planet.entityNeeds[outputStation.entityId];
-        if (stationNeeds == null)
+        if (miner.insertTarget > 0)
         {
-            throw new InvalidOperationException("Miner station needs is null.");
+            throw new InvalidOperationException("""
+                Current code does not use insertTarget to move items into the station. Instead the station pulls from the miner.
+                The miner knows the station id because the miners entity also contains the station id.
+                If insertTarget suddenly start containing something for station miners then the logic has changed and the code
+                need to be changed.
+                """);
         }
 
-        minerOutput = new StationMinerOutput(outputStation, stationNeeds);
+        StationComponent outputStation = planet.transport.stationPool[outputStationId];
+        minerOutput = new StationMinerOutput(outputStation);
         return true;
     }
 }

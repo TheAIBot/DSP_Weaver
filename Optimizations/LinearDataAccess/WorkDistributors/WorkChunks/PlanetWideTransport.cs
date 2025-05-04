@@ -2,12 +2,12 @@
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
-internal sealed class PlanetWideTransport : IWorkChunk
+internal sealed class PlanetWideDispenserTransport : IWorkChunk
 {
     private readonly OptimizedPlanet _optimizedPlanet;
     private WorkStep _workStep;
 
-    public PlanetWideTransport(OptimizedPlanet optimizedPlanet)
+    public PlanetWideDispenserTransport(OptimizedPlanet optimizedPlanet)
     {
         _optimizedPlanet = optimizedPlanet;
     }
@@ -15,7 +15,7 @@ internal sealed class PlanetWideTransport : IWorkChunk
     public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         workerTimings.StartTimer();
-        _optimizedPlanet.TransportStep(time);
+        _optimizedPlanet.DispenserGameTick(time, playerPosition);
         workerTimings.RecordTime(WorkType.TransportData);
     }
 

@@ -15,7 +15,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
     private int veinCount;
     private int currentVeinIndex;
     private int minimumVeinAmount;
-    private int productId;
+    public int productId;
     private double costFrac;
 
     public int ProductCount { get; set; }

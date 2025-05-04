@@ -10,8 +10,13 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
     where TMinerOutput : struct, IMinerOutput<TMinerOutput>
 {
     private int[] _networkIds;
-    private OptimizedVeinMiner<TMinerOutput>[] _optimizedMiners;
+    public OptimizedVeinMiner<TMinerOutput>[] _optimizedMiners;
     public Dictionary<int, int> _minerIdToOptimizedIndex;
+
+    public int GetOptimizedMinerIndexFromMinerId(int minerId)
+    {
+        return _minerIdToOptimizedIndex[minerId];
+    }
 
     public void GameTick(PlanetFactory planet, ref MiningFlags miningFlags)
     {

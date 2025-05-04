@@ -1,4 +1,6 @@
-﻿using Weaver.Optimizations.LinearDataAccess.Belts;
+﻿using System;
+using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Miners;
 
 namespace Weaver.Optimizations.LinearDataAccess.Stations;
 
@@ -9,15 +11,19 @@ namespace Weaver.Optimizations.LinearDataAccess.Stations;
 /// A stations configuration can be updated at any time so all its state is stored
 /// inside the <see cref="StationComponent"/> to ensure belt i/o is updated immediately.
 /// </summary>
-internal struct OptimizedStation
+internal readonly struct OptimizedStation
 {
-    private readonly StationComponent stationComponent;
+    public readonly StationComponent stationComponent;
     private readonly OptimizedCargoPath[] _cargoPaths;
+    private readonly int? _optimizedMinerIndex;
 
-    public OptimizedStation(StationComponent stationComponent, OptimizedCargoPath[] cargoPaths)
+    public OptimizedStation(StationComponent stationComponent,
+                            OptimizedCargoPath[] cargoPaths,
+                            int? optimizedMinerIndex)
     {
         this.stationComponent = stationComponent;
         _cargoPaths = cargoPaths;
+        _optimizedMinerIndex = optimizedMinerIndex;
     }
 
     public void UpdateOutputSlots(int maxPilerCount)
@@ -210,6 +216,77 @@ internal struct OptimizedStation
             if (stationComponent.shipAutoReplenish)
             {
                 stationComponent.idleShipCount = stationComponent.workShipDatas.Length - stationComponent.workShipCount;
+            }
+        }
+    }
+
+    public void UpdateCollection(PlanetFactory factory, float collectSpeedRate, int[] productRegister, ref MiningFlags miningFlags)
+    {
+        if (stationComponent.collectionPerTick == null)
+        {
+            return;
+        }
+        for (int i = 0; i < stationComponent.collectionIds.Length; i++)
+        {
+            lock (stationComponent.storage)
+            {
+                if (stationComponent.storage[i].count >= stationComponent.storage[i].max)
+                {
+                    continue;
+                }
+                stationComponent.currentCollections[i] += stationComponent.collectionPerTick[i] * collectSpeedRate;
+                int num = (int)stationComponent.currentCollections[i];
+                if (num != 0)
+                {
+                    lock (productRegister)
+                    {
+                        stationComponent.storage[i].count += num;
+                        productRegister[stationComponent.storage[i].itemId] += num;
+                        stationComponent.currentCollections[i] -= num;
+                        miningFlags.AddMiningFlagUnsafe(LDB.veins.GetVeinTypeByItemId(stationComponent.storage[i].itemId));
+                    }
+                }
+            }
+        }
+    }
+
+    public void UpdateVeinCollection(OptimizedVeinMiner<StationMinerOutput>[] stationMiners, ref MiningFlags miningFlags)
+    {
+        lock (stationComponent.storage)
+        {
+            if (stationComponent.storage[0].localSupplyCount >= stationComponent.storage[0].max)
+            {
+                return;
+            }
+
+            if (_optimizedMinerIndex == null)
+            {
+                throw new InvalidOperationException($"{nameof(OptimizedStation)} attempted to update its miner counterpart but {nameof(_optimizedMinerIndex)} was null.");
+            }
+
+            ref OptimizedVeinMiner<StationMinerOutput> miner = ref stationMiners[_optimizedMinerIndex.Value];
+            if (miner.productId == 0 || miner.productId != stationComponent.collectionIds[0] || miner.ProductCount <= 0)
+            {
+                return;
+            }
+            int productCount = miner.ProductCount;
+            int num = stationComponent.storage[0].count;
+            int max = stationComponent.storage[0].max;
+            if (stationComponent.storage[0].localOrder < -max / 2)
+            {
+                num = ((stationComponent.storage[0].localOrder >= -max / 2 - max) ? (num + (stationComponent.storage[0].localOrder + max / 2)) : (num - stationComponent.storage[0].max));
+            }
+            int num2 = stationComponent.storage[0].max - num;
+            num2 = ((num2 > productCount) ? productCount : num2);
+            if (num2 != 0)
+            {
+                stationComponent.storage[0].count += num2;
+                miner.ProductCount -= num2;
+                if (miner.ProductCount == 0)
+                {
+                    miner.productId = 0;
+                }
+                miningFlags.AddMiningFlagUnsafe(LDB.veins.GetVeinTypeByItemId(stationComponent.storage[0].itemId));
             }
         }
     }

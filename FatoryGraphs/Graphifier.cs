@@ -242,8 +242,15 @@ internal static class Graphifier
             if (component.insertTarget > 0)
             {
                 EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.insertTarget, planet.factorySystem);
-                WeaverFixes.Logger.LogMessage(connectedEntityIndex.EntityType);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+            }
+
+            // It is weird but the miner entity contains the station id it sends its mined ore to.
+            int minerStationId = planet.entityPool[component.entityId].stationId;
+            if (minerStationId > 0)
+            {
+                EntityTypeIndex minerStation = new EntityTypeIndex(EntityType.Station, minerStationId);
+                ConnectSendTo(entityTypeIndexToNode, node, minerStation);
             }
 
             // Veins will also connect things together since miners should not update

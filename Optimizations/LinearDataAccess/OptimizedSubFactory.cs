@@ -96,6 +96,7 @@ internal sealed class OptimizedSubFactory
         InitializeBelts(subFactoryGraph);
         InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeMiners(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
+        InitializeStations(subFactoryGraph, _beltExecutor, _stationVeinMinerExecutor);
         InitializeEjectors(subFactoryGraph);
         InitializeSilos(subFactoryGraph);
         InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
@@ -105,7 +106,6 @@ internal sealed class OptimizedSubFactory
         InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializePilers(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
-        InitializeStations(subFactoryGraph, _beltExecutor);
         InitializeDispensers(subFactoryGraph);
         InitializeTanks(subFactoryGraph, _beltExecutor);
         InitializeSplitters(subFactoryGraph, _beltExecutor);
@@ -196,10 +196,10 @@ internal sealed class OptimizedSubFactory
         _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializeStations(Graph subFactoryGraph, BeltExecutor beltExecutor)
+    private void InitializeStations(Graph subFactoryGraph, BeltExecutor beltExecutor, VeinMinerExecutor<StationMinerOutput> stationVeinMinerExecutor)
     {
         _stationExecutor = new StationExecutor();
-        _stationExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
+        _stationExecutor.Initialize(_planet, subFactoryGraph, beltExecutor, stationVeinMinerExecutor);
     }
 
     private void InitializeDispensers(Graph subFactoryGraph)
@@ -228,8 +228,9 @@ internal sealed class OptimizedSubFactory
 
     public void GameTick(WorkerTimings workerTimings, long time)
     {
-        workerTimings.StartTimer();
         _miningFlags = new MiningFlags();
+
+        workerTimings.StartTimer();
         _beltVeinMinerExecutor.GameTick(_planet, ref _miningFlags);
         _stationVeinMinerExecutor.GameTick(_planet, ref _miningFlags);
         _oilMinerExecutor.GameTick(_planet);
@@ -246,6 +247,10 @@ internal sealed class OptimizedSubFactory
         _researchingLabExecutor.GameTickLabResearchMode(_planet);
         _researchingLabExecutor.GameTickLabOutputToNext();
         workerTimings.RecordTime(WorkType.LabResearchMode);
+
+        workerTimings.StartTimer();
+        _stationExecutor.StationGameTick(_planet, time, _stationVeinMinerExecutor, ref _miningFlags);
+        workerTimings.RecordTime(WorkType.TransportData);
 
         workerTimings.StartTimer();
         _stationExecutor.InputFromBelt(_planet, time);

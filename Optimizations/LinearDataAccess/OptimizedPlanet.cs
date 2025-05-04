@@ -105,7 +105,7 @@ internal sealed class OptimizedPlanet
         }
         workSteps.Add(new WorkStep(gameTickChunks.ToArray()));
 
-        workSteps.Add(new WorkStep([new PlanetWideTransport(this)]));
+        workSteps.Add(new WorkStep([new PlanetWideDispenserTransport(this)]));
 
         workSteps.Add(new WorkStep([new PlanetWideDigitalSystem(this)]));
 
@@ -124,9 +124,35 @@ internal sealed class OptimizedPlanet
         _optimizedPowerSystem.GameTick(_planet, time);
     }
 
-    public void TransportStep(long time)
+    public void DispenserGameTick(long time, UnityEngine.Vector3 playerPos)
     {
-        _planet.transport.GameTick(time, false, false);
+        PlanetTransport transport = _planet.transport;
+        GameHistoryData history = GameMain.history;
+        float[] networkServes = transport.powerSystem.networkServes;
+        PowerConsumerComponent[] consumerPool = transport.powerSystem.consumerPool;
+        AstroData[] astrosData = transport.gameData.galaxy.astrosData;
+        bool starmap = UIGame.viewMode == EViewMode.Starmap;
+
+        double num5 = Math.Cos((double)history.dispenserDeliveryMaxAngle * Math.PI / 180.0);
+        if (num5 < -0.999)
+        {
+            num5 = -1.0;
+        }
+        playerPos += playerPos.normalized * 2.66666f;
+        bool num6 = transport.playerDeliveryEnabled;
+        transport.DeterminePlayerDeliveryEnabled(transport.factory);
+        if (num6 != transport.playerDeliveryEnabled)
+        {
+            transport.RefreshDispenserTraffic(-10000);
+        }
+        for (int k = 1; k < transport.dispenserCursor; k++)
+        {
+            if (transport.dispenserPool[k] != null && transport.dispenserPool[k].id == k)
+            {
+                float power2 = networkServes[consumerPool[transport.dispenserPool[k].pcId].networkId];
+                transport.dispenserPool[k].InternalTick(transport.factory, transport.factory.entityPool, transport.dispenserPool, playerPos, time, power2, history.logisticCourierSpeedModified, history.logisticCourierCarries, num5);
+            }
+        }
     }
 
     public void DigitalSystemStep()
