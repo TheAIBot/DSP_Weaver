@@ -136,11 +136,6 @@ internal sealed class OilMinerExecutor
         _networkIds = networkIds.ToArray();
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
-
-        if (_optimizedMiners.Length > 0)
-        {
-            WeaverFixes.Logger.LogMessage($"Oil Miners: {_optimizedMiners.Length}");
-        }
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedOilMiner miner)

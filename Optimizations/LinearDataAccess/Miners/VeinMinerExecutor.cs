@@ -118,11 +118,6 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         _networkIds = networkIds.ToArray();
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
-
-        if (_optimizedMiners.Length > 0)
-        {
-            WeaverFixes.Logger.LogMessage($"Vein Miners: {_optimizedMiners.Length}");
-        }
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedVeinMiner<TMinerOutput> miner)

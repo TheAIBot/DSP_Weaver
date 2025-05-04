@@ -79,6 +79,10 @@ internal sealed class OptimizedSubFactory
 
     public void Save()
     {
+        _beltVeinMinerExecutor.Save(_planet);
+        _stationVeinMinerExecutor.Save(_planet);
+        _oilMinerExecutor.Save(_planet);
+        _waterMinerExecutor.Save(_planet);
         _optimizedBiInserterExecutor.Save(_planet);
         _optimizedInserterExecutor.Save(_planet);
         _assemblerExecutor.Save(_planet);

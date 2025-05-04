@@ -122,11 +122,6 @@ internal sealed class WaterMinerExecutor
         _networkIds = networkIds.ToArray();
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
-
-        if (_optimizedMiners.Length > 0)
-        {
-            WeaverFixes.Logger.LogMessage($"Water Miners: {_optimizedMiners.Length}");
-        }
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedWaterMiner miner)
