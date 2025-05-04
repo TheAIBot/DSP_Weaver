@@ -116,20 +116,21 @@ internal sealed class OilMinerExecutor
                 continue;
             }
 
-            int inputBeltId = planet.entityPool[miner.insertTarget].beltId;
-            if (inputBeltId <= 0)
+            int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
+            if (outputBeltId <= 0)
             {
                 continue;
             }
 
-            CargoPath inputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[inputBeltId].segPathId];
-            OptimizedCargoPath inputBelt = beltExecutor.GetOptimizedCargoPath(inputCargoPath);
+            int outputBeltOffset = planet.cargoTraffic.beltPool[outputBeltId].pivotOnPath;
+            CargoPath outputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[outputBeltId].segPathId];
+            OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
             optimizedPowerSystemBuilder.AddOilMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
-            optimizedMiners.Add(new OptimizedOilMiner(inputBelt, productId, in miner));
+            optimizedMiners.Add(new OptimizedOilMiner(outputBelt, outputBeltOffset, productId, in miner));
         }
 
         _networkIds = networkIds.ToArray();

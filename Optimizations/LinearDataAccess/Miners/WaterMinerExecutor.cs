@@ -102,20 +102,21 @@ internal sealed class WaterMinerExecutor
                 continue;
             }
 
-            int inputBeltId = planet.entityPool[miner.insertTarget].beltId;
-            if (inputBeltId <= 0)
+            int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
+            if (outputBeltId <= 0)
             {
                 continue;
             }
 
-            CargoPath inputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[inputBeltId].segPathId];
-            OptimizedCargoPath inputBelt = beltExecutor.GetOptimizedCargoPath(inputCargoPath);
+            int outputBeltOffset = planet.cargoTraffic.beltPool[outputBeltId].pivotOnPath;
+            CargoPath outputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[outputBeltId].segPathId];
+            OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
             optimizedPowerSystemBuilder.AddWaterMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
-            optimizedMiners.Add(new OptimizedWaterMiner(inputBelt, planet.planet.waterItemId, in miner));
+            optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, planet.planet.waterItemId, in miner));
         }
 
         _networkIds = networkIds.ToArray();

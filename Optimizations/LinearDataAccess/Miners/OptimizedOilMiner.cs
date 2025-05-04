@@ -7,6 +7,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Miners;
 internal struct OptimizedOilMiner
 {
     private readonly OptimizedCargoPath outputBelt;
+    private readonly int outputBeltOffset;
     public readonly int speed;
     private readonly int period;
     private readonly int insertTarget;
@@ -17,9 +18,10 @@ internal struct OptimizedOilMiner
     public int productCount;
     private double costFrac;
 
-    public OptimizedOilMiner(OptimizedCargoPath outputBelt, int productId, ref readonly MinerComponent miner)
+    public OptimizedOilMiner(OptimizedCargoPath outputBelt, int outputBeltOffset, int productId, ref readonly MinerComponent miner)
     {
         this.outputBelt = outputBelt;
+        this.outputBeltOffset = outputBeltOffset;
         speed = miner.speed;
         speedDamper = miner.speedDamper;
         period = miner.period;
@@ -84,7 +86,7 @@ internal struct OptimizedOilMiner
             int num16 = (int)(num15 - 0.009999999776482582) / 1800 + 1;
             num16 = ((num16 >= 4) ? 4 : ((num16 < 1) ? 1 : num16));
             int num17 = ((productCount < num16) ? productCount : num16);
-            int num18 = outputBelt.TryInsertItem(0, productId, (byte)num17, 0) ? (byte)num17 : 0;
+            int num18 = outputBelt.TryInsertItem(outputBeltOffset, productId, (byte)num17, 0) ? (byte)num17 : 0;
             productCount -= num18;
         }
     }
