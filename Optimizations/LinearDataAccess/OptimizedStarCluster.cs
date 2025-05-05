@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
@@ -17,9 +18,17 @@ internal static class OptimizedStarCluster
     private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
 
+    private static readonly Random random = new Random();
+    private static bool _debugEnableHeavyReOptimization = false;
+
     public static void EnableOptimization(Harmony harmony)
     {
         harmony.PatchAll(typeof(OptimizedStarCluster));
+    }
+
+    public static void DebugEnableHeavyReOptimization()
+    {
+        _debugEnableHeavyReOptimization = true;
     }
 
     public static OptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
@@ -141,6 +150,13 @@ internal static class OptimizedStarCluster
 
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
             optimizedPlanet.Save();
+        }
+
+        if (_debugEnableHeavyReOptimization && GameMain.gameTick % 10 == 0)
+        {
+            PlanetFactory[] planets = _planetToOptimizedPlanet.Keys.ToArray();
+            int randomPlanet = random.Next(0, planets.Length);
+            _planetsToReOptimize.Enqueue(planets[randomPlanet]);
         }
     }
 

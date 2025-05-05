@@ -26,10 +26,17 @@ internal sealed class BeltExecutor
     public void GameTick(PlanetFactory planet)
     {
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
-
         for (int i = 0; i < optimizedCargoPaths.Length; i++)
         {
             optimizedCargoPaths[i].Update();
+        }
+    }
+
+    public void Save(CargoContainer cargoContainer)
+    {
+        foreach (KeyValuePair<CargoPath, OptimizedCargoPath> cargoPathWithOptimizedCargoPath in _cargoPathToOptimizedCargoPath)
+        {
+            CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPath.Key.buffer, cargoPathWithOptimizedCargoPath.Value, cargoContainer);
         }
     }
 
@@ -125,6 +132,60 @@ internal sealed class BeltExecutor
         }
 
         return bufferCopy;
+    }
+
+    /// <summary>
+    /// Modified <see cref="GetBufferWithUpdatedCargoIndexes"/>
+    /// </summary>
+    private static void CopyToBufferWithUpdatedCargoIndexes(byte[] bufferCopy, OptimizedCargoPath optimizedCargoPath, CargoContainer cargoContainer)
+    {
+        if (bufferCopy.Length != optimizedCargoPath.buffer.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bufferCopy), $"{nameof(bufferCopy)} did not have the same length as {nameof(optimizedCargoPath)}.{nameof(optimizedCargoPath.buffer)}.");
+        }
+        Array.Copy(optimizedCargoPath.buffer, bufferCopy, optimizedCargoPath.buffer.Length);
+
+        OptimizedCargo[] oldCargoPool = optimizedCargoPath.cargoContainer.cargoPool;
+        int num = 5;
+        int num2 = 10;
+        int num3 = 0;
+        while (num3 < optimizedCargoPath.bufferLength)
+        {
+            if (optimizedCargoPath.buffer[num3] == 0)
+            {
+                num3 += num;
+                continue;
+            }
+            if (optimizedCargoPath.buffer[num3] == 250)
+            {
+                int num4 = optimizedCargoPath.buffer[num3 + 1] - 1 + (optimizedCargoPath.buffer[num3 + 2] - 1) * 100 + (optimizedCargoPath.buffer[num3 + 3] - 1) * 10000 + (optimizedCargoPath.buffer[num3 + 4] - 1) * 1000000;
+                if (num4 >= oldCargoPool.Length || num4 < 0 || num3 >= optimizedCargoPath.buffer.Length)
+                {
+                    Assert.CannotBeReached();
+                }
+                else
+                {
+                    OptimizedCargo oldCargo = oldCargoPool[num4];
+                    int newCargoIndex = cargoContainer.AddCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
+                    SetCargoIndexInBuffer(bufferCopy, num3 + 1, newCargoIndex);
+                }
+                num3 += num2;
+                continue;
+            }
+            if (246 <= optimizedCargoPath.buffer[num3] && optimizedCargoPath.buffer[num3] < 250)
+            {
+                num3 += 250 - optimizedCargoPath.buffer[num3];
+                int num5 = optimizedCargoPath.buffer[num3 + 1] - 1 + (optimizedCargoPath.buffer[num3 + 2] - 1) * 100 + (optimizedCargoPath.buffer[num3 + 3] - 1) * 10000 + (optimizedCargoPath.buffer[num3 + 4] - 1) * 1000000;
+
+                OptimizedCargo oldCargo = oldCargoPool[num5];
+                int newCargoIndex = cargoContainer.AddCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
+                SetCargoIndexInBuffer(bufferCopy, num3 + 1, newCargoIndex);
+                num3 += num2;
+                continue;
+            }
+            Assert.CannotBeReached("断言失败：buffer数据有误");
+            break;
+        }
     }
 
     private static void SetCargoIndexInBuffer(byte[] buffer, int bufferIndex, int cargoIndex)

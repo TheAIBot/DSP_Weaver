@@ -78,8 +78,9 @@ internal sealed class OptimizedSubFactory
         _starClusterResearchManager = starClusterResearchManager;
     }
 
-    public void Save()
+    public void Save(CargoContainer cargoContainer)
     {
+        _beltExecutor.Save(cargoContainer);
         _beltVeinMinerExecutor.Save(_planet);
         _stationVeinMinerExecutor.Save(_planet);
         _oilMinerExecutor.Save(_planet);

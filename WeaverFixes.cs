@@ -63,6 +63,7 @@ public class WeaverFixes : BaseUnityPlugin
 
 
         OptimizedStarCluster.EnableOptimization(harmony);
+        OptimizedStarCluster.DebugEnableHeavyReOptimization();
         //GraphStatistics.Enable(harmony);
     }
 }

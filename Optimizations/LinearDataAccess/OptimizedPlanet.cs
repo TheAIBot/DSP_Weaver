@@ -30,9 +30,14 @@ internal sealed class OptimizedPlanet
 
     public void Save()
     {
+        CargoContainer cargoContainer = _planet.cargoTraffic.container;
+        cargoContainer.recycleBegin = 0;
+        cargoContainer.recycleEnd = 0;
+        cargoContainer.cursor = 0;
+
         foreach (var subFactory in _subFactories)
         {
-            subFactory.Save();
+            subFactory.Save(cargoContainer);
         }
 
         Status = OptimizedPlanetStatus.Stopped;

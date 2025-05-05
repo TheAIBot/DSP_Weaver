@@ -45,6 +45,13 @@ internal sealed class OptimizedCargoPath
         updateLen = cargoPath.updateLen;
     }
 
+    public void Save(CargoPath cargoPath)
+    {
+        cargoPath.outputChunk = outputChunk;
+        cargoPath.lastUpdateFrameOdd = lastUpdateFrameOdd;
+        cargoPath.updateLen = updateLen;
+    }
+
     public void SetOutputPath(OptimizedCargoPath cargoPath)
     {
         outputPath = cargoPath;
