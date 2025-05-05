@@ -259,6 +259,32 @@ internal static class OptimizedStarCluster
         return codeMatcher.InstructionEnumeration();
     }
 
+    [HarmonyTranspiler, HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
+    static IEnumerable<CodeInstruction> ReplaceDefenseSystemLogic(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+    {
+        var codeMatcher = new CodeMatcher(instructions, generator);
+
+        // PerformanceMonitor.BeginSample(ECpuWorkEntry.Defense);
+        CodeMatch[] beginSamplePerformanceMonitor = [
+            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Defense),
+            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.BeginSample)))
+        ];
+
+        // PerformanceMonitor.EndSample(ECpuWorkEntry.Defense);
+        CodeMatch[] endSamplePerformanceMonitor = [
+            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Defense),
+            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.EndSample)))
+        ];
+
+        CodeInstruction[] parallelDefense = [
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteParallelDefense)))
+            ];
+
+        codeMatcher.ReplaceCode(beginSamplePerformanceMonitor, true, endSamplePerformanceMonitor, true, parallelDefense);
+
+        return codeMatcher.InstructionEnumeration();
+    }
+
     public static void ReOptimizeAllPlanets()
     {
         lock (_planetsToReOptimize)
@@ -274,6 +300,24 @@ internal static class OptimizedStarCluster
     private static void ExecuteSimulation(PlanetFactory?[] planets)
     {
         _workStealingMultiThreadedFactorySimulation.Simulate(planets);
+    }
+
+    private static void ExecuteParallelDefense()
+    {
+        PerformanceMonitor.BeginSample(ECpuWorkEntry.Defense);
+        long time = GameMain.gameTick;
+
+        // Can only parallelize on a solar system level due to enemies in space.
+        // Need to to defer all UI notifications to UI thread.
+        //Parallel.ForEach(_planetToOptimizedPlanet.Values, x => x.GameTickDefense(time));
+
+
+        foreach (OptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
+        {
+            optimizedPlanet.GameTickDefense(time);
+            optimizedPlanet.DefenseGameTickUIThread(time);
+        }
+        PerformanceMonitor.EndSample(ECpuWorkEntry.Defense);
     }
 
     private static void DeOptimizeDueToNonPlayerAction(PlanetFactory planet)

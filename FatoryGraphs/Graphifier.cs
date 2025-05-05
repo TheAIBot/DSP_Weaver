@@ -28,6 +28,7 @@ internal static class Graphifier
         AddTanksToGraph(planet, entityTypeIndexToNode);
         AddSplittersToGraph(planet, entityTypeIndexToNode);
         AddBeltsToGraph(planet, entityTypeIndexToNode);
+        AddTurretsToGraph(planet, entityTypeIndexToNode);
 
         HashSet<Node> nodes = new(entityTypeIndexToNode.Values);
         List<Graph> graphs = new List<Graph>();
@@ -618,6 +619,26 @@ internal static class Graphifier
             {
                 EntityTypeIndex connectedEntityIndex = new EntityTypeIndex(EntityType.Belt, component.outputPath.id);
                 ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+            }
+        }
+    }
+
+    private static void AddTurretsToGraph(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    {
+        for (int i = 1; i < planet.defenseSystem.turrets.cursor; i++)
+        {
+            ref readonly TurretComponent component = ref planet.defenseSystem.turrets.buffer[i];
+            if (component.id != i)
+            {
+                continue;
+            }
+
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Turret, i));
+
+            if (component.targetBeltId > 0)
+            {
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.targetBeltId, planet);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
     }

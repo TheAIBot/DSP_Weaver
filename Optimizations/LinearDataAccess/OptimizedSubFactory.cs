@@ -20,6 +20,7 @@ using Weaver.Optimizations.LinearDataAccess.Splitters;
 using Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 using Weaver.Optimizations.LinearDataAccess.Stations;
 using Weaver.Optimizations.LinearDataAccess.Tanks;
+using Weaver.Optimizations.LinearDataAccess.Turrets;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 namespace Weaver.Optimizations.LinearDataAccess;
@@ -93,7 +94,7 @@ internal sealed class OptimizedSubFactory
         _tankExecutor.Save(_planet);
     }
 
-    public void Initialize(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    public void Initialize(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, TurretExecutorBuilder turretExecutorBuilder)
     {
         optimizedPowerSystemBuilder.AddSubFactory(this);
 
@@ -113,6 +114,8 @@ internal sealed class OptimizedSubFactory
         InitializeDispensers(subFactoryGraph);
         InitializeTanks(subFactoryGraph, _beltExecutor);
         InitializeSplitters(subFactoryGraph, _beltExecutor);
+
+        turretExecutorBuilder.Initialize(_planet, subFactoryGraph, _beltExecutor);
     }
 
     private void InitializeInserters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)

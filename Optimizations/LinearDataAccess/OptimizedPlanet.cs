@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Turrets;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
@@ -14,6 +15,7 @@ internal sealed class OptimizedPlanet
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private OptimizedSubFactory[] _subFactories;
     private OptimizedPowerSystem _optimizedPowerSystem;
+    private TurretExecutor _turretExecutor;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
@@ -47,20 +49,36 @@ internal sealed class OptimizedPlanet
         //WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
 
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
+        var turretExecutorBuilder = new TurretExecutorBuilder();
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
         {
             _subFactories[i] = new OptimizedSubFactory(_planet, _starClusterResearchManager);
-            _subFactories[i].Initialize(subFactoryGraphs[i], optimizedPowerSystemBuilder);
+            _subFactories[i].Initialize(subFactoryGraphs[i], optimizedPowerSystemBuilder, turretExecutorBuilder);
         }
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
+        _turretExecutor = turretExecutorBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
 
         _workSteps = null;
         _workStepsParallelism = -1;
+    }
+
+    public void GameTickDefense(long time)
+    {
+        bool isActive = GameMain.localPlanet == _planet.planet;
+        if (Status == OptimizedPlanetStatus.Running)
+        {
+            DefenseGameTick(_planet.defenseSystem, time);
+        }
+        else
+        {
+            _planet.defenseSystem.GameTick(time, isActive);
+        }
+        _planet.planetATField.GameTick(time, isActive);
     }
 
     public WorkStep[] GetMultithreadedWork(int maxParallelism)
@@ -158,6 +176,126 @@ internal sealed class OptimizedPlanet
     public void DigitalSystemStep()
     {
         _planet.digitalSystem.GameTick(false);
+    }
+
+    private void DefenseGameTick(DefenseSystem defenseSystem, long tick)
+    {
+        GameHistoryData history = GameMain.history;
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[defenseSystem.factory.index];
+        int[] productRegister = obj.productRegister;
+        PowerSystem powerSystem = defenseSystem.factory.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+        PowerNodeComponent[] nodePool = powerSystem.nodePool;
+        EntityData[] entityPool = defenseSystem.factory.entityPool;
+        AnimData[] entityAnimPool = defenseSystem.factory.entityAnimPool;
+        ref CombatSettings combatSettings = ref defenseSystem.factory.gameData.history.combatSettings;
+        CombatUpgradeData combatUpgradeData = default(CombatUpgradeData);
+        history.GetCombatUpgradeData(ref combatUpgradeData);
+        VectorLF3 relativePos = defenseSystem.factory.gameData.relativePos;
+        UnityEngine.Quaternion relativeRot = defenseSystem.factory.gameData.relativeRot;
+        TrashSystem trashSystem = defenseSystem.factory.gameData.trashSystem;
+        bool flag = trashSystem.trashCount > 0;
+        float num = 1f / 60f;
+        defenseSystem.UpdateMatchSpaceEnemies();
+        EAggressiveLevel aggressiveLevel = combatSettings.aggressiveLevel;
+        int cursor = defenseSystem.beacons.cursor;
+        BeaconComponent[] buffer = defenseSystem.beacons.buffer;
+        for (int i = 1; i < cursor; i++)
+        {
+            ref BeaconComponent reference = ref buffer[i];
+            if (reference.id == i)
+            {
+                float power = networkServes[nodePool[reference.pnId].networkId];
+                PrefabDesc pdesc = PlanetFactory.PrefabDescByModelIndex[entityPool[reference.entityId].modelIndex];
+                reference.GameTick(defenseSystem.factory, pdesc, aggressiveLevel, power, tick);
+                if (reference.DeterminActiveEnemyUnits(isSpace: false, tick))
+                {
+                    reference.ActiveEnemyUnits_Ground(defenseSystem.factory, pdesc);
+                }
+                if (reference.DeterminActiveEnemyUnits(isSpace: true, tick))
+                {
+                    reference.ActiveEnemyUnits_Space(defenseSystem.factory, pdesc);
+                }
+            }
+        }
+        bool flag2 = false;
+        for (int num3 = defenseSystem.localGlobalTargetCursor - 1; num3 >= 0; num3--)
+        {
+            defenseSystem.globalTargets[num3].lifeTick--;
+            if (defenseSystem.globalTargets[num3].lifeTick <= 0)
+            {
+                defenseSystem.RemoveGlobalTargets(num3);
+                flag2 = true;
+            }
+        }
+        if (flag2)
+        {
+            defenseSystem.ArrangeGlobalTargets();
+        }
+        defenseSystem.UpdateOtherGlobalTargets();
+        defenseSystem.engagingGaussCount = 0;
+        defenseSystem.engagingLaserCount = 0;
+        defenseSystem.engagingCannonCount = 0;
+        defenseSystem.engagingMissileCount = 0;
+        defenseSystem.engagingPlasmaCount = 0;
+        defenseSystem.engagingLocalPlasmaCount = 0;
+        defenseSystem.engagingTurretTotalCount = 0;
+        defenseSystem.turretEnableDefenseSpace = false;
+        int num2 = _turretExecutor.GameTick(defenseSystem, tick, ref combatUpgradeData);
+        defenseSystem.engagingTurretTotalCount = defenseSystem.engagingGaussCount + defenseSystem.engagingLaserCount + defenseSystem.engagingCannonCount + defenseSystem.engagingPlasmaCount + defenseSystem.engagingMissileCount + defenseSystem.engagingLocalPlasmaCount;
+        if (num2 < 300)
+        {
+            defenseSystem.incomingSupernovaTime = num2;
+        }
+        else
+        {
+            defenseSystem.incomingSupernovaTime = 0;
+        }
+        int cursor3 = defenseSystem.fieldGenerators.cursor;
+        FieldGeneratorComponent[] buffer3 = defenseSystem.fieldGenerators.buffer;
+        for (int k = 1; k < cursor3; k++)
+        {
+            ref FieldGeneratorComponent reference3 = ref buffer3[k];
+            if (reference3.id != k)
+            {
+                continue;
+            }
+            ref PowerConsumerComponent reference4 = ref consumerPool[reference3.pcId];
+            float num11 = networkServes[reference4.networkId];
+            reference3.InternalUpdate(defenseSystem.factory, num11, ref reference4, ref entityAnimPool[reference3.entityId]);
+        }
+    }
+
+    public void DefenseGameTickUIThread(long tick)
+    {
+        DefenseSystem defenseSystem = _planet.defenseSystem;
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[defenseSystem.factory.index];
+        int[] productRegister = obj.productRegister;
+        PowerSystem powerSystem = defenseSystem.factory.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+        AnimData[] entityAnimPool = defenseSystem.factory.entityAnimPool;
+        VectorLF3 relativePos = defenseSystem.factory.gameData.relativePos;
+        UnityEngine.Quaternion relativeRot = defenseSystem.factory.gameData.relativeRot;
+        TrashSystem trashSystem = defenseSystem.factory.gameData.trashSystem;
+        bool flag = trashSystem.trashCount > 0;
+        float num = 1f / 60f;
+        int num13 = (int)(tick % 4);
+        BattleBaseComponent[] buffer4 = defenseSystem.battleBases.buffer;
+        for (int l = 1; l < defenseSystem.battleBases.cursor; l++)
+        {
+            BattleBaseComponent battleBaseComponent = buffer4[l];
+            if (battleBaseComponent != null && battleBaseComponent.id == l)
+            {
+                float power2 = networkServes[consumerPool[battleBaseComponent.pcId].networkId];
+                battleBaseComponent.InternalUpdate(num, defenseSystem.factory, power2, ref entityAnimPool[battleBaseComponent.entityId]);
+                if (flag && battleBaseComponent.autoPickEnabled && battleBaseComponent.energy > 0 && (long)l % 4L == num13)
+                {
+                    battleBaseComponent.AutoPickTrash(defenseSystem.factory, trashSystem, tick, ref relativePos, ref relativeRot, productRegister);
+                }
+            }
+        }
     }
 
     private WorkStep[] CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)

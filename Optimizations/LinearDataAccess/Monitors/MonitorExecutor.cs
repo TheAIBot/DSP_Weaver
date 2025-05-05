@@ -81,6 +81,7 @@ internal sealed class MonitorExecutor
 
             OptimizedCargoPath targetBelt = beltExecutor.GetOptimizedCargoPath(targetCargoPath);
             int networkIndex = planet.powerSystem.consumerPool[monitor.pcId].networkId;
+            optimizedPowerSystemBuilder.AddMonitor(in monitor, networkIndex);
             monitorIndexes.Add(monitorIndex);
             networkIds.Add(networkIndex);
             optimizedMonitors.Add(new OptimizedMonitor(targetBelt, targetBeltComponent.speed, targetBeltOffset));
