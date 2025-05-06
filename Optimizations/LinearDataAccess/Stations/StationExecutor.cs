@@ -99,20 +99,6 @@ internal sealed class StationExecutor
         }
     }
 
-    public void SandboxMode(PlanetFactory planet)
-    {
-        if (!GameMain.sandboxToolsEnabled)
-        {
-            return;
-        }
-
-        OptimizedStation[] optimizedStations = _optimizedStations;
-        for (int i = 0; i < optimizedStations.Length; i++)
-        {
-            optimizedStations[i].UpdateKeepMode();
-        }
-    }
-
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            BeltExecutor beltExecutor,
@@ -148,6 +134,7 @@ internal sealed class StationExecutor
             int networkIndex = planet.powerSystem.consumerPool[station.pcId].networkId;
             optimizedStations.Add(new OptimizedStation(station, belts, optimizedMinerIndex));
             networkIds.Add(networkIndex);
+
             planet.entityNeeds[station.entityId] = station.needs;
         }
 

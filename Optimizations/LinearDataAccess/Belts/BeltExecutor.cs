@@ -37,6 +37,7 @@ internal sealed class BeltExecutor
         foreach (KeyValuePair<CargoPath, OptimizedCargoPath> cargoPathWithOptimizedCargoPath in _cargoPathToOptimizedCargoPath)
         {
             CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPath.Key.buffer, cargoPathWithOptimizedCargoPath.Value, cargoContainer);
+            cargoPathWithOptimizedCargoPath.Value.Save(cargoPathWithOptimizedCargoPath.Key);
         }
     }
 

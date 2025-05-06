@@ -196,30 +196,6 @@ internal readonly struct OptimizedStation
         }
     }
 
-    public void UpdateKeepMode()
-    {
-        lock (stationComponent.storage)
-        {
-            for (int i = 0; i < stationComponent.storage.Length; i++)
-            {
-                if (stationComponent.storage[i].keepMode > 0 && stationComponent.storage[i].itemId > 0)
-                {
-                    stationComponent.storage[i].count = ((stationComponent.storage[i].keepMode <= 2) ? (stationComponent.storage[i].max / stationComponent.storage[i].keepMode) : 0);
-                    stationComponent.storage[i].inc = ((stationComponent.storage[i].keepMode <= 2) ? ((int)((float)stationComponent.storage[i].count * stationComponent.storage[i].keepIncRatio + 1E-05f)) : 0);
-                }
-            }
-
-            if (stationComponent.droneAutoReplenish)
-            {
-                stationComponent.idleDroneCount = stationComponent.workDroneDatas.Length - stationComponent.workDroneCount;
-            }
-            if (stationComponent.shipAutoReplenish)
-            {
-                stationComponent.idleShipCount = stationComponent.workShipDatas.Length - stationComponent.workShipCount;
-            }
-        }
-    }
-
     public void UpdateCollection(PlanetFactory factory, float collectSpeedRate, int[] productRegister, ref MiningFlags miningFlags)
     {
         if (stationComponent.collectionPerTick == null)

@@ -150,6 +150,7 @@ internal sealed class OptimizedPlanet
     public void DispenserGameTick(long time, UnityEngine.Vector3 playerPos)
     {
         PlanetTransport transport = _planet.transport;
+        DispenserGameTick_SandboxMode(transport);
         GameHistoryData history = GameMain.history;
         float[] networkServes = transport.powerSystem.networkServes;
         PowerConsumerComponent[] consumerPool = transport.powerSystem.consumerPool;
@@ -174,6 +175,21 @@ internal sealed class OptimizedPlanet
             {
                 float power2 = networkServes[consumerPool[transport.dispenserPool[k].pcId].networkId];
                 transport.dispenserPool[k].InternalTick(transport.factory, transport.factory.entityPool, transport.dispenserPool, playerPos, time, power2, history.logisticCourierSpeedModified, history.logisticCourierCarries, num5);
+            }
+        }
+    }
+
+    private static void DispenserGameTick_SandboxMode(PlanetTransport transport)
+    {
+        if (!GameMain.sandboxToolsEnabled)
+        {
+            return;
+        }
+        for (int j = 1; j < transport.dispenserCursor; j++)
+        {
+            if (transport.dispenserPool[j] != null && transport.dispenserPool[j].id == j)
+            {
+                transport.dispenserPool[j].UpdateKeepMode();
             }
         }
     }

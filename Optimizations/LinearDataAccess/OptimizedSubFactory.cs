@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Belts;
-using Weaver.Optimizations.LinearDataAccess.Dispensers;
 using Weaver.Optimizations.LinearDataAccess.Ejectors;
 using Weaver.Optimizations.LinearDataAccess.Fractionators;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
@@ -63,7 +62,6 @@ internal sealed class OptimizedSubFactory
     public FractionatorExecutor _fractionatorExecutor;
 
     public StationExecutor _stationExecutor;
-    public DispenserExecutor _dispenserExecutor;
 
     public TankExecutor _tankExecutor;
 
@@ -112,7 +110,6 @@ internal sealed class OptimizedSubFactory
         InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializePilers(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
-        InitializeDispensers(subFactoryGraph);
         InitializeTanks(subFactoryGraph, _beltExecutor);
         InitializeSplitters(subFactoryGraph, _beltExecutor);
 
@@ -210,12 +207,6 @@ internal sealed class OptimizedSubFactory
         _stationExecutor.Initialize(_planet, subFactoryGraph, beltExecutor, stationVeinMinerExecutor);
     }
 
-    private void InitializeDispensers(Graph subFactoryGraph)
-    {
-        _dispenserExecutor = new DispenserExecutor();
-        _dispenserExecutor.Initialize(subFactoryGraph);
-    }
-
     private void InitializeTanks(Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         _tankExecutor = new TankExecutor();
@@ -297,11 +288,6 @@ internal sealed class OptimizedSubFactory
         workerTimings.StartTimer();
         _stationExecutor.OutputToBelt(_planet, time);
         workerTimings.RecordTime(WorkType.OutputToBelt);
-
-        workerTimings.StartTimer();
-        _stationExecutor.SandboxMode(_planet);
-        _dispenserExecutor.SandboxMode(_planet);
-        workerTimings.RecordTime(WorkType.SandboxMode);
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)
