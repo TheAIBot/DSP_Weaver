@@ -154,6 +154,14 @@ internal sealed class AssemblerExecutor
                 continue;
             }
 
+            // An assembler where no recipe has ever been set will somehow have recipeId != 0
+            // while needs == null
+            if (assembler.needs == null)
+            {
+                unOptimizedAssemblerIds.Add(i);
+                continue;
+            }
+
             // It is possible to put a locked recipe into a building by using blueprints.
             // Such buildings should not run at all.
             // Planet reoptimization will enable the recipe when it has been researched.

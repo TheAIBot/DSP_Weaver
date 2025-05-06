@@ -297,17 +297,17 @@ internal sealed class OptimizedPlanet
         }
         else if (entity.assemblerId != 0)
         {
-            if (!_assemblerExecutor._assemblerIdToOptimizedIndex.TryGetValue(entity.assemblerId, out int optimizedAssemblerIndex))
+            if (_assemblerExecutor._assemblerIdToOptimizedIndex.TryGetValue(entity.assemblerId, out int optimizedAssemblerIndex))
             {
-                if (_assemblerExecutor._unOptimizedAssemblerIds.Contains(entity.assemblerId))
-                {
-                    return new TypedObjectIndex(EntityType.None, -1);
-                }
-
-                throw new InvalidOperationException("Failed to convert assembler id into optimized assembler id.");
+                return new TypedObjectIndex(EntityType.Assembler, optimizedAssemblerIndex);
             }
 
-            return new TypedObjectIndex(EntityType.Assembler, optimizedAssemblerIndex);
+            if (_assemblerExecutor._unOptimizedAssemblerIds.Contains(entity.assemblerId))
+            {
+                return TypedObjectIndex.Invalid;
+            }
+
+            throw new InvalidOperationException("Failed to convert assembler id into optimized assembler id.");
         }
         else if (entity.ejectorId != 0)
         {
@@ -321,31 +321,32 @@ internal sealed class OptimizedPlanet
         {
             if (planet.factorySystem.labPool[entity.labId].researchMode)
             {
-                if (!_researchingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
+                if (_researchingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
                 {
-                    if (_researchingLabExecutor._unOptimizedLabIds.Contains(entity.labId))
-                    {
-                        return new TypedObjectIndex(EntityType.None, -1);
-                    }
-
-                    throw new InvalidOperationException("Failed to convert researching lab id into optimized lab id.");
+                    return new TypedObjectIndex(EntityType.ResearchingLab, optimizedLabIndex);
                 }
 
-                return new TypedObjectIndex(EntityType.ResearchingLab, optimizedLabIndex);
+                if (_researchingLabExecutor._unOptimizedLabIds.Contains(entity.labId))
+                {
+                    return TypedObjectIndex.Invalid;
+                }
+
+                throw new InvalidOperationException("Failed to convert researching lab id into optimized lab id.");
+
             }
             else
             {
-                if (!_producingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
+                if (_producingLabIdToOptimizedIndex.TryGetValue(entity.labId, out int optimizedLabIndex))
                 {
-                    if (_producingLabExecutor._unOptimizedLabIds.Contains(entity.labId))
-                    {
-                        return new TypedObjectIndex(EntityType.None, -1);
-                    }
-
-                    throw new InvalidOperationException("Failed to convert producing lab id into optimized lab id.");
+                    return new TypedObjectIndex(EntityType.ProducingLab, optimizedLabIndex);
                 }
 
-                return new TypedObjectIndex(EntityType.ProducingLab, optimizedLabIndex);
+                if (_producingLabExecutor._unOptimizedLabIds.Contains(entity.labId))
+                {
+                    return TypedObjectIndex.Invalid;
+                }
+
+                throw new InvalidOperationException("Failed to convert producing lab id into optimized lab id.");
             }
         }
         else if (entity.storageId != 0)

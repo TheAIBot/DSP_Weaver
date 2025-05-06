@@ -1,3 +1,6 @@
+## 1.1.5
+* Fix sorter inserting into assembler or lab without a recipe set would crash the game.
+
 ## 1.1.4
 * Fix sorters could not insert into silos after loading save. Player needed to visit silos planets before sorters would function again.
 
