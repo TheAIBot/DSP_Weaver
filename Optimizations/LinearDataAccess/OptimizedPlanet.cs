@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Turrets;
@@ -40,6 +41,8 @@ internal sealed class OptimizedPlanet
             subFactory.Save(cargoContainer);
         }
 
+        _optimizedPowerSystem.Save(_planet);
+
         Status = OptimizedPlanetStatus.Stopped;
 
         _workSteps = null;
@@ -53,17 +56,18 @@ internal sealed class OptimizedPlanet
 
         //WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
 
-        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet.powerSystem);
+        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet);
+        var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
         {
             _subFactories[i] = new OptimizedSubFactory(_planet, _starClusterResearchManager);
-            _subFactories[i].Initialize(subFactoryGraphs[i], optimizedPowerSystemBuilder, turretExecutorBuilder);
+            _subFactories[i].Initialize(subFactoryGraphs[i], optimizedPowerSystemBuilder, planetWideBeltExecutor, turretExecutorBuilder);
         }
 
-        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build();
+        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(planetWideBeltExecutor);
         _turretExecutor = turretExecutorBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
@@ -133,6 +137,17 @@ internal sealed class OptimizedPlanet
         workSteps.Add(new WorkStep([new PlanetWideDigitalSystem(this)]));
 
         return workSteps.ToArray();
+    }
+
+    public bool RequestDysonSpherePower()
+    {
+        if (Status == OptimizedPlanetStatus.Stopped)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        _optimizedPowerSystem.RequestDysonSpherePower(_planet);
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
     public void BeforePowerStep(long time)

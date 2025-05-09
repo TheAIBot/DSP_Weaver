@@ -301,6 +301,14 @@ internal static class OptimizedStarCluster
         return codeMatcher.InstructionEnumeration();
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(PowerSystem), nameof(PowerSystem.RequestDysonSpherePower))]
+    public static bool PowerSystem_RequestDysonSpherePower(PowerSystem __instance)
+    {
+        OptimizedPlanet optimizedPlanet = GetOptimizedPlanet(__instance.factory);
+        return optimizedPlanet.RequestDysonSpherePower();
+    }
+
     public static void ReOptimizeAllPlanets()
     {
         lock (_planetsToReOptimize)

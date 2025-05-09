@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 internal sealed class OptimizedPowerSystemBuilder
 {
-    private readonly PowerSystem _powerSystem;
+    private readonly PlanetFactory _planet;
     private readonly List<PowerConsumerType> _powerConsumerTypes = [];
     private readonly Dictionary<PowerConsumerType, int> _powerConsumerTypeToIndex = [];
     private readonly List<int> _assemblerPowerConsumerTypeIndexes = [];
@@ -24,14 +25,14 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
     private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions = [];
 
-    public OptimizedPowerSystemBuilder(PowerSystem powerSystem)
+    public OptimizedPowerSystemBuilder(PlanetFactory planet)
     {
-        _powerSystem = powerSystem;
+        _planet = planet;
     }
 
     public void AddSubFactory(OptimizedSubFactory subFactory)
     {
-        _subFactoryToNetworkPowerConsumptions.Add(subFactory, new long[_powerSystem.netCursor]);
+        _subFactoryToNetworkPowerConsumptions.Add(subFactory, new long[_planet.powerSystem.netCursor]);
         _subFactoryToSpraycoaterPowerConsumerTypeIndexes.Add(subFactory, []);
     }
 
@@ -42,12 +43,12 @@ internal sealed class OptimizedPowerSystemBuilder
 
     public OptimizedPowerSystemInserterBuilder CreateBiInserterBuilder()
     {
-        return new OptimizedPowerSystemInserterBuilder(_powerSystem, this, _inserterBiPowerConsumerTypeIndexes);
+        return new OptimizedPowerSystemInserterBuilder(_planet.powerSystem, this, _inserterBiPowerConsumerTypeIndexes);
     }
 
     public OptimizedPowerSystemInserterBuilder CreateInserterBuilder()
     {
-        return new OptimizedPowerSystemInserterBuilder(_powerSystem, this, _inserterPowerConsumerTypeIndexes);
+        return new OptimizedPowerSystemInserterBuilder(_planet.powerSystem, this, _inserterPowerConsumerTypeIndexes);
     }
 
     public void AddProducingLab(ref readonly LabComponent lab, int networkIndex)
@@ -92,30 +93,31 @@ internal sealed class OptimizedPowerSystemBuilder
 
     public OptimizedPowerSystemVeinMinerBuilder CreateBeltVeinMinerBuilder()
     {
-        return new OptimizedPowerSystemVeinMinerBuilder(_powerSystem, this, _beltVeinMinerPowerConsumerTypeIndexes);
+        return new OptimizedPowerSystemVeinMinerBuilder(_planet.powerSystem, this, _beltVeinMinerPowerConsumerTypeIndexes);
     }
 
     public OptimizedPowerSystemVeinMinerBuilder CreateStationVeinMinerBuilder()
     {
-        return new OptimizedPowerSystemVeinMinerBuilder(_powerSystem, this, _stationVeinMinerPowerConsumerTypeIndexes);
+        return new OptimizedPowerSystemVeinMinerBuilder(_planet.powerSystem, this, _stationVeinMinerPowerConsumerTypeIndexes);
     }
 
-    public OptimizedPowerSystem Build()
+    public OptimizedPowerSystem Build(PlanetWideBeltExecutor planetWideBeltExecutor)
     {
-        int[][] networkNonOptimizedPowerConsumerIndexes = new int[_powerSystem.netCursor][];
+        int[][] networkNonOptimizedPowerConsumerIndexes = new int[_planet.powerSystem.netCursor][];
         for (int i = 0; i < networkNonOptimizedPowerConsumerIndexes.Length; i++)
         {
             if (!_networkIndexToOptimizedConsumerIndexes.TryGetValue(i, out HashSet<int> optimizedConsumerIndexes))
             {
-                networkNonOptimizedPowerConsumerIndexes[i] = _powerSystem.netPool[i].consumers.ToArray();
+                networkNonOptimizedPowerConsumerIndexes[i] = _planet.powerSystem.netPool[i].consumers.ToArray();
                 continue;
             }
 
-            networkNonOptimizedPowerConsumerIndexes[i] = _powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes).ToArray();
+            networkNonOptimizedPowerConsumerIndexes[i] = _planet.powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes).ToArray();
         }
 
+        OptimizedPowerNetwork[] optimizedPowerNetworks = GetOptimizedPowerNetworks(_planet, planetWideBeltExecutor, _networkIndexToOptimizedConsumerIndexes);
+
         return new OptimizedPowerSystem(_powerConsumerTypes.ToArray(),
-                                        networkNonOptimizedPowerConsumerIndexes,
                                         _assemblerPowerConsumerTypeIndexes.ToArray(),
                                         _inserterBiPowerConsumerTypeIndexes.ToArray(),
                                         _inserterPowerConsumerTypeIndexes.ToArray(),
@@ -129,6 +131,7 @@ internal sealed class OptimizedPowerSystemBuilder
                                         _oilMinerPowerConsumerTypeIndexes.ToArray(),
                                         _beltVeinMinerPowerConsumerTypeIndexes.ToArray(),
                                         _stationVeinMinerPowerConsumerTypeIndexes.ToArray(),
+                                        optimizedPowerNetworks,
                                         _subFactoryToNetworkPowerConsumptions);
     }
 
@@ -157,10 +160,49 @@ internal sealed class OptimizedPowerSystemBuilder
 
     private void AddEntity(List<int> powerConsumerTypeIndexes, int powerConsumerIndex, int networkIndex)
     {
-        PowerConsumerComponent powerConsumerComponent = _powerSystem.consumerPool[powerConsumerIndex];
+        PowerConsumerComponent powerConsumerComponent = _planet.powerSystem.consumerPool[powerConsumerIndex];
         PowerConsumerType powerConsumerType = new PowerConsumerType(powerConsumerComponent.workEnergyPerTick, powerConsumerComponent.idleEnergyPerTick);
         powerConsumerTypeIndexes.Add(GetOrAddPowerConsumerType(powerConsumerType));
 
         AddPowerConsumerIndexToNetwork(powerConsumerIndex, networkIndex);
+    }
+
+    private static OptimizedPowerNetwork[] GetOptimizedPowerNetworks(PlanetFactory planet,
+                                                                     PlanetWideBeltExecutor planetWideBeltExecutor,
+                                                                     Dictionary<int, HashSet<int>> networkIndexToOptimizedConsumerIndexes)
+    {
+        List<OptimizedPowerNetwork> optimizedPowerNetworks = [];
+
+        for (int i = 1; i < planet.powerSystem.netCursor; i++)
+        {
+            PowerNetwork? powerNetwork = planet.powerSystem.netPool[i];
+            if (powerNetwork == null || powerNetwork.id != i)
+            {
+                continue;
+            }
+
+            int[] networkNonOptimizedPowerConsumerIndexes;
+            if (networkIndexToOptimizedConsumerIndexes.TryGetValue(i, out HashSet<int> optimizedConsumerIndexes))
+            {
+                networkNonOptimizedPowerConsumerIndexes = planet.powerSystem.netPool[i].consumers.Except(networkIndexToOptimizedConsumerIndexes[i])
+                                                                                                 .OrderBy(x => x)
+                                                                                                 .ToArray();
+            }
+            else
+            {
+                networkNonOptimizedPowerConsumerIndexes = planet.powerSystem.netPool[i].consumers.ToArray();
+            }
+
+            HashSet<int> generatorIndexes = new(powerNetwork.generators);
+
+            var gammaExecutor = new GammaPowerGeneratorExecutor();
+            gammaExecutor.Initialize(planet, i, planetWideBeltExecutor);
+
+            generatorIndexes.ExceptWith(gammaExecutor.OptimizedPowerGeneratorIds);
+
+            optimizedPowerNetworks.Add(new OptimizedPowerNetwork(powerNetwork, i, networkNonOptimizedPowerConsumerIndexes, generatorIndexes.OrderBy(x => x).ToArray(), gammaExecutor));
+        }
+
+        return optimizedPowerNetworks.ToArray();
     }
 }

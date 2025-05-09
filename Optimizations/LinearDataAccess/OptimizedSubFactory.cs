@@ -93,11 +93,14 @@ internal sealed class OptimizedSubFactory
         _tankExecutor.Save(_planet);
     }
 
-    public void Initialize(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, TurretExecutorBuilder turretExecutorBuilder)
+    public void Initialize(Graph subFactoryGraph,
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           PlanetWideBeltExecutor planetWideBeltExecutor,
+                           TurretExecutorBuilder turretExecutorBuilder)
     {
         optimizedPowerSystemBuilder.AddSubFactory(this);
 
-        InitializeBelts(subFactoryGraph);
+        InitializeBelts(subFactoryGraph, planetWideBeltExecutor);
         InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeMiners(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeStations(subFactoryGraph, _beltExecutor, _stationVeinMinerExecutor);
@@ -213,10 +216,12 @@ internal sealed class OptimizedSubFactory
         _tankExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
     }
 
-    private void InitializeBelts(Graph subFactoryGraph)
+    private void InitializeBelts(Graph subFactoryGraph, PlanetWideBeltExecutor planetWideBeltExecutor)
     {
         _beltExecutor = new BeltExecutor();
         _beltExecutor.Initialize(_planet, subFactoryGraph);
+
+        planetWideBeltExecutor.AddBeltExecutor(_beltExecutor);
     }
 
     private void InitializeSplitters(Graph subFactoryGraph, BeltExecutor beltExecutor)

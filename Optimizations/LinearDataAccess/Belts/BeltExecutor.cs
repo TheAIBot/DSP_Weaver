@@ -13,6 +13,8 @@ internal sealed class BeltExecutor
 
     public OptimizedCargoContainer OptimizedCargoContainer;
 
+    public Dictionary<CargoPath, OptimizedCargoPath> CargoPathToOptimizedCargoPath => _cargoPathToOptimizedCargoPath;
+
     public OptimizedCargoPath GetOptimizedCargoPath(CargoPath cargoPath)
     {
         return _cargoPathToOptimizedCargoPath[cargoPath];
