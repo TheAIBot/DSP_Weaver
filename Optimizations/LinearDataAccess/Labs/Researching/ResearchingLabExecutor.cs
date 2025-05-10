@@ -162,7 +162,7 @@ internal sealed class ResearchingLabExecutor
     {
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
-        for (int i = (int)(GameMain.gameTick % 5); i < _optimizedLabs.Length; i += 5)
+        for (int i = (int)(GameMain.gameTick % 5); i < optimizedLabs.Length; i += 5)
         {
             optimizedLabs[i].UpdateOutputToNext(i, optimizedLabs, networkIdAndStates);
         }
@@ -174,7 +174,7 @@ internal sealed class ResearchingLabExecutor
     {
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        for (int j = 0; j < _optimizedLabs.Length; j++)
+        for (int j = 0; j < networkIdAndStates.Length; j++)
         {
             int networkIndex = networkIdAndStates[j].Index;
             int powerConsumerTypeIndex = researchingLabPowerConsumerIndexes[j];

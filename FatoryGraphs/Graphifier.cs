@@ -486,14 +486,14 @@ internal static class Graphifier
 
             if (component.lastTankId != 0 && planet.factoryStorage.tankPool[component.lastTankId].id == component.lastTankId)
             {
-                EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Tank, component.lastTankId);
-                BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
+                EntityTypeIndex connectedTank = new EntityTypeIndex(EntityType.Tank, component.lastTankId);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedTank);
             }
 
             if (component.nextTankId != 0 && planet.factoryStorage.tankPool[component.nextTankId].id == component.nextTankId)
             {
-                EntityTypeIndex connectedStorage = new EntityTypeIndex(EntityType.Tank, component.nextTankId);
-                BiDirectionConnection(entityTypeIndexToNode, node, connectedStorage);
+                EntityTypeIndex connectedTank = new EntityTypeIndex(EntityType.Tank, component.nextTankId);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedTank);
             }
 
             if (component.belt0 > 0)

@@ -54,7 +54,7 @@ internal sealed class ProducingLabExecutor
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
-        for (int i = (int)(GameMain.gameTick % 5); i < _optimizedLabs.Length; i += 5)
+        for (int i = (int)(GameMain.gameTick % 5); i < optimizedLabs.Length; i += 5)
         {
             ref OptimizedProducingLab lab = ref optimizedLabs[i];
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
@@ -110,10 +110,11 @@ internal sealed class ProducingLabExecutor
         HashSet<int> unOptimizedLabIds = [];
         GameHistoryData historyData = planet.gameData.history;
 
-        foreach (int labIndex in subFactoryGraph.GetAllNodes()
+        HashSet<int> labIndexesInSubFactory = new(subFactoryGraph.GetAllNodes()
                                                 .Where(x => x.EntityTypeIndex.EntityType == EntityType.ProducingLab)
-                                                .Select(x => x.EntityTypeIndex.Index)
-                                                .OrderBy(x => x))
+                                                                 .Select(x => x.EntityTypeIndex.Index));
+
+        foreach (int labIndex in labIndexesInSubFactory.OrderBy(x => x))
         {
             ref LabComponent lab = ref planet.factorySystem.labPool[labIndex];
             if (lab.id != labIndex)
@@ -148,6 +149,10 @@ internal sealed class ProducingLabExecutor
                 planet.factorySystem.labPool[lab.nextLabId].id == lab.nextLabId)
             {
                 nextLabIndex = lab.nextLabId;
+                if (!labIndexesInSubFactory.Contains(nextLabIndex.Value))
+                {
+                    throw new InvalidOperationException($"Labs next lab index is not part of the current sub factory. {nameof(nextLabIndex)}: {nextLabIndex.Value}");
+                }
             }
 
             var producingLabRecipe = new ProducingLabRecipe(in lab);
