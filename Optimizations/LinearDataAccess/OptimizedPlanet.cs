@@ -47,6 +47,8 @@ internal sealed class OptimizedPlanet
 
         _optimizedPowerSystem.Save(_planet);
 
+        //_planet.cargoTraffic.PresentCargoPathsSync();
+
         Status = OptimizedPlanetStatus.Stopped;
 
         _workSteps = null;
