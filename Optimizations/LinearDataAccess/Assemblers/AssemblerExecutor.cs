@@ -151,7 +151,7 @@ internal sealed class AssemblerExecutor
             // while needs == null
             if (assembler.needs == null)
             {
-                unOptimizedAssemblerIds.Add(i);
+                unOptimizedAssemblerIds.Add(assemblerIndex);
                 continue;
             }
 
