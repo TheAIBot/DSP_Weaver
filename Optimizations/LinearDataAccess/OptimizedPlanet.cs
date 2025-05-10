@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Labs;
+using Weaver.Optimizations.LinearDataAccess.Miners;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Stations;
 using Weaver.Optimizations.LinearDataAccess.Turrets;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
@@ -17,6 +19,8 @@ internal sealed class OptimizedPlanet
     private OptimizedSubFactory[] _subFactories;
     private OptimizedPowerSystem _optimizedPowerSystem;
     private TurretExecutor _turretExecutor;
+    private PlanetWideStationExecutor _planetWideStationExecutor;
+    private MiningFlags _miningFlags;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
@@ -59,16 +63,22 @@ internal sealed class OptimizedPlanet
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
+        var planetWideStationExecutorBuilder = new PlanetWideStationExecutorBuilder();
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
         {
             _subFactories[i] = new OptimizedSubFactory(_planet, _starClusterResearchManager);
-            _subFactories[i].Initialize(subFactoryGraphs[i], optimizedPowerSystemBuilder, planetWideBeltExecutor, turretExecutorBuilder);
+            _subFactories[i].Initialize(subFactoryGraphs[i],
+                                        optimizedPowerSystemBuilder,
+                                        planetWideBeltExecutor,
+                                        turretExecutorBuilder,
+                                        planetWideStationExecutorBuilder);
         }
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(planetWideBeltExecutor);
         _turretExecutor = turretExecutorBuilder.Build();
+        _planetWideStationExecutor = planetWideStationExecutorBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
 
@@ -132,7 +142,7 @@ internal sealed class OptimizedPlanet
         }
         workSteps.Add(new WorkStep(gameTickChunks.ToArray()));
 
-        workSteps.Add(new WorkStep([new PlanetWideDispenserTransport(this)]));
+        workSteps.Add(new WorkStep([new PlanetWideTransport(this)]));
 
         workSteps.Add(new WorkStep([new PlanetWideDigitalSystem(this)]));
 
@@ -162,15 +172,15 @@ internal sealed class OptimizedPlanet
         _optimizedPowerSystem.GameTick(_planet, time);
     }
 
-    public void DispenserGameTick(long time, UnityEngine.Vector3 playerPos)
+    public void TransportGameTick(long time, UnityEngine.Vector3 playerPos)
     {
+        _planetWideStationExecutor.StationGameTick(_planet, time, ref _miningFlags);
+
         PlanetTransport transport = _planet.transport;
         DispenserGameTick_SandboxMode(transport);
         GameHistoryData history = GameMain.history;
         float[] networkServes = transport.powerSystem.networkServes;
         PowerConsumerComponent[] consumerPool = transport.powerSystem.consumerPool;
-        AstroData[] astrosData = transport.gameData.galaxy.astrosData;
-        bool starmap = UIGame.viewMode == EViewMode.Starmap;
 
         double num5 = Math.Cos((double)history.dispenserDeliveryMaxAngle * Math.PI / 180.0);
         if (num5 < -0.999)

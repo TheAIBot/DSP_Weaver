@@ -96,14 +96,15 @@ internal sealed class OptimizedSubFactory
     public void Initialize(Graph subFactoryGraph,
                            OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
                            PlanetWideBeltExecutor planetWideBeltExecutor,
-                           TurretExecutorBuilder turretExecutorBuilder)
+                           TurretExecutorBuilder turretExecutorBuilder,
+                           PlanetWideStationExecutorBuilder planetWideStationExecutorBuilder)
     {
         optimizedPowerSystemBuilder.AddSubFactory(this);
 
         InitializeBelts(subFactoryGraph, planetWideBeltExecutor);
         InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeMiners(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
-        InitializeStations(subFactoryGraph, _beltExecutor, _stationVeinMinerExecutor);
+        InitializeStations(subFactoryGraph, _beltExecutor, _stationVeinMinerExecutor, planetWideStationExecutorBuilder);
         InitializeEjectors(subFactoryGraph);
         InitializeSilos(subFactoryGraph);
         InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
@@ -204,10 +205,17 @@ internal sealed class OptimizedSubFactory
         _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializeStations(Graph subFactoryGraph, BeltExecutor beltExecutor, VeinMinerExecutor<StationMinerOutput> stationVeinMinerExecutor)
+    private void InitializeStations(Graph subFactoryGraph,
+                                    BeltExecutor beltExecutor,
+                                    VeinMinerExecutor<StationMinerOutput> stationVeinMinerExecutor,
+                                    PlanetWideStationExecutorBuilder planetWideStationExecutorBuilder)
     {
         _stationExecutor = new StationExecutor();
-        _stationExecutor.Initialize(_planet, subFactoryGraph, beltExecutor, stationVeinMinerExecutor);
+        _stationExecutor.Initialize(_planet,
+                                    subFactoryGraph,
+                                    beltExecutor,
+                                    stationVeinMinerExecutor,
+                                    planetWideStationExecutorBuilder);
     }
 
     private void InitializeTanks(Graph subFactoryGraph, BeltExecutor beltExecutor)
@@ -253,7 +261,7 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.LabResearchMode);
 
         workerTimings.StartTimer();
-        _stationExecutor.StationGameTick(_planet, time, _stationVeinMinerExecutor, ref _miningFlags);
+        _stationExecutor.StationGameTick(_stationVeinMinerExecutor, ref _miningFlags);
         workerTimings.RecordTime(WorkType.TransportData);
 
         workerTimings.StartTimer();
