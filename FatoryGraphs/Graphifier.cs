@@ -359,7 +359,7 @@ internal static class Graphifier
             if (component.nextLabId > 0)
             {
                 EntityTypeIndex connectedEntityIndex = new EntityTypeIndex(EntityType.ProducingLab, component.nextLabId);
-                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
 
@@ -376,7 +376,7 @@ internal static class Graphifier
             if (component.nextLabId > 0)
             {
                 EntityTypeIndex connectedEntityIndex = new EntityTypeIndex(EntityType.ResearchingLab, component.nextLabId);
-                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                BiDirectionConnection(entityTypeIndexToNode, node, connectedEntityIndex);
             }
         }
     }
