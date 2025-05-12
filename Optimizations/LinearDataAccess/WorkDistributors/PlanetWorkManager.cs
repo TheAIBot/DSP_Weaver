@@ -9,9 +9,9 @@ internal sealed class PlanetWorkManager
     private int _currentWorkStepIndex;
 
     public PlanetFactory Planet { get; }
-    public OptimizedPlanet OptimizedPlanet { get; }
+    public IOptimizedPlanet OptimizedPlanet { get; }
 
-    public PlanetWorkManager(PlanetFactory planet, OptimizedPlanet optimizedPlanet)
+    public PlanetWorkManager(PlanetFactory planet, IOptimizedPlanet optimizedPlanet)
     {
         Planet = planet;
         OptimizedPlanet = optimizedPlanet;

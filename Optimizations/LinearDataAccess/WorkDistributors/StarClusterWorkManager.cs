@@ -29,7 +29,7 @@ internal sealed class StarClusterWorkManager
                 continue;
             }
 
-            OptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(planet);
+            IOptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(planet);
             _planetToWorkManagers.Add(planet, new PlanetWorkManager(planet, optimizedPlanet));
         }
 

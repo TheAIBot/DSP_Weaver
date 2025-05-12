@@ -4,10 +4,10 @@ namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
 internal sealed class PlanetWideTransport : IWorkChunk
 {
-    private readonly OptimizedPlanet _optimizedPlanet;
+    private readonly IOptimizedPlanet _optimizedPlanet;
     private WorkStep _workStep;
 
-    public PlanetWideTransport(OptimizedPlanet optimizedPlanet)
+    public PlanetWideTransport(IOptimizedPlanet optimizedPlanet)
     {
         _optimizedPlanet = optimizedPlanet;
     }

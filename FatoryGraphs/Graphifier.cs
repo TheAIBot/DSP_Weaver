@@ -386,7 +386,7 @@ internal static class Graphifier
         for (int i = 1; i < planet.transport.stationCursor; i++)
         {
             StationComponent component = planet.transport.stationPool[i];
-            if (component == null || component.id != i || component.pcId == 0)
+            if (component == null || component.id != i)
             {
                 continue;
             }

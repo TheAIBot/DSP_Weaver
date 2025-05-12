@@ -11,7 +11,7 @@ namespace Weaver.Optimizations.LinearDataAccess;
 
 internal static class OptimizedStarCluster
 {
-    private static readonly Dictionary<PlanetFactory, OptimizedPlanet> _planetToOptimizedPlanet = [];
+    private static readonly Dictionary<PlanetFactory, IOptimizedPlanet> _planetToOptimizedPlanet = [];
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
     public static readonly StarClusterResearchManager _starClusterResearchManager = new();
@@ -31,7 +31,7 @@ internal static class OptimizedStarCluster
         _debugEnableHeavyReOptimization = true;
     }
 
-    public static OptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
+    public static IOptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GameMain), nameof(GameMain.End))]
@@ -51,7 +51,7 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameSave), nameof(GameSave.LoadCurrentGame))]
     private static void LoadCurrentGame_Postfix()
     {
-        WeaverFixes.Logger.LogInfo($"Initializing {nameof(OptimizedPlanet)}");
+        WeaverFixes.Logger.LogInfo($"Initializing {nameof(OptimizedStarCluster)}");
 
         _planetToOptimizedPlanet.Clear();
         _workStealingMultiThreadedFactorySimulation.Clear();
@@ -59,14 +59,24 @@ internal static class OptimizedStarCluster
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
-            PlanetFactory planet = GameMain.data.factories[i];
-            FactorySystem factory = planet.factorySystem;
-            if (factory == null)
-            {
-                continue;
-            }
+            TryAddNewPlanet(GameMain.data.factories[i]);
+        }
+    }
 
-            _planetToOptimizedPlanet.Add(planet, new OptimizedPlanet(planet, _starClusterResearchManager));
+    private static void TryAddNewPlanet(PlanetFactory planet)
+    {
+        if (planet.factorySystem == null)
+        {
+            return;
+        }
+
+        if (OptimizedGasPlanet.IsGasPlanet(planet))
+        {
+            _planetToOptimizedPlanet.Add(planet, new OptimizedGasPlanet(planet));
+        }
+        else
+        {
+            _planetToOptimizedPlanet.Add(planet, new OptimizedTerrestrialPlanet(planet, _starClusterResearchManager));
         }
     }
 
@@ -76,7 +86,7 @@ internal static class OptimizedStarCluster
     {
         WeaverFixes.Logger.LogInfo($"Saving optimized planets");
 
-        foreach (KeyValuePair<PlanetFactory, OptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedPlanet)
+        foreach (KeyValuePair<PlanetFactory, IOptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedPlanet)
         {
             if (planetToOptimizedPlanet.Value.Status != OptimizedPlanetStatus.Running)
             {
@@ -106,11 +116,11 @@ internal static class OptimizedStarCluster
                 PlanetFactory newPlanet = _newPlanets.Dequeue();
 
                 WeaverFixes.Logger.LogInfo($"Adding planet: {newPlanet.planet.displayName}");
-                _planetToOptimizedPlanet.Add(newPlanet, new OptimizedPlanet(newPlanet, _starClusterResearchManager));
+                TryAddNewPlanet(newPlanet);
             }
         }
 
-        foreach (KeyValuePair<PlanetFactory, OptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedPlanet)
+        foreach (KeyValuePair<PlanetFactory, IOptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedPlanet)
         {
             if (GameMain.localPlanet?.factory != planetToOptimizedPlanet.Key)
             {
@@ -142,7 +152,7 @@ internal static class OptimizedStarCluster
         {
             // Avoid lag spike by spreading load over multiple ticks
             PlanetFactory planetToReOptimize = _planetsToReOptimize.Dequeue();
-            OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planetToReOptimize];
+            IOptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planetToReOptimize];
             if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
             {
                 return;
@@ -305,7 +315,7 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(PowerSystem), nameof(PowerSystem.RequestDysonSpherePower))]
     public static bool PowerSystem_RequestDysonSpherePower(PowerSystem __instance)
     {
-        OptimizedPlanet optimizedPlanet = GetOptimizedPlanet(__instance.factory);
+        IOptimizedPlanet optimizedPlanet = GetOptimizedPlanet(__instance.factory);
         return optimizedPlanet.RequestDysonSpherePower();
     }
 
@@ -336,17 +346,22 @@ internal static class OptimizedStarCluster
         //Parallel.ForEach(_planetToOptimizedPlanet.Values, x => x.GameTickDefense(time));
 
 
-        foreach (OptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
+        foreach (IOptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
         {
-            optimizedPlanet.GameTickDefense(time);
-            optimizedPlanet.DefenseGameTickUIThread(time);
+            if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
+            {
+                continue;
+            }
+
+            terrestrialPlanet.GameTickDefense(time);
+            terrestrialPlanet.DefenseGameTickUIThread(time);
         }
         PerformanceMonitor.EndSample(ECpuWorkEntry.Defense);
     }
 
     private static void DeOptimizeDueToNonPlayerAction(PlanetFactory planet)
     {
-        OptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
+        IOptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
         if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
         {
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planet.planet.displayName}");

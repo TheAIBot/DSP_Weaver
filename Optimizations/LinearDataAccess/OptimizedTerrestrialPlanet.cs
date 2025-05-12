@@ -3,31 +3,27 @@ using System.Collections.Generic;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Labs;
-using Weaver.Optimizations.LinearDataAccess.Miners;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
-using Weaver.Optimizations.LinearDataAccess.Stations;
 using Weaver.Optimizations.LinearDataAccess.Turrets;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.LinearDataAccess;
 
-internal sealed class OptimizedPlanet
+internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 {
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private OptimizedSubFactory[] _subFactories;
     private OptimizedPowerSystem _optimizedPowerSystem;
     private TurretExecutor _turretExecutor;
-    private PlanetWideStationExecutor _planetWideStationExecutor;
-    private MiningFlags _miningFlags;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
     private WorkStep[] _workSteps;
     private int _workStepsParallelism;
 
-    public OptimizedPlanet(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
+    public OptimizedTerrestrialPlanet(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
     {
         _planet = planet;
         _starClusterResearchManager = starClusterResearchManager;
@@ -65,7 +61,6 @@ internal sealed class OptimizedPlanet
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
-        var planetWideStationExecutorBuilder = new PlanetWideStationExecutorBuilder();
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
@@ -74,13 +69,11 @@ internal sealed class OptimizedPlanet
             _subFactories[i].Initialize(subFactoryGraphs[i],
                                         optimizedPowerSystemBuilder,
                                         planetWideBeltExecutor,
-                                        turretExecutorBuilder,
-                                        planetWideStationExecutorBuilder);
+                                        turretExecutorBuilder);
         }
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(planetWideBeltExecutor);
         _turretExecutor = turretExecutorBuilder.Build();
-        _planetWideStationExecutor = planetWideStationExecutorBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
 
@@ -176,8 +169,6 @@ internal sealed class OptimizedPlanet
 
     public void TransportGameTick(long time, UnityEngine.Vector3 playerPos)
     {
-        _planetWideStationExecutor.StationGameTick(_planet, time, ref _miningFlags);
-
         PlanetTransport transport = _planet.transport;
         DispenserGameTick_SandboxMode(transport);
         GameHistoryData history = GameMain.history;

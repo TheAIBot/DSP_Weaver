@@ -1,17 +1,11 @@
-﻿using Weaver.Optimizations.LinearDataAccess.Miners;
+﻿using System.Collections.Generic;
+using Weaver.Optimizations.LinearDataAccess.Miners;
 
 namespace Weaver.Optimizations.LinearDataAccess.Stations;
 
-internal sealed class PlanetWideStationExecutor
+internal sealed class GasPlanetWideStationExecutor
 {
-    private readonly OptimizedStation[] _optimizedStations;
-    private readonly int[] _networkIds;
-
-    public PlanetWideStationExecutor(OptimizedStation[] optimizedStations, int[] networkIds)
-    {
-        _optimizedStations = optimizedStations;
-        _networkIds = networkIds;
-    }
+    private OptimizedStation[] _optimizedStations;
 
     public void StationGameTick(PlanetFactory planet, long time, ref MiningFlags miningFlags)
     {
@@ -30,9 +24,6 @@ internal sealed class PlanetWideStationExecutor
         FactoryProductionStat factoryProductionStat = GameMain.statistics.production.factoryStatPool[transport.factory.index];
         int[] productRegister = factoryProductionStat.productRegister;
         int[] consumeRegister = factoryProductionStat.consumeRegister;
-        float[] networkServes = transport.powerSystem.networkServes;
-        float logisticDroneSpeedModified = history.logisticDroneSpeedModified;
-        int logisticDroneCarries = history.logisticDroneCarries;
         float logisticShipSailSpeedModified = history.logisticShipSailSpeedModified;
         float shipWarpSpeed = (history.logisticShipWarpDrive ? history.logisticShipWarpSpeedModified : logisticShipSailSpeedModified);
         int logisticShipCarries = history.logisticShipCarries;
@@ -46,24 +37,15 @@ internal sealed class PlanetWideStationExecutor
         float collectSpeedRate = ((gasTotalHeat - num4 <= 0.0) ? 1f : ((float)((num3 * gasTotalHeat - num4) / (gasTotalHeat - num4))));
         bool starmap = UIGame.viewMode == EViewMode.Starmap;
         OptimizedStation[] optimizedStations = _optimizedStations;
-        int[] networkIds = _networkIds;
         GameTick_SandboxMode();
         long additionalEnergyConsumption = 0;
         for (int i = 0; i < optimizedStations.Length; i++)
         {
             OptimizedStation station = optimizedStations[i];
+            station.UpdateCollection(transport.factory, collectSpeedRate, productRegister, ref miningFlags);
+            additionalEnergyConsumption += transport.collectorWorkEnergyPerTick;
 
-            float power = networkServes[networkIds[i]];
-            station.stationComponent.InternalTickLocal(transport.factory, num, power, logisticDroneSpeedModified, logisticDroneCarries, transport.stationPool);
-            if (station.stationComponent.isCollector)
-            {
-                station.UpdateCollection(transport.factory, collectSpeedRate, productRegister, ref miningFlags);
-                additionalEnergyConsumption += transport.collectorWorkEnergyPerTick;
-            }
-            if (station.stationComponent.isStellar)
-            {
-                station.stationComponent.InternalTickRemote(transport.factory, num2, logisticShipSailSpeedModified, shipWarpSpeed, logisticShipCarries, gStationPool, astrosData, ref relativePos, ref relativeRot, starmap, consumeRegister);
-            }
+            station.stationComponent.InternalTickRemote(transport.factory, num2, logisticShipSailSpeedModified, shipWarpSpeed, logisticShipCarries, gStationPool, astrosData, ref relativePos, ref relativeRot, starmap, consumeRegister);
         }
 
         for (int i = 0; i < optimizedStations.Length; i++)
@@ -75,6 +57,25 @@ internal sealed class PlanetWideStationExecutor
         {
             factoryProductionStat.energyConsumption += additionalEnergyConsumption;
         }
+    }
+
+    public void Initialize(PlanetFactory planet)
+    {
+        List<OptimizedStation> optimizedStations = [];
+
+        for (int stationIndex = 1; stationIndex < planet.transport.stationCursor; stationIndex++)
+        {
+            StationComponent? station = planet.transport.stationPool[stationIndex];
+            if (station == null || station.id != stationIndex)
+            {
+                continue;
+            }
+
+            optimizedStations.Add(new OptimizedStation(station, [], null));
+            planet.entityNeeds[station.entityId] = station.needs;
+        }
+
+        _optimizedStations = optimizedStations.ToArray();
     }
 
     private void GameTick_SandboxMode()
