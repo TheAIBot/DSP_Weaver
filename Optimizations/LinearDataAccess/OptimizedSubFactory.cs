@@ -27,6 +27,7 @@ namespace Weaver.Optimizations.LinearDataAccess;
 internal sealed class OptimizedSubFactory
 {
     private readonly PlanetFactory _planet;
+    private readonly OptimizedTerrestrialPlanet _optimizedPlanet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
 
     public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
@@ -68,11 +69,10 @@ internal sealed class OptimizedSubFactory
     public BeltExecutor _beltExecutor;
     public SplitterExecutor _splitterExecutor;
 
-    public MiningFlags _miningFlags;
-
-    public OptimizedSubFactory(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
+    public OptimizedSubFactory(PlanetFactory planet, OptimizedTerrestrialPlanet optimizedTerrestrialPlanet, StarClusterResearchManager starClusterResearchManager)
     {
         _planet = planet;
+        _optimizedPlanet = optimizedTerrestrialPlanet;
         _starClusterResearchManager = starClusterResearchManager;
     }
 
@@ -237,11 +237,11 @@ internal sealed class OptimizedSubFactory
 
     public void GameTick(WorkerTimings workerTimings, long time)
     {
-        _miningFlags = new MiningFlags();
+        var miningFlags = new MiningFlags();
 
         workerTimings.StartTimer();
-        _beltVeinMinerExecutor.GameTick(_planet, ref _miningFlags);
-        _stationVeinMinerExecutor.GameTick(_planet, ref _miningFlags);
+        _beltVeinMinerExecutor.GameTick(_planet, ref miningFlags);
+        _stationVeinMinerExecutor.GameTick(_planet, ref miningFlags);
         _oilMinerExecutor.GameTick(_planet);
         _waterMinerExecutor.GameTick(_planet);
         _assemblerExecutor.GameTick(_planet);
@@ -258,7 +258,7 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.LabResearchMode);
 
         workerTimings.StartTimer();
-        _stationExecutor.StationGameTick(_planet, time, _stationVeinMinerExecutor, ref _miningFlags);
+        _stationExecutor.StationGameTick(_planet, time, _stationVeinMinerExecutor, ref miningFlags);
         workerTimings.RecordTime(WorkType.TransportData);
 
         workerTimings.StartTimer();
@@ -298,6 +298,8 @@ internal sealed class OptimizedSubFactory
         workerTimings.StartTimer();
         _stationExecutor.OutputToBelt(_planet, time);
         workerTimings.RecordTime(WorkType.OutputToBelt);
+
+        _optimizedPlanet.AddMiningFlags(miningFlags);
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)

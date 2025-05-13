@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Labs;
+using Weaver.Optimizations.LinearDataAccess.Miners;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Turrets;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
@@ -65,7 +66,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
         {
-            _subFactories[i] = new OptimizedSubFactory(_planet, _starClusterResearchManager);
+            _subFactories[i] = new OptimizedSubFactory(_planet, this, _starClusterResearchManager);
             _subFactories[i].Initialize(subFactoryGraphs[i],
                                         optimizedPowerSystemBuilder,
                                         planetWideBeltExecutor,
@@ -334,6 +335,21 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
                     battleBaseComponent.AutoPickTrash(defenseSystem.factory, trashSystem, tick, ref relativePos, ref relativeRot, productRegister);
                 }
             }
+        }
+    }
+
+    public void AddMiningFlags(MiningFlags miningFlags)
+    {
+        if (miningFlags.MiningFlag == 0 &&
+            miningFlags.VeinMiningFlag == 0)
+        {
+            return;
+        }
+
+        lock (this)
+        {
+            _planet._miningFlag |= miningFlags.MiningFlag;
+            _planet._veinMiningFlag |= miningFlags.VeinMiningFlag;
         }
     }
 
