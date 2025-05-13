@@ -46,11 +46,15 @@ internal sealed class TankExecutor
         List<OptimizedTank> optimizedTanks = [];
         Dictionary<int, int> tankIdToOptimizedTankIndex = [];
 
-        foreach (int tankIndex in subFactoryGraph.GetAllNodes()
-                                                 .Where(x => x.EntityTypeIndex.EntityType == EntityType.Tank)
-                                                 .Select(x => x.EntityTypeIndex.Index)
-                                                 .OrderBy(x => x))
+        int[] tankIndexes = subFactoryGraph.GetAllNodes()
+                                           .Where(x => x.EntityTypeIndex.EntityType == EntityType.Tank)
+                                           .Select(x => x.EntityTypeIndex.Index)
+                                           .OrderBy(x => x)
+                                           .ToArray();
+
+        for (int i = 0; i < tankIndexes.Length; i++)
         {
+            int tankIndex = tankIndexes[i];
             ref readonly TankComponent tank = ref planet.factoryStorage.tankPool[tankIndex];
             if (tank.id != tankIndex)
             {
@@ -69,6 +73,30 @@ internal sealed class TankExecutor
 
             tankIdToOptimizedTankIndex.Add(tank.id, optimizedTanks.Count);
             optimizedTanks.Add(new OptimizedTank(in tank, optimizedBelt0, optimizedBelt1, optimizedBelt2, optimizedBelt3));
+        }
+
+        for (int i = 0; i < tankIndexes.Length; i++)
+        {
+            int tankIndex = tankIndexes[i];
+            ref readonly TankComponent tank = ref planet.factoryStorage.tankPool[tankIndex];
+            if (tank.id != tankIndex)
+            {
+                continue;
+            }
+
+            int? optimizedNextTankIndex = null;
+            if (tank.nextTankId > 0)
+            {
+                optimizedNextTankIndex = tankIdToOptimizedTankIndex[tank.nextTankId];
+            }
+
+            int? optimizedLastTankIndex = null;
+            if (tank.lastTankId > 0)
+            {
+                optimizedLastTankIndex = tankIdToOptimizedTankIndex[tank.lastTankId];
+            }
+
+            optimizedTanks[tankIdToOptimizedTankIndex[tank.id]] = new OptimizedTank(optimizedLastTankIndex, optimizedNextTankIndex, optimizedTanks[tankIdToOptimizedTankIndex[tank.id]]);
         }
 
         _optimizedTanks = optimizedTanks.ToArray();

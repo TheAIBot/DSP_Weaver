@@ -7,9 +7,8 @@ namespace Weaver.Optimizations.LinearDataAccess.Tanks;
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedTank
 {
+    public const int NO_TANK = -1;
     private int id;
-    private readonly int lastTankIndex;
-    private readonly int nextTankIndex;
     private readonly OptimizedCargoPath? belt0;
     private readonly OptimizedCargoPath? belt1;
     private readonly OptimizedCargoPath? belt2;
@@ -22,6 +21,8 @@ internal struct OptimizedTank
     private readonly bool outputSwitch;
     private readonly bool inputSwitch;
     private readonly bool isBottom;
+    private readonly int lastTankIndex;
+    private readonly int nextTankIndex;
     private int fluidInc;
     public int fluidCount;
     public int fluidId;
@@ -33,8 +34,8 @@ internal struct OptimizedTank
                          OptimizedCargoPath? belt3)
     {
         id = tank.id;
-        lastTankIndex = tank.lastTankId;
-        nextTankIndex = tank.nextTankId;
+        lastTankIndex = int.MaxValue;
+        nextTankIndex = int.MaxValue;
         this.belt0 = belt0;
         this.belt1 = belt1;
         this.belt2 = belt2;
@@ -52,9 +53,33 @@ internal struct OptimizedTank
         fluidId = tank.fluidId;
     }
 
+    public OptimizedTank(int? lastTankIndex,
+                         int? nextTankIndex,
+                         OptimizedTank tank)
+    {
+        id = tank.id;
+        this.lastTankIndex = lastTankIndex ?? NO_TANK;
+        this.nextTankIndex = nextTankIndex ?? NO_TANK;
+        belt0 = tank.belt0;
+        belt1 = tank.belt1;
+        belt2 = tank.belt2;
+        belt3 = tank.belt3;
+        isOutput0 = tank.isOutput0;
+        isOutput1 = tank.isOutput1;
+        isOutput2 = tank.isOutput2;
+        isOutput3 = tank.isOutput3;
+        fluidCapacity = tank.fluidCapacity;
+        outputSwitch = tank.outputSwitch;
+        inputSwitch = tank.inputSwitch;
+        isBottom = tank.isBottom;
+        fluidCount = tank.fluidCount;
+        fluidInc = tank.fluidInc;
+        fluidId = tank.fluidId;
+    }
+
     public void TickOutput(TankExecutor tankExecutor)
     {
-        if (lastTankIndex <= 0 || !outputSwitch)
+        if (lastTankIndex == NO_TANK || !outputSwitch)
         {
             return;
         }
@@ -199,7 +224,7 @@ internal struct OptimizedTank
                         fluidInc += inc;
                     }
                 }
-                if (fluidCount >= fluidCapacity && CargoPathMethods.GetItemIdAtRear(belt) == fluidId && nextTankIndex > 0)
+                if (fluidCount >= fluidCapacity && CargoPathMethods.GetItemIdAtRear(belt) == fluidId && nextTankIndex > NO_TANK)
                 {
                     OptimizedTank tankComponent = tankExecutor._optimizedTanks[nextTankIndex];
                     OptimizedTank tankComponent2 = tankComponent;
@@ -213,7 +238,7 @@ internal struct OptimizedTank
                         }
                         if (tankComponent.inputSwitch)
                         {
-                            if (tankComponent.nextTankIndex > 0)
+                            if (tankComponent.nextTankIndex > NO_TANK)
                             {
                                 tankComponent = tankExecutor._optimizedTanks[tankComponent.nextTankIndex];
                                 tankComponent2 = tankComponent;
