@@ -198,9 +198,17 @@ internal sealed class OptimizedPowerSystemBuilder
             var gammaExecutor = new GammaPowerGeneratorExecutor();
             gammaExecutor.Initialize(planet, i, planetWideBeltExecutor);
 
+            var powerExchangerExecutor = new PowerExchangerExecutor();
+            powerExchangerExecutor.Initialize(planet, i, planetWideBeltExecutor);
+
             generatorIndexes.ExceptWith(gammaExecutor.OptimizedPowerGeneratorIds);
 
-            optimizedPowerNetworks.Add(new OptimizedPowerNetwork(powerNetwork, i, networkNonOptimizedPowerConsumerIndexes, generatorIndexes.OrderBy(x => x).ToArray(), gammaExecutor));
+            optimizedPowerNetworks.Add(new OptimizedPowerNetwork(powerNetwork,
+                                                                 i,
+                                                                 networkNonOptimizedPowerConsumerIndexes,
+                                                                 generatorIndexes.OrderBy(x => x).ToArray(),
+                                                                 gammaExecutor,
+                                                                 powerExchangerExecutor));
         }
 
         return optimizedPowerNetworks.ToArray();

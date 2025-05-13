@@ -114,7 +114,6 @@ internal sealed class OptimizedPowerSystem
         float windStrength = planetData.windStrength;
         float luminosity = planetData.luminosity;
         UnityEngine.Vector3 normalized = planetData.runtimeLocalSunDirection.normalized;
-        AnimData[] entityAnimPool = powerSystem.factory.entityAnimPool;
         if (powerSystem.networkServes == null || powerSystem.networkServes.Length != powerSystem.netPool.Length)
         {
             powerSystem.networkServes = new float[powerSystem.netPool.Length];
@@ -153,7 +152,6 @@ internal sealed class OptimizedPowerSystem
                                                windStrength,
                                                luminosity,
                                                normalized,
-                                               entityAnimPool,
                                                flag2,
                                                _subFactoryToNetworkPowerConsumptions.Values);
         }

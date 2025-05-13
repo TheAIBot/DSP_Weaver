@@ -29,6 +29,7 @@ internal static class Graphifier
         AddSplittersToGraph(planet, entityTypeIndexToNode);
         AddBeltsToGraph(planet, entityTypeIndexToNode);
         AddTurretsToGraph(planet, entityTypeIndexToNode);
+        AddPowerExchangers(planet, entityTypeIndexToNode);
 
         HashSet<Node> nodes = new(entityTypeIndexToNode.Values);
         List<Graph> graphs = new List<Graph>();
@@ -639,6 +640,69 @@ internal static class Graphifier
             {
                 EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.targetBeltId, planet);
                 ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+            }
+        }
+    }
+
+    private static void AddPowerExchangers(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    {
+        for (int i = 1; i < planet.powerSystem.excCursor; i++)
+        {
+            ref readonly PowerExchangerComponent component = ref planet.powerSystem.excPool[i];
+            if (component.id != i)
+            {
+                continue;
+            }
+
+            var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.PowerExchanger, i));
+
+            if (component.belt0 > 0)
+            {
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt0, planet);
+                if (component.isOutput0)
+                {
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
+                else
+                {
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
+            }
+            if (component.belt1 > 0)
+            {
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt1, planet);
+                if (component.isOutput1)
+                {
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
+                else
+                {
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
+            }
+            if (component.belt2 > 0)
+            {
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt2, planet);
+                if (component.isOutput2)
+                {
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
+                else
+                {
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
+            }
+            if (component.belt3 > 0)
+            {
+                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt3, planet);
+                if (component.isOutput3)
+                {
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
+                else
+                {
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                }
             }
         }
     }

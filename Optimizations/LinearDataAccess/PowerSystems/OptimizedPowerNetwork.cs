@@ -10,18 +10,21 @@ internal sealed class OptimizedPowerNetwork
     private readonly int[] _networkNonOptimizedPowerConsumerIndexes;
     private readonly int[] _generatorIndexes;
     private readonly GammaPowerGeneratorExecutor _gammaPowerGeneratorExecutor;
+    private readonly PowerExchangerExecutor _powerExchangerExecutor;
 
     public OptimizedPowerNetwork(PowerNetwork powerNetwork,
                                  int networkIndex,
                                  int[] networkNonOptimizedPowerConsumerIndexes,
                                  int[] generatorIndexes,
-                                 GammaPowerGeneratorExecutor gammaPowerGeneratorExecutor)
+                                 GammaPowerGeneratorExecutor gammaPowerGeneratorExecutor,
+                                 PowerExchangerExecutor powerExchangerExecutor)
     {
         _powerNetwork = powerNetwork;
         _networkIndex = networkIndex;
         _networkNonOptimizedPowerConsumerIndexes = networkNonOptimizedPowerConsumerIndexes;
         _generatorIndexes = generatorIndexes;
         _gammaPowerGeneratorExecutor = gammaPowerGeneratorExecutor;
+        _powerExchangerExecutor = powerExchangerExecutor;
     }
 
     public (long, bool) RequestDysonSpherePower(PowerSystem powerSystem, float eta, float increase, UnityEngine.Vector3 normalized)
@@ -41,7 +44,6 @@ internal sealed class OptimizedPowerNetwork
                          float windStrength,
                          float luminosity,
                          UnityEngine.Vector3 normalized,
-                         AnimData[] entityAnimPool,
                          bool flag2,
                          Dictionary<OptimizedSubFactory, long[]>.ValueCollection subFactoryToNetworkPowerConsumptions)
     {
@@ -60,40 +62,14 @@ internal sealed class OptimizedPowerNetwork
             num11 += subFactoryNetworkPowerConsumptionPrepared[_networkIndex];
             num2 += subFactoryNetworkPowerConsumptionPrepared[_networkIndex];
         }
-        long num22 = 0L;
-        List<int> exchangers = powerNetwork.exchangers;
-        int count2 = exchangers.Count;
+
         long num23 = 0L;
         long num24 = 0L;
-        int num25 = 0;
-        long num26 = 0L;
-        long num27 = 0L;
-        bool flag3 = false;
-        bool flag4 = false;
-        for (int k = 0; k < count2; k++)
-        {
-            num25 = exchangers[k];
-            powerSystem.excPool[num25].StateUpdate();
-            powerSystem.excPool[num25].BeltUpdate(powerSystem.factory);
-            flag3 = powerSystem.excPool[num25].state >= 1f;
-            flag4 = powerSystem.excPool[num25].state <= -1f;
-            if (!flag3 && !flag4)
-            {
-                powerSystem.excPool[num25].capsCurrentTick = 0L;
-                powerSystem.excPool[num25].currEnergyPerTick = 0L;
-            }
-            if (flag4)
-            {
-                long num29 = powerSystem.excPool[num25].OutputCaps();
-                num26 += num29;
-                num22 = num26;
-                powerSystem.currentGeneratorCapacities[powerSystem.excPool[num25].subId] += num29;
-            }
-            else if (flag3)
-            {
-                num27 += powerSystem.excPool[num25].InputCaps();
-            }
-        }
+        (long inputEnergySum, long outputEnergySum) = _powerExchangerExecutor.InputOutputUpdate(powerSystem.currentGeneratorCapacities);
+        long num27 = inputEnergySum;
+        long num26 = outputEnergySum;
+        long num22 = outputEnergySum;
+
         int[] generatorIndexes = _generatorIndexes;
         for (int i = 0; i < generatorIndexes.Length; i++)
         {
@@ -195,38 +171,12 @@ internal sealed class OptimizedPowerNetwork
             }
         }
         double num40 = num32 < num27 ? num32 / (double)num27 : 1.0;
-        for (int num41 = 0; num41 < count2; num41++)
-        {
-            num25 = exchangers[num41];
-            if (powerSystem.excPool[num25].state >= 1f && num40 >= 0.0)
-            {
-                long num42 = (long)(num40 * powerSystem.excPool[num25].capsCurrentTick + 0.99999);
-                long remaining = num32 < num42 ? num32 : num42;
-                long num43 = powerSystem.excPool[num25].InputUpdate(remaining, entityAnimPool, productRegister, consumeRegister);
-                num32 -= num43;
-                num23 += num43;
-                num4 += num43;
-            }
-            else
-            {
-                powerSystem.excPool[num25].currEnergyPerTick = 0L;
-            }
-        }
+        _powerExchangerExecutor.UpdateInput(productRegister, consumeRegister, num40, ref num32, ref num23, ref num4);
+
         long num44 = num22 < num11 + num23 ? num22 + num34 + num23 : num11 + num34 + num23;
         double num45 = num44 < num26 ? num44 / (double)num26 : 1.0;
-        for (int num46 = 0; num46 < count2; num46++)
-        {
-            num25 = exchangers[num46];
-            if (powerSystem.excPool[num25].state <= -1f)
-            {
-                long num47 = (long)(num45 * powerSystem.excPool[num25].capsCurrentTick + 0.99999);
-                long energyPay = num44 < num47 ? num44 : num47;
-                long num48 = powerSystem.excPool[num25].OutputUpdate(energyPay, entityAnimPool, productRegister, consumeRegister);
-                num24 += num48;
-                num3 += num48;
-                num44 -= num48;
-            }
-        }
+        _powerExchangerExecutor.UpdateOutput(productRegister, consumeRegister, num45, ref num44, ref num24, ref num3);
+
         powerNetwork.energyCapacity = num22 - num26;
         powerNetwork.energyRequired = num11 - num33;
         powerNetwork.energyExport = num33;
@@ -302,5 +252,6 @@ internal sealed class OptimizedPowerNetwork
     public void Save(PlanetFactory planet)
     {
         _gammaPowerGeneratorExecutor.Save(planet);
+        _powerExchangerExecutor.Save(planet);
     }
 }

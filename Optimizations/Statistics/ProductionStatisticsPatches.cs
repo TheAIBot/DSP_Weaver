@@ -27,14 +27,16 @@ public class ProductionStatisticsPatches
         // No idea if i can replace this with Parallel.ForEach
         Parallel.For(0, __instance.gameData.factoryCount, parallelOptions, i =>
         {
-            FactorySystem factory = GameMain.data.factories[i].factorySystem;
-            if (factory != null &&
-                factory.labCursor <= 1 &&
-                factory.assemblerCursor <= 1 &&
-                factory.minerCursor <= 1 &&
-                factory.fractionatorCursor <= 1 &&
-                factory.ejectorCursor <= 1 &&
-                factory.siloCursor <= 1)
+            PlanetFactory planet = GameMain.data.factories[i];
+            if (planet.factorySystem != null &&
+                planet.factorySystem.labCursor <= 1 &&
+                planet.factorySystem.assemblerCursor <= 1 &&
+                planet.factorySystem.minerCursor <= 1 &&
+                planet.factorySystem.fractionatorCursor <= 1 &&
+                planet.factorySystem.ejectorCursor <= 1 &&
+                planet.factorySystem.siloCursor <= 1 &&
+                planet.powerSystem.genCursor <= 1 &&
+                planet.powerSystem.excCursor <= 1)
             {
                 return;
             }
@@ -62,14 +64,16 @@ public class ProductionStatisticsPatches
 
         Parallel.For(0, __instance.gameData.factoryCount, i =>
         {
-            FactorySystem factory = GameMain.data.factories[i].factorySystem;
-            if (factory != null &&
-                factory.labCursor <= 1 &&
-                factory.assemblerCursor <= 1 &&
-                factory.minerCursor <= 1 &&
-                factory.fractionatorCursor <= 1 &&
-                factory.ejectorCursor <= 1 &&
-                factory.siloCursor <= 1)
+            PlanetFactory planet = GameMain.data.factories[i];
+            if (planet.factorySystem != null &&
+                planet.factorySystem.labCursor <= 1 &&
+                planet.factorySystem.assemblerCursor <= 1 &&
+                planet.factorySystem.minerCursor <= 1 &&
+                planet.factorySystem.fractionatorCursor <= 1 &&
+                planet.factorySystem.ejectorCursor <= 1 &&
+                planet.factorySystem.siloCursor <= 1 &&
+                planet.powerSystem.genCursor <= 1 &&
+                planet.powerSystem.excCursor <= 1)
             {
                 return;
             }
