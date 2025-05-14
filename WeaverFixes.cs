@@ -10,7 +10,7 @@ internal static class ModInfo
 {
     public const string Guid = "Weaver";
     public const string Name = "Weaver";
-    public const string Version = "1.1.5";
+    public const string Version = "1.2.0";
 }
 
 internal static class ModDependencies
@@ -65,6 +65,6 @@ public class WeaverFixes : BaseUnityPlugin
         OptimizedStarCluster.EnableOptimization(harmony);
         //OptimizedStarCluster.DebugEnableHeavyReOptimization();
         //GraphStatistics.Enable(harmony);
-        GameStatistics.MemoryStatistics.EnableGameStatistics(harmony);
+        //GameStatistics.MemoryStatistics.EnableGameStatistics(harmony);
     }
 }

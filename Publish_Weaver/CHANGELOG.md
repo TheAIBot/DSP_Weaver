@@ -1,4 +1,7 @@
 ## 1.2.0
+* 10-15% performance improvement compared to 1.1.5
+* Improved multithreading.
+* Optimized multiple entity types: Ejectors, belts, all types of miners, belt monitors, pilers, splitters, stations, tanks, turrets, ray receivers and power exchangers.
 * Fix spray coaters did not consume power.
 
 ## 1.1.5
