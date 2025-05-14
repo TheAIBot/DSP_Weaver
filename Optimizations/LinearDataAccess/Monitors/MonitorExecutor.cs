@@ -66,12 +66,12 @@ internal sealed class MonitorExecutor
                 continue;
             }
 
-            if (monitor.targetBeltId < 0)
+            if (monitor.targetBeltId <= 0)
             {
                 continue;
             }
 
-            BeltComponent targetBeltComponent = planet.cargoTraffic.beltPool[monitorIndex];
+            BeltComponent targetBeltComponent = planet.cargoTraffic.beltPool[monitor.targetBeltId];
             int targetBeltOffset = targetBeltComponent.segIndex + targetBeltComponent.segPivotOffset;
             CargoPath? targetCargoPath = planet.cargoTraffic.pathPool[targetBeltComponent.segPathId];
             if (targetCargoPath == null)
