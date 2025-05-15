@@ -114,7 +114,10 @@ internal sealed class ProducingLabExecutor
                                                 .Where(x => x.EntityTypeIndex.EntityType == EntityType.ProducingLab)
                                                                  .Select(x => x.EntityTypeIndex.Index));
 
-        foreach (int labIndex in labIndexesInSubFactory.OrderBy(x => x))
+        // Order  descending because it resolves an issue where items moving between stacked
+        // labs would briefly clog. Not sure why this is an issue. I suspect this is an issue
+        // from the base game that my sub-factory reordering causes.
+        foreach (int labIndex in labIndexesInSubFactory.OrderByDescending(x => x))
         {
             ref LabComponent lab = ref planet.factorySystem.labPool[labIndex];
             if (lab.id != labIndex)

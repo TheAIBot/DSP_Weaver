@@ -1,3 +1,6 @@
+## 1.2.1
+* Fix items moving vertically in stacked labs would briefly clog causing a 1-2% production reduction.
+
 ## 1.2.0
 * 10-15% performance improvement compared to 1.1.5
 * Improved multithreading.
