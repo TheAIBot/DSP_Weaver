@@ -59,12 +59,37 @@ internal static class GraphStatistics
                     gradeToCount.Add(inserter.grade, 1);
                 }
             }
+
+            PrintGraphStats(graphs, []);
         }
 
         WeaverFixes.Logger.LogInfo($"Entity type counts");
         foreach (EntityType entityType in Enum.GetValues(typeof(EntityType)))
         {
             int entityTypeCount = allGraphs.SelectMany(x => x.GetAllNodes())
+                                           .Where(x => x.EntityTypeIndex.EntityType == entityType)
+                                           .Count();
+            if (entityType == EntityType.Inserter)
+            {
+                WeaverFixes.Logger.LogInfo($"\t{entityType}: {entityTypeCount:N0}");
+                foreach (KeyValuePair<int, int> inserterGradeCount in gradeToCount.OrderBy(x => x.Key))
+                {
+                    WeaverFixes.Logger.LogInfo($"\t\t{inserterGradeCount.Key}: {inserterGradeCount.Value:N0}");
+                }
+            }
+            else
+            {
+                WeaverFixes.Logger.LogInfo($"\t{entityType}: {entityTypeCount:N0}");
+            }
+        }
+    }
+
+    private static void PrintGraphStats(List<Graph> graphs, Dictionary<int, int> gradeToCount)
+    {
+        WeaverFixes.Logger.LogInfo($"Entity type counts");
+        foreach (EntityType entityType in Enum.GetValues(typeof(EntityType)))
+        {
+            int entityTypeCount = graphs.SelectMany(x => x.GetAllNodes())
                                            .Where(x => x.EntityTypeIndex.EntityType == entityType)
                                            .Count();
             if (entityType == EntityType.Inserter)
