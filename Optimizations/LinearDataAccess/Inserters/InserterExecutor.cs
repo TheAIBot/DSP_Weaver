@@ -1477,6 +1477,10 @@ internal sealed class InserterExecutor<T>
                 BeltComponent belt = planet.cargoTraffic.beltPool[pickFrom.Index];
                 CargoPath? pickFromCargoPath = planet.cargoTraffic.GetCargoPath(belt.segPathId);
                 pickFromBelt = pickFromCargoPath != null ? beltExecutor.GetOptimizedCargoPath(pickFromCargoPath) : null;
+                if (pickFromCargoPath != null)
+                {
+                    pickFromOffset = GetCorrectedPickOffset(inserter.pickOffset, ref belt, pickFromCargoPath);
+                }
                 pickFromOffset += belt.pivotOnPath;
             }
 
@@ -1487,6 +1491,10 @@ internal sealed class InserterExecutor<T>
                 BeltComponent belt = planet.cargoTraffic.beltPool[insertInto.Index];
                 CargoPath? insertIntoCargoPath = planet.cargoTraffic.pathPool[belt.segPathId];
                 insertIntoBelt = insertIntoCargoPath != null ? beltExecutor.GetOptimizedCargoPath(insertIntoCargoPath) : null;
+                if (insertIntoCargoPath != null)
+                {
+                    insertIntoOffset = GetCorrectedInsertOffset(inserter.insertOffset, ref belt, insertIntoCargoPath);
+                }
                 insertIntoOffset += belt.pivotOnPath;
             }
 
@@ -1564,4 +1572,34 @@ internal sealed class InserterExecutor<T>
         OptimizedInserterStage.Returning => EInserterStage.Returning,
         _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
     };
+
+    private static int GetCorrectedPickOffset(int pickOffset, ref readonly BeltComponent belt, CargoPath cargoPath)
+    {
+        int num = belt.segPivotOffset + belt.segIndex;
+        int num2 = num + pickOffset;
+        if (num2 < 4)
+        {
+            num2 = 4;
+        }
+        if (num2 + 5 >= cargoPath.pathLength)
+        {
+            num2 = cargoPath.pathLength - 5 - 1;
+        }
+        return (short)(num2 - num);
+    }
+
+    private static int GetCorrectedInsertOffset(int insertOffset, ref readonly BeltComponent belt, CargoPath cargoPath)
+    {
+        int num3 = belt.segPivotOffset + belt.segIndex;
+        int num4 = num3 + insertOffset;
+        if (num4 < 4)
+        {
+            num4 = 4;
+        }
+        if (num4 + 5 >= cargoPath.pathLength)
+        {
+            num4 = cargoPath.pathLength - 5 - 1;
+        }
+        return (short)(num4 - num3);
+    }
 }
