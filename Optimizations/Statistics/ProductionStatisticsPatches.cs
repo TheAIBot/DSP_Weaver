@@ -36,7 +36,8 @@ public class ProductionStatisticsPatches
                 planet.factorySystem.ejectorCursor <= 1 &&
                 planet.factorySystem.siloCursor <= 1 &&
                 planet.powerSystem.genCursor <= 1 &&
-                planet.powerSystem.excCursor <= 1)
+                planet.powerSystem.excCursor <= 1 &&
+                planet.transport.stationCursor <= 1)
             {
                 return;
             }
@@ -73,7 +74,8 @@ public class ProductionStatisticsPatches
                 planet.factorySystem.ejectorCursor <= 1 &&
                 planet.factorySystem.siloCursor <= 1 &&
                 planet.powerSystem.genCursor <= 1 &&
-                planet.powerSystem.excCursor <= 1)
+                planet.powerSystem.excCursor <= 1 &&
+                planet.transport.stationCursor <= 1)
             {
                 return;
             }

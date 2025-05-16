@@ -1,3 +1,6 @@
+## 1.2.2
+* Fix newly placed orbital collectors would not work while player is away from gas giant until game has been saved and loaded again.
+
 ## 1.2.1
 * Fix items moving vertically in stacked labs would briefly clog causing a 1-2% production reduction.
 
