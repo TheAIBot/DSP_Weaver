@@ -24,21 +24,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
 
     public static bool IsGasPlanet(PlanetFactory planet)
     {
-        for (int stationIndex = 1; stationIndex < planet.transport.stationCursor; stationIndex++)
-        {
-            StationComponent? station = planet.transport.stationPool[stationIndex];
-            if (station == null || station.id != stationIndex)
-            {
-                continue;
-            }
-
-            if (station.isCollector)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return planet.planet.type == EPlanetType.Gas;
     }
 
     public void Initialize()
