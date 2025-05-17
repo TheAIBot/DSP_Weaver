@@ -41,7 +41,6 @@ internal struct OptimizedResearchingLab
 
     public void SetFunction(int entityId,
                             int techId,
-                            int[] matrixPoints,
                             SignData[] signPool,
                             ref LabPowerFields labPowerFields)
     {

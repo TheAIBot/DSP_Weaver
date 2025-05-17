@@ -1,3 +1,7 @@
+## 1.2.4
+* Fix optimized stacked tank ids where not converted to optimized indexes.
+* Fix Labs could, in rare cases, end up not consuming matrices.
+
 ## 1.2.3
 * Fix mining machine would not output to belt when player was off planet.
 * Fix sorters pick/place position for belts was slightly incorrect in some cases.

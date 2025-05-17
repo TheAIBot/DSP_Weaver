@@ -56,36 +56,13 @@ internal sealed class ResearchingLabExecutor
             {
                 num = 0;
             }
-            int num2 = 0;
-            if (flag2)
-            {
-                for (int i = 0; i < techProto.Items.Length; i++)
-                {
-                    int num3 = techProto.Items[i] - LabComponent.matrixIds[0];
-                    if (num3 >= 0 && num3 < 5)
-                    {
-                        num2 |= 1 << num3;
-                    }
-                    else if (num3 == 5)
-                    {
-                        num2 = 32;
-                        break;
-                    }
-                }
-            }
-            if (num2 > 32)
-            {
-                num2 = 32;
-            }
-            if (num2 < 0)
-            {
-                num2 = 0;
-            }
-            float num4 = LabComponent.techShaderStates[num2] + 0.2f;
-            if (factorySystem.researchTechId != num)
-            {
-                factorySystem.researchTechId = num;
 
+            // Handle rare case where optimizing/deoptimizing causes
+            // matrix points to be set incorrectly while researching
+            // technology. This could cause labs to not consume 
+            // anything while still adding hashes to the research.
+            if (flag2 && optimizedLabs.Length > 0)
+            {
                 Array.Clear(_matrixPoints, 0, _matrixPoints.Length);
                 if (techProto != null && techProto.IsLabTech)
                 {
@@ -98,6 +75,11 @@ internal sealed class ResearchingLabExecutor
                         }
                     }
                 }
+            }
+
+            if (factorySystem.researchTechId != num)
+            {
+                factorySystem.researchTechId = num;
 
                 int[] entityIds = _entityIds;
                 for (int i = 0; i < optimizedLabs.Length; i++)
