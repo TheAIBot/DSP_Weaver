@@ -10,7 +10,7 @@ internal static class ModInfo
 {
     public const string Guid = "Weaver";
     public const string Name = "Weaver";
-    public const string Version = "1.2.3";
+    public const string Version = "1.2.4";
 }
 
 internal static class ModDependencies
