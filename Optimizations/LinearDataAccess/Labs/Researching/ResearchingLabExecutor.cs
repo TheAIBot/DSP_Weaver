@@ -86,7 +86,6 @@ internal sealed class ResearchingLabExecutor
                 {
                     optimizedLabs[i].SetFunction(entityIds[i],
                                                  factorySystem.researchTechId,
-                                                 _matrixPoints,
                                                  entitySignPool,
                                                  ref labsPowerFields[i]);
                 }
@@ -170,6 +169,7 @@ internal sealed class ResearchingLabExecutor
         LabComponent[] labComponents = planet.factorySystem.labPool;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
+        int researchTechId = planet.factorySystem.researchTechId;
         for (int i = 1; i < planet.factorySystem.labCursor; i++)
         {
             if (!_labIdToOptimizedLabIndex.TryGetValue(i, out int optimizedIndex))
@@ -177,7 +177,7 @@ internal sealed class ResearchingLabExecutor
                 continue;
             }
 
-            optimizedLabs[optimizedIndex].Save(ref labComponents[i], labsPowerFields[optimizedIndex], _matrixPoints);
+            optimizedLabs[optimizedIndex].Save(ref labComponents[i], labsPowerFields[optimizedIndex], _matrixPoints, researchTechId);
         }
     }
 
@@ -200,17 +200,6 @@ internal sealed class ResearchingLabExecutor
                                                 .OrderBy(x => x))
         {
             ref LabComponent lab = ref planet.factorySystem.labPool[labIndex];
-            if (lab.id != labIndex)
-            {
-                unOptimizedLabIds.Add(labIndex);
-                continue;
-            }
-
-            if (!lab.researchMode)
-            {
-                unOptimizedLabIds.Add(labIndex);
-                continue;
-            }
 
             if (!copiedMatrixPoints && lab.matrixPoints != null)
             {

@@ -331,7 +331,8 @@ internal struct OptimizedResearchingLab
 
     public void Save(ref LabComponent lab,
                      LabPowerFields labPowerFields,
-                     int[] matrixPoints)
+                     int[] matrixPoints,
+                     int researchTechId)
     {
         lab.needs = needs;
         lab.matrixServed = matrixServed;
@@ -342,6 +343,7 @@ internal struct OptimizedResearchingLab
         lab.extraHashBytes = extraHashBytes;
         lab.extraPowerRatio = labPowerFields.extraPowerRatio;
         lab.matrixPoints = matrixPoints;
+        lab.techId = researchTechId;
     }
 
     private int split_inc(ref int n, ref int m, int p)
