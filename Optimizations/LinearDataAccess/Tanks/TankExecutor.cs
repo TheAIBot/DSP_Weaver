@@ -71,8 +71,14 @@ internal sealed class TankExecutor
             OptimizedCargoPath? optimizedBelt2 = belt2 != null ? beltExecutor.GetOptimizedCargoPath(belt2) : null;
             OptimizedCargoPath? optimizedBelt3 = belt3 != null ? beltExecutor.GetOptimizedCargoPath(belt3) : null;
 
-            tankIdToOptimizedTankIndex.Add(tank.id, optimizedTanks.Count);
-            optimizedTanks.Add(new OptimizedTank(in tank, optimizedBelt0, optimizedBelt1, optimizedBelt2, optimizedBelt3));
+            int optimizedTankIndex = optimizedTanks.Count;
+            tankIdToOptimizedTankIndex.Add(tank.id, optimizedTankIndex);
+            optimizedTanks.Add(new OptimizedTank(in tank,
+                                                 optimizedTankIndex,
+                                                 optimizedBelt0,
+                                                 optimizedBelt1,
+                                                 optimizedBelt2,
+                                                 optimizedBelt3));
         }
 
         for (int i = 0; i < tankIndexes.Length; i++)

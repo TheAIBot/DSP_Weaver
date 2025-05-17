@@ -28,12 +28,13 @@ internal struct OptimizedTank
     public int fluidId;
 
     public OptimizedTank(ref readonly TankComponent tank,
+                         int tankIndex,
                          OptimizedCargoPath? belt0,
                          OptimizedCargoPath? belt1,
                          OptimizedCargoPath? belt2,
                          OptimizedCargoPath? belt3)
     {
-        id = tank.id;
+        id = tankIndex;
         lastTankIndex = int.MaxValue;
         nextTankIndex = int.MaxValue;
         this.belt0 = belt0;
