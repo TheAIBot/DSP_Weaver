@@ -1,3 +1,9 @@
+## 1.3.0
+* Optimized production statistics.
+	* !!! Need to fix battle statis statistics !!!
+	* !!! Need to fix anything power related with statistics !!!
+	* !!! Need to handle statistics when planet is not optimized !!!
+
 ## 1.2.6
 * Fix some sorters were not assigned the correct sorter grade.
 * Fix sorters could not interact with the first building of each entity type.

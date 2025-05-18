@@ -59,12 +59,12 @@ internal struct OptimizedProducingLab
     {
         int num = served.Length;
         int num2 = producingLabRecipe.TimeSpend > 5400000 ? 6 : 3 * ((speedOverride + 5001) / 10000) + 3;
-        needs[0] = 0 < num && served[0] < num2 ? producingLabRecipe.Requires[0] : 0;
-        needs[1] = 1 < num && served[1] < num2 ? producingLabRecipe.Requires[1] : 0;
-        needs[2] = 2 < num && served[2] < num2 ? producingLabRecipe.Requires[2] : 0;
-        needs[3] = 3 < num && served[3] < num2 ? producingLabRecipe.Requires[3] : 0;
-        needs[4] = 4 < num && served[4] < num2 ? producingLabRecipe.Requires[4] : 0;
-        needs[5] = 5 < num && served[5] < num2 ? producingLabRecipe.Requires[5] : 0;
+        needs[0] = 0 < num && served[0] < num2 ? producingLabRecipe.Requires[0].ItemIndex : 0;
+        needs[1] = 1 < num && served[1] < num2 ? producingLabRecipe.Requires[1].ItemIndex : 0;
+        needs[2] = 2 < num && served[2] < num2 ? producingLabRecipe.Requires[2].ItemIndex : 0;
+        needs[3] = 3 < num && served[3] < num2 ? producingLabRecipe.Requires[3].ItemIndex : 0;
+        needs[4] = 4 < num && served[4] < num2 ? producingLabRecipe.Requires[4].ItemIndex : 0;
+        needs[5] = 5 < num && served[5] < num2 ? producingLabRecipe.Requires[5].ItemIndex : 0;
     }
 
     public LabState InternalUpdateAssemble(float power,
@@ -84,20 +84,14 @@ internal struct OptimizedProducingLab
             if (num == 1)
             {
                 produced[0] += producingLabRecipe.ProductCounts[0];
-                lock (productRegister)
-                {
-                    productRegister[producingLabRecipe.Products[0]] += producingLabRecipe.ProductCounts[0];
-                }
+                productRegister[producingLabRecipe.Products[0].OptimizedItemIndex] += producingLabRecipe.ProductCounts[0];
             }
             else
             {
                 for (int i = 0; i < num; i++)
                 {
                     produced[i] += producingLabRecipe.ProductCounts[i];
-                    lock (productRegister)
-                    {
-                        productRegister[producingLabRecipe.Products[i]] += producingLabRecipe.ProductCounts[i];
-                    }
+                    productRegister[producingLabRecipe.Products[i].OptimizedItemIndex] += producingLabRecipe.ProductCounts[i];
                 }
             }
             extraTime -= producingLabRecipe.ExtraTimeSpend;
@@ -113,10 +107,7 @@ internal struct OptimizedProducingLab
                     return LabState.InactiveOutputFull;
                 }
                 produced[0] += producingLabRecipe.ProductCounts[0];
-                lock (productRegister)
-                {
-                    productRegister[producingLabRecipe.Products[0]] += producingLabRecipe.ProductCounts[0];
-                }
+                productRegister[producingLabRecipe.Products[0].OptimizedItemIndex] += producingLabRecipe.ProductCounts[0];
             }
             else
             {
@@ -130,10 +121,7 @@ internal struct OptimizedProducingLab
                 for (int k = 0; k < num2; k++)
                 {
                     produced[k] += producingLabRecipe.ProductCounts[k];
-                    lock (productRegister)
-                    {
-                        productRegister[producingLabRecipe.Products[k]] += producingLabRecipe.ProductCounts[k];
-                    }
+                    productRegister[producingLabRecipe.Products[k].OptimizedItemIndex] += producingLabRecipe.ProductCounts[k];
                 }
             }
             extraSpeed = 0;
@@ -169,10 +157,7 @@ internal struct OptimizedProducingLab
                 {
                     incServed[m] = 0;
                 }
-                lock (consumeRegister)
-                {
-                    consumeRegister[producingLabRecipe.Requires[m]] += producingLabRecipe.RequireCounts[m];
-                }
+                consumeRegister[producingLabRecipe.Requires[m].OptimizedItemIndex] += producingLabRecipe.RequireCounts[m];
             }
             if (num4 < 0)
             {
@@ -221,7 +206,7 @@ internal struct OptimizedProducingLab
             int num14 = producingLabRecipe.TimeSpend > 5400000 ? 1 : 1 + speedOverride / 20000;
             for (int i = 0; i < num13; i++)
             {
-                if (labPool[nextLabIndex].needs[i] == producingLabRecipe.Requires[i] && served[i] >= producingLabRecipe.RequireCounts[i] + num14)
+                if (labPool[nextLabIndex].needs[i] == producingLabRecipe.Requires[i].ItemIndex && served[i] >= producingLabRecipe.RequireCounts[i] + num14)
                 {
                     int num15 = served[i] - producingLabRecipe.RequireCounts[i] - num14;
                     if (num15 > 5)
@@ -258,10 +243,10 @@ internal struct OptimizedProducingLab
                               ref readonly ProducingLabRecipe producingLabRecipe,
                               LabPowerFields labPowerFields)
     {
-        lab.requires = producingLabRecipe.Requires;
-        lab.requireCounts = producingLabRecipe.RequireCounts;
-        lab.products = producingLabRecipe.Products;
-        lab.productCounts = producingLabRecipe.ProductCounts;
+        //lab.requires = producingLabRecipe.Requires;
+        //lab.requireCounts = producingLabRecipe.RequireCounts;
+        //lab.products = producingLabRecipe.Products;
+        //lab.productCounts = producingLabRecipe.ProductCounts;
         lab.served = served;
         lab.incServed = incServed;
         lab.needs = needs;

@@ -3,6 +3,7 @@ using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Miners;
 
@@ -12,11 +13,9 @@ internal sealed class WaterMinerExecutor
     private OptimizedWaterMiner[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet, int[] productRegister)
     {
         GameHistoryData history = GameMain.history;
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = obj.productRegister;
         float[] networkServes = planet.powerSystem.networkServes;
         float miningSpeedScale = history.miningSpeedScale;
         int[] networkIds = _networkIds;
@@ -70,6 +69,7 @@ internal sealed class WaterMinerExecutor
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> networkIds = [];
@@ -112,11 +112,12 @@ internal sealed class WaterMinerExecutor
             CargoPath outputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[outputBeltId].segPathId];
             OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
+            OptimizedItemId productId = subFactoryProductionRegisterBuilder.AddProduct(planet.planet.waterItemId);
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
             optimizedPowerSystemBuilder.AddWaterMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
-            optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, planet.planet.waterItemId, in miner));
+            optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, productId, in miner));
         }
 
         _networkIds = networkIds.ToArray();

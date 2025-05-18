@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 
@@ -10,6 +11,7 @@ internal sealed class ResearchingLabExecutor
 {
     private readonly StarClusterResearchManager _starClusterResearchManager = null!;
     private int[] _matrixPoints = null!;
+    private OptimizedItemId[]? _matrixIds = null!;
     public NetworkIdAndState<LabState>[] _networkIdAndStates = null!;
     public OptimizedResearchingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
@@ -24,7 +26,7 @@ internal sealed class ResearchingLabExecutor
         _starClusterResearchManager = starClusterResearchManager;
     }
 
-    public void GameTickLabResearchMode(PlanetFactory planet)
+    public void GameTickLabResearchMode(PlanetFactory planet, int[] consumeRegister)
     {
         lock (_starClusterResearchManager)
         {
@@ -32,7 +34,6 @@ internal sealed class ResearchingLabExecutor
             GameHistoryData history = GameMain.history;
             GameStatData statistics = GameMain.statistics;
             FactoryProductionStat factoryProductionStat = statistics.production.factoryStatPool[planet.index];
-            int[] consumeRegister = factoryProductionStat.consumeRegister;
             SignData[] entitySignPool = planet.entitySignPool;
             PowerSystem powerSystem = planet.powerSystem;
             float[] networkServes = powerSystem.networkServes;
@@ -91,6 +92,12 @@ internal sealed class ResearchingLabExecutor
                 }
             }
 
+            // There is no reasearching labs if this is null
+            if (_matrixIds == null)
+            {
+                return;
+            }
+
             for (int k = 0; k < optimizedLabs.Length; k++)
             {
                 ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[k];
@@ -109,6 +116,7 @@ internal sealed class ResearchingLabExecutor
                                                                                     research_speed,
                                                                                     factorySystem.researchTechId,
                                                                                     _matrixPoints,
+                                                                                    _matrixIds,
                                                                                     consumeRegister,
                                                                                     ref ts,
                                                                                     ref techHashedThisFrame,
@@ -188,7 +196,8 @@ internal sealed class ResearchingLabExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         int[] matrixPoints = new int[LabComponent.matrixIds.Length];
         bool copiedMatrixPoints = false;
@@ -245,6 +254,12 @@ internal sealed class ResearchingLabExecutor
             }
 
             optimizedLabs[i] = new OptimizedResearchingLab(nextOptimizedLabIndex, ref lab);
+        }
+
+        _matrixIds = null;
+        if (optimizedLabs.Count > 0)
+        {
+            _matrixIds = subFactoryProductionRegisterBuilder.AddConsume(LabComponent.matrixIds);
         }
 
         _matrixPoints = matrixPoints.ToArray();

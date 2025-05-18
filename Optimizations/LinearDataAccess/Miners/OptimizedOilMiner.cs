@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Miners;
 
@@ -12,13 +13,13 @@ internal struct OptimizedOilMiner
     private readonly int period;
     private readonly int insertTarget;
     private readonly int veinIndex;
-    private readonly int productId;
+    private readonly OptimizedItemId productId;
     private int time;
     public float speedDamper;
     public int productCount;
     private double costFrac;
 
-    public OptimizedOilMiner(OptimizedCargoPath outputBelt, int outputBeltOffset, int productId, ref readonly MinerComponent miner)
+    public OptimizedOilMiner(OptimizedCargoPath outputBelt, int outputBeltOffset, OptimizedItemId productId, ref readonly MinerComponent miner)
     {
         this.outputBelt = outputBelt;
         this.outputBeltOffset = outputBeltOffset;
@@ -72,21 +73,18 @@ internal struct OptimizedOilMiner
                 }
             }
             productCount += num11;
-            lock (productRegister)
-            {
-                productRegister[productId] += num11;
-            }
+            productRegister[productId.OptimizedItemIndex] += num11;
             time -= period * num11;
         }
 
-        if (productCount > 0 && insertTarget > 0 && productId > 0)
+        if (productCount > 0 && insertTarget > 0 && productId.ItemIndex > 0)
         {
             double num15 = 36000000.0 / (double)period * (double)miningSpeed;
             num15 *= (double)((float)veinPool[veinIndex].amount * VeinData.oilSpeedMultiplier);
             int num16 = (int)(num15 - 0.009999999776482582) / 1800 + 1;
             num16 = ((num16 >= 4) ? 4 : ((num16 < 1) ? 1 : num16));
             int num17 = ((productCount < num16) ? productCount : num16);
-            int num18 = outputBelt.TryInsertItem(outputBeltOffset, productId, (byte)num17, 0) ? (byte)num17 : 0;
+            int num18 = outputBelt.TryInsertItem(outputBeltOffset, productId.ItemIndex, (byte)num17, 0) ? (byte)num17 : 0;
             productCount -= num18;
         }
     }

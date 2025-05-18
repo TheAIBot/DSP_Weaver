@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 
@@ -12,19 +14,21 @@ internal sealed class SpraycoaterExecutor
     private OptimizedSpraycoater[] _optimizedSpraycoaters = null!;
     private bool[] _isSpraycoatingItems = null!;
     private int[] _sprayTimes = null!;
+    private OptimizedItemId[] _incItemIds = null!;
     public Dictionary<int, int> _spraycoaterIdToOptimizedSpraycoaterIndex = null!;
 
     public int SpraycoaterCount => _optimizedSpraycoaters.Length;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet, int[] consumeRegister)
     {
-        int[] consumeRegister = GameMain.statistics.production.factoryStatPool[planet.index].consumeRegister;
+
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
+        OptimizedItemId[] incItemIds = _incItemIds;
         for (int i = 0; i < optimizedSpraycoaters.Length; i++)
         {
-            optimizedSpraycoaters[i].InternalUpdate(consumeRegister, ref isSpraycoatingItems[i], ref sprayTimes[i]);
+            optimizedSpraycoaters[i].InternalUpdate(incItemIds, consumeRegister, ref isSpraycoatingItems[i], ref sprayTimes[i]);
         }
     }
 
@@ -71,6 +75,7 @@ internal sealed class SpraycoaterExecutor
                            OptimizedSubFactory subFactory,
                            Graph subFactoryGraph,
                            OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> spraycoaterNetworkIds = [];
@@ -78,6 +83,7 @@ internal sealed class SpraycoaterExecutor
         List<bool> isSpraycoatingItems = [];
         List<int> sprayTimes = [];
         Dictionary<int, int> spraycoaterIdToOptimizedSpraycoaterIndex = [];
+        int[]? incItemIds = null;
 
         foreach (int spraycoaterIndex in subFactoryGraph.GetAllNodes()
                                                         .Where(x => x.EntityTypeIndex.EntityType == EntityType.SprayCoater)
@@ -119,7 +125,19 @@ internal sealed class SpraycoaterExecutor
                 outgoingBeltSpeed = outgoingBeltComponent.Value.speed;
             }
 
-            int[] incItemIds = LDB.models.Select(planet.cargoTraffic.factory.entityPool[spraycoater.entityId].modelIndex).prefabDesc.incItemId;
+            OptimizedItemId incItemId = default;
+            if (spraycoater.incItemId != 0)
+            {
+                incItemId = subFactoryProductionRegisterBuilder.AddConsume(spraycoater.incItemId);
+            }
+
+            int[] newIncItemIds = LDB.models.Select(planet.cargoTraffic.factory.entityPool[spraycoater.entityId].modelIndex).prefabDesc.incItemId;
+            if (incItemIds != null && !incItemIds.SequenceEqual(newIncItemIds))
+            {
+                throw new InvalidOperationException($"Assumption that {nameof(incItemIds)} is the same for all spray coaters is not correct.");
+            }
+            incItemIds = newIncItemIds;
+
             bool isSpraycoatingItem = spraycoater.cargoBeltItemId != 0;
 
             int networkId = planet.powerSystem.consumerPool[spraycoater.pcId].networkId;
@@ -130,15 +148,18 @@ internal sealed class SpraycoaterExecutor
             spraycoaterNetworkIds.Add(networkId);
             optimizedSpraycoaters.Add(new OptimizedSpraycoater(incommingBeltSegIndexPlusSegPivotOffset,
                                                                incommingCargoPath,
-                                                               incItemIds,
                                                                outgoingCargoPath,
                                                                outgoingBeltSegIndexPlusSegPivotOffset,
                                                                outgoingBeltSpeed,
                                                                powerNetwork,
+                                                               incItemId,
                                                                in spraycoater));
             isSpraycoatingItems.Add(spraycoater.cargoBeltItemId != 0);
             sprayTimes.Add(spraycoater.sprayTime);
         }
+
+        incItemIds ??= [];
+        _incItemIds = subFactoryProductionRegisterBuilder.AddConsume(incItemIds);
 
         _spraycoaterNetworkIds = spraycoaterNetworkIds.ToArray();
         _optimizedSpraycoaters = optimizedSpraycoaters.ToArray();

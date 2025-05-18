@@ -5,6 +5,7 @@ using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.Miners;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 using Weaver.Optimizations.LinearDataAccess.Turrets;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
@@ -19,6 +20,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     private OptimizedSubFactory[] _subFactories = null!;
     private OptimizedPowerSystem _optimizedPowerSystem = null!;
     private TurretExecutor _turretExecutor = null!;
+    private OptimizedPlanetWideProductionStatistics _optimizedPlanetWideProductionStatistics = null!;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
@@ -67,6 +69,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
+        var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder(_planet);
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
@@ -75,11 +78,14 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
             _subFactories[i].Initialize(subFactoryGraphs[i],
                                         optimizedPowerSystemBuilder,
                                         planetWideBeltExecutor,
-                                        turretExecutorBuilder);
+                                        turretExecutorBuilder,
+                                        planetWideProductionRegisterBuilder,
+                                        planetWideProductionRegisterBuilder.GetSubFactoryBuilder());
         }
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(planetWideBeltExecutor);
         _turretExecutor = turretExecutorBuilder.Build();
+        _optimizedPlanetWideProductionStatistics = planetWideProductionRegisterBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
 
@@ -143,9 +149,9 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
         workSteps.Add(new WorkStep(gameTickChunks.ToArray()));
 
-        workSteps.Add(new WorkStep([new PlanetWideTransport(this)]));
-
-        workSteps.Add(new WorkStep([new PlanetWideDigitalSystem(this)]));
+        //workSteps.Add(new WorkStep([new PlanetWideTransport(this)]));
+        //workSteps.Add(new WorkStep([new PlanetWideDigitalSystem(this)]));
+        workSteps.Add(new WorkStep([new PostSubFactoryStep(this)]));
 
         return workSteps.ToArray();
     }
@@ -221,6 +227,14 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     public void DigitalSystemStep()
     {
         _planet.digitalSystem.GameTick(false);
+    }
+
+    public void AggregateSubFactoryDataStep(long time)
+    {
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        _optimizedPlanetWideProductionStatistics.UpdateStatistics(time, productRegister, consumeRegister);
     }
 
     private void DefenseGameTick(DefenseSystem defenseSystem, long tick)

@@ -18,6 +18,7 @@ using Weaver.Optimizations.LinearDataAccess.Silos;
 using Weaver.Optimizations.LinearDataAccess.Splitters;
 using Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 using Weaver.Optimizations.LinearDataAccess.Stations;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 using Weaver.Optimizations.LinearDataAccess.Tanks;
 using Weaver.Optimizations.LinearDataAccess.Turrets;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
@@ -29,6 +30,7 @@ internal sealed class OptimizedSubFactory
     private readonly PlanetFactory _planet;
     private readonly OptimizedTerrestrialPlanet _optimizedPlanet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
+    private OptimizedProductionStatistics _optimizedProductionStatistics;
 
     public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor = null!;
     public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor = null!;
@@ -96,27 +98,31 @@ internal sealed class OptimizedSubFactory
     public void Initialize(Graph subFactoryGraph,
                            OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
                            PlanetWideBeltExecutor planetWideBeltExecutor,
-                           TurretExecutorBuilder turretExecutorBuilder)
+                           TurretExecutorBuilder turretExecutorBuilder,
+                           PlanetWideProductionRegisterBuilder planetWideProductionRegisterBuilder,
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         optimizedPowerSystemBuilder.AddSubFactory(this);
 
         InitializeBelts(subFactoryGraph, planetWideBeltExecutor);
-        InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializeMiners(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
+        InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder);
+        InitializeMiners(subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder, _beltExecutor);
         InitializeStations(subFactoryGraph, _beltExecutor, _stationVeinMinerExecutor);
-        InitializeEjectors(subFactoryGraph);
-        InitializeSilos(subFactoryGraph);
-        InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
-        InitializeResearchingLabs(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeEjectors(subFactoryGraph, subFactoryProductionRegisterBuilder);
+        InitializeSilos(subFactoryGraph, subFactoryProductionRegisterBuilder);
+        InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder);
+        InitializeResearchingLabs(subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder);
         InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeMonitors(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
-        InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
+        InitializeSpraycoaters(subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder, _beltExecutor);
         InitializePilers(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
-        InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
+        InitializeFractionators(subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder, _beltExecutor);
         InitializeTanks(subFactoryGraph, _beltExecutor);
         InitializeSplitters(subFactoryGraph, _beltExecutor);
 
-        turretExecutorBuilder.Initialize(_planet, subFactoryGraph, _beltExecutor);
+        turretExecutorBuilder.Initialize(_planet, subFactoryGraph, planetWideProductionRegisterBuilder, _beltExecutor);
+
+        _optimizedProductionStatistics = subFactoryProductionRegisterBuilder.Build();
     }
 
     private void InitializeInserters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
@@ -128,53 +134,71 @@ internal sealed class OptimizedSubFactory
         _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, optimizedPowerSystemBuilder.CreateInserterBuilder(), beltExecutor);
     }
 
-    private void InitializeAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeAssemblers(Graph subFactoryGraph,
+                                      OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                                      SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         _assemblerExecutor = new AssemblerExecutor();
-        _assemblerExecutor.InitializeAssemblers(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
+        _assemblerExecutor.InitializeAssemblers(_planet, subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder);
     }
 
-    private void InitializeMiners(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
+    private void InitializeMiners(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder, BeltExecutor beltExecutor)
     {
         _beltVeinMinerExecutor = new VeinMinerExecutor<BeltMinerOutput>();
-        _beltVeinMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder.CreateBeltVeinMinerBuilder(), beltExecutor);
+        _beltVeinMinerExecutor.Initialize(_planet,
+                                          subFactoryGraph,
+                                          optimizedPowerSystemBuilder.CreateBeltVeinMinerBuilder(),
+                                          subFactoryProductionRegisterBuilder,
+                                          beltExecutor);
 
         _stationVeinMinerExecutor = new VeinMinerExecutor<StationMinerOutput>();
-        _stationVeinMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder.CreateStationVeinMinerBuilder(), beltExecutor);
+        _stationVeinMinerExecutor.Initialize(_planet,
+                                             subFactoryGraph,
+                                             optimizedPowerSystemBuilder.CreateStationVeinMinerBuilder(),
+                                             subFactoryProductionRegisterBuilder,
+                                             beltExecutor);
 
         _oilMinerExecutor = new OilMinerExecutor();
-        _oilMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
+        _oilMinerExecutor.Initialize(_planet,
+                                     subFactoryGraph,
+                                     optimizedPowerSystemBuilder,
+                                     subFactoryProductionRegisterBuilder,
+                                     beltExecutor);
 
         _waterMinerExecutor = new WaterMinerExecutor();
-        _waterMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
+        _waterMinerExecutor.Initialize(_planet,
+                                       subFactoryGraph,
+                                       optimizedPowerSystemBuilder,
+                                       subFactoryProductionRegisterBuilder,
+                                       beltExecutor);
     }
 
-    private void InitializeEjectors(Graph subFactoryGraph)
+    private void InitializeEjectors(Graph subFactoryGraph, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         _ejectorExecutor = new EjectorExecutor();
-        _ejectorExecutor.Initialize(_planet, subFactoryGraph);
+        _ejectorExecutor.Initialize(_planet, subFactoryGraph, subFactoryProductionRegisterBuilder);
     }
 
-    private void InitializeSilos(Graph subFactoryGraph)
+    private void InitializeSilos(Graph subFactoryGraph, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         _siloExecutor = new SiloExecutor();
-        _siloExecutor.Initialize(_planet, subFactoryGraph);
+        _siloExecutor.Initialize(_planet, subFactoryGraph, subFactoryProductionRegisterBuilder);
     }
 
-    private void InitializeLabAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeLabAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         _producingLabExecutor = new ProducingLabExecutor();
-        _producingLabExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
+        _producingLabExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder);
         _producingLabNetworkIdAndStates = _producingLabExecutor._networkIdAndStates;
         _optimizedProducingLabs = _producingLabExecutor._optimizedLabs;
         _producingLabRecipes = _producingLabExecutor._producingLabRecipes;
         _producingLabIdToOptimizedIndex = _producingLabExecutor._labIdToOptimizedLabIndex;
     }
 
-    private void InitializeResearchingLabs(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+    private void InitializeResearchingLabs(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         _researchingLabExecutor = new ResearchingLabExecutor(_starClusterResearchManager);
-        _researchingLabExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
+        _researchingLabExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder);
         _researchingLabNetworkIdAndStates = _researchingLabExecutor._networkIdAndStates;
         _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
@@ -186,10 +210,10 @@ internal sealed class OptimizedSubFactory
         _monitorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
+    private void InitializeSpraycoaters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder, BeltExecutor beltExecutor)
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
-        _spraycoaterExecutor.Initialize(_planet, this, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
+        _spraycoaterExecutor.Initialize(_planet, this, subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder, beltExecutor);
     }
 
     private void InitializePilers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
@@ -198,10 +222,10 @@ internal sealed class OptimizedSubFactory
         _pilerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializeFractionators(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
+    private void InitializeFractionators(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder, BeltExecutor beltExecutor)
     {
         _fractionatorExecutor = new FractionatorExecutor();
-        _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
+        _fractionatorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, subFactoryProductionRegisterBuilder, beltExecutor);
     }
 
     private void InitializeStations(Graph subFactoryGraph,
@@ -238,22 +262,24 @@ internal sealed class OptimizedSubFactory
     public void GameTick(WorkerTimings workerTimings, long time)
     {
         var miningFlags = new MiningFlags();
+        int[] productRegister = _optimizedProductionStatistics.ProductRegister;
+        int[] consumeRegister = _optimizedProductionStatistics.ConsumeRegister;
 
         workerTimings.StartTimer();
-        _beltVeinMinerExecutor.GameTick(_planet, ref miningFlags);
-        _stationVeinMinerExecutor.GameTick(_planet, ref miningFlags);
-        _oilMinerExecutor.GameTick(_planet);
-        _waterMinerExecutor.GameTick(_planet);
-        _assemblerExecutor.GameTick(_planet);
-        _fractionatorExecutor.GameTick(_planet);
-        _ejectorExecutor.GameTick(_planet, time);
-        _siloExecutor.GameTick(_planet);
-        _producingLabExecutor.GameTickLabProduceMode(_planet);
+        _beltVeinMinerExecutor.GameTick(_planet, productRegister, ref miningFlags);
+        _stationVeinMinerExecutor.GameTick(_planet, productRegister, ref miningFlags);
+        _oilMinerExecutor.GameTick(_planet, productRegister);
+        _waterMinerExecutor.GameTick(_planet, productRegister);
+        _assemblerExecutor.GameTick(_planet, productRegister, consumeRegister);
+        _fractionatorExecutor.GameTick(_planet, productRegister, consumeRegister);
+        _ejectorExecutor.GameTick(_planet, time, consumeRegister);
+        _siloExecutor.GameTick(_planet, consumeRegister);
+        _producingLabExecutor.GameTickLabProduceMode(_planet, productRegister, consumeRegister);
         _producingLabExecutor.GameTickLabOutputToNext();
         workerTimings.RecordTime(WorkType.Assembler);
 
         workerTimings.StartTimer();
-        _researchingLabExecutor.GameTickLabResearchMode(_planet);
+        _researchingLabExecutor.GameTickLabResearchMode(_planet, consumeRegister);
         _researchingLabExecutor.GameTickLabOutputToNext();
         workerTimings.RecordTime(WorkType.LabResearchMode);
 
@@ -288,7 +314,7 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.Monitor);
 
         workerTimings.StartTimer();
-        _spraycoaterExecutor.GameTick(_planet);
+        _spraycoaterExecutor.GameTick(_planet, consumeRegister);
         workerTimings.RecordTime(WorkType.Spraycoater);
 
         workerTimings.StartTimer();

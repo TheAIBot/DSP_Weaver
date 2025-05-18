@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
@@ -12,9 +13,9 @@ internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
     public readonly int TimeSpend;
     public readonly int ExtraTimeSpend;
     public readonly bool Productive;
-    public readonly int[] Requires;
+    public readonly OptimizedItemId[] Requires;
     public readonly int[] RequireCounts;
-    public readonly int[] Products;
+    public readonly OptimizedItemId[] Products;
     public readonly int[] ProductCounts;
 
     public AssemblerRecipe(int recipeId,
@@ -22,9 +23,9 @@ internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
                            int timeSpend,
                            int extraTimeSpend,
                            bool productive,
-                           int[] requires,
+                           OptimizedItemId[] requires,
                            int[] requireCounts,
-                           int[] products,
+                           OptimizedItemId[] products,
                            int[] productCounts)
     {
         RecipeId = recipeId;

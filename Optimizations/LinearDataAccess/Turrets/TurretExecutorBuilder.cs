@@ -2,6 +2,7 @@
 using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Turrets;
 
@@ -11,6 +12,7 @@ internal sealed class TurretExecutorBuilder
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
+                           PlanetWideProductionRegisterBuilder planetWideProductionRegisterBuilder,
                            BeltExecutor beltExecutor)
     {
         foreach (int turretIndex in subFactoryGraph.GetAllNodes()
@@ -32,6 +34,13 @@ internal sealed class TurretExecutorBuilder
                 CargoPath targetCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[turret.targetBeltId].segPathId];
                 targetBelt = beltExecutor.GetOptimizedCargoPath(targetCargoPath);
             }
+
+            int[] turretAmmunitionItemIds = ItemProto.turretNeeds[(uint)turret.ammoType];
+            for (int i = 0; i < turretAmmunitionItemIds.Length; i++)
+            {
+                planetWideProductionRegisterBuilder.AdditionalItemsIdsToWatch(turretAmmunitionItemIds[i]);
+            }
+
 
             _optimizedTurrets.Add(new OptimizedTurret(targetBelt, targetBeltOffset, turretIndex));
         }

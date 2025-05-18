@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 
@@ -8,13 +9,12 @@ internal struct OptimizedSpraycoater
 {
     public readonly int incommingBeltSegIndexPlusSegPivotOffset;
     public readonly OptimizedCargoPath? incommingCargoPath;
-    public readonly int[] incItemIds;
     public readonly OptimizedCargoPath? outgoingCargoPath;
     public readonly int outgoingBeltSegIndexPlusSegPivotOffset;
     public readonly int outgoingBeltSpeed;
-    public readonly PowerNetwork? powerNetwork;
     public readonly int incCapacity;
-    public int incItemId;
+    public readonly PowerNetwork? powerNetwork;
+    public OptimizedItemId incItemId;
     public int incAbility;
     public int incSprayTimes;
     public int incCount;
@@ -23,22 +23,21 @@ internal struct OptimizedSpraycoater
 
     public OptimizedSpraycoater(int incommingBeltSegIndexPlusSegPivotOffset,
                                 OptimizedCargoPath? incommingCargoPath,
-                                int[] incItemIds,
                                 OptimizedCargoPath? outgoingCargoPath,
                                 int outgoingBeltSegIndexPlusSegPivotOffset,
                                 int outgoingBeltSpeed,
                                 PowerNetwork? powerNetwork,
+                                OptimizedItemId incItemId,
                                 ref readonly SpraycoaterComponent spraycoater)
     {
         this.incommingBeltSegIndexPlusSegPivotOffset = incommingBeltSegIndexPlusSegPivotOffset;
         this.incommingCargoPath = incommingCargoPath;
-        this.incItemIds = incItemIds;
         this.outgoingCargoPath = outgoingCargoPath;
         this.outgoingBeltSegIndexPlusSegPivotOffset = outgoingBeltSegIndexPlusSegPivotOffset;
         this.outgoingBeltSpeed = outgoingBeltSpeed;
         this.powerNetwork = powerNetwork;
+        this.incItemId = incItemId;
         incCapacity = spraycoater.incCapacity;
-        incItemId = spraycoater.incItemId;
         incAbility = spraycoater.incAbility;
         incSprayTimes = spraycoater.incSprayTimes;
         incCount = spraycoater.incCount;
@@ -46,24 +45,24 @@ internal struct OptimizedSpraycoater
         incUsed = spraycoater.incUsed;
     }
 
-    public void InternalUpdate(int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime)
+    public void InternalUpdate(OptimizedItemId[] incItemIds, int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime)
     {
         if (incommingCargoPath != null && incCount + extraIncCount < incCapacity)
         {
-            if (incommingCargoPath.GetCargoAtIndex(incommingBeltSegIndexPlusSegPivotOffset, out var cargo, out var _, out var _))
+            if (incommingCargoPath.GetCargoAtIndex(incommingBeltSegIndexPlusSegPivotOffset, out OptimizedCargo cargo, out var _, out var _))
             {
-                if (cargo.item != incItemId && incCount == 0 && incCount == 0)
+                if (cargo.item != incItemId.ItemIndex && incCount == 0 && incCount == 0)
                 {
-                    incItemId = 0;
+                    incItemId = default;
                     incAbility = 0;
                 }
-                if (incItemId == 0 && cargo.item != 0)
+                if (incItemId.ItemIndex == 0 && cargo.item != 0)
                 {
                     for (int i = 0; i < incItemIds.Length; i++)
                     {
-                        if (cargo.item == incItemIds[i])
+                        if (cargo.item == incItemIds[i].ItemIndex)
                         {
-                            ItemProto itemProto = LDB.items.Select(incItemIds[i]);
+                            ItemProto itemProto = LDB.items.Select(incItemIds[i].ItemIndex);
                             incItemId = incItemIds[i];
                             incAbility = itemProto.Ability;
                             incSprayTimes = itemProto.HpMax;
@@ -71,7 +70,7 @@ internal struct OptimizedSpraycoater
                         }
                     }
                 }
-                if (incItemId != 0 && incItemId == cargo.item && incommingCargoPath.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId, out var stack, out var inc) > 0)
+                if (incItemId.ItemIndex != 0 && incItemId.ItemIndex == cargo.item && incommingCargoPath.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId.ItemIndex, out var stack, out var inc) > 0)
                 {
                     int num = inc;
                     for (int j = 0; j < stack; j++)
@@ -115,10 +114,10 @@ internal struct OptimizedSpraycoater
                         int num6 = incCount;
                         incCount += extraIncCount;
                         extraIncCount = 0;
-                        consumeRegister[incItemId] += num6 / incSprayTimes - incCount / incSprayTimes;
+                        consumeRegister[incItemId.OptimizedItemIndex] += num6 / incSprayTimes - incCount / incSprayTimes;
                         if (incCount <= 0)
                         {
-                            incItemId = 0;
+                            incItemId = default;
                             incAbility = 0;
                         }
                     }
@@ -130,7 +129,7 @@ internal struct OptimizedSpraycoater
 
     public readonly void Save(ref SpraycoaterComponent spraycoater, bool isSpraycoatingItem, int sprayTime)
     {
-        spraycoater.incItemId = incItemId;
+        spraycoater.incItemId = incItemId.ItemIndex;
         spraycoater.incAbility = incAbility;
         spraycoater.incSprayTimes = incSprayTimes;
         spraycoater.incCount = incCount;

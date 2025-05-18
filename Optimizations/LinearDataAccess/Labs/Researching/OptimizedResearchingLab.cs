@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 
@@ -67,6 +68,7 @@ internal struct OptimizedResearchingLab
                                            float research_speed,
                                            int techId,
                                            int[] matrixPoints,
+                                           OptimizedItemId[] matrixIds,
                                            int[] consumeRegister,
                                            ref TechState ts,
                                            ref int techHashedThisFrame,
@@ -189,7 +191,7 @@ internal struct OptimizedResearchingLab
                     {
                         incUsed = num8 > 0;
                     }
-                    consumeRegister[LabComponent.matrixIds[i]] += num12;
+                    consumeRegister[matrixIds[i].OptimizedItemIndex] += num12;
                 }
             }
             if (num8 < 0)
