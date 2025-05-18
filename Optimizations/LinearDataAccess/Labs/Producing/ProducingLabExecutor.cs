@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 
@@ -18,11 +19,8 @@ internal sealed class ProducingLabExecutor
 
     public int ProducingLabCount => _optimizedLabs.Length;
 
-    public void GameTickLabProduceMode(PlanetFactory planet)
+    public void GameTickLabProduceMode(PlanetFactory planet, int[] productRegister, int[] consumeRegister)
     {
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = obj.productRegister;
-        int[] consumeRegister = obj.consumeRegister;
         float[] networkServes = planet.powerSystem.networkServes;
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
@@ -98,7 +96,8 @@ internal sealed class ProducingLabExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         List<NetworkIdAndState<LabState>> networkIdAndStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
@@ -158,7 +157,7 @@ internal sealed class ProducingLabExecutor
                 }
             }
 
-            var producingLabRecipe = new ProducingLabRecipe(in lab);
+            var producingLabRecipe = new ProducingLabRecipe(in lab, subFactoryProductionRegisterBuilder);
             if (!producingLabRecipeToRecipeIndex.TryGetValue(producingLabRecipe, out int producingLabRecipeIndex))
             {
                 producingLabRecipeToRecipeIndex.Add(producingLabRecipe, producingLabRecipes.Count);

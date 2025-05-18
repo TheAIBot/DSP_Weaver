@@ -241,7 +241,7 @@ internal readonly struct OptimizedStation
             }
 
             ref OptimizedVeinMiner<StationMinerOutput> miner = ref stationMiners[_optimizedMinerIndex.Value];
-            if (miner.productId == 0 || miner.productId != stationComponent.collectionIds[0] || miner.ProductCount <= 0)
+            if (miner.productId.ItemIndex == 0 || miner.productId.ItemIndex != stationComponent.collectionIds[0] || miner.ProductCount <= 0)
             {
                 return;
             }
@@ -260,7 +260,7 @@ internal readonly struct OptimizedStation
                 miner.ProductCount -= num2;
                 if (miner.ProductCount == 0)
                 {
-                    miner.productId = 0;
+                    miner.productId = default;
                 }
                 miningFlags.AddMiningFlagUnsafe(LDB.veins.GetVeinTypeByItemId(stationComponent.storage[0].itemId));
             }

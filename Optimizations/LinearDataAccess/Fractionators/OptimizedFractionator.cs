@@ -2,9 +2,12 @@
 using UnityEngine;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 #nullable enable
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
+
+internal record struct FractionatorRecipeProduct(int GameFluidId, OptimizedItemId Fluid, OptimizedItemId Product, float ProduceProbability);
 
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedFractionator
@@ -13,8 +16,8 @@ internal struct OptimizedFractionator
     public readonly OptimizedCargoPath? belt1;
     public readonly OptimizedCargoPath? belt2;
     public readonly int configurationIndex;
-    public int fluidId;
-    public int productId;
+    public OptimizedItemId fluidId;
+    public OptimizedItemId productId;
     public float produceProb;
 
 
@@ -34,14 +37,16 @@ internal struct OptimizedFractionator
                                  OptimizedCargoPath? belt1,
                                  OptimizedCargoPath? belt2,
                                  int configurationIndex,
+                                 OptimizedItemId fluidId,
+                                 OptimizedItemId productId,
                                  ref readonly FractionatorComponent fractionator)
     {
         this.belt0 = belt0;
         this.belt1 = belt1;
         this.belt2 = belt2;
         this.configurationIndex = configurationIndex;
-        fluidId = fractionator.fluidId;
-        productId = fractionator.productId;
+        this.fluidId = fluidId;
+        this.productId = productId;
         produceProb = fractionator.produceProb;
         productOutputCount = fractionator.productOutputCount;
         fluidOutputCount = fractionator.fluidOutputCount;
@@ -54,17 +59,16 @@ internal struct OptimizedFractionator
         seed = fractionator.seed;
     }
 
-    public void SetRecipe(int needId)
+    public void SetRecipe(int needId, FractionatorRecipeProduct[] fractionatorRecipeProducts)
     {
         incUsed = false;
-        RecipeProto[] fractionatorRecipes = RecipeProto.fractionatorRecipes;
-        for (int i = 0; i < fractionatorRecipes.Length; i++)
+        for (int i = 0; i < fractionatorRecipeProducts.Length; i++)
         {
-            if (needId == fractionatorRecipes[i].Items[0])
+            if (needId == fractionatorRecipeProducts[i].GameFluidId)
             {
-                fluidId = needId;
-                productId = fractionatorRecipes[i].Results[0];
-                produceProb = fractionatorRecipes[i].ResultCounts[0] / (float)fractionatorRecipes[i].ItemCounts[0];
+                fluidId = fractionatorRecipeProducts[i].Fluid;
+                productId = fractionatorRecipeProducts[i].Product;
+                produceProb = fractionatorRecipeProducts[i].ProduceProbability;
                 break;
             }
         }
@@ -73,6 +77,7 @@ internal struct OptimizedFractionator
     public uint InternalUpdate(float power,
                                ref readonly FractionatorConfiguration configuration,
                                ref FractionatorPowerFields fractionatorPowerFields,
+                               FractionatorRecipeProduct[] fractionatorRecipeProducts,
                                int[] productRegister,
                                int[] consumeRegister)
     {
@@ -110,14 +115,8 @@ internal struct OptimizedFractionator
                 {
                     productOutputCount++;
                     productOutputTotal++;
-                    lock (productRegister)
-                    {
-                        productRegister[productId]++;
-                    }
-                    lock (consumeRegister)
-                    {
-                        consumeRegister[fluidId]++;
-                    }
+                    productRegister[productId.OptimizedItemIndex]++;
+                    consumeRegister[fluidId.OptimizedItemIndex]++;
                 }
                 else
                 {
@@ -148,14 +147,14 @@ internal struct OptimizedFractionator
                 if (fluidOutputCount > 0)
                 {
                     int num4 = fluidOutputInc / fluidOutputCount;
-                    if (belt1.TryUpdateItemAtHeadAndFillBlank(fluidId, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num4))
+                    if (belt1.TryUpdateItemAtHeadAndFillBlank(fluidId.ItemIndex, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num4))
                     {
                         fluidOutputCount--;
                         fluidOutputInc -= num4;
                         if (fluidOutputCount > 0)
                         {
                             num4 = fluidOutputInc / fluidOutputCount;
-                            if (belt1.TryUpdateItemAtHeadAndFillBlank(fluidId, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num4))
+                            if (belt1.TryUpdateItemAtHeadAndFillBlank(fluidId.ItemIndex, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num4))
                             {
                                 fluidOutputCount--;
                                 fluidOutputInc -= num4;
@@ -166,9 +165,9 @@ internal struct OptimizedFractionator
             }
             else if (!configuration.IsOutput1 && fractionatorPowerFields.fluidInputCargoCount < configuration.FluidInputMax)
             {
-                if (fluidId > 0)
+                if (fluidId.ItemIndex > 0)
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt1, fluidId, null, out stack, out inc) > 0)
+                    if (CargoPathMethods.TryPickItemAtRear(belt1, fluidId.ItemIndex, null, out stack, out inc) > 0)
                     {
                         fractionatorPowerFields.fluidInputCount += stack;
                         fractionatorPowerFields.fluidInputInc += inc;
@@ -183,7 +182,7 @@ internal struct OptimizedFractionator
                         fractionatorPowerFields.fluidInputCount += stack;
                         fractionatorPowerFields.fluidInputInc += inc;
                         fractionatorPowerFields.fluidInputCargoCount += 1f;
-                        SetRecipe(num5);
+                        SetRecipe(num5, fractionatorRecipeProducts);
                     }
                 }
             }
@@ -195,14 +194,14 @@ internal struct OptimizedFractionator
                 if (fluidOutputCount > 0)
                 {
                     int num6 = fluidOutputInc / fluidOutputCount;
-                    if (belt2.TryUpdateItemAtHeadAndFillBlank(fluidId, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num6))
+                    if (belt2.TryUpdateItemAtHeadAndFillBlank(fluidId.ItemIndex, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num6))
                     {
                         fluidOutputCount--;
                         fluidOutputInc -= num6;
                         if (fluidOutputCount > 0)
                         {
                             num6 = fluidOutputInc / fluidOutputCount;
-                            if (belt2.TryUpdateItemAtHeadAndFillBlank(fluidId, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num6))
+                            if (belt2.TryUpdateItemAtHeadAndFillBlank(fluidId.ItemIndex, Mathf.CeilToInt((float)(num - 0.1)), 1, (byte)num6))
                             {
                                 fluidOutputCount--;
                                 fluidOutputInc -= num6;
@@ -213,9 +212,9 @@ internal struct OptimizedFractionator
             }
             else if (!configuration.IsOutput2 && fractionatorPowerFields.fluidInputCargoCount < configuration.FluidInputMax)
             {
-                if (fluidId > 0)
+                if (fluidId.ItemIndex > 0)
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt2, fluidId, null, out stack, out inc) > 0)
+                    if (CargoPathMethods.TryPickItemAtRear(belt2, fluidId.ItemIndex, null, out stack, out inc) > 0)
                     {
                         fractionatorPowerFields.fluidInputCount += stack;
                         fractionatorPowerFields.fluidInputInc += inc;
@@ -230,18 +229,18 @@ internal struct OptimizedFractionator
                         fractionatorPowerFields.fluidInputCount += stack;
                         fractionatorPowerFields.fluidInputInc += inc;
                         fractionatorPowerFields.fluidInputCargoCount += 1f;
-                        SetRecipe(num7);
+                        SetRecipe(num7, fractionatorRecipeProducts);
                     }
                 }
             }
         }
-        if (belt0 != null && configuration.IsOutput0 && productOutputCount > 0 && belt0.TryInsertItemAtHeadAndFillBlank(productId, 1, 0))
+        if (belt0 != null && configuration.IsOutput0 && productOutputCount > 0 && belt0.TryInsertItemAtHeadAndFillBlank(productId.ItemIndex, 1, 0))
         {
             productOutputCount--;
         }
         if (fractionatorPowerFields.fluidInputCount == 0 && fluidOutputCount == 0 && productOutputCount == 0)
         {
-            fluidId = 0;
+            fluidId = default;
         }
         fractionatorPowerFields.isWorking = fractionatorPowerFields.fluidInputCount > 0 && productOutputCount < configuration.ProductOutputMax && fluidOutputCount < configuration.FluidOutputMax;
         if (!fractionatorPowerFields.isWorking)
@@ -255,8 +254,8 @@ internal struct OptimizedFractionator
                      ref readonly FractionatorPowerFields fractionatorPowerFields,
                      SignData[] signPool)
     {
-        fractionator.fluidId = fluidId;
-        fractionator.productId = productId;
+        fractionator.fluidId = fluidId.ItemIndex;
+        fractionator.productId = productId.ItemIndex;
         fractionator.produceProb = produceProb;
         fractionator.isWorking = fractionatorPowerFields.isWorking;
         fractionator.fluidInputCount = fractionatorPowerFields.fluidInputCount;

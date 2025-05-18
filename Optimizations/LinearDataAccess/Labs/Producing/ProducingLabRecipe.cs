@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 
@@ -12,21 +13,21 @@ internal struct ProducingLabRecipe : IEqualityComparer<ProducingLabRecipe>
     public readonly int ExtraTimeSpend;
     public readonly int Speed;
     public readonly bool Productive;
-    public readonly int[] Requires;
+    public readonly OptimizedItemId[] Requires;
     public readonly int[] RequireCounts;
-    public readonly int[] Products;
+    public readonly OptimizedItemId[] Products;
     public readonly int[] ProductCounts;
 
-    public ProducingLabRecipe(ref readonly LabComponent lab)
+    public ProducingLabRecipe(ref readonly LabComponent lab, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         RecipeId = lab.recipeId;
         TimeSpend = lab.timeSpend;
         ExtraTimeSpend = lab.extraTimeSpend;
         Speed = lab.speed;
         Productive = lab.productive;
-        Requires = lab.requires;
+        Requires = subFactoryProductionRegisterBuilder.AddConsume(lab.requires);
         RequireCounts = lab.requireCounts;
-        Products = lab.products;
+        Products = subFactoryProductionRegisterBuilder.AddProduct(lab.products);
         ProductCounts = lab.productCounts;
     }
 

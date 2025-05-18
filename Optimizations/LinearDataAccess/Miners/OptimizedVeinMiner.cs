@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Miners;
 
@@ -11,19 +12,21 @@ internal struct OptimizedVeinMiner<T> : IMiner
     public readonly int speed;
     private readonly int period;
     private readonly int[] veins;
+    private readonly OptimizedItemId[] veinProducts;
     private int time;
     private int veinCount;
     private int currentVeinIndex;
     private int minimumVeinAmount;
-    public int productId;
+    public OptimizedItemId productId;
     private double costFrac;
 
     public int ProductCount { get; set; }
     public float SpeedDamper { get; set; }
 
-    public OptimizedVeinMiner(T output, ref readonly MinerComponent miner)
+    public OptimizedVeinMiner(T output, OptimizedItemId[] veinProducts, OptimizedItemId productId, ref readonly MinerComponent miner)
     {
         this.output = output;
+        this.veinProducts = veinProducts;
         speed = miner.speed;
         SpeedDamper = miner.speedDamper;
         period = miner.period;
@@ -32,7 +35,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
         veinCount = miner.veinCount;
         currentVeinIndex = miner.currentVeinIndex;
         minimumVeinAmount = miner.minimumVeinAmount;
-        productId = miner.productId;
+        this.productId = productId;
         ProductCount = miner.productCount;
         costFrac = miner.costFrac;
     }
@@ -70,6 +73,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
                 if (veinCount > 0)
                 {
                     int num = veins[currentVeinIndex];
+                    OptimizedItemId veinProductId = veinProducts[currentVeinIndex];
                     Assert.Positive(num);
                     if (veinPool[num].id == 0)
                     {
@@ -86,9 +90,9 @@ internal struct OptimizedVeinMiner<T> : IMiner
                         time += (int)(power * SpeedDamper * (float)speed * miningSpeed * (float)veinCount);
                         return 0u;
                     }
-                    if (ProductCount < 50 && (productId == 0 || productId == veinPool[num].productId))
+                    if (ProductCount < 50 && (productId.ItemIndex == 0 || productId.ItemIndex == veinPool[num].productId))
                     {
-                        productId = veinPool[num].productId;
+                        productId = veinProductId;
                         int num2 = time / period;
                         int num3 = 0;
                         if (veinPool[num].amount > 0)
@@ -145,10 +149,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
                                 costFrac = 0.0;
                             }
                             ProductCount += num3;
-                            lock (productRegister)
-                            {
-                                productRegister[productId] += num3;
-                            }
+                            productRegister[productId.OptimizedItemIndex] += num3;
 
                             miningFlags.AddMiningFlagUnsafe(veinPool[num].type);
                             miningFlags.AddVeinMiningFlagUnsafe(veinPool[num].type);
@@ -171,18 +172,18 @@ internal struct OptimizedVeinMiner<T> : IMiner
                 }
             }
         }
-        if (ProductCount > 0 && productId > 0)
+        if (ProductCount > 0 && productId.ItemIndex > 0)
         {
             double num15 = 36000000.0 / (double)period * (double)miningSpeed;
             num15 *= (double)veinCount;
             int num16 = (int)(num15 - 0.009999999776482582) / 1800 + 1;
             num16 = ((num16 >= 4) ? 4 : ((num16 < 1) ? 1 : num16));
             int num17 = ((ProductCount < num16) ? ProductCount : num16);
-            int num18 = output.InsertInto(productId, (byte)num17);
+            int num18 = output.InsertInto(productId.ItemIndex, (byte)num17);
             ProductCount -= num18;
             if (ProductCount == 0)
             {
-                productId = 0;
+                productId = default;
             }
         }
         return result;
@@ -194,7 +195,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
         miner.veinCount = veinCount;
         miner.currentVeinIndex = currentVeinIndex;
         miner.minimumVeinAmount = minimumVeinAmount;
-        miner.productId = productId;
+        miner.productId = productId.ItemIndex;
         miner.costFrac = costFrac;
         miner.productCount = ProductCount;
         miner.speedDamper = SpeedDamper;
@@ -217,14 +218,17 @@ internal struct OptimizedVeinMiner<T> : IMiner
         if (veins != null)
         {
             veins[index] = 0;
+            veinProducts[index] = default;
             veinCount--;
             if (veinCount - index > 0)
             {
                 Array.Copy(veins, index + 1, veins, index, veinCount - index);
+                Array.Copy(veinProducts, index + 1, veinProducts, index, veinCount - index);
             }
             if (veins.Length - veinCount > 0)
             {
                 Array.Clear(veins, veinCount, veins.Length - veinCount);
+                Array.Clear(veinProducts, veinCount, veinProducts.Length - veinCount);
             }
         }
     }
