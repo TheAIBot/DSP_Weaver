@@ -2,12 +2,12 @@
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
-internal sealed class PlanetWideDigitalSystem : IWorkChunk
+internal sealed class PostSubFactoryStep : IWorkChunk
 {
     private readonly OptimizedTerrestrialPlanet _optimizedPlanet;
     private WorkStep? _workStep;
 
-    public PlanetWideDigitalSystem(OptimizedTerrestrialPlanet optimizedPlanet)
+    public PostSubFactoryStep(OptimizedTerrestrialPlanet optimizedPlanet)
     {
         _optimizedPlanet = optimizedPlanet;
     }
@@ -15,8 +15,16 @@ internal sealed class PlanetWideDigitalSystem : IWorkChunk
     public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         workerTimings.StartTimer();
+        _optimizedPlanet.TransportGameTick(time, playerPosition);
+        workerTimings.RecordTime(WorkType.TransportData);
+
+        workerTimings.StartTimer();
         _optimizedPlanet.DigitalSystemStep();
         workerTimings.RecordTime(WorkType.Digital);
+
+        //workerTimings.StartTimer();
+        _optimizedPlanet.AggregateSubFactoryDataStep(time);
+        //workerTimings.RecordTime(WorkType.Statistics);
     }
 
     public void TieToWorkStep(WorkStep workStep)

@@ -3,6 +3,7 @@ using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Miners;
 
@@ -16,11 +17,10 @@ internal sealed class OilMinerExecutor
     public void GameTick(PlanetFactory planet,
                          int[] oilMinerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
-                         long[] thisSubFactoryNetworkPowerConsumption)
+                         long[] thisSubFactoryNetworkPowerConsumption,
+                         int[] productRegister)
     {
         GameHistoryData history = GameMain.history;
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = obj.productRegister;
         float[] networkServes = planet.powerSystem.networkServes;
         float miningSpeedScale = history.miningSpeedScale;
         VeinData[] veinPool = planet.veinPool;
@@ -135,6 +135,7 @@ internal sealed class OilMinerExecutor
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> networkIds = [];
@@ -162,7 +163,6 @@ internal sealed class OilMinerExecutor
             {
                 continue;
             }
-            int productId = planet.veinPool[miner.veins[0]].productId;
 
             if (miner.insertTarget <= 0)
             {
@@ -179,11 +179,18 @@ internal sealed class OilMinerExecutor
             CargoPath outputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[outputBeltId].segPathId];
             OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
+            int veinProductId = planet.veinPool[miner.veins[0]].productId;
+            OptimizedItemId oilProductId = default;
+            if (veinProductId > 0)
+            {
+                oilProductId = subFactoryProductionRegisterBuilder.AddProduct(veinProductId);
+            }
+
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
             subFactoryPowerSystemBuilder.AddOilMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
-            optimizedMiners.Add(new OptimizedOilMiner(outputBelt, outputBeltOffset, productId, in miner));
+            optimizedMiners.Add(new OptimizedOilMiner(outputBelt, outputBeltOffset, oilProductId, in miner));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 

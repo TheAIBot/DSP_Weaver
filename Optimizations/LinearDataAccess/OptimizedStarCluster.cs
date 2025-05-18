@@ -383,6 +383,26 @@ internal static class OptimizedStarCluster
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FactoryProductionStat), nameof(FactoryProductionStat.GameTick))]
+    public static bool FactoryProductionStat_GameTick()
+    {
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FactoryProductionStat), nameof(FactoryProductionStat.ClearRegisters))]
+    public static bool FactoryProductionStat_ClearRegisters(FactoryProductionStat __instance)
+    {
+        __instance.powerGenRegister = 0L;
+        __instance.powerConRegister = 0L;
+        __instance.powerDisRegister = 0L;
+        __instance.powerChaRegister = 0L;
+        __instance.hashRegister = 0L;
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
     public static void ReOptimizeAllPlanets()
     {
         lock (_planetsToReOptimize)

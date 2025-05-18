@@ -1,6 +1,12 @@
+## 1.4.0
+* Optimized production statistics.
+	* !!! Need to fix battle statis statistics !!!
+	* !!! Need to fix anything power related with statistics !!!
+	* !!! Need to handle statistics when planet is not optimized !!!
+
 ## 1.3.0
-* 3-10% performance improvment compared to 1.2.6
-* Power system no longer has any performance impact.
+* 3-10% performance improvement compared to 1.2.6
+* Power system should no longer have any performance impact.
 	* Calculation of power consumption is now done in an entitys regular update loop.
 	* Wind power generation is now a constant time operation.
 	* Calculation of power transmission tower power usage is now a constant time operation.

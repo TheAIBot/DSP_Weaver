@@ -78,12 +78,12 @@ internal struct OptimizedAssembler
 
         int[] served = assemblerNeeds.served;
         int[] needs = assemblerNeeds.needs;
-        needs[0] = 0 < num && served[0] < assemblerRecipeData.RequireCounts[0] * num2 ? assemblerRecipeData.Requires[0] : 0;
-        needs[1] = 1 < num && served[1] < assemblerRecipeData.RequireCounts[1] * num2 ? assemblerRecipeData.Requires[1] : 0;
-        needs[2] = 2 < num && served[2] < assemblerRecipeData.RequireCounts[2] * num2 ? assemblerRecipeData.Requires[2] : 0;
-        needs[3] = 3 < num && served[3] < assemblerRecipeData.RequireCounts[3] * num2 ? assemblerRecipeData.Requires[3] : 0;
-        needs[4] = 4 < num && served[4] < assemblerRecipeData.RequireCounts[4] * num2 ? assemblerRecipeData.Requires[4] : 0;
-        needs[5] = 5 < num && served[5] < assemblerRecipeData.RequireCounts[5] * num2 ? assemblerRecipeData.Requires[5] : 0;
+        needs[0] = 0 < num && served[0] < assemblerRecipeData.RequireCounts[0] * num2 ? assemblerRecipeData.Requires[0].ItemIndex : 0;
+        needs[1] = 1 < num && served[1] < assemblerRecipeData.RequireCounts[1] * num2 ? assemblerRecipeData.Requires[1].ItemIndex : 0;
+        needs[2] = 2 < num && served[2] < assemblerRecipeData.RequireCounts[2] * num2 ? assemblerRecipeData.Requires[2].ItemIndex : 0;
+        needs[3] = 3 < num && served[3] < assemblerRecipeData.RequireCounts[3] * num2 ? assemblerRecipeData.Requires[3].ItemIndex : 0;
+        needs[4] = 4 < num && served[4] < assemblerRecipeData.RequireCounts[4] * num2 ? assemblerRecipeData.Requires[4].ItemIndex : 0;
+        needs[5] = 5 < num && served[5] < assemblerRecipeData.RequireCounts[5] * num2 ? assemblerRecipeData.Requires[5].ItemIndex : 0;
     }
 
     public AssemblerState Update(float power,
@@ -107,20 +107,14 @@ internal struct OptimizedAssembler
             if (num == 1)
             {
                 produced[0] += assemblerRecipeData.ProductCounts[0];
-                lock (productRegister)
-                {
-                    productRegister[assemblerRecipeData.Products[0]] += assemblerRecipeData.ProductCounts[0];
-                }
+                productRegister[assemblerRecipeData.Products[0].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[0];
             }
             else
             {
                 for (int i = 0; i < num; i++)
                 {
                     produced[i] += assemblerRecipeData.ProductCounts[i];
-                    lock (productRegister)
-                    {
-                        productRegister[assemblerRecipeData.Products[i]] += assemblerRecipeData.ProductCounts[i];
-                    }
+                    productRegister[assemblerRecipeData.Products[i].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[i];
                 }
             }
             extraCycleCount++;
@@ -153,10 +147,7 @@ internal struct OptimizedAssembler
                         break;
                 }
                 produced[0] += assemblerRecipeData.ProductCounts[0];
-                lock (productRegister)
-                {
-                    productRegister[assemblerRecipeData.Products[0]] += assemblerRecipeData.ProductCounts[0];
-                }
+                productRegister[assemblerRecipeData.Products[0].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[0];
             }
             else
             {
@@ -224,10 +215,7 @@ internal struct OptimizedAssembler
                 for (int num4 = 0; num4 < num2; num4++)
                 {
                     produced[num4] += assemblerRecipeData.ProductCounts[num4];
-                    lock (productRegister)
-                    {
-                        productRegister[assemblerRecipeData.Products[num4]] += assemblerRecipeData.ProductCounts[num4];
-                    }
+                    productRegister[assemblerRecipeData.Products[num4].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[num4];
                 }
             }
             assemblerTimingData.extraSpeed = 0;
@@ -264,10 +252,7 @@ internal struct OptimizedAssembler
                 {
                     incServed[num8] = 0;
                 }
-                lock (consumeRegister)
-                {
-                    consumeRegister[assemblerRecipeData.Requires[num8]] += assemblerRecipeData.RequireCounts[num8];
-                }
+                consumeRegister[assemblerRecipeData.Requires[num8].OptimizedItemIndex] += assemblerRecipeData.RequireCounts[num8];
             }
             if (num7 < 0)
             {
@@ -302,10 +287,10 @@ internal struct OptimizedAssembler
                               ref readonly AssemblerTimingData assemblerTimingData,
                               ref readonly AssemblerNeeds assemblerNeeds)
     {
-        assembler.requires = assemblerRecipeData.Requires;
-        assembler.requireCounts = assemblerRecipeData.RequireCounts;
-        assembler.products = assemblerRecipeData.Products;
-        assembler.productCounts = assemblerRecipeData.ProductCounts;
+        //assembler.requires = assemblerRecipeData.Requires;
+        //assembler.requireCounts = assemblerRecipeData.RequireCounts;
+        //assembler.products = assemblerRecipeData.Products;
+        //assembler.productCounts = assemblerRecipeData.ProductCounts;
         assembler.served = assemblerNeeds.served;
         assembler.incServed = incServed;
         assembler.needs = assemblerNeeds.needs;

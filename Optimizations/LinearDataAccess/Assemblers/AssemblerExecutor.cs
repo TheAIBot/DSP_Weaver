@@ -2,6 +2,7 @@
 using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
@@ -25,11 +26,10 @@ internal sealed class AssemblerExecutor
     public void GameTick(PlanetFactory planet,
                          int[] assemblerPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
-                         long[] networksPowerConsumption)
+                         long[] networksPowerConsumption,
+                         int[] productRegister,
+                         int[] consumeRegister)
     {
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = obj.productRegister;
-        int[] consumeRegister = obj.consumeRegister;
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
@@ -175,7 +175,8 @@ internal sealed class AssemblerExecutor
 
     public void InitializeAssemblers(PlanetFactory planet,
                                      Graph subFactoryGraph,
-                                     SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
+                                     SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
+                                     SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         List<NetworkIdAndState<AssemblerState>> assemblerNetworkIdAndStates = [];
         List<OptimizedAssembler> optimizedAssemblers = [];
@@ -230,9 +231,9 @@ internal sealed class AssemblerExecutor
                                                                   assembler.timeSpend,
                                                                   assembler.extraTimeSpend,
                                                                   assembler.productive,
-                                                                  assembler.requires,
+                                                                  subFactoryProductionRegisterBuilder.AddConsume(assembler.requires),
                                                                   assembler.requireCounts,
-                                                                  assembler.products,
+                                                                  subFactoryProductionRegisterBuilder.AddProduct(assembler.products),
                                                                   assembler.productCounts);
             if (!assemblerRecipeToIndex.TryGetValue(assemblerRecipe, out int assemblerRecipeIndex))
             {

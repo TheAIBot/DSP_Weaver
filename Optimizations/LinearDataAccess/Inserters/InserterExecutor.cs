@@ -9,6 +9,7 @@ using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;
 
@@ -68,7 +69,7 @@ internal static class CargoPathMethods
     }
 }
 
-internal record struct PickFromProducingPlant(int[] Products, int[] Produced)
+internal record struct PickFromProducingPlant(OptimizedItemId[] Products, int[] Produced)
 {
     public override string ToString()
     {
@@ -92,7 +93,7 @@ internal record struct ConnectionBelts(OptimizedCargoPath? PickFrom, OptimizedCa
     }
 }
 
-internal record struct InsertIntoConsumingPlant(int[]? Requires, int[] Served, int[] IncServed)
+internal record struct InsertIntoConsumingPlant(OptimizedItemId[]? Requires, int[] Served, int[] IncServed)
 {
     public override string ToString()
     {
@@ -335,43 +336,43 @@ internal sealed class InserterExecutor<T>
             }
 
             PickFromProducingPlant producingPlant = _pickFromProducingPlants[inserterIndex];
-            int[] products = producingPlant.Products;
+            OptimizedItemId[] products = producingPlant.Products;
             int[] produced = producingPlant.Produced;
 
             int num = products.Length;
             switch (num)
             {
                 case 1:
-                    if (produced[0] > 0 && products[0] > 0 && (filter == 0 || filter == products[0]) && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
+                    if (produced[0] > 0 && products[0].ItemIndex > 0 && (filter == 0 || filter == products[0].ItemIndex) && (needs == null || needs[0] == products[0].ItemIndex || needs[1] == products[0].ItemIndex || needs[2] == products[0].ItemIndex || needs[3] == products[0].ItemIndex || needs[4] == products[0].ItemIndex || needs[5] == products[0].ItemIndex))
                     {
                         produced[0]--;
                         _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                        return products[0];
+                        return products[0].ItemIndex;
                     }
                     break;
                 case 2:
-                    if ((filter == products[0] || filter == 0) && produced[0] > 0 && products[0] > 0 && (needs == null || needs[0] == products[0] || needs[1] == products[0] || needs[2] == products[0] || needs[3] == products[0] || needs[4] == products[0] || needs[5] == products[0]))
+                    if ((filter == products[0].ItemIndex || filter == 0) && produced[0] > 0 && products[0].ItemIndex > 0 && (needs == null || needs[0] == products[0].ItemIndex || needs[1] == products[0].ItemIndex || needs[2] == products[0].ItemIndex || needs[3] == products[0].ItemIndex || needs[4] == products[0].ItemIndex || needs[5] == products[0].ItemIndex))
                     {
                         produced[0]--;
                         _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                        return products[0];
+                        return products[0].ItemIndex;
                     }
-                    if ((filter == products[1] || filter == 0) && produced[1] > 0 && products[1] > 0 && (needs == null || needs[0] == products[1] || needs[1] == products[1] || needs[2] == products[1] || needs[3] == products[1] || needs[4] == products[1] || needs[5] == products[1]))
+                    if ((filter == products[1].ItemIndex || filter == 0) && produced[1] > 0 && products[1].ItemIndex > 0 && (needs == null || needs[0] == products[1].ItemIndex || needs[1] == products[1].ItemIndex || needs[2] == products[1].ItemIndex || needs[3] == products[1].ItemIndex || needs[4] == products[1].ItemIndex || needs[5] == products[1].ItemIndex))
                     {
                         produced[1]--;
                         _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                        return products[1];
+                        return products[1].ItemIndex;
                     }
                     break;
                 default:
                     {
                         for (int i = 0; i < num; i++)
                         {
-                            if ((filter == products[i] || filter == 0) && produced[i] > 0 && products[i] > 0 && (needs == null || needs[0] == products[i] || needs[1] == products[i] || needs[2] == products[i] || needs[3] == products[i] || needs[4] == products[i] || needs[5] == products[i]))
+                            if ((filter == products[i].ItemIndex || filter == 0) && produced[i] > 0 && products[i].ItemIndex > 0 && (needs == null || needs[0] == products[i].ItemIndex || needs[1] == products[i].ItemIndex || needs[2] == products[i].ItemIndex || needs[3] == products[i].ItemIndex || needs[4] == products[i].ItemIndex || needs[5] == products[i].ItemIndex))
                             {
                                 produced[i]--;
                                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                                return products[i];
+                                return products[i].ItemIndex;
                             }
                         }
                         break;
@@ -486,7 +487,7 @@ internal sealed class InserterExecutor<T>
             }
 
             PickFromProducingPlant producingPlant = _pickFromProducingPlants[inserterIndex];
-            int[] products2 = producingPlant.Products;
+            OptimizedItemId[] products2 = producingPlant.Products;
             int[] produced2 = producingPlant.Produced;
             if (products2 == null || produced2 == null)
             {
@@ -494,11 +495,11 @@ internal sealed class InserterExecutor<T>
             }
             for (int j = 0; j < products2.Length; j++)
             {
-                if (produced2[j] > 0 && products2[j] > 0 && (filter == 0 || filter == products2[j]) && (needs == null || needs[0] == products2[j] || needs[1] == products2[j] || needs[2] == products2[j] || needs[3] == products2[j] || needs[4] == products2[j] || needs[5] == products2[j]))
+                if (produced2[j] > 0 && products2[j].ItemIndex > 0 && (filter == 0 || filter == products2[j].ItemIndex) && (needs == null || needs[0] == products2[j].ItemIndex || needs[1] == products2[j].ItemIndex || needs[2] == products2[j].ItemIndex || needs[3] == products2[j].ItemIndex || needs[4] == products2[j].ItemIndex || needs[5] == products2[j].ItemIndex))
                 {
                     produced2[j]--;
                     _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
-                    return products2[j];
+                    return products2[j].ItemIndex;
                 }
             }
             return 0;
@@ -562,7 +563,7 @@ internal sealed class InserterExecutor<T>
                 throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
             }
             InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            int[]? requires = insertIntoConsumingPlant.Requires;
+            OptimizedItemId[]? requires = insertIntoConsumingPlant.Requires;
             int[] served = insertIntoConsumingPlant.Served;
             int[] incServed = insertIntoConsumingPlant.IncServed;
             if (requires == null)
@@ -571,7 +572,7 @@ internal sealed class InserterExecutor<T>
             }
 
             int num = requires.Length;
-            if (0 < num && requires[0] == itemId)
+            if (0 < num && requires[0].ItemIndex == itemId)
             {
                 served[0] += itemCount;
                 incServed[0] += itemInc;
@@ -579,7 +580,7 @@ internal sealed class InserterExecutor<T>
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
-            if (1 < num && requires[1] == itemId)
+            if (1 < num && requires[1].ItemIndex == itemId)
             {
                 served[1] += itemCount;
                 incServed[1] += itemInc;
@@ -587,7 +588,7 @@ internal sealed class InserterExecutor<T>
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
-            if (2 < num && requires[2] == itemId)
+            if (2 < num && requires[2].ItemIndex == itemId)
             {
                 served[2] += itemCount;
                 incServed[2] += itemInc;
@@ -595,7 +596,7 @@ internal sealed class InserterExecutor<T>
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
-            if (3 < num && requires[3] == itemId)
+            if (3 < num && requires[3].ItemIndex == itemId)
             {
                 served[3] += itemCount;
                 incServed[3] += itemInc;
@@ -603,7 +604,7 @@ internal sealed class InserterExecutor<T>
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
-            if (4 < num && requires[4] == itemId)
+            if (4 < num && requires[4].ItemIndex == itemId)
             {
                 served[4] += itemCount;
                 incServed[4] += itemInc;
@@ -611,7 +612,7 @@ internal sealed class InserterExecutor<T>
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
-            if (5 < num && requires[5] == itemId)
+            if (5 < num && requires[5].ItemIndex == itemId)
             {
                 served[5] += itemCount;
                 incServed[5] += itemInc;
@@ -666,7 +667,7 @@ internal sealed class InserterExecutor<T>
                 throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if producing lab is inactive which the above if statement should have caught.");
             }
             InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            int[]? requires2 = insertIntoConsumingPlant.Requires;
+            OptimizedItemId[]? requires2 = insertIntoConsumingPlant.Requires;
             int[] served = insertIntoConsumingPlant.Served;
             int[] incServed = insertIntoConsumingPlant.IncServed;
             if (requires2 == null)
@@ -676,7 +677,7 @@ internal sealed class InserterExecutor<T>
             int num3 = requires2.Length;
             for (int i = 0; i < num3; i++)
             {
-                if (requires2[i] == itemId)
+                if (requires2[i].ItemIndex == itemId)
                 {
                     served[i] += itemCount;
                     incServed[i] += itemInc;

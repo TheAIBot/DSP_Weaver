@@ -3,6 +3,7 @@ using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Miners;
 
@@ -16,11 +17,10 @@ internal sealed class WaterMinerExecutor
     public void GameTick(PlanetFactory planet,
                          int[] waterMinerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
-                         long[] thisSubFactoryNetworkPowerConsumption)
+                         long[] thisSubFactoryNetworkPowerConsumption,
+                         int[] productRegister)
     {
         GameHistoryData history = GameMain.history;
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = obj.productRegister;
         float[] networkServes = planet.powerSystem.networkServes;
         float miningSpeedScale = history.miningSpeedScale;
         int[] networkIds = _networkIds;
@@ -122,6 +122,7 @@ internal sealed class WaterMinerExecutor
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> networkIds = [];
@@ -165,11 +166,12 @@ internal sealed class WaterMinerExecutor
             CargoPath outputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[outputBeltId].segPathId];
             OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
+            OptimizedItemId productId = subFactoryProductionRegisterBuilder.AddProduct(planet.planet.waterItemId);
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
             subFactoryPowerSystemBuilder.AddWaterMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
-            optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, planet.planet.waterItemId, in miner));
+            optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, productId, in miner));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 
