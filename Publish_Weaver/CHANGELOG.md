@@ -1,3 +1,8 @@
+## 1.3.0
+* Optimized production statistics.
+	* !!! Need to fix battle statis statistics !!!
+	* !!! Need to fix anything power related with statistics !!!
+
 ## 1.2.4
 * Fix optimized stacked tanks would sometimes crash the game.
 * Fix Labs could, in rare cases, end up not consuming matrices.
