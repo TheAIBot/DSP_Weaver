@@ -23,7 +23,7 @@ internal sealed class PostSubFactoryStep : IWorkChunk
         workerTimings.RecordTime(WorkType.Digital);
 
         //workerTimings.StartTimer();
-        _optimizedPlanet.AggregateSubFactoryDataStep();
+        _optimizedPlanet.AggregateSubFactoryDataStep(time);
         //workerTimings.RecordTime(WorkType.Statistics);
     }
 

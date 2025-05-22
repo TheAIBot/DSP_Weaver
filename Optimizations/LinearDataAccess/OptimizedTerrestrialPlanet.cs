@@ -64,7 +64,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
-        var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder();
+        var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder(_planet);
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
@@ -74,6 +74,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
                                         optimizedPowerSystemBuilder,
                                         planetWideBeltExecutor,
                                         turretExecutorBuilder,
+                                        planetWideProductionRegisterBuilder,
                                         planetWideProductionRegisterBuilder.GetSubFactoryBuilder());
         }
 
@@ -223,12 +224,12 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _planet.digitalSystem.GameTick(false);
     }
 
-    public void AggregateSubFactoryDataStep()
+    public void AggregateSubFactoryDataStep(long time)
     {
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
-        _optimizedPlanetWideProductionStatistics.UpdateStatistics(productRegister, consumeRegister);
+        _optimizedPlanetWideProductionStatistics.UpdateStatistics(time, productRegister, consumeRegister);
     }
 
     private void DefenseGameTick(DefenseSystem defenseSystem, long tick)

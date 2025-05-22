@@ -28,7 +28,7 @@ public class WeaverFixes : BaseUnityPlugin
     {
         var harmony = new Harmony(ModInfo.Guid);
         // These changes parallelize calculating statistics
-        harmony.PatchAll(typeof(ProductionStatisticsPatches));
+        //harmony.PatchAll(typeof(ProductionStatisticsPatches));
         harmony.PatchAll(typeof(KillStatisticsPatches));
         harmony.PatchAll(typeof(TrafficStatisticsPatches));
         //harmony.PatchAll(typeof(CustomChartsPatches));
