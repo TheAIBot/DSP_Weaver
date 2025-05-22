@@ -2,6 +2,7 @@
 * Optimized production statistics.
 	* !!! Need to fix battle statis statistics !!!
 	* !!! Need to fix anything power related with statistics !!!
+	* !!! Need to handle statistics when planet is not optimized !!!
 
 ## 1.2.4
 * Fix optimized stacked tanks would sometimes crash the game.
