@@ -13,6 +13,7 @@ Known compatible mods:
 
 Known incompatible mods:
 * SampleAndHoldSim
+* GenesisBook
 
 # Known issues
 None. You can [report bugs here.](https://github.com/TheAIBot/DSP_Weaver/issues)
