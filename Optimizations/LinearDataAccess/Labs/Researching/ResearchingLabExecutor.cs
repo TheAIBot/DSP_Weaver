@@ -166,6 +166,7 @@ internal sealed class ResearchingLabExecutor
 
     public void Save(PlanetFactory planet)
     {
+        SignData[] entitySignPool = planet.entitySignPool;
         LabComponent[] labComponents = planet.factorySystem.labPool;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
@@ -177,7 +178,11 @@ internal sealed class ResearchingLabExecutor
                 continue;
             }
 
-            optimizedLabs[optimizedIndex].Save(ref labComponents[i], labsPowerFields[optimizedIndex], _matrixPoints, researchTechId);
+            ref LabComponent unoptimizedLab = ref labComponents[i];
+            optimizedLabs[optimizedIndex].Save(ref unoptimizedLab, labsPowerFields[optimizedIndex], _matrixPoints, researchTechId);
+
+            entitySignPool[unoptimizedLab.entityId].iconId0 = (uint)researchTechId;
+            entitySignPool[unoptimizedLab.entityId].iconType = ((researchTechId != 0) ? 3u : 0u);
         }
     }
 
