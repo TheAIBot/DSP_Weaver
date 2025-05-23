@@ -64,7 +64,7 @@ internal struct OptimizedWaterMiner
         return result;
     }
 
-    public EWorkState DetermineState()
+    public readonly EWorkState DetermineState()
     {
         if (time < period)
         {

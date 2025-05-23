@@ -68,7 +68,7 @@ internal struct OptimizedPowerExchanger
         capsCurrentTick = powerExchanger.capsCurrentTick;
     }
 
-    public void Save(ref PowerExchangerComponent powerExchanger)
+    public readonly void Save(ref PowerExchangerComponent powerExchanger)
     {
         powerExchanger.emptyCount = emptyCount;
         powerExchanger.fullCount = fullCount;
@@ -489,7 +489,7 @@ internal struct OptimizedPowerExchanger
         return false;
     }
 
-    private int FindTheNextSlot(bool isOutput)
+    private readonly int FindTheNextSlot(bool isOutput)
     {
         if (isOutput)
         {
@@ -544,7 +544,7 @@ internal struct OptimizedPowerExchanger
         return 0;
     }
 
-    private long CalculateActualEnergyPerTick(bool isOutput)
+    private readonly long CalculateActualEnergyPerTick(bool isOutput)
     {
         int num;
         if (isOutput)
@@ -564,7 +564,7 @@ internal struct OptimizedPowerExchanger
         return energyPerTick;
     }
 
-    private int split_inc(ref int n, ref int m, int p)
+    private static int split_inc(ref int n, ref int m, int p)
     {
         if (n == 0)
         {

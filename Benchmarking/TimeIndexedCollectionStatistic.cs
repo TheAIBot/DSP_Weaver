@@ -110,7 +110,7 @@ internal sealed class TimeIndexedCollectionStatistic
 
         public readonly bool IsInitialized => _samples != null;
 
-        public bool IsFilledWithData(int length)
+        public readonly bool IsFilledWithData(int length)
         {
             if (!IsInitialized)
             {

@@ -53,7 +53,7 @@ internal struct OptimizedResearchingLab
         signPool[entityId].iconType = techId != 0 ? 3u : 0u;
     }
 
-    public void UpdateNeedsResearch()
+    public readonly void UpdateNeedsResearch()
     {
         needs[0] = matrixServed[0] < 36000 ? 6001 : 0;
         needs[1] = matrixServed[1] < 36000 ? 6002 : 0;
@@ -233,9 +233,9 @@ internal struct OptimizedResearchingLab
         return LabState.Active;
     }
 
-    public void UpdateOutputToNext(int labIndex,
-                                   OptimizedResearchingLab[] labPool,
-                                   NetworkIdAndState<LabState>[] networkIdAndStates)
+    public readonly void UpdateOutputToNext(int labIndex,
+                                            OptimizedResearchingLab[] labPool,
+                                            NetworkIdAndState<LabState>[] networkIdAndStates)
     {
         if (nextLabIndex == NO_NEXT_LAB)
         {
@@ -326,10 +326,10 @@ internal struct OptimizedResearchingLab
         }
     }
 
-    public void Save(ref LabComponent lab,
-                     LabPowerFields labPowerFields,
-                     int[] matrixPoints,
-                     int researchTechId)
+    public readonly void Save(ref LabComponent lab,
+                              LabPowerFields labPowerFields,
+                              int[] matrixPoints,
+                              int researchTechId)
     {
         lab.needs = needs;
         lab.matrixServed = matrixServed;
@@ -343,7 +343,7 @@ internal struct OptimizedResearchingLab
         lab.techId = researchTechId;
     }
 
-    private int split_inc(ref int n, ref int m, int p)
+    private static int split_inc(ref int n, ref int m, int p)
     {
         int num = m / n;
         int num2 = m - num * n;
@@ -354,7 +354,7 @@ internal struct OptimizedResearchingLab
         return num;
     }
 
-    private int split_inc_level(ref int n, ref int m, int p)
+    private static int split_inc_level(ref int n, ref int m, int p)
     {
         int num = m / n;
         int num2 = m - num * n;

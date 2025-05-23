@@ -45,7 +45,7 @@ internal sealed class SpraycoaterExecutor
         }
     }
 
-    public long GetPowerConsumption(PowerConsumerType powerConsumerType, bool isSprayCoatingItem, int sprayTime)
+    public static long GetPowerConsumption(PowerConsumerType powerConsumerType, bool isSprayCoatingItem, int sprayTime)
     {
         return powerConsumerType.GetRequiredEnergy(sprayTime < 10000 && isSprayCoatingItem);
     }

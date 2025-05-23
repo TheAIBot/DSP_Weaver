@@ -123,7 +123,7 @@ public struct HashCode
         }
     }
 
-    public int ToHashCode()
+    public readonly int ToHashCode()
     {
         // Storing the value of _length locally shaves of quite a few bytes
         // in the resulting machine code.

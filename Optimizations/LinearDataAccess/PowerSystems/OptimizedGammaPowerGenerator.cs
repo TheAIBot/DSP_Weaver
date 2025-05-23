@@ -28,7 +28,7 @@ internal struct OptimizedGammaPowerGenerator
     private float warmupSpeed;
     private long capacityCurrentTick;
 
-    public int catalystIncLevel
+    public readonly int catalystIncLevel
     {
         get
         {
@@ -242,7 +242,7 @@ internal struct OptimizedGammaPowerGenerator
         powerGenerator.capacityCurrentTick = capacityCurrentTick;
     }
 
-    private readonly int InsertInto(OptimizedCargoPath belt, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
+    private static int InsertInto(OptimizedCargoPath belt, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
     {
         remainInc = itemInc;
         if (belt.TryInsertItem(offset, itemId, itemCount, itemInc))
@@ -253,7 +253,7 @@ internal struct OptimizedGammaPowerGenerator
         return 0;
     }
 
-    private readonly int PickFrom(OptimizedCargoPath belt, int offset, int filter, int[]? needs, out byte stack, out byte inc)
+    private static int PickFrom(OptimizedCargoPath belt, int offset, int filter, int[]? needs, out byte stack, out byte inc)
     {
         if (needs == null)
         {

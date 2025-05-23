@@ -256,7 +256,7 @@ internal sealed class ResearchingLabExecutor
         _unOptimizedLabIds = unOptimizedLabIds;
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, LabPowerFields producingLabPowerFields)
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType, LabPowerFields producingLabPowerFields)
     {
         return powerConsumerType.GetRequiredEnergy(producingLabPowerFields.replicating, 1000 + producingLabPowerFields.extraPowerRatio);
     }

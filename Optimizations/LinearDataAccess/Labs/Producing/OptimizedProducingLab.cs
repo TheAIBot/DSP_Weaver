@@ -55,7 +55,7 @@ internal struct OptimizedProducingLab
         speedOverride = lab.speedOverride;
     }
 
-    public void UpdateNeedsAssemble(ref readonly ProducingLabRecipe producingLabRecipe)
+    public readonly void UpdateNeedsAssemble(ref readonly ProducingLabRecipe producingLabRecipe)
     {
         int num = served.Length;
         int num2 = producingLabRecipe.TimeSpend > 5400000 ? 6 : 3 * ((speedOverride + 5001) / 10000) + 3;
@@ -204,10 +204,10 @@ internal struct OptimizedProducingLab
         return LabState.Active;
     }
 
-    public void UpdateOutputToNext(int labIndex,
-                                   OptimizedProducingLab[] labPool,
-                                   NetworkIdAndState<LabState>[] networkIdAndStates,
-                                   ref readonly ProducingLabRecipe producingLabRecipe)
+    public readonly void UpdateOutputToNext(int labIndex,
+                                            OptimizedProducingLab[] labPool,
+                                            NetworkIdAndState<LabState>[] networkIdAndStates,
+                                            ref readonly ProducingLabRecipe producingLabRecipe)
     {
         if (nextLabIndex == NO_NEXT_LAB)
         {
@@ -254,9 +254,9 @@ internal struct OptimizedProducingLab
         }
     }
 
-    public void Save(ref LabComponent lab,
-                     ref readonly ProducingLabRecipe producingLabRecipe,
-                     LabPowerFields labPowerFields)
+    public readonly void Save(ref LabComponent lab,
+                              ref readonly ProducingLabRecipe producingLabRecipe,
+                              LabPowerFields labPowerFields)
     {
         lab.requires = producingLabRecipe.Requires;
         lab.requireCounts = producingLabRecipe.RequireCounts;
@@ -275,7 +275,7 @@ internal struct OptimizedProducingLab
         lab.speedOverride = speedOverride;
     }
 
-    private int split_inc_level(ref int n, ref int m, int p)
+    private static int split_inc_level(ref int n, ref int m, int p)
     {
         int num = m / n;
         int num2 = m - num * n;

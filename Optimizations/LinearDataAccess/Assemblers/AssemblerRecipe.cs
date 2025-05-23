@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
 [StructLayout(LayoutKind.Auto)]
-internal struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
+internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
 {
     public readonly int RecipeId;
     public readonly ERecipeType RecipeType;

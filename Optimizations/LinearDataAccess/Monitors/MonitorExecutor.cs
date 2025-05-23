@@ -92,7 +92,7 @@ internal sealed class MonitorExecutor
         _optimizedMonitors = optimizedMonitors.ToArray();
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType)
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType)
     {
         return powerConsumerType.GetRequiredEnergy(true);
     }

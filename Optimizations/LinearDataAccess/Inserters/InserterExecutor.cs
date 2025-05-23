@@ -164,11 +164,11 @@ internal sealed class InserterExecutor<T>
             int powerConsumerTypeIndex = inserterPowerConsumerIndexes[j];
             PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
             OptimizedInserterStage optimizedInserterStage = _optimizedInserterStages[j];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, optimizedInserterStage);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += InserterExecutor<T>.GetPowerConsumption(powerConsumerType, optimizedInserterStage);
         }
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, OptimizedInserterStage stage)
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType, OptimizedInserterStage stage)
     {
         return powerConsumerType.GetRequiredEnergy(stage == OptimizedInserterStage.Sending || stage == OptimizedInserterStage.Returning);
     }

@@ -10,6 +10,7 @@ internal struct OptimizedPiler
     private readonly OptimizedCargoPath outputBelt;
     private readonly int inputBeltSpeed;
     private readonly int outputBeltSpeed;
+    private readonly PilerState pilerState;
     private byte cacheCargoStack1;
     private byte cacheCargoInc1;
     private byte cacheCargoStack2;
@@ -17,7 +18,6 @@ internal struct OptimizedPiler
     private byte cacheCdTick;
     private short cacheItemId1;
     private short cacheItemId2;
-    private PilerState pilerState;
     private int slowlyBeltSpeed;
 
     public OptimizedPiler(OptimizedCargoPath inputBelt,
@@ -198,7 +198,7 @@ internal struct OptimizedPiler
         return 1u;
     }
 
-    public void Save(ref PilerComponent piler, int timeSpend)
+    public readonly void Save(ref PilerComponent piler, int timeSpend)
     {
         piler.cacheCargoStack1 = cacheCargoStack1;
         piler.cacheCargoInc1 = cacheCargoInc1;

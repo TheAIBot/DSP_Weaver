@@ -6,8 +6,8 @@ namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 internal sealed class StarClusterWorkManager
 {
-    private List<PlanetWorkManager> _planetWorkManagers = [];
-    private Dictionary<PlanetFactory, PlanetWorkManager> _planetToWorkManagers = [];
+    private readonly List<PlanetWorkManager> _planetWorkManagers = [];
+    private readonly Dictionary<PlanetFactory, PlanetWorkManager> _planetToWorkManagers = [];
     private int _planetsWithWorkScheduledCount;
     private int _planetsNotCompletedCount;
 

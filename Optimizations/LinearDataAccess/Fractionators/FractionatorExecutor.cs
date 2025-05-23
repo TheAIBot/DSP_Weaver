@@ -151,7 +151,7 @@ internal sealed class FractionatorExecutor
         _fractionatorIdToOptimizedIndex = fractionatorIdToOptimizedIndex;
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly FractionatorPowerFields fractionatorPowerFields)
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly FractionatorPowerFields fractionatorPowerFields)
     {
         double num = (((double)fractionatorPowerFields.fluidInputCargoCount > 0.0001) ? ((float)fractionatorPowerFields.fluidInputCount / fractionatorPowerFields.fluidInputCargoCount) : 4f);
         double num2 = (double)((fractionatorPowerFields.fluidInputCargoCount < 30f) ? fractionatorPowerFields.fluidInputCargoCount : 30f) * num - 30.0;

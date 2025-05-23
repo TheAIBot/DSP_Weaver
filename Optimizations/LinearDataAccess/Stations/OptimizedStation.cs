@@ -267,7 +267,7 @@ internal readonly struct OptimizedStation
         }
     }
 
-    private int split_inc(ref int n, ref int m, int p)
+    private static int split_inc(ref int n, ref int m, int p)
     {
         if (n == 0)
         {

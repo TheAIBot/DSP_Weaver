@@ -200,7 +200,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
         miner.speedDamper = SpeedDamper;
     }
 
-    public EWorkState DetermineState()
+    public readonly EWorkState DetermineState()
     {
         if (time < period)
         {

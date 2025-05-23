@@ -542,7 +542,7 @@ internal sealed class OptimizedSubFactory
         return num - count;
     }
 
-    private bool AddWholeCargo(StorageComponent storage, ref OptimizedCargo cargo, bool useBan = false)
+    private static bool AddWholeCargo(StorageComponent storage, ref OptimizedCargo cargo, bool useBan = false)
     {
         if (cargo.item <= 0 || cargo.stack == 0 || cargo.item >= 12000)
         {

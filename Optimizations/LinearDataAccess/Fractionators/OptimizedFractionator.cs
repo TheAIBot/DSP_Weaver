@@ -250,9 +250,9 @@ internal struct OptimizedFractionator
         return 1u;
     }
 
-    public void Save(ref FractionatorComponent fractionator,
-                     ref readonly FractionatorPowerFields fractionatorPowerFields,
-                     SignData[] signPool)
+    public readonly void Save(ref FractionatorComponent fractionator,
+                              ref readonly FractionatorPowerFields fractionatorPowerFields,
+                              SignData[] signPool)
     {
         fractionator.fluidId = fluidId;
         fractionator.productId = productId;

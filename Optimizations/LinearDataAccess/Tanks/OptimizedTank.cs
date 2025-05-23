@@ -185,7 +185,7 @@ internal struct OptimizedTank
         UpdateTankBelt(belt3, isOutput3, tankExecutor, ref stack, ref inc);
     }
 
-    public void Save(ref TankComponent tank)
+    public readonly void Save(ref TankComponent tank)
     {
         tank.fluidCount = fluidCount;
         tank.fluidInc = fluidInc;
@@ -275,7 +275,7 @@ internal struct OptimizedTank
         }
     }
 
-    private int split_inc(ref int n, ref int m, int p)
+    private static int split_inc(ref int n, ref int m, int p)
     {
         if (n == 0)
         {

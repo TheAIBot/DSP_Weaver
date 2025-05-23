@@ -11,7 +11,7 @@ internal struct NetworkIdAndState<T> where T : Enum
 
     public int State
     {
-        get { return (int)(_value >> IndexBitCount); }
+        readonly get { return (int)(_value >> IndexBitCount); }
         set { _value = (_value & IndexBitMask) | ((uint)value << IndexBitCount); }
     }
     public readonly int Index => (int)(IndexBitMask & _value);

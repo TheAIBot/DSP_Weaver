@@ -15,7 +15,7 @@ internal struct FractionatorPowerFields
         fluidInputInc = fractionator.fluidInputInc;
     }
 
-    public int incLevel
+    public readonly int incLevel
     {
         get
         {

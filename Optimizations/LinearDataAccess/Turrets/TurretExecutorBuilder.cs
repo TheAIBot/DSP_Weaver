@@ -7,7 +7,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Turrets;
 
 internal sealed class TurretExecutorBuilder
 {
-    List<OptimizedTurret> _optimizedTurrets = [];
+    private readonly List<OptimizedTurret> _optimizedTurrets = [];
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,

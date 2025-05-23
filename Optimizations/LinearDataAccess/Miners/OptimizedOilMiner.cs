@@ -91,7 +91,7 @@ internal struct OptimizedOilMiner
         }
     }
 
-    public EWorkState DetermineState()
+    public readonly EWorkState DetermineState()
     {
         if (time < period)
         {

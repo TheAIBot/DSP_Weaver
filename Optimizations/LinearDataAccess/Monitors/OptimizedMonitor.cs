@@ -10,7 +10,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Monitors;
 /// which i currently don't want to do.
 /// </summary>
 [StructLayout(LayoutKind.Auto)]
-internal struct OptimizedMonitor
+internal readonly struct OptimizedMonitor
 {
     private readonly OptimizedCargoPath targetBelt;
     private readonly int targetBeltSpeed;
@@ -233,7 +233,7 @@ internal struct OptimizedMonitor
         }
     }
 
-    private void GetCargoAtIndexByFilter(int filter, OptimizedCargoPath path, int index, out OptimizedCargo cargo, out int cargoId, out int offset)
+    private static void GetCargoAtIndexByFilter(int filter, OptimizedCargoPath path, int index, out OptimizedCargo cargo, out int cargoId, out int offset)
     {
         path.GetCargoAtIndex(index, out cargo, out cargoId, out offset);
         if (cargoId >= 0 && cargo.item != filter && filter != 0)

@@ -4,7 +4,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Belts;
 
 internal sealed class PlanetWideBeltExecutor
 {
-    private Dictionary<CargoPath, OptimizedCargoPath> _cargoPathToOptimizedCargoPath = [];
+    private readonly Dictionary<CargoPath, OptimizedCargoPath> _cargoPathToOptimizedCargoPath = [];
 
     public OptimizedCargoPath GetOptimizedCargoPath(CargoPath cargoPath)
     {

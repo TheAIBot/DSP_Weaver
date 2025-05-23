@@ -8,7 +8,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private readonly HighStopwatch _stopWatch = new();
     private readonly object _singleThreadedCodeLock = new();
     private readonly PerformanceMonitorUpdater _performanceMonitorUpdater = PerformanceMonitorUpdater.Create();
-    StarClusterResearchManager _starClusterResearchManager;
+    private readonly StarClusterResearchManager _starClusterResearchManager;
     private StarClusterWorkManager? _starClusterWorkManager;
     private WorkExecutor[]? _workExecutors;
 

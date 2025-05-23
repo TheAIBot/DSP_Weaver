@@ -209,7 +209,7 @@ internal sealed class AssemblerExecutor
         _unOptimizedAssemblerIds = unOptimizedAssemblerIds;
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, bool assemblerReplicating, int assemblerExtraPowerRatio)
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType, bool assemblerReplicating, int assemblerExtraPowerRatio)
     {
         return powerConsumerType.GetRequiredEnergy(assemblerReplicating, 1000 + assemblerExtraPowerRatio);
     }

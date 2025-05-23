@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 
 [StructLayout(LayoutKind.Auto)]
-internal struct ProducingLabRecipe : IEqualityComparer<ProducingLabRecipe>
+internal readonly struct ProducingLabRecipe : IEqualityComparer<ProducingLabRecipe>
 {
     public readonly int RecipeId;
     public readonly int TimeSpend;

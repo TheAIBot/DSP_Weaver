@@ -31,7 +31,7 @@ internal struct AssemblerTimingData
     }
 }
 
-internal struct AssemblerNeeds
+internal readonly struct AssemblerNeeds
 {
     public readonly int[] served;
     public readonly int[] needs;
@@ -321,7 +321,7 @@ internal struct OptimizedAssembler
         assembler.extraPowerRatio = extraPowerRatio;
     }
 
-    private int split_inc_level(ref int n, ref int m, int p)
+    private static int split_inc_level(ref int n, ref int m, int p)
     {
         int num = m / n;
         int num2 = m - num * n;

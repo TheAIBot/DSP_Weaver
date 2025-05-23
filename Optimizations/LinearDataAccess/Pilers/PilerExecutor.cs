@@ -114,7 +114,7 @@ internal sealed class PilerExecutor
         _pilerIdToOptimizedIndex = pilerIdToOptimizedIndex;
     }
 
-    private long GetPowerConsumption(PowerConsumerType powerConsumerType, int timeSpend)
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType, int timeSpend)
     {
         return powerConsumerType.GetRequiredEnergy(timeSpend < 10000);
     }

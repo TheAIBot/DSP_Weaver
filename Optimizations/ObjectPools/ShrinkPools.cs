@@ -441,7 +441,7 @@ public class ShrinkPools
 
     private delegate TReturn PassStructAsRefFunc<TArgument, TReturn>(ArrayStructRef<TArgument> item) where TArgument : struct;
 
-    private struct ArrayStructRef<T>
+    private readonly struct ArrayStructRef<T>
         where T : struct
     {
         private readonly T[] _array;
@@ -455,6 +455,4 @@ public class ShrinkPools
             _index = index;
         }
     }
-
-
 }

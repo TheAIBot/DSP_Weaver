@@ -37,7 +37,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         idleTick = inserter.idleTick;
     }
 
-    public OptimizedBiInserter Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
+    public readonly OptimizedBiInserter Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
     {
         return new OptimizedBiInserter(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
@@ -302,7 +302,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         }
     }
 
-    public void Save(ref InserterComponent inserter, EInserterStage inserterStage)
+    public readonly void Save(ref InserterComponent inserter, EInserterStage inserterStage)
     {
         inserter.itemId = itemId;
         inserter.itemCount = itemCount;

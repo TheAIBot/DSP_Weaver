@@ -27,7 +27,7 @@ internal struct WorkTracker : IDisposable
         WaitForCompletion.Reset();
     }
 
-    public void Dispose()
+    public readonly void Dispose()
     {
         WaitForCompletion.Dispose();
     }
