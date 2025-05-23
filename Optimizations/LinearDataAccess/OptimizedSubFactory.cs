@@ -30,44 +30,44 @@ internal sealed class OptimizedSubFactory
     private readonly OptimizedTerrestrialPlanet _optimizedPlanet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
 
-    public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor;
-    public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor;
+    public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor = null!;
+    public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor = null!;
 
-    public AssemblerExecutor _assemblerExecutor;
+    public AssemblerExecutor _assemblerExecutor = null!;
 
-    public VeinMinerExecutor<BeltMinerOutput> _beltVeinMinerExecutor;
-    public VeinMinerExecutor<StationMinerOutput> _stationVeinMinerExecutor;
-    public OilMinerExecutor _oilMinerExecutor;
-    public WaterMinerExecutor _waterMinerExecutor;
+    public VeinMinerExecutor<BeltMinerOutput> _beltVeinMinerExecutor = null!;
+    public VeinMinerExecutor<StationMinerOutput> _stationVeinMinerExecutor = null!;
+    public OilMinerExecutor _oilMinerExecutor = null!;
+    public WaterMinerExecutor _waterMinerExecutor = null!;
 
-    public EjectorExecutor _ejectorExecutor;
+    public EjectorExecutor _ejectorExecutor = null!;
 
-    public SiloExecutor _siloExecutor;
+    public SiloExecutor _siloExecutor = null!;
 
     //private NetworkIdAndState<LabState>[] _labProduceNetworkIdAndStates;
-    public ProducingLabExecutor _producingLabExecutor;
-    public NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
-    public OptimizedProducingLab[] _optimizedProducingLabs;
-    public ProducingLabRecipe[] _producingLabRecipes;
-    public Dictionary<int, int> _producingLabIdToOptimizedIndex;
+    public ProducingLabExecutor _producingLabExecutor = null!;
+    public NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates = null!;
+    public OptimizedProducingLab[] _optimizedProducingLabs = null!;
+    public ProducingLabRecipe[] _producingLabRecipes = null!;
+    public Dictionary<int, int> _producingLabIdToOptimizedIndex = null!;
 
-    public ResearchingLabExecutor _researchingLabExecutor;
-    public NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
-    public OptimizedResearchingLab[] _optimizedResearchingLabs;
-    public Dictionary<int, int> _researchingLabIdToOptimizedIndex;
+    public ResearchingLabExecutor _researchingLabExecutor = null!;
+    public NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates = null!;
+    public OptimizedResearchingLab[] _optimizedResearchingLabs = null!;
+    public Dictionary<int, int> _researchingLabIdToOptimizedIndex = null!;
 
-    public MonitorExecutor _monitorExecutor;
-    public SpraycoaterExecutor _spraycoaterExecutor;
-    public PilerExecutor _pilerExecutor;
+    public MonitorExecutor _monitorExecutor = null!;
+    public SpraycoaterExecutor _spraycoaterExecutor = null!;
+    public PilerExecutor _pilerExecutor = null!;
 
-    public FractionatorExecutor _fractionatorExecutor;
+    public FractionatorExecutor _fractionatorExecutor = null!;
 
-    public StationExecutor _stationExecutor;
+    public StationExecutor _stationExecutor = null!;
 
-    public TankExecutor _tankExecutor;
+    public TankExecutor _tankExecutor = null!;
 
-    public BeltExecutor _beltExecutor;
-    public SplitterExecutor _splitterExecutor;
+    public BeltExecutor _beltExecutor = null!;
+    public SplitterExecutor _splitterExecutor = null!;
 
     public OptimizedSubFactory(PlanetFactory planet, OptimizedTerrestrialPlanet optimizedTerrestrialPlanet, StarClusterResearchManager starClusterResearchManager)
     {

@@ -7,8 +7,8 @@ namespace Weaver.Optimizations.LinearDataAccess.Tanks;
 
 internal sealed class TankExecutor
 {
-    public OptimizedTank[] _optimizedTanks;
-    private Dictionary<int, int> _tankIdToOptimizedTankIndex;
+    public OptimizedTank[] _optimizedTanks = null!;
+    private Dictionary<int, int> _tankIdToOptimizedTankIndex = null!;
 
     public void GameTick()
     {

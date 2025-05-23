@@ -6,8 +6,8 @@ namespace Weaver.Optimizations.Statistics;
 
 public sealed class TrafficStatisticsPatches
 {
-    private static bool[] _isStarUpdated;
-    private static bool[] _isPlanetUpdated;
+    private static bool[]? _isStarUpdated = null;
+    private static bool[]? _isPlanetUpdated = null;
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.PrepareTick))]

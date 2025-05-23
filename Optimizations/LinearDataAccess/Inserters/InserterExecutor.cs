@@ -15,7 +15,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Inserters;
 internal static class CargoPathMethods
 {
     // Takes CargoPath instead of belt id
-    public static int TryPickItemAtRear(OptimizedCargoPath cargoPath, int filter, int[] needs, out byte stack, out byte inc)
+    public static int TryPickItemAtRear(OptimizedCargoPath cargoPath, int filter, int[]? needs, out byte stack, out byte inc)
     {
         stack = 1;
         inc = 0;
@@ -70,23 +70,23 @@ internal static class CargoPathMethods
 
 internal record struct PickFromProducingPlant(int[] Products, int[] Produced);
 
-internal record struct ConnectionBelts(OptimizedCargoPath PickFrom, OptimizedCargoPath InsertInto);
+internal record struct ConnectionBelts(OptimizedCargoPath? PickFrom, OptimizedCargoPath? InsertInto);
 
-internal record struct InsertIntoConsumingPlant(int[] Requires, int[] Served, int[] IncServed);
+internal record struct InsertIntoConsumingPlant(int[]? Requires, int[] Served, int[] IncServed);
 
 internal sealed class InserterExecutor<T>
     where T : struct, IInserter<T>
 {
-    private T[] _optimizedInserters;
-    private OptimizedInserterStage[] _optimizedInserterStages;
-    private InserterGrade[] _inserterGrades;
-    public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates;
-    public InserterConnections[] _inserterConnections;
-    public int[][] _inserterConnectionNeeds;
-    public PickFromProducingPlant[] _pickFromProducingPlants;
-    public ConnectionBelts[] _connectionBelts;
-    public InsertIntoConsumingPlant[] _insertIntoConsumingPlants;
-    public Dictionary<int, int> _inserterIdToOptimizedIndex;
+    private T[] _optimizedInserters = null!;
+    private OptimizedInserterStage[] _optimizedInserterStages = null!;
+    private InserterGrade[] _inserterGrades = null!;
+    public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates = null!;
+    public InserterConnections[] _inserterConnections = null!;
+    public int[]?[] _inserterConnectionNeeds = null!;
+    public PickFromProducingPlant[] _pickFromProducingPlants = null!;
+    public ConnectionBelts[] _connectionBelts = null!;
+    public InsertIntoConsumingPlant[] _insertIntoConsumingPlants = null!;
+    public Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
 
     private readonly NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
     private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
@@ -216,7 +216,7 @@ internal sealed class InserterExecutor<T>
                         int inserterIndex,
                         int offset,
                         int filter,
-                        int[] needs,
+                        int[]? needs,
                         out byte stack,
                         out byte inc)
     {
@@ -232,6 +232,11 @@ internal sealed class InserterExecutor<T>
         if (typedObjectIndex.EntityType == EntityType.Belt)
         {
             ConnectionBelts connectionBelts = _connectionBelts[inserterIndex];
+            if (connectionBelts.PickFrom == null)
+            {
+                throw new InvalidOperationException($"{nameof(connectionBelts.PickFrom)} was null.");
+            }
+
             if (needs == null)
             {
                 if (filter != 0)
@@ -461,6 +466,11 @@ internal sealed class InserterExecutor<T>
         if (typedObjectIndex.EntityType == EntityType.Belt)
         {
             ConnectionBelts connectionBelts = _connectionBelts[inserterIndex];
+            if (connectionBelts.InsertInto == null)
+            {
+                throw new InvalidOperationException($"{nameof(connectionBelts.InsertInto)} was null.");
+            }
+
             if (connectionBelts.InsertInto.TryInsertItem(offset, itemId, itemCount, itemInc))
             {
                 remainInc = 0;
@@ -483,9 +493,14 @@ internal sealed class InserterExecutor<T>
                 throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
             }
             InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            int[] requires = insertIntoConsumingPlant.Requires;
+            int[]? requires = insertIntoConsumingPlant.Requires;
             int[] served = insertIntoConsumingPlant.Served;
             int[] incServed = insertIntoConsumingPlant.IncServed;
+            if (requires == null)
+            {
+                throw new InvalidOperationException($"{nameof(requires)} was null.");
+            }
+
             int num = requires.Length;
             if (0 < num && requires[0] == itemId)
             {
@@ -582,7 +597,7 @@ internal sealed class InserterExecutor<T>
                 throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if producing lab is inactive which the above if statement should have caught.");
             }
             InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            int[] requires2 = insertIntoConsumingPlant.Requires;
+            int[]? requires2 = insertIntoConsumingPlant.Requires;
             int[] served = insertIntoConsumingPlant.Served;
             int[] incServed = insertIntoConsumingPlant.IncServed;
             if (requires2 == null)
@@ -727,39 +742,7 @@ internal sealed class InserterExecutor<T>
         }
         else if (typedObjectIndex.EntityType == EntityType.Splitter)
         {
-            throw new InvalidOperationException("This code can not been converted to using optimized belts");
-            switch (offset)
-            {
-                case 0:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltA, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-                case 1:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltB, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-                case 2:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltC, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-                case 3:
-                    if (planet.cargoTraffic.TryInsertItem(planet.cargoTraffic.splitterPool[objectIndex].beltD, 0, itemId, itemCount, itemInc))
-                    {
-                        remainInc = 0;
-                        return itemCount;
-                    }
-                    break;
-            }
-            return 0;
+            throw new InvalidOperationException("Assumption that sorters can not interact with splitters is incorrect.");
         }
 
         return 0;
@@ -790,7 +773,7 @@ internal sealed class InserterExecutor<T>
     {
         List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates = [];
         List<InserterConnections> inserterConnections = [];
-        List<int[]> inserterConnectionNeeds = [];
+        List<int[]?> inserterConnectionNeeds = [];
         List<InserterGrade> inserterGrades = [];
         Dictionary<InserterGrade, int> inserterGradeToIndex = [];
         List<T> optimizedInserters = [];
@@ -832,7 +815,7 @@ internal sealed class InserterExecutor<T>
             }
 
             TypedObjectIndex insertInto = new TypedObjectIndex(EntityType.None, 0);
-            int[] insertIntoNeeds = null;
+            int[]? insertIntoNeeds = null;
             if (inserter.insertTarget != 0)
             {
                 insertInto = subFactory.GetAsGranularTypedObjectIndex(inserter.insertTarget, planet);

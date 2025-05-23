@@ -24,7 +24,7 @@ internal sealed class TurretExecutorBuilder
                 continue;
             }
 
-            OptimizedCargoPath targetBelt = null;
+            OptimizedCargoPath? targetBelt = null;
             int targetBeltOffset = 0;
             if (turret.targetBeltId > 0)
             {

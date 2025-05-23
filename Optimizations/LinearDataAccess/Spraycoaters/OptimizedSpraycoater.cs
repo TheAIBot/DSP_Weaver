@@ -12,7 +12,7 @@ internal struct OptimizedSpraycoater
     public readonly OptimizedCargoPath? outgoingCargoPath;
     public readonly int outgoingBeltSegIndexPlusSegPivotOffset;
     public readonly int outgoingBeltSpeed;
-    public readonly PowerNetwork powerNetwork;
+    public readonly PowerNetwork? powerNetwork;
     public readonly int incCapacity;
     public int incItemId;
     public int incAbility;
@@ -27,7 +27,7 @@ internal struct OptimizedSpraycoater
                                 OptimizedCargoPath? outgoingCargoPath,
                                 int outgoingBeltSegIndexPlusSegPivotOffset,
                                 int outgoingBeltSpeed,
-                                PowerNetwork powerNetwork,
+                                PowerNetwork? powerNetwork,
                                 ref readonly SpraycoaterComponent spraycoater)
     {
         this.incommingBeltSegIndexPlusSegPivotOffset = incommingBeltSegIndexPlusSegPivotOffset;

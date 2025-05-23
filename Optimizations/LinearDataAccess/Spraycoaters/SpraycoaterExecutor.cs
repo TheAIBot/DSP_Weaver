@@ -8,11 +8,11 @@ namespace Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 
 internal sealed class SpraycoaterExecutor
 {
-    private int[] _spraycoaterNetworkIds;
-    private OptimizedSpraycoater[] _optimizedSpraycoaters;
-    private bool[] _isSpraycoatingItems;
-    private int[] _sprayTimes;
-    public Dictionary<int, int> _spraycoaterIdToOptimizedSpraycoaterIndex;
+    private int[] _spraycoaterNetworkIds = null!;
+    private OptimizedSpraycoater[] _optimizedSpraycoaters = null!;
+    private bool[] _isSpraycoatingItems = null!;
+    private int[] _sprayTimes = null!;
+    public Dictionary<int, int> _spraycoaterIdToOptimizedSpraycoaterIndex = null!;
 
     public int SpraycoaterCount => _optimizedSpraycoaters.Length;
 
@@ -123,7 +123,7 @@ internal sealed class SpraycoaterExecutor
             bool isSpraycoatingItem = spraycoater.cargoBeltItemId != 0;
 
             int networkId = planet.powerSystem.consumerPool[spraycoater.pcId].networkId;
-            PowerNetwork powerNetwork = networkId != 0 ? planet.powerSystem.netPool[networkId] : null;
+            PowerNetwork? powerNetwork = networkId != 0 ? planet.powerSystem.netPool[networkId] : null;
 
             optimizedPowerSystemBuilder.AddSpraycoater(subFactory, in spraycoater, networkId);
             spraycoaterIdToOptimizedSpraycoaterIndex.Add(spraycoaterIndex, optimizedSpraycoaters.Count);

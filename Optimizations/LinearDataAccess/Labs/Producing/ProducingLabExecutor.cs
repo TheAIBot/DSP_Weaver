@@ -8,13 +8,13 @@ namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 
 internal sealed class ProducingLabExecutor
 {
-    public NetworkIdAndState<LabState>[] _networkIdAndStates;
-    public OptimizedProducingLab[] _optimizedLabs;
-    public LabPowerFields[] _labsPowerFields;
-    public ProducingLabRecipe[] _producingLabRecipes;
-    public int[] _entityIds;
-    public Dictionary<int, int> _labIdToOptimizedLabIndex;
-    public HashSet<int> _unOptimizedLabIds;
+    public NetworkIdAndState<LabState>[] _networkIdAndStates = null!;
+    public OptimizedProducingLab[] _optimizedLabs = null!;
+    public LabPowerFields[] _labsPowerFields = null!;
+    public ProducingLabRecipe[] _producingLabRecipes = null!;
+    public int[] _entityIds = null!;
+    public Dictionary<int, int> _labIdToOptimizedLabIndex = null!;
+    public HashSet<int> _unOptimizedLabIds = null!;
 
     public int ProducingLabCount => _optimizedLabs.Length;
 

@@ -24,7 +24,7 @@ internal sealed class WorkStep : IDisposable
         }
     }
 
-    public IWorkChunk TryGetWork(out bool canNoLongerProvideWork)
+    public IWorkChunk? TryGetWork(out bool canNoLongerProvideWork)
     {
         if (_scheduledCount >= _workChunks.Length)
         {

@@ -5,7 +5,7 @@ namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 internal sealed class PlanetWorkManager
 {
-    private WorkStep[] _workSteps;
+    private WorkStep[] _workSteps = null!;
     private int _currentWorkStepIndex;
 
     public PlanetFactory Planet { get; }

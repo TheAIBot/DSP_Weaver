@@ -7,16 +7,16 @@ namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
 internal sealed class AssemblerExecutor
 {
-    public NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
-    public OptimizedAssembler[] _optimizedAssemblers;
-    private bool[] _assemblerReplicatings;
-    private int[] _assemblerExtraPowerRatios;
-    private AssemblerTimingData[] _assemblersTimingData;
-    public AssemblerNeeds[] _assemblersNeeds;
-    public int[] _assemblerRecipeIndexes;
-    public AssemblerRecipe[] _assemblerRecipes;
-    public Dictionary<int, int> _assemblerIdToOptimizedIndex;
-    public HashSet<int> _unOptimizedAssemblerIds;
+    public NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates = null!;
+    public OptimizedAssembler[] _optimizedAssemblers = null!;
+    private bool[] _assemblerReplicatings = null!;
+    private int[] _assemblerExtraPowerRatios = null!;
+    private AssemblerTimingData[] _assemblersTimingData = null!;
+    public AssemblerNeeds[] _assemblersNeeds = null!;
+    public int[] _assemblerRecipeIndexes = null!;
+    public AssemblerRecipe[] _assemblerRecipes = null!;
+    public Dictionary<int, int> _assemblerIdToOptimizedIndex = null!;
+    public HashSet<int> _unOptimizedAssemblerIds = null!;
 
     public int AssemblerCount => _optimizedAssemblers.Length;
 

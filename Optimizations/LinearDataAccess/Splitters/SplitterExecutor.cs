@@ -64,11 +64,11 @@ internal struct OptimizedSplitter
         {
             return;
         }
-        OptimizedCargoPath us_tmp_inputPath;
-        OptimizedCargoPath us_tmp_inputPath0 = null;
-        OptimizedCargoPath us_tmp_inputPath1 = null;
-        OptimizedCargoPath us_tmp_inputPath2 = null;
-        OptimizedCargoPath us_tmp_inputPath3 = null;
+        OptimizedCargoPath? us_tmp_inputPath;
+        OptimizedCargoPath? us_tmp_inputPath0 = null;
+        OptimizedCargoPath? us_tmp_inputPath1 = null;
+        OptimizedCargoPath? us_tmp_inputPath2 = null;
+        OptimizedCargoPath? us_tmp_inputPath3 = null;
         int us_tmp_inputCargo;
         int us_tmp_inputCargo0 = -1;
         int us_tmp_inputCargo1 = -1;
@@ -78,8 +78,8 @@ internal struct OptimizedSplitter
         int us_tmp_inputIndex1 = -1;
         int us_tmp_inputIndex2 = -1;
         int us_tmp_inputIndex3 = -1;
-        OptimizedCargoPath us_tmp_outputPath;
-        OptimizedCargoPath us_tmp_outputPath0;
+        OptimizedCargoPath? us_tmp_outputPath;
+        OptimizedCargoPath? us_tmp_outputPath0;
         int us_tmp_outputIdx;
 
         if (input0 != 0)
@@ -734,7 +734,7 @@ internal struct OptimizedSplitter
 
 internal sealed class SplitterExecutor
 {
-    private OptimizedSplitter[] _optimizedSplitters;
+    private OptimizedSplitter[] _optimizedSplitters = null!;
 
     public void GameTick(PlanetFactory planet, OptimizedSubFactory subFactory, BeltExecutor beltExecutor, long time)
     {

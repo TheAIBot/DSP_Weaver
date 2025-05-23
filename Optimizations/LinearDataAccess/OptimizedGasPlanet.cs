@@ -9,9 +9,9 @@ namespace Weaver.Optimizations.LinearDataAccess;
 internal sealed class OptimizedGasPlanet : IOptimizedPlanet
 {
     private readonly PlanetFactory _planet;
-    private GasPlanetWideStationExecutor _planetWideStationExecutor;
+    private GasPlanetWideStationExecutor _planetWideStationExecutor = null!;
 
-    private WorkStep[] _workSteps;
+    private WorkStep[]? _workSteps;
     private int _workStepsParallelism;
 
     public OptimizedGasPlanet(PlanetFactory planet)
@@ -62,7 +62,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
 
     public WorkStep[] GetMultithreadedWork(int maxParallelism)
     {
-        if (_workStepsParallelism != maxParallelism)
+        if (_workSteps == null || _workStepsParallelism != maxParallelism)
         {
             _workSteps = CreateMultithreadedWork(maxParallelism);
             _workStepsParallelism = maxParallelism;

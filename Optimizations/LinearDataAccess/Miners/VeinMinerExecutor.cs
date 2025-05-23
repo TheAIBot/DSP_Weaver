@@ -9,9 +9,9 @@ namespace Weaver.Optimizations.LinearDataAccess.Miners;
 internal sealed class VeinMinerExecutor<TMinerOutput>
     where TMinerOutput : struct, IMinerOutput<TMinerOutput>
 {
-    private int[] _networkIds;
-    public OptimizedVeinMiner<TMinerOutput>[] _optimizedMiners;
-    public Dictionary<int, int> _minerIdToOptimizedIndex;
+    private int[] _networkIds = null!;
+    public OptimizedVeinMiner<TMinerOutput>[] _optimizedMiners = null!;
+    public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
 
     public int GetOptimizedMinerIndexFromMinerId(int minerId)
     {

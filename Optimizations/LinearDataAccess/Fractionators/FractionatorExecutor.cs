@@ -8,11 +8,11 @@ namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
 
 internal sealed class FractionatorExecutor
 {
-    private int[] _fractionatorNetworkId;
-    private OptimizedFractionator[] _optimizedFractionators;
-    private FractionatorPowerFields[] _fractionatorsPowerFields;
-    private FractionatorConfiguration[] _fractionatorConfigurations;
-    public Dictionary<int, int> _fractionatorIdToOptimizedIndex;
+    private int[] _fractionatorNetworkId = null!;
+    private OptimizedFractionator[] _optimizedFractionators = null!;
+    private FractionatorPowerFields[] _fractionatorsPowerFields = null!;
+    private FractionatorConfiguration[] _fractionatorConfigurations = null!;
+    public Dictionary<int, int> _fractionatorIdToOptimizedIndex = null!;
 
     public int FractionatorCount => _optimizedFractionators.Length;
 

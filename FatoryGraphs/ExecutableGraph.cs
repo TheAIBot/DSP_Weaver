@@ -10,7 +10,7 @@ internal sealed class ExecutableGraph<TExecuteAction>
     private readonly Graph _graph;
     private readonly EntityType _entityType;
     private readonly TExecuteAction _action;
-    private int[] _indexes = null;
+    private int[] _indexes = null!;
 
     public ExecutableGraph(PlanetFactory planet, Graph graph, EntityType entityType, TExecuteAction action)
     {

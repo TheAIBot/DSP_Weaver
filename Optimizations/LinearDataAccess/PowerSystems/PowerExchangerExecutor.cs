@@ -6,8 +6,8 @@ namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 internal sealed class PowerExchangerExecutor
 {
-    private OptimizedPowerExchanger[] _optimizedPowerExchangers;
-    private Dictionary<int, int> _powerExchangerIdToOptimizedIndex;
+    private OptimizedPowerExchanger[] _optimizedPowerExchangers = null!;
+    private Dictionary<int, int> _powerExchangerIdToOptimizedIndex = null!;
     private int _subId;
 
     public (long inputEnergySum, long outputEnergySum) InputOutputUpdate(long[] currentGeneratorCapacities)

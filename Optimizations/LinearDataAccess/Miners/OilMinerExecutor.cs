@@ -8,9 +8,9 @@ namespace Weaver.Optimizations.LinearDataAccess.Miners;
 
 internal sealed class OilMinerExecutor
 {
-    private int[] _networkIds;
-    private OptimizedOilMiner[] _optimizedMiners;
-    public Dictionary<int, int> _minerIdToOptimizedIndex;
+    private int[] _networkIds = null!;
+    private OptimizedOilMiner[] _optimizedMiners = null!;
+    public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
 
     public void GameTick(PlanetFactory planet)
     {

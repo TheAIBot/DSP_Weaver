@@ -13,7 +13,7 @@ internal sealed class StarClusterWorkManager
 
     public int Parallelism { get; private set; } = -1;
 
-    public void UpdateListOfPlanets(PlanetFactory?[] allPlanets, PlanetFactory[] planetsToUpdate, int parallelism)
+    public void UpdateListOfPlanets(PlanetFactory?[] allPlanets, PlanetFactory?[] planetsToUpdate, int parallelism)
     {
         Parallelism = parallelism;
 

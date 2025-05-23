@@ -7,11 +7,11 @@ namespace Weaver.Optimizations.LinearDataAccess.Belts;
 
 internal sealed class BeltExecutor
 {
-    private OptimizedCargoPath[] _optimizedCargoPaths;
-    private Dictionary<CargoPath, OptimizedCargoPath> _cargoPathToOptimizedCargoPath;
-    private Dictionary<int, int> _cargoPathIdToOptimizedIndex;
+    private OptimizedCargoPath[] _optimizedCargoPaths = null!;
+    private Dictionary<CargoPath, OptimizedCargoPath> _cargoPathToOptimizedCargoPath = null!;
+    private Dictionary<int, int> _cargoPathIdToOptimizedIndex = null!;
 
-    public OptimizedCargoContainer OptimizedCargoContainer;
+    public OptimizedCargoContainer OptimizedCargoContainer = null!;
 
     public Dictionary<CargoPath, OptimizedCargoPath> CargoPathToOptimizedCargoPath => _cargoPathToOptimizedCargoPath;
 

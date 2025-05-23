@@ -5,8 +5,8 @@ namespace Weaver.Optimizations.LinearDataAccess.Silos;
 
 internal sealed class SiloExecutor
 {
-    private int[] _siloIndexes;
-    private int[] _siloNetworkIds;
+    private int[] _siloIndexes = null!;
+    private int[] _siloNetworkIds = null!;
 
     public void GameTick(PlanetFactory planet)
     {

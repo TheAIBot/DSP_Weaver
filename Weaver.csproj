@@ -13,6 +13,9 @@
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
     <RootNamespace>Weaver</RootNamespace>
+	  <AnalysisMode>Recommended</AnalysisMode>
+	  <EnableNETAnalyzers>true</EnableNETAnalyzers>
+	  <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

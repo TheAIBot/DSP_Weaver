@@ -5,8 +5,8 @@ namespace Weaver.Optimizations.LinearDataAccess.Ejectors;
 
 internal sealed class EjectorExecutor
 {
-    private int[] _ejectorIndexes;
-    private int[] _ejectorNetworkIds;
+    private int[] _ejectorIndexes = null!;
+    private int[] _ejectorNetworkIds = null!;
 
     public void GameTick(PlanetFactory planet, long time)
     {
@@ -17,7 +17,7 @@ internal sealed class EjectorExecutor
         AnimData[] entityAnimPool = planet.entityAnimPool;
         AstroData[] astroPoses = planet.factorySystem.planet.galaxy.astrosData;
 
-        DysonSwarm swarm = null;
+        DysonSwarm? swarm = null;
         if (planet.factorySystem.factory.dysonSphere != null)
         {
             swarm = planet.factorySystem.factory.dysonSphere.swarm;

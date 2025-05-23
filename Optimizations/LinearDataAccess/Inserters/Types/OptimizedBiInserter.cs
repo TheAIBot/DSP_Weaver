@@ -68,7 +68,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 {
                     if (idleTick-- < 1)
                     {
-                        int[] array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
+                        int[]? array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                         if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                         {
                             int num2 = inserterExecutor.PickFrom(planet,
@@ -139,7 +139,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                     {
                         if (idleTick-- < 1)
                         {
-                            int[] array2 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
+                            int[]? array2 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                             if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
                             {
                                 int num44 = inserterExecutor.PickFrom(planet,
@@ -222,6 +222,11 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 int num5 = itemCount;
                 int num6 = itemInc;
                 ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
+                if (connectionBelts.InsertInto == null)
+                {
+                    throw new InvalidOperationException($"{nameof(connectionBelts.InsertInto)} was null.");
+                }
+
                 connectionBelts.InsertInto.TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
                 if (num5 < itemCount)
                 {
@@ -241,7 +246,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 continue;
             }
 
-            int[] insertIntoNeeds = inserterExecutor._inserterConnectionNeeds[inserterIndex];
+            int[]? insertIntoNeeds = inserterExecutor._inserterConnectionNeeds[inserterIndex];
             if (careNeeds)
             {
 

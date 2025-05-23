@@ -14,11 +14,11 @@ namespace Weaver.Optimizations.LinearDataAccess.Stations;
 internal readonly struct OptimizedStation
 {
     public readonly StationComponent stationComponent;
-    private readonly OptimizedCargoPath[] _cargoPaths;
+    private readonly OptimizedCargoPath?[] _cargoPaths;
     private readonly int? _optimizedMinerIndex;
 
     public OptimizedStation(StationComponent stationComponent,
-                            OptimizedCargoPath[] cargoPaths,
+                            OptimizedCargoPath?[] cargoPaths,
                             int? optimizedMinerIndex)
     {
         this.stationComponent = stationComponent;
@@ -51,7 +51,7 @@ internal readonly struct OptimizedStation
                             {
                                 continue;
                             }
-                            OptimizedCargoPath cargoPath = _cargoPaths[i];
+                            OptimizedCargoPath? cargoPath = _cargoPaths[i];
                             if (cargoPath == null || cargoPath.buffer[9] != 0)
                             {
                                 continue;
@@ -110,7 +110,7 @@ internal readonly struct OptimizedStation
                         {
                             continue;
                         }
-                        OptimizedCargoPath cargoPath2 = _cargoPaths[j];
+                        OptimizedCargoPath? cargoPath2 = _cargoPaths[j];
                         if (cargoPath2 == null)
                         {
                             continue;
@@ -169,7 +169,7 @@ internal readonly struct OptimizedStation
                         {
                             continue;
                         }
-                        OptimizedCargoPath cargoPath = _cargoPaths[i];
+                        OptimizedCargoPath? cargoPath = _cargoPaths[i];
                         if (cargoPath == null)
                         {
                             continue;

@@ -8,9 +8,9 @@ namespace Weaver.Optimizations.LinearDataAccess.Monitors;
 
 internal sealed class MonitorExecutor
 {
-    private int[] _monitorIndexes;
-    private int[] _networkIds;
-    private OptimizedMonitor[] _optimizedMonitors;
+    private int[] _monitorIndexes = null!;
+    private int[] _networkIds = null!;
+    private OptimizedMonitor[] _optimizedMonitors = null!;
 
     public void GameTick(PlanetFactory planet)
     {

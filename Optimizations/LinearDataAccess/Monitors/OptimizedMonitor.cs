@@ -38,7 +38,7 @@ internal struct OptimizedMonitor
         }
         Array.Copy(monitor.periodCargoBytesArray, 1, monitor.periodCargoBytesArray, 0, monitor.periodTickCount - 1);
         monitor.cargoBytesArray[monitor.periodTickCount - 1] = 0;
-        monitor.periodCargoBytesArray[monitor.periodTickCount - 1] = monitor.cargoFlow;
+        monitor.periodCargoBytesArray![monitor.periodTickCount - 1] = monitor.cargoFlow;
         bool flag = power > 0.1f;
         int num3 = targetBeltOffset + monitor.offset;
         int num4 = num3 + 10;

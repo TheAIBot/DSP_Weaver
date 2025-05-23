@@ -72,7 +72,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         {
                             if (idleTick-- < 1)
                             {
-                                int[] array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
+                                int[]? array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                                 if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                                 {
                                     int num = inserterExecutor.PickFrom(planet,
@@ -124,7 +124,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         {
                             if (idleTick-- < 1)
                             {
-                                int[] array2 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
+                                int[]? array2 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                                 if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
                                 {
                                     if (inserterExecutor.PickFrom(planet,
@@ -213,6 +213,11 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         int num3 = itemCount;
                         int num4 = itemInc;
                         ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
+                        if (connectionBelts.InsertInto == null)
+                        {
+                            throw new InvalidOperationException($"{nameof(connectionBelts.InsertInto)} was null.");
+                        }
+
                         connectionBelts.InsertInto.TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
                         itemCount = (short)num3;
                         itemInc = (short)num4;
@@ -227,7 +232,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         }
                         break;
                     }
-                    int[] array3 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
+                    int[]? array3 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                     if (careNeeds)
                     {
                         if (array3 == null || array3[0] == 0 && array3[1] == 0 && array3[2] == 0 && array3[3] == 0 && array3[4] == 0 && array3[5] == 0)

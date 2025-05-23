@@ -6,8 +6,8 @@ namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 internal sealed class GammaPowerGeneratorExecutor
 {
-    private OptimizedGammaPowerGenerator[] _optimizedGammaPowerGenerators;
-    private Dictionary<int, int> _gammaIdToOptimizedIndex;
+    private OptimizedGammaPowerGenerator[] _optimizedGammaPowerGenerators = null!;
+    private Dictionary<int, int> _gammaIdToOptimizedIndex = null!;
     private int _subId;
 
     public Dictionary<int, int>.KeyCollection OptimizedPowerGeneratorIds => _gammaIdToOptimizedIndex.Keys;

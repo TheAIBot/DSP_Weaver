@@ -25,7 +25,7 @@ internal sealed class WorkExecutor
         int originalWorkerUsedThreadCount = _workerThreadExecutor.usedThreadCnt;
         try
         {
-            PlanetWorkManager planetWorkManager = null;
+            PlanetWorkManager? planetWorkManager = null;
             while (true)
             {
                 IWorkChunk? workChunk = null;
@@ -52,7 +52,7 @@ internal sealed class WorkExecutor
 
                 workChunk.Execute(_workerTimings, _workerThreadExecutor, _singleThreadedCodeLock, localPlanet, time, playerPosition);
 
-                planetWorkManager.CompleteWork(workChunk);
+                planetWorkManager!.CompleteWork(workChunk);
             }
         }
         catch (Exception e)

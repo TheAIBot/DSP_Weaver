@@ -5,7 +5,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Stations;
 
 internal sealed class GasPlanetWideStationExecutor
 {
-    private OptimizedStation[] _optimizedStations;
+    private OptimizedStation[] _optimizedStations = null!;
 
     public void StationGameTick(PlanetFactory planet, long time, ref MiningFlags miningFlags)
     {

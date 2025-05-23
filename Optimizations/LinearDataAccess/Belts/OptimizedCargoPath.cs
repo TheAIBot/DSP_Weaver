@@ -11,7 +11,7 @@ internal sealed class OptimizedCargoPath
     public readonly bool closed;
     public readonly int bufferLength;
     public readonly int chunkCount;
-    public OptimizedCargoPath outputPath;
+    public OptimizedCargoPath? outputPath;
     private int outputChunk;
     private bool lastUpdateFrameOdd;
     public int updateLen;

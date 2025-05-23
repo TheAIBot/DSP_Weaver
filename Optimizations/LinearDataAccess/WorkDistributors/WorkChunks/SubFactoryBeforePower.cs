@@ -8,7 +8,7 @@ internal sealed class SubFactoryBeforePower : IWorkChunk
     private readonly PlanetFactory _planet;
     private readonly OptimizedPowerSystem _optimizedPowerSystem;
     private readonly OptimizedSubFactory _subFactory;
-    private WorkStep _workStep;
+    private WorkStep? _workStep;
 
     public SubFactoryBeforePower(PlanetFactory planet,
                                  OptimizedPowerSystem optimizedPowerSystem,

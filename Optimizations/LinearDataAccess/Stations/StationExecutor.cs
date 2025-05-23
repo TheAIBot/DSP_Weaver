@@ -8,8 +8,8 @@ namespace Weaver.Optimizations.LinearDataAccess.Stations;
 
 internal sealed class StationExecutor
 {
-    private OptimizedStation[] _optimizedStations;
-    private int[] _networkIds;
+    private OptimizedStation[] _optimizedStations = null!;
+    private int[] _networkIds = null!;
 
     public void InputFromBelt(PlanetFactory planet, long time)
     {
@@ -102,7 +102,7 @@ internal sealed class StationExecutor
                 continue;
             }
 
-            OptimizedCargoPath[] belts = new OptimizedCargoPath[station.slots.Length];
+            OptimizedCargoPath?[] belts = new OptimizedCargoPath[station.slots.Length];
             for (int i = 0; i < belts.Length; i++)
             {
                 CargoPath? belt = station.slots[i].beltId > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[station.slots[i].beltId].segPathId] : null;

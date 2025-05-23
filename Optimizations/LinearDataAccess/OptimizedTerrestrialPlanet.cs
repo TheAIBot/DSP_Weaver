@@ -15,13 +15,13 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 {
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
-    private OptimizedSubFactory[] _subFactories;
-    private OptimizedPowerSystem _optimizedPowerSystem;
-    private TurretExecutor _turretExecutor;
+    private OptimizedSubFactory[] _subFactories = null!;
+    private OptimizedPowerSystem _optimizedPowerSystem = null!;
+    private TurretExecutor _turretExecutor = null!;
     public OptimizedPlanetStatus Status { get; private set; } = OptimizedPlanetStatus.Stopped;
     public int OptimizeDelayInTicks { get; set; } = 0;
 
-    private WorkStep[] _workSteps;
+    private WorkStep[]? _workSteps;
     private int _workStepsParallelism;
 
     public OptimizedTerrestrialPlanet(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
@@ -98,7 +98,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
     public WorkStep[] GetMultithreadedWork(int maxParallelism)
     {
-        if (_workStepsParallelism != maxParallelism)
+        if (_workSteps == null || _workStepsParallelism != maxParallelism)
         {
             _workSteps = CreateMultithreadedWork(maxParallelism);
             _workStepsParallelism = maxParallelism;

@@ -8,14 +8,14 @@ namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 
 internal sealed class ResearchingLabExecutor
 {
-    private readonly StarClusterResearchManager _starClusterResearchManager;
-    private int[] _matrixPoints;
-    public NetworkIdAndState<LabState>[] _networkIdAndStates;
-    public OptimizedResearchingLab[] _optimizedLabs;
-    public LabPowerFields[] _labsPowerFields;
-    public int[] _entityIds;
-    public Dictionary<int, int> _labIdToOptimizedLabIndex;
-    public HashSet<int> _unOptimizedLabIds;
+    private readonly StarClusterResearchManager _starClusterResearchManager = null!;
+    private int[] _matrixPoints = null!;
+    public NetworkIdAndState<LabState>[] _networkIdAndStates = null!;
+    public OptimizedResearchingLab[] _optimizedLabs = null!;
+    public LabPowerFields[] _labsPowerFields = null!;
+    public int[] _entityIds = null!;
+    public Dictionary<int, int> _labIdToOptimizedLabIndex = null!;
+    public HashSet<int> _unOptimizedLabIds = null!;
 
     public int ResearchingLabCount => _optimizedLabs.Length;
 
@@ -118,14 +118,14 @@ internal sealed class ResearchingLabExecutor
                     if (ts.unlocked)
                     {
                         history.techStates[factorySystem.researchTechId] = ts;
-                        _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto);
+                        _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto!);
                         history.DequeueTech();
                         flag2 = false;
                     }
                     if (ts.curLevel > curLevel)
                     {
                         history.techStates[factorySystem.researchTechId] = ts;
-                        _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto);
+                        _starClusterResearchManager.AddResearchedTech(factorySystem.researchTechId, curLevel, ts, techProto!);
                         history.DequeueTech();
                         flag2 = false;
                     }

@@ -6,7 +6,6 @@ using System.Reflection.Emit;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
-#nullable enable
 namespace Weaver.Optimizations.LinearDataAccess;
 
 internal static class OptimizedStarCluster

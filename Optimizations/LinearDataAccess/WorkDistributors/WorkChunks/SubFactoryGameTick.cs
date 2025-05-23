@@ -5,7 +5,7 @@ namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 internal sealed class SubFactoryGameTick : IWorkChunk
 {
     private readonly OptimizedSubFactory _subFactory;
-    private WorkStep _workStep;
+    private WorkStep? _workStep;
 
     public SubFactoryGameTick(OptimizedSubFactory subFactory)
     {

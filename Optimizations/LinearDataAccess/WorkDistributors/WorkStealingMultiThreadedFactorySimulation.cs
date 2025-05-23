@@ -9,8 +9,8 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private readonly object _singleThreadedCodeLock = new();
     private readonly PerformanceMonitorUpdater _performanceMonitorUpdater = PerformanceMonitorUpdater.Create();
     StarClusterResearchManager _starClusterResearchManager;
-    private StarClusterWorkManager _starClusterWorkManager;
-    private WorkExecutor[] _workExecutors;
+    private StarClusterWorkManager? _starClusterWorkManager;
+    private WorkExecutor[]? _workExecutors;
 
     public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager)
     {
@@ -72,28 +72,30 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         _workExecutors = null;
     }
 
-    private static void ExecuteSingleThreadedSteps(PlanetFactory[] planetsToUpdate)
+    private static void ExecuteSingleThreadedSteps(PlanetFactory?[] planetsToUpdate)
     {
         for (int i = 0; i < planetsToUpdate.Length; i++)
         {
-            if (planetsToUpdate[i]?.constructionSystem == null)
+            PlanetFactory? planet = planetsToUpdate[i];
+            if (planet?.constructionSystem == null)
             {
                 continue;
             }
 
-            bool isActive = planetsToUpdate[i].planet == GameMain.localPlanet;
-            planetsToUpdate[i].constructionSystem.GameTick(GameMain.gameTick, isActive);
-            planetsToUpdate[i].constructionSystem.ExcuteDeferredTargetChange();
+            bool isActive = planet.planet == GameMain.localPlanet;
+            planet.constructionSystem.GameTick(GameMain.gameTick, isActive);
+            planet.constructionSystem.ExcuteDeferredTargetChange();
         }
 
         for (int i = 0; i < planetsToUpdate.Length; i++)
         {
-            if (planetsToUpdate[i]?.factorySystem == null)
+            PlanetFactory? planet = planetsToUpdate[i];
+            if (planet?.factorySystem == null)
             {
                 continue;
             }
 
-            planetsToUpdate[i].factorySystem.CheckBeforeGameTick();
+            planet.factorySystem.CheckBeforeGameTick();
         }
     }
 }

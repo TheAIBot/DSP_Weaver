@@ -178,23 +178,23 @@ internal struct OptimizedGammaPowerGenerator
             {
                 if (fuelHeat == 0L)
                 {
-                    if (InsertInto(slot0Belt, slot0BeltOffset, productId, 1, 0, out _) == 1)
+                    if (InsertInto(slot0Belt!, slot0BeltOffset, productId, 1, 0, out _) == 1)
                     {
                         productCount -= 1f;
                         fuelHeat = 1L;
                     }
-                    else if (InsertInto(slot1Belt, slot1BeltOffset, productId, 1, 0, out _) == 1)
+                    else if (InsertInto(slot1Belt!, slot1BeltOffset, productId, 1, 0, out _) == 1)
                     {
                         productCount -= 1f;
                         fuelHeat = 0L;
                     }
                 }
-                else if (InsertInto(slot1Belt, slot1BeltOffset, productId, 1, 0, out _) == 1)
+                else if (InsertInto(slot1Belt!, slot1BeltOffset, productId, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 0L;
                 }
-                else if (InsertInto(slot0Belt, slot0BeltOffset, productId, 1, 0, out _) == 1)
+                else if (InsertInto(slot0Belt!, slot0BeltOffset, productId, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 1L;
@@ -202,13 +202,13 @@ internal struct OptimizedGammaPowerGenerator
             }
             else if (flag3)
             {
-                if (InsertInto(slot0Belt, slot0BeltOffset, productId, 1, 0, out _) == 1)
+                if (InsertInto(slot0Belt!, slot0BeltOffset, productId, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 1L;
                 }
             }
-            else if (flag5 && InsertInto(slot1Belt, slot1BeltOffset, productId, 1, 0, out _) == 1)
+            else if (flag5 && InsertInto(slot1Belt!, slot1BeltOffset, productId, 1, 0, out _) == 1)
             {
                 productCount -= 1f;
                 fuelHeat = 0L;
@@ -216,12 +216,12 @@ internal struct OptimizedGammaPowerGenerator
         }
         if (flag2)
         {
-            if (flag4 && PickFrom(slot0Belt, slot0BeltOffset, catalystId, null, out var stack, out var inc) == catalystId)
+            if (flag4 && PickFrom(slot0Belt!, slot0BeltOffset, catalystId, null, out var stack, out var inc) == catalystId)
             {
                 catalystPoint += 3600 * stack;
                 catalystIncPoint += 3600 * inc;
             }
-            if (flag6 && PickFrom(slot1Belt, slot1BeltOffset, catalystId, null, out stack, out inc) == catalystId)
+            if (flag6 && PickFrom(slot1Belt!, slot1BeltOffset, catalystId, null, out stack, out inc) == catalystId)
             {
                 catalystPoint += 3600 * stack;
                 catalystIncPoint += 3600 * inc;

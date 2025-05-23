@@ -6,11 +6,11 @@ namespace Weaver.Optimizations.LinearDataAccess.Turrets;
 [StructLayout(LayoutKind.Auto)]
 internal readonly struct OptimizedTurret
 {
-    private readonly OptimizedCargoPath targetBelt;
+    private readonly OptimizedCargoPath? targetBelt;
     private readonly int targetBeltOffset;
     public readonly int turretIndex;
 
-    public OptimizedTurret(OptimizedCargoPath targetBelt, int targetBeltOffset, int turretIndex)
+    public OptimizedTurret(OptimizedCargoPath? targetBelt, int targetBeltOffset, int turretIndex)
     {
         this.targetBelt = targetBelt;
         this.targetBeltOffset = targetBeltOffset;

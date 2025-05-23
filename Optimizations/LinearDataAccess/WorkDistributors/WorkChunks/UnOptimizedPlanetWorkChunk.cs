@@ -8,7 +8,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
     private readonly WorkType _workType;
     private readonly int _workIndex;
     private readonly int _maxWorkCount;
-    private WorkStep _workStep;
+    private WorkStep? _workStep;
 
     private UnOptimizedPlanetWorkChunk(PlanetFactory planet, WorkType workType, int workIndex, int maxWorkCount)
     {
@@ -74,7 +74,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             workerTimings.StartTimer();
             lock (singleThreadedCodeLock)
             {
-                _planet.factorySystem.GameTickLabResearchMode(time, isActive);
+                _planet.factorySystem!.GameTickLabResearchMode(time, isActive);
             }
             workerTimings.RecordTime(WorkType.LabResearchMode);
         }

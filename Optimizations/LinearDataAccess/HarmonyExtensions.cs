@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 
-#nullable enable
 namespace Weaver.Optimizations.LinearDataAccess;
 
 internal static class HarmonyExtensions

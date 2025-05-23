@@ -2,7 +2,6 @@
 using UnityEngine;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
-#nullable enable
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
 

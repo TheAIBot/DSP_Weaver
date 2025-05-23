@@ -8,10 +8,10 @@ namespace Weaver.Optimizations.LinearDataAccess.Pilers;
 
 internal sealed class PilerExecutor
 {
-    private int[] _networkIndices;
-    private OptimizedPiler[] _optimizedPilers;
-    private int[] _timeSpends;
-    private Dictionary<int, int> _pilerIdToOptimizedIndex;
+    private int[] _networkIndices = null!;
+    private OptimizedPiler[] _optimizedPilers = null!;
+    private int[] _timeSpends = null!;
+    private Dictionary<int, int> _pilerIdToOptimizedIndex = null!;
 
     public void GameTick(PlanetFactory planet)
     {

@@ -192,7 +192,7 @@ internal struct OptimizedTank
         tank.fluidId = fluidId;
     }
 
-    private void UpdateTankBelt(OptimizedCargoPath belt, bool isOutput, TankExecutor tankExecutor, ref byte stack, ref byte inc)
+    private void UpdateTankBelt(OptimizedCargoPath? belt, bool isOutput, TankExecutor tankExecutor, ref byte stack, ref byte inc)
     {
         if (belt != null)
         {
