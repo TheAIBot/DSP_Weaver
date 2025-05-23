@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
@@ -7,22 +8,27 @@ namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
 {
     public byte grade { get; }
-    public readonly bool careNeeds;
-    public readonly short pickOffset;
-    public readonly short insertOffset;
-    public readonly int filter;
-    public int itemId;
-    public short itemCount;
-    public short itemInc;
-    public int stackCount;
-    public int idleTick;
+    private readonly bool careNeeds;
+    private readonly int pickOffset;
+    private readonly int insertOffset;
+    private readonly int filter;
+    private int itemId;
+    private short itemCount;
+    private short itemInc;
+    private int stackCount;
+    private int idleTick;
 
     public OptimizedBiInserter(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
     {
+        if (grade < 0 || grade > byte.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(grade), $"{nameof(grade)} was not within the bounds of a byte. Value: {grade}");
+        }
+
         grade = (byte)grade;
         careNeeds = inserter.careNeeds;
-        pickOffset = (short)pickFromOffset;
-        insertOffset = (short)insertIntoOffset;
+        pickOffset = pickFromOffset;
+        insertOffset = insertIntoOffset;
         filter = inserter.filter;
         itemId = inserter.itemId;
         itemCount = inserter.itemCount;

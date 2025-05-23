@@ -1,3 +1,7 @@
+## 1.2.5
+* Fix sorters were incorrectly interacting with very long belts.
+* Fix labs did not update their display icon when research changed.
+
 ## 1.2.4
 * Fix optimized stacked tanks would sometimes crash the game.
 * Fix Labs could, in rare cases, end up not consuming matrices.
