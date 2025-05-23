@@ -221,8 +221,6 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     private void DefenseGameTick(DefenseSystem defenseSystem, long tick)
     {
         GameHistoryData history = GameMain.history;
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[defenseSystem.factory.index];
-        int[] productRegister = obj.productRegister;
         PowerSystem powerSystem = defenseSystem.factory.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
@@ -232,11 +230,6 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         ref CombatSettings combatSettings = ref defenseSystem.factory.gameData.history.combatSettings;
         CombatUpgradeData combatUpgradeData = default(CombatUpgradeData);
         history.GetCombatUpgradeData(ref combatUpgradeData);
-        VectorLF3 relativePos = defenseSystem.factory.gameData.relativePos;
-        UnityEngine.Quaternion relativeRot = defenseSystem.factory.gameData.relativeRot;
-        TrashSystem trashSystem = defenseSystem.factory.gameData.trashSystem;
-        bool flag = trashSystem.trashCount > 0;
-        float num = 1f / 60f;
         defenseSystem.UpdateMatchSpaceEnemies();
         EAggressiveLevel aggressiveLevel = combatSettings.aggressiveLevel;
         int cursor = defenseSystem.beacons.cursor;

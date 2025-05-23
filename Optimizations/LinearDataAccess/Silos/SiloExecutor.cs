@@ -16,7 +16,6 @@ internal sealed class SiloExecutor
         float[] networkServes = powerSystem.networkServes;
         AnimData[] entityAnimPool = planet.entityAnimPool;
         FactorySystem factorySystem = planet.factorySystem;
-        AstroData[] astroPoses = factorySystem.planet.galaxy.astrosData;
 
         DysonSphere dysonSphere = factorySystem.factory.dysonSphere;
         for (int siloIndexIndex = 0; siloIndexIndex < _siloIndexes.Length; siloIndexIndex++)

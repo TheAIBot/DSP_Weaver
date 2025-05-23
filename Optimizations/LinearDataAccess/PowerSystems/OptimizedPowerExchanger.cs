@@ -239,7 +239,6 @@ internal struct OptimizedPowerExchanger
 
     public void BeltUpdate()
     {
-        bool flag = false;
         int num2 = 0;
         int num3 = 0;
         if (belt0 != null)
@@ -293,7 +292,7 @@ internal struct OptimizedPowerExchanger
                 inputSlot = inputRectify;
             }
             OptimizedCargoPath? num = null;
-            flag = false;
+            bool flag = false;
             if (inputSlot == 0)
             {
                 if (belt0 != null)
@@ -336,7 +335,7 @@ internal struct OptimizedPowerExchanger
                 outputSlot = outputRectify;
             }
             OptimizedCargoPath? num = null;
-            flag = false;
+            bool flag = false;
             if (outputSlot == 0)
             {
                 if (belt0 != null)
@@ -547,7 +546,7 @@ internal struct OptimizedPowerExchanger
 
     private long CalculateActualEnergyPerTick(bool isOutput)
     {
-        int num = 0;
+        int num;
         if (isOutput)
         {
             num = poolInc;

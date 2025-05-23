@@ -28,7 +28,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
             throw new ArgumentOutOfRangeException(nameof(grade), $"{nameof(grade)} was not within the bounds of a byte. Value: {grade}");
         }
 
-        grade = (byte)grade;
+        this.grade = (byte)grade;
         careNeeds = inserter.careNeeds;
         pickOffset = pickFromOffset;
         insertOffset = insertIntoOffset;
@@ -68,7 +68,6 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                     byte inc;
                     if (itemId == 0)
                     {
-                        int num = 0;
                         if (careNeeds)
                         {
                             if (idleTick-- < 1)
@@ -76,14 +75,14 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                                 int[] array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                                 if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                                 {
-                                    num = inserterExecutor.PickFrom(planet,
-                                                                   ref inserterNetworkIdAndState,
-                                                                   inserterIndex,
-                                                                   pickOffset,
-                                                                   filter,
-                                                                   array,
-                                                                   out stack,
-                                                                   out inc);
+                                    int num = inserterExecutor.PickFrom(planet,
+                                                                        ref inserterNetworkIdAndState,
+                                                                        inserterIndex,
+                                                                        pickOffset,
+                                                                        filter,
+                                                                        array,
+                                                                        out stack,
+                                                                        out inc);
                                     if (num > 0)
                                     {
                                         itemId = num;
@@ -101,14 +100,14 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         }
                         else
                         {
-                            num = inserterExecutor.PickFrom(planet,
-                                                            ref inserterNetworkIdAndState,
-                                                            inserterIndex,
-                                                            pickOffset,
-                                                            filter,
-                                                            null,
-                                                            out stack,
-                                                            out inc);
+                            int num = inserterExecutor.PickFrom(planet,
+                                                                ref inserterNetworkIdAndState,
+                                                                inserterIndex,
+                                                                pickOffset,
+                                                                filter,
+                                                                null,
+                                                                out stack,
+                                                                out inc);
                             if (num > 0)
                             {
                                 itemId = num;
@@ -239,7 +238,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                     }
                     int num5 = itemCount / stackCount;
                     int num6 = (int)(itemInc / (float)itemCount * num5 + 0.5f);
-                    byte remainInc = (byte)num6;
+                    byte remainInc;
                     int num7 = inserterExecutor.InsertInto(planet,
                                                            ref inserterNetworkIdAndState,
                                                            inserterIndex,

@@ -64,12 +64,12 @@ internal struct OptimizedSplitter
         {
             return;
         }
-        OptimizedCargoPath us_tmp_inputPath = null;
+        OptimizedCargoPath us_tmp_inputPath;
         OptimizedCargoPath us_tmp_inputPath0 = null;
         OptimizedCargoPath us_tmp_inputPath1 = null;
         OptimizedCargoPath us_tmp_inputPath2 = null;
         OptimizedCargoPath us_tmp_inputPath3 = null;
-        int us_tmp_inputCargo = -1;
+        int us_tmp_inputCargo;
         int us_tmp_inputCargo0 = -1;
         int us_tmp_inputCargo1 = -1;
         int us_tmp_inputCargo2 = -1;
@@ -182,7 +182,6 @@ internal struct OptimizedSplitter
             {
                 flag = beltExecutor.OptimizedCargoContainer.cargoPool[us_tmp_inputCargo0].item == outFilter;
             }
-            us_tmp_outputPath = null;
             us_tmp_outputPath0 = null;
             us_tmp_outputIdx = 0;
             int num = -1;
@@ -276,7 +275,6 @@ internal struct OptimizedSplitter
             int num4 = 4;
             while (num4-- > 0)
             {
-                us_tmp_outputPath = null;
                 us_tmp_outputPath0 = null;
                 us_tmp_outputIdx = 0;
                 int num5 = -1;
@@ -342,7 +340,6 @@ internal struct OptimizedSplitter
             }
             return;
         }
-        us_tmp_outputPath = null;
         us_tmp_outputPath0 = null;
         us_tmp_outputIdx = 0;
         int num7 = -1;
@@ -372,7 +369,6 @@ internal struct OptimizedSplitter
         int num9 = 3;
         while (num9-- > 0)
         {
-            us_tmp_outputPath = null;
             us_tmp_outputPath0 = null;
             us_tmp_outputIdx = 0;
             int num10 = -1;
@@ -492,7 +488,6 @@ internal struct OptimizedSplitter
         }
         if (isPriority)
         {
-            int num2 = 0;
             if (input0 == num)
             {
                 inPriority = true;
@@ -500,21 +495,21 @@ internal struct OptimizedSplitter
             else if (input1 == num)
             {
                 inPriority = true;
-                num2 = input0;
+                int num2 = input0;
                 input0 = input1;
                 input1 = num2;
             }
             else if (input2 == num)
             {
                 inPriority = true;
-                num2 = input0;
+                int num2 = input0;
                 input0 = input2;
                 input2 = num2;
             }
             else if (input3 == num)
             {
                 inPriority = true;
-                num2 = input0;
+                int num2 = input0;
                 input0 = input3;
                 input3 = num2;
             }
@@ -527,7 +522,7 @@ internal struct OptimizedSplitter
             else if (output1 == num)
             {
                 outPriority = true;
-                num2 = output0;
+                int num2 = output0;
                 output0 = output1;
                 output1 = num2;
                 outFilter = filter;
@@ -536,7 +531,7 @@ internal struct OptimizedSplitter
             else if (output2 == num)
             {
                 outPriority = true;
-                num2 = output0;
+                int num2 = output0;
                 output0 = output2;
                 output2 = num2;
                 outFilter = filter;
@@ -545,7 +540,7 @@ internal struct OptimizedSplitter
             else if (output3 == num)
             {
                 outPriority = true;
-                num2 = output0;
+                int num2 = output0;
                 output0 = output3;
                 output3 = num2;
                 outFilter = filter;
@@ -568,31 +563,36 @@ internal struct OptimizedSplitter
 
     private void InputAlternate(int index)
     {
-        int num = 0;
         switch (index)
         {
             case 0:
-                if (inPriority)
                 {
-                    return;
+                    if (inPriority)
+                    {
+                        return;
+                    }
+                    int num = input0;
+                    input0 = input1;
+                    input1 = input2;
+                    input2 = input3;
+                    input3 = num;
+                    break;
                 }
-                num = input0;
-                input0 = input1;
-                input1 = input2;
-                input2 = input3;
-                input3 = num;
-                break;
             case 1:
-                num = input1;
-                input1 = input2;
-                input2 = input3;
-                input3 = num;
-                break;
+                {
+                    int num = input1;
+                    input1 = input2;
+                    input2 = input3;
+                    input3 = num;
+                    break;
+                }
             case 2:
-                num = input2;
-                input2 = input3;
-                input3 = num;
-                break;
+                {
+                    int num = input2;
+                    input2 = input3;
+                    input3 = num;
+                    break;
+                }
         }
         InputReorder();
     }
@@ -648,31 +648,36 @@ internal struct OptimizedSplitter
 
     private void OutputAlternate(int index)
     {
-        int num = 0;
         switch (index)
         {
             case 0:
-                if (outPriority)
                 {
-                    return;
+                    if (outPriority)
+                    {
+                        return;
+                    }
+                    int num = output0;
+                    output0 = output1;
+                    output1 = output2;
+                    output2 = output3;
+                    output3 = num;
+                    break;
                 }
-                num = output0;
-                output0 = output1;
-                output1 = output2;
-                output2 = output3;
-                output3 = num;
-                break;
             case 1:
-                num = output1;
-                output1 = output2;
-                output2 = output3;
-                output3 = num;
-                break;
+                {
+                    int num = output1;
+                    output1 = output2;
+                    output2 = output3;
+                    output3 = num;
+                    break;
+                }
             case 2:
-                num = output2;
-                output2 = output3;
-                output3 = num;
-                break;
+                {
+                    int num = output2;
+                    output2 = output3;
+                    output3 = num;
+                    break;
+                }
         }
         OutputReorder();
     }

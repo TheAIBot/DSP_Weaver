@@ -65,16 +65,12 @@ internal sealed class StarClusterWorkManager
             }
         }
 
-        //while (true)
-        //{
-        bool hasIncompleteWork = false;
         for (int i = 0; i < planetsNotCompletedCount; i++)
         {
             if (_planetWorkManagers[i] == null)
             {
                 continue;
             }
-            hasIncompleteWork = true;
 
             PlanetWorkPlan? planetWorkPlan = TryGetWork(i);
             if (planetWorkPlan != null)
@@ -82,11 +78,6 @@ internal sealed class StarClusterWorkManager
                 return planetWorkPlan;
             }
         }
-
-        //if (!hasIncompleteWork)
-        //{
-        //    break;
-        //}
 
         for (int i = 0; i < planetsNotCompletedCount; i++)
         {
@@ -96,7 +87,6 @@ internal sealed class StarClusterWorkManager
                 return planetWorkPlan;
             }
         }
-        //}
 
         return null;
     }

@@ -335,7 +335,7 @@ internal sealed class InserterExecutor<T>
                     {
                         int itemId = filter;
                         int count = 1;
-                        bool flag = false;
+                        bool flag;
                         if (needs == null)
                         {
                             storageComponent.TakeTailItems(ref itemId, ref count, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
@@ -642,8 +642,7 @@ internal sealed class InserterExecutor<T>
             {
                 if (storageComponent.lastFullItem != itemId)
                 {
-                    int num4 = 0;
-                    num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
+                    int num4 = ((planet.entityPool[storageComponent.entityId].battleBaseId != 0) ? storageComponent.AddItemFilteredBanOnly(itemId, itemCount, itemInc, out var remainInc2) : storageComponent.AddItem(itemId, itemCount, itemInc, out remainInc2, useBan: true));
                     remainInc = (byte)remainInc2;
                     if (num4 == itemCount)
                     {

@@ -15,7 +15,6 @@ internal sealed class EjectorExecutor
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         AnimData[] entityAnimPool = planet.entityAnimPool;
-        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
         AstroData[] astroPoses = planet.factorySystem.planet.galaxy.astrosData;
 
         DysonSwarm swarm = null;

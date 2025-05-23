@@ -9,11 +9,6 @@ internal sealed class GasPlanetWideStationExecutor
 
     public void StationGameTick(PlanetFactory planet, long time, ref MiningFlags miningFlags)
     {
-        int num = (int)(time % 1163962800);
-        if (num < 0)
-        {
-            num += 1163962800;
-        }
         int num2 = (int)(time % 60);
         if (num2 < 0)
         {

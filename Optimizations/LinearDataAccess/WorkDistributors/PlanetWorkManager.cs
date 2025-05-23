@@ -45,9 +45,10 @@ internal sealed class PlanetWorkManager
         if (currentWorkTrackerIndex == _workSteps.Length - 1 && canNoLongerProvideWork)
         {
             canScheduleMoreWork = false;
+            return workChunk;
         }
-        canScheduleMoreWork = true;
 
+        canScheduleMoreWork = true;
         return workChunk;
     }
 
@@ -67,7 +68,7 @@ internal sealed class PlanetWorkManager
 
         WorkStep currentWorkStep = _workSteps[currentWorkStepIndex];
         WorkStep nextWorkStep = _workSteps[nextWorkStepIndex];
-        IWorkChunk? workChunk = nextWorkStep.TryGetWork(out bool canNoLongerProvideWork);
+        IWorkChunk? workChunk = nextWorkStep.TryGetWork(out _);
         if (workChunk == null)
         {
             return workChunk;

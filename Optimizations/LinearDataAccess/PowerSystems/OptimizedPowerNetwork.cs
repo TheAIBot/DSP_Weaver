@@ -73,7 +73,7 @@ internal sealed class OptimizedPowerNetwork
         int[] generatorIndexes = _generatorIndexes;
         for (int i = 0; i < generatorIndexes.Length; i++)
         {
-            long num31 = 0L;
+            long num31;
             int num30 = generatorIndexes[i];
             if (powerSystem.genPool[num30].wind)
             {
@@ -130,12 +130,11 @@ internal sealed class OptimizedPowerNetwork
         int count4 = accumulators.Count;
         long num34 = 0L;
         long num35 = 0L;
-        int num36 = 0;
         if (num32 >= 0)
         {
             for (int m = 0; m < count4; m++)
             {
-                num36 = accumulators[m];
+                int num36 = accumulators[m];
                 powerSystem.accPool[num36].curPower = 0L;
                 long num37 = powerSystem.accPool[num36].InputCap();
                 if (num37 > 0)
@@ -155,7 +154,7 @@ internal sealed class OptimizedPowerNetwork
             long num38 = -num32;
             for (int n = 0; n < count4; n++)
             {
-                num36 = accumulators[n];
+                int num36 = accumulators[n];
                 powerSystem.accPool[num36].curPower = 0L;
                 long num39 = powerSystem.accPool[num36].OutputCap();
                 if (num39 > 0)

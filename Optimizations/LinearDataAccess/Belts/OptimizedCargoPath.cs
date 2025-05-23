@@ -914,7 +914,6 @@ internal sealed class OptimizedCargoPath
         {
             num = bufferLength - 1;
         }
-        stack = 1;
         for (int i = index; i <= num; i++)
         {
             if (buffer[i] >= 246)

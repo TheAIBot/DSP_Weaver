@@ -32,7 +32,7 @@ internal sealed class OptimizedCargoContainer
             recycleBegin++;
             if (recycleBegin == recycleEnd)
             {
-                result = (recycleBegin = (recycleEnd = 0));
+                recycleBegin = (recycleEnd = 0);
             }
             else if (recycleBegin == poolCapacity)
             {

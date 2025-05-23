@@ -25,7 +25,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             throw new ArgumentOutOfRangeException(nameof(grade), $"{nameof(grade)} was not within the bounds of a byte. Value: {grade}");
         }
 
-        grade = (byte)grade;
+        this.grade = (byte)grade;
         careNeeds = inserter.careNeeds;
         pickOffset = pickFromOffset;
         insertOffset = insertIntoOffset;
@@ -64,7 +64,6 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             byte inc;
             if (itemId == 0)
             {
-                int num2 = 0;
                 if (careNeeds)
                 {
                     if (idleTick-- < 1)
@@ -72,14 +71,14 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                         int[] array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
                         if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
                         {
-                            num2 = inserterExecutor.PickFrom(planet,
-                                                             ref inserterNetworkIdAndState,
-                                                             inserterIndex,
-                                                             pickOffset,
-                                                             filter,
-                                                             array,
-                                                             out stack,
-                                                             out inc);
+                            int num2 = inserterExecutor.PickFrom(planet,
+                                                                 ref inserterNetworkIdAndState,
+                                                                 inserterIndex,
+                                                                 pickOffset,
+                                                                 filter,
+                                                                 array,
+                                                                 out stack,
+                                                                 out inc);
                             if (num2 > 0)
                             {
                                 itemId = num2;
@@ -106,14 +105,14 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 }
                 else
                 {
-                    num2 = inserterExecutor.PickFrom(planet,
-                                                     ref inserterNetworkIdAndState,
-                                                     inserterIndex,
-                                                     pickOffset,
-                                                     filter,
-                                                     null,
-                                                     out stack,
-                                                     out inc);
+                    int num2 = inserterExecutor.PickFrom(planet,
+                                                         ref inserterNetworkIdAndState,
+                                                         inserterIndex,
+                                                         pickOffset,
+                                                         filter,
+                                                         null,
+                                                         out stack,
+                                                         out inc);
                     if (num2 > 0)
                     {
                         itemId = num2;
@@ -254,7 +253,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             }
             int num7 = itemCount / stackCount;
             int num8 = (int)(itemInc / (float)itemCount * num7 + 0.5f);
-            byte remainInc = (byte)num8;
+            byte remainInc;
             int num9 = inserterExecutor.InsertInto(planet,
                                                    ref inserterNetworkIdAndState,
                                                    inserterIndex,

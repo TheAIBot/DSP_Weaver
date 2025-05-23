@@ -80,10 +80,9 @@ internal struct OptimizedResearchingLab
             return LabState.Active;
         }
         int num = (int)(research_speed + 2f);
-        int num2 = 0;
         if (matrixPoints[0] > 0)
         {
-            num2 = matrixServed[0] / matrixPoints[0];
+            int num2 = matrixServed[0] / matrixPoints[0];
             if (num2 < num)
             {
                 num = num2;
@@ -96,7 +95,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[1] > 0)
         {
-            num2 = matrixServed[1] / matrixPoints[1];
+            int num2 = matrixServed[1] / matrixPoints[1];
             if (num2 < num)
             {
                 num = num2;
@@ -109,7 +108,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[2] > 0)
         {
-            num2 = matrixServed[2] / matrixPoints[2];
+            int num2 = matrixServed[2] / matrixPoints[2];
             if (num2 < num)
             {
                 num = num2;
@@ -122,7 +121,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[3] > 0)
         {
-            num2 = matrixServed[3] / matrixPoints[3];
+            int num2 = matrixServed[3] / matrixPoints[3];
             if (num2 < num)
             {
                 num = num2;
@@ -135,7 +134,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[4] > 0)
         {
-            num2 = matrixServed[4] / matrixPoints[4];
+            int num2 = matrixServed[4] / matrixPoints[4];
             if (num2 < num)
             {
                 num = num2;
@@ -148,7 +147,7 @@ internal struct OptimizedResearchingLab
         }
         if (matrixPoints[5] > 0)
         {
-            num2 = matrixServed[5] / matrixPoints[5];
+            int num2 = matrixServed[5] / matrixPoints[5];
             if (num2 < num)
             {
                 num = num2;
@@ -197,15 +196,13 @@ internal struct OptimizedResearchingLab
             {
                 num8 = 0;
             }
-            long num13 = 0L;
-            int num14 = 0;
             int extraSpeed = (int)(10000.0 * Cargo.incTableMilli[num8] * 10.0 + 0.1);
             labPowerFields.extraPowerRatio = Cargo.powerTable[num8];
             extraHashBytes += (int)(power * extraSpeed * research_speed + 0.5f);
-            num13 = extraHashBytes / 100000;
+            long num13 = extraHashBytes / 100000;
             extraHashBytes -= (int)num13 * 100000;
             num13 = num13 < 0 ? 0 : num13;
-            num14 = (int)num13;
+            int num14 = (int)num13;
             ts.hashUploaded += num4 + num13;
             hashRegister += num4 + num13;
             uMatrixPoint += ts.uPointPerHash * num4;

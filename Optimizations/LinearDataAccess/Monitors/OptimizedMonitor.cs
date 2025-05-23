@@ -42,14 +42,11 @@ internal struct OptimizedMonitor
         bool flag = power > 0.1f;
         int num3 = targetBeltOffset + monitor.offset;
         int num4 = num3 + 10;
-        int cargoId = -1;
-        int num5 = -1;
-        int num6 = -1;
         if (monitor.prewarmSampleTick < monitor.periodTickCount * 2)
         {
             monitor.prewarmSampleTick++;
         }
-        GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num3, out var cargo, out cargoId, out num5);
+        GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num3, out var cargo, out int cargoId, out int num5);
         if (monitor.lastCargoId == -1 && cargoId >= 0)
         {
             num = ((cargoId != monitor.formerCargoId) ? (num + (10 - num5 - 1) * cargo.stack) : (num - (num5 + 1) * cargo.stack));
@@ -64,7 +61,7 @@ internal struct OptimizedMonitor
         }
         if (num4 < targetBelt.pathLength)
         {
-            GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num4, out var _, out monitor.formerCargoId, out num6);
+            GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num4, out var _, out monitor.formerCargoId, out _);
         }
         else
         {
@@ -130,12 +127,11 @@ internal struct OptimizedMonitor
                     int cargoIdAtIndex2 = targetBelt.GetCargoIdAtIndex(index2, 10);
                     if (cargoIdAtIndex2 >= 0)
                     {
-                        int num14 = 0;
                         byte stack2;
-                        byte inc2;
-                        int num15 = targetBelt.QueryItemAtIndex(index2, out stack2, out inc2);
+                        int num15 = targetBelt.QueryItemAtIndex(index2, out stack2, out _);
                         if (monitor.cargoFilter == 0 || (monitor.cargoFilter > 0 && num15 == monitor.cargoFilter))
                         {
+                            int num14;
                             if (num11 >= stack2)
                             {
                                 targetBelt.RemoveCargoAtIndex(index2);
@@ -187,13 +183,10 @@ internal struct OptimizedMonitor
             default:
                 {
                     int num = targetBeltOffset;
-                    int cargoId = -1;
-                    int num2 = -1;
                     bool flag = true;
-                    OptimizedCargo cargo;
                     for (int i = 0; i < targetBeltSpeed; i++)
                     {
-                        GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num + i, out cargo, out cargoId, out num2);
+                        GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num + i, out _, out int cargoId, out _);
                         if (cargoId < 0)
                         {
                             flag = false;
@@ -221,7 +214,7 @@ internal struct OptimizedMonitor
                                 int num4 = num + j;
                                 num4 = ((num4 < num3) ? num3 : num4);
                                 num4 = ((num4 >= pathLength) ? (pathLength - 1) : num4);
-                                GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num4, out cargo, out cargoId, out num2);
+                                GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num4, out _, out int cargoId, out _);
                                 if (cargoId < 0)
                                 {
                                     flag = false;

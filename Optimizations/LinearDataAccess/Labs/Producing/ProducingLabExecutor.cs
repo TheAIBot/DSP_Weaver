@@ -90,7 +90,7 @@ internal sealed class ProducingLabExecutor
                 continue;
             }
 
-            ref OptimizedProducingLab optimizedLab = ref _optimizedLabs[optimizedIndex];
+            ref OptimizedProducingLab optimizedLab = ref optimizedProducingLabs[optimizedIndex];
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[optimizedLab.producingLabRecipeIndex];
             optimizedLab.Save(ref labComponents[i], in producingLabRecipe, labsPowerFields[optimizedIndex]);
         }
