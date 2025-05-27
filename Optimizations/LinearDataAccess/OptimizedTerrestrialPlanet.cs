@@ -13,6 +13,7 @@ namespace Weaver.Optimizations.LinearDataAccess;
 
 internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 {
+    public static bool ViewBeltsOnLocalOptimizedPlanet = false;
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private OptimizedSubFactory[] _subFactories = null!;
@@ -44,12 +45,16 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         _optimizedPowerSystem.Save(_planet);
 
-        //_planet.cargoTraffic.PresentCargoPathsSync();
-
-        Status = OptimizedPlanetStatus.Stopped;
-
-        _workSteps = null;
-        _workStepsParallelism = -1;
+        if (ViewBeltsOnLocalOptimizedPlanet)
+        {
+            _planet.cargoTraffic.PresentCargoPathsSync();
+        }
+        else
+        {
+            Status = OptimizedPlanetStatus.Stopped;
+            _workSteps = null;
+            _workStepsParallelism = -1;
+        }
     }
 
     public void Initialize()

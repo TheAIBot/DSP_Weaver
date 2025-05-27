@@ -17,7 +17,7 @@ internal readonly struct TypedObjectIndex
 
     public TypedObjectIndex(EntityType entityType, int index)
     {
-        if ((uint)entityType < 0 || (uint)entityType > EntityTypeMask)
+        if ((int)entityType < 0 || (int)entityType > EntityTypeMask)
         {
             throw new ArgumentOutOfRangeException(nameof(index), $"{entityType} was outside the range {0} to {EntityTypeMask:N0}");
         }
@@ -27,5 +27,14 @@ internal readonly struct TypedObjectIndex
         }
 
         _value = ((uint)entityType << IndexBitCount) | (IndexBitMask & (uint)index);
+    }
+
+    public override string ToString()
+    {
+        return $"""
+            TypedObjectIndex
+            \t{nameof(EntityType)}: {Enum.GetName(typeof(EntityType), EntityType)}
+            \t{nameof(Index)}: {Index:N0}
+            """;
     }
 }

@@ -10,4 +10,13 @@ internal readonly struct InserterConnections
         PickFrom = pickFrom;
         InsertInto = insertInto;
     }
+
+    public override string ToString()
+    {
+        return $"""
+            InserterConnections
+            \t{nameof(PickFrom)}: {PickFrom}
+            \t{nameof(InsertInto)}: {InsertInto}
+            """;
+    }
 }

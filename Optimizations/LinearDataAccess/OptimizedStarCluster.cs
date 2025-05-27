@@ -20,6 +20,8 @@ internal static class OptimizedStarCluster
     private static readonly Random random = new Random();
     private static bool _debugEnableHeavyReOptimization = false;
 
+    public static bool ForceOptimizeLocalPlanet { get; set; } = false;
+
     public static void EnableOptimization(Harmony harmony)
     {
         harmony.PatchAll(typeof(OptimizedStarCluster));
@@ -121,7 +123,8 @@ internal static class OptimizedStarCluster
 
         foreach (KeyValuePair<PlanetFactory, IOptimizedPlanet> planetToOptimizedPlanet in _planetToOptimizedPlanet)
         {
-            if (GameMain.localPlanet?.factory != planetToOptimizedPlanet.Key)
+            if (GameMain.localPlanet?.factory != planetToOptimizedPlanet.Key ||
+                ForceOptimizeLocalPlanet)
             {
                 if (planetToOptimizedPlanet.Value.Status == OptimizedPlanetStatus.Stopped)
                 {

@@ -29,4 +29,13 @@ internal struct NetworkIdAndState<T> where T : Enum
 
         _value = ((uint)state << IndexBitCount) | (IndexBitMask & (uint)index);
     }
+
+    public override string ToString()
+    {
+        return $"""
+            NetworkIdAndState<{typeof(T).Name}>
+            \t{nameof(State)}: {Enum.GetName(typeof(T), State)}
+            \t{nameof(Index)}: {Index:N0}
+            """;
+    }
 }

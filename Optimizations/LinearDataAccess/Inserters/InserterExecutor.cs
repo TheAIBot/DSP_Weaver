@@ -68,11 +68,42 @@ internal static class CargoPathMethods
     }
 }
 
-internal record struct PickFromProducingPlant(int[] Products, int[] Produced);
+internal record struct PickFromProducingPlant(int[] Products, int[] Produced)
+{
+    public override string ToString()
+    {
+        return $"""
+            PickFromProducingPlant
+            \t{nameof(Products)}: {string.Join(", ", Products ?? [])}
+            \t{nameof(Produced)}: {string.Join(", ", Produced ?? [])}
+            """;
+    }
+}
 
-internal record struct ConnectionBelts(OptimizedCargoPath? PickFrom, OptimizedCargoPath? InsertInto);
+internal record struct ConnectionBelts(OptimizedCargoPath? PickFrom, OptimizedCargoPath? InsertInto)
+{
+    public override string ToString()
+    {
+        return $"""
+            ConnectionBelts
+            \t{nameof(PickFrom)}: {PickFrom}, {PickFrom?.pathLength}
+            \t{nameof(InsertInto)}: {InsertInto}, {InsertInto?.pathLength}
+            """;
+    }
+}
 
-internal record struct InsertIntoConsumingPlant(int[]? Requires, int[] Served, int[] IncServed);
+internal record struct InsertIntoConsumingPlant(int[]? Requires, int[] Served, int[] IncServed)
+{
+    public override string ToString()
+    {
+        return $"""
+            InsertIntoConsumingPlant
+            \t{nameof(Requires)}: {string.Join(", ", Requires ?? [])}
+            \t{nameof(Served)}: {string.Join(", ", Served ?? [])}
+            \t{nameof(IncServed)}: {string.Join(", ", IncServed ?? [])}
+            """;
+    }
+}
 
 internal sealed class InserterExecutor<T>
     where T : struct, IInserter<T>
@@ -955,6 +986,17 @@ internal sealed class InserterExecutor<T>
         _connectionBelts = connectionBelts.ToArray();
         _insertIntoConsumingPlants = insertIntoConsumingPlants.ToArray();
         _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex;
+    }
+
+    private void Print(int inserterIndex)
+    {
+        WeaverFixes.Logger.LogMessage(_optimizedInserters[inserterIndex].ToString());
+        WeaverFixes.Logger.LogMessage(_inserterNetworkIdAndStates[inserterIndex].ToString());
+        WeaverFixes.Logger.LogMessage(_inserterConnections[inserterIndex].ToString());
+        WeaverFixes.Logger.LogMessage(_inserterConnectionNeeds[inserterIndex]?.ToString());
+        WeaverFixes.Logger.LogMessage(_pickFromProducingPlants[inserterIndex].ToString());
+        WeaverFixes.Logger.LogMessage(_connectionBelts[inserterIndex].ToString());
+        WeaverFixes.Logger.LogMessage(_insertIntoConsumingPlants[inserterIndex].ToString());
     }
 
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch

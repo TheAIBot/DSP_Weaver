@@ -311,4 +311,21 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         inserter.idleTick = idleTick;
         inserter.stage = inserterStage;
     }
+
+    public override string ToString()
+    {
+        return $"""
+            Bi Inserter
+            \t{nameof(grade)}: {grade:N0}
+            \t{nameof(careNeeds)}: {careNeeds}
+            \t{nameof(pickOffset)}: {pickOffset:N0}
+            \t{nameof(insertOffset)}: {insertOffset:N0}
+            \t{nameof(filter)}: {filter:N0}
+            \t{nameof(itemId)}: {itemId:N0}
+            \t{nameof(itemCount)}: {itemCount:N0}
+            \t{nameof(itemInc)}: {itemInc:N0}
+            \t{nameof(stackCount)}: {stackCount:N0}
+            \t{nameof(idleTick)}: {idleTick:N0}
+            """;
+    }
 }
