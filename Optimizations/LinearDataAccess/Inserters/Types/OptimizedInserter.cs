@@ -208,7 +208,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         break;
                     }
                     TypedObjectIndex num2 = inserterGrade.StackOutput > 1 ? inserterExecutor._inserterConnections[inserterIndex].InsertInto : default;
-                    if (num2.EntityType == EntityType.Belt && num2.Index > 0)
+                    if (num2.EntityType == EntityType.Belt)
                     {
                         int num3 = itemCount;
                         int num4 = itemInc;

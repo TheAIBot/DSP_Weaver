@@ -1,3 +1,7 @@
+## 1.2.6
+* Fix some sorters were not assigned the correct sorter grade.
+* Fix sorters could not interact with the first building of each entity type.
+
 ## 1.2.5
 * Fix sorters were incorrectly interacting with very long belts.
 * Fix labs did not update their display icon when research changed.

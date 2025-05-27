@@ -217,7 +217,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 break;
             }
             TypedObjectIndex num4 = inserterGrade.StackOutput > 1 ? inserterExecutor._inserterConnections[inserterIndex].InsertInto : default;
-            if (num4.EntityType == EntityType.Belt && num4.Index > 0)
+            if (num4.EntityType == EntityType.Belt)
             {
                 int num5 = itemCount;
                 int num6 = itemInc;

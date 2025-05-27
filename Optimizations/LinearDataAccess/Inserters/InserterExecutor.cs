@@ -224,10 +224,6 @@ internal sealed class InserterExecutor<T>
         inc = 0;
         TypedObjectIndex typedObjectIndex = _inserterConnections[inserterIndex].PickFrom;
         int objectIndex = typedObjectIndex.Index;
-        if (objectIndex == 0)
-        {
-            return 0;
-        }
 
         if (typedObjectIndex.EntityType == EntityType.Belt)
         {
@@ -458,10 +454,6 @@ internal sealed class InserterExecutor<T>
         remainInc = itemInc;
         TypedObjectIndex typedObjectIndex = _inserterConnections[inserterIndex].InsertInto;
         int objectIndex = typedObjectIndex.Index;
-        if (objectIndex == 0)
-        {
-            return 0;
-        }
 
         if (typedObjectIndex.EntityType == EntityType.Belt)
         {
@@ -789,7 +781,7 @@ internal sealed class InserterExecutor<T>
                                                      .OrderBy(x => x))
         {
             ref InserterComponent inserter = ref planet.factorySystem.inserterPool[inserterIndex];
-            if (inserter.id != inserterIndex || !inserterSelector(inserter))
+            if (!inserterSelector(inserter))
             {
                 continue;
             }
