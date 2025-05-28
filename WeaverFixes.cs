@@ -2,7 +2,6 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
-using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess;
 using Weaver.Optimizations.Statistics;
 
@@ -12,7 +11,7 @@ internal static class ModInfo
 {
     public const string Guid = "Weaver";
     public const string Name = "Weaver";
-    public const string Version = "1.2.5";
+    public const string Version = "1.2.6";
 }
 
 internal static class ModDependencies
@@ -67,7 +66,7 @@ public class WeaverFixes : BaseUnityPlugin
 
         OptimizedStarCluster.EnableOptimization(harmony);
         //OptimizedStarCluster.DebugEnableHeavyReOptimization();
-        GraphStatistics.Enable(harmony);
+        //GraphStatistics.Enable(harmony);
         //GameStatistics.MemoryStatistics.EnableGameStatistics(harmony);
     }
 
