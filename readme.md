@@ -15,6 +15,7 @@ Known incompatible mods:
 * SampleAndHoldSim
 * GenesisBook
 * Multfuntion mod
+* More Mega Structures
 
 # Known issues
 None. You can [report bugs here.](https://github.com/TheAIBot/DSP_Weaver/issues)
