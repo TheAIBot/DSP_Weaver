@@ -1,3 +1,6 @@
+* !!! Update RefreshPowerGenerationCapacitesWithFactory !!!
+
+
 ## 1.2.6
 * Fix some sorters were not assigned the correct sorter grade.
 * Fix sorters could not interact with the first building of each entity type.

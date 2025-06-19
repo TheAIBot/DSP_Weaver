@@ -193,21 +193,32 @@ internal sealed class OptimizedPowerSystemBuilder
                 networkNonOptimizedPowerConsumerIndexes = planet.powerSystem.netPool[i].consumers.ToArray();
             }
 
-            HashSet<int> generatorIndexes = new(powerNetwork.generators);
+            var windExecutor = new WindGeneratorExecutor();
+            windExecutor.Initialize(planet, i);
+
+            var solarExecutor = new SolarGeneratorExecutor();
+            solarExecutor.Initialize(planet, i);
 
             var gammaExecutor = new GammaPowerGeneratorExecutor();
             gammaExecutor.Initialize(planet, i, planetWideBeltExecutor);
 
+            var geothermalExecutor = new GeothermalGeneratorExecutor();
+            geothermalExecutor.Initialize(planet, i);
+
+            var fuelExecutor = new FuelGeneratorExecutor();
+            fuelExecutor.Initialize(planet, i);
+
             var powerExchangerExecutor = new PowerExchangerExecutor();
             powerExchangerExecutor.Initialize(planet, i, planetWideBeltExecutor);
-
-            generatorIndexes.ExceptWith(gammaExecutor.OptimizedPowerGeneratorIds);
 
             optimizedPowerNetworks.Add(new OptimizedPowerNetwork(powerNetwork,
                                                                  i,
                                                                  networkNonOptimizedPowerConsumerIndexes,
-                                                                 generatorIndexes.OrderBy(x => x).ToArray(),
+                                                                 windExecutor,
+                                                                 solarExecutor,
                                                                  gammaExecutor,
+                                                                 geothermalExecutor,
+                                                                 fuelExecutor,
                                                                  powerExchangerExecutor));
         }
 
