@@ -20,7 +20,10 @@ internal sealed class AssemblerExecutor
 
     public int AssemblerCount => _optimizedAssemblers.Length;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet,
+                         int[] assemblerPowerConsumerTypeIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption)
     {
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
@@ -35,28 +38,29 @@ internal sealed class AssemblerExecutor
         AssemblerNeeds[] assemblersNeeds = _assemblersNeeds;
         int[] assemblerRecipeIndexes = _assemblerRecipeIndexes;
 
-        for (int k = 0; k < optimizedAssemblers.Length; k++)
+        for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
         {
-            ref NetworkIdAndState<AssemblerState> assemblerNetworkIdAndState = ref _assemblerNetworkIdAndStates[k];
+            ref NetworkIdAndState<AssemblerState> assemblerNetworkIdAndState = ref _assemblerNetworkIdAndStates[assemblerIndex];
+            ref bool replicating = ref assemblerReplicatings[assemblerIndex];
+            ref int extraPowerRatios = ref assemblerExtraPowerRatios[assemblerIndex];
             if ((AssemblerState)assemblerNetworkIdAndState.State != AssemblerState.Active)
             {
+                UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, assemblerIndex, assemblerNetworkIdAndState.Index, replicating, extraPowerRatios);
                 continue;
             }
 
-            AssemblerRecipe recipeData = assemblerRecipes[assemblerRecipeIndexes[k]];
-            AssemblerNeeds assemblerNeeds = assemblersNeeds[k];
-            ref AssemblerTimingData assemblerTimingData = ref assemblersTimingData[k];
+            AssemblerRecipe recipeData = assemblerRecipes[assemblerRecipeIndexes[assemblerIndex]];
+            AssemblerNeeds assemblerNeeds = assemblersNeeds[assemblerIndex];
+            ref AssemblerTimingData assemblerTimingData = ref assemblersTimingData[assemblerIndex];
             OptimizedAssembler.UpdateNeeds(ref recipeData, ref assemblerTimingData, ref assemblerNeeds);
-
             float power = networkServes[assemblerNetworkIdAndState.Index];
-            ref bool replicating = ref assemblerReplicatings[k];
             if (!assemblerTimingData.UpdateTimings(power, replicating, in recipeData))
             {
+                UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, assemblerIndex, assemblerNetworkIdAndState.Index, replicating, extraPowerRatios);
                 continue;
             }
 
-            ref OptimizedAssembler assembler = ref optimizedAssemblers[k];
-            ref int extraPowerRatios = ref assemblerExtraPowerRatios[k];
+            ref OptimizedAssembler assembler = ref optimizedAssemblers[assemblerIndex];
             assemblerNetworkIdAndState.State = (int)assembler.Update(power,
                                                                      productRegister,
                                                                      consumeRegister,
@@ -65,6 +69,8 @@ internal sealed class AssemblerExecutor
                                                                      ref extraPowerRatios,
                                                                      ref assemblerTimingData,
                                                                      ref assemblerNeeds);
+
+            UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, assemblerIndex, assemblerNetworkIdAndState.Index, replicating, extraPowerRatios);
         }
     }
 
@@ -79,10 +85,23 @@ internal sealed class AssemblerExecutor
         for (int j = 0; j < optimizedAssemblers.Length; j++)
         {
             int networkIndex = assemblerNetworkIdAndStates[j].Index;
-            int powerConsumerTypeIndex = assemblerPowerConsumerTypeIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, assemblerReplicatings[j], assemblerExtraPowerRatios[j]);
+            bool replicating = assemblerReplicatings[j];
+            int extraPowerRatios = assemblerExtraPowerRatios[j];
+            UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, j, networkIndex, replicating, extraPowerRatios);
         }
+    }
+
+    private static void UpdatePower(int[] assemblerPowerConsumerTypeIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int assemblerIndex,
+                                    int networkIndex,
+                                    bool replicating,
+                                    int extraPowerRatios)
+    {
+        int powerConsumerTypeIndex = assemblerPowerConsumerTypeIndexes[assemblerIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, replicating, extraPowerRatios);
     }
 
     public void Save(PlanetFactory planet)

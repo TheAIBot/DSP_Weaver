@@ -139,7 +139,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         List<IWorkChunk> gameTickChunks = [];
         foreach (var subFactory in _subFactories)
         {
-            gameTickChunks.Add(new SubFactoryGameTick(subFactory));
+            gameTickChunks.Add(new SubFactoryGameTick(subFactory, _optimizedPowerSystem));
         }
         workSteps.Add(new WorkStep(gameTickChunks.ToArray()));
 

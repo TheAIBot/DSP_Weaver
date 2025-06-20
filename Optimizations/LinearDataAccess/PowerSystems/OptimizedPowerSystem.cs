@@ -5,10 +5,10 @@ namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 internal sealed class OptimizedPowerSystem
 {
-    private readonly PowerConsumerType[] _powerConsumerTypes;
-    private readonly int[] _assemblerPowerConsumerTypeIndexes;
-    private readonly int[] _inserterBiPowerConsumerTypeIndexes;
-    private readonly int[] _inserterPowerConsumerTypeIndexes;
+    public readonly PowerConsumerType[] _powerConsumerTypes;
+    public readonly int[] _assemblerPowerConsumerTypeIndexes;
+    public readonly int[] _inserterBiPowerConsumerTypeIndexes;
+    public readonly int[] _inserterPowerConsumerTypeIndexes;
     private readonly int[] _producingLabPowerConsumerTypeIndexes;
     private readonly int[] _researchingLabPowerConsumerTypeIndexes;
     private readonly Dictionary<OptimizedSubFactory, int[]> _subFactoryToSpraycoaterPowerConsumerTypeIndexes;
@@ -20,7 +20,7 @@ internal sealed class OptimizedPowerSystem
     private readonly int[] _beltVeinMinerPowerConsumerTypeIndexes;
     private readonly int[] _stationVeinMinerPowerConsumerTypeIndexes;
     private readonly OptimizedPowerNetwork[] _optimizedPowerNetworks;
-    private readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
+    public readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
 
     public OptimizedPowerSystem(PowerConsumerType[] powerConsumerTypes,
                                 int[] assemblerPowerConsumerTypeIndexes,
@@ -188,9 +188,12 @@ internal sealed class OptimizedPowerSystem
         subFactory._waterMinerExecutor.UpdatePower(_waterMinerPowerConsumerTypeIndexes,
                                                    _powerConsumerTypes,
                                                    subFactoryNetworkPowerConsumption);
-        subFactory._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
-                                                  _powerConsumerTypes,
-                                                  subFactoryNetworkPowerConsumption);
+        if (!subFactory.HasCalculatedPowerConsumption)
+        {
+            subFactory._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
+                                                      _powerConsumerTypes,
+                                                      subFactoryNetworkPowerConsumption);
+        }
         subFactory._fractionatorExecutor.UpdatePower(_fractionatorPowerConsumerTypeIndexes,
                                                      _powerConsumerTypes,
                                                      subFactoryNetworkPowerConsumption);
@@ -204,12 +207,15 @@ internal sealed class OptimizedPowerSystem
                                                        _powerConsumerTypes,
                                                        subFactoryNetworkPowerConsumption);
 
-        subFactory._optimizedBiInserterExecutor.UpdatePower(_inserterBiPowerConsumerTypeIndexes,
-                                                           _powerConsumerTypes,
-                                                           subFactoryNetworkPowerConsumption);
-        subFactory._optimizedInserterExecutor.UpdatePower(_inserterPowerConsumerTypeIndexes,
-                                                          _powerConsumerTypes,
-                                                          subFactoryNetworkPowerConsumption);
+        if (!subFactory.HasCalculatedPowerConsumption)
+        {
+            subFactory._optimizedBiInserterExecutor.UpdatePower(_inserterBiPowerConsumerTypeIndexes,
+                                                                _powerConsumerTypes,
+                                                                subFactoryNetworkPowerConsumption);
+            subFactory._optimizedInserterExecutor.UpdatePower(_inserterPowerConsumerTypeIndexes,
+                                                              _powerConsumerTypes,
+                                                              subFactoryNetworkPowerConsumption);
+        }
     }
 
     private void CargoTrafficBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)

@@ -69,6 +69,8 @@ internal sealed class OptimizedSubFactory
     public BeltExecutor _beltExecutor = null!;
     public SplitterExecutor _splitterExecutor = null!;
 
+    public bool HasCalculatedPowerConsumption = false;
+
     public OptimizedSubFactory(PlanetFactory planet, OptimizedTerrestrialPlanet optimizedTerrestrialPlanet, StarClusterResearchManager starClusterResearchManager)
     {
         _planet = planet;
@@ -117,6 +119,8 @@ internal sealed class OptimizedSubFactory
         InitializeSplitters(subFactoryGraph, _beltExecutor);
 
         turretExecutorBuilder.Initialize(_planet, subFactoryGraph, _beltExecutor);
+
+        HasCalculatedPowerConsumption = false;
     }
 
     private void InitializeInserters(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, BeltExecutor beltExecutor)
@@ -235,16 +239,17 @@ internal sealed class OptimizedSubFactory
         _splitterExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
     }
 
-    public void GameTick(WorkerTimings workerTimings, long time)
+    public void GameTick(WorkerTimings workerTimings, long time, OptimizedPowerSystem optimizedPowerSystem)
     {
         var miningFlags = new MiningFlags();
+        long[] networkPowerConsumptions = optimizedPowerSystem._subFactoryToNetworkPowerConsumptions[this];
 
         workerTimings.StartTimer();
         _beltVeinMinerExecutor.GameTick(_planet, ref miningFlags);
         _stationVeinMinerExecutor.GameTick(_planet, ref miningFlags);
         _oilMinerExecutor.GameTick(_planet);
         _waterMinerExecutor.GameTick(_planet);
-        _assemblerExecutor.GameTick(_planet);
+        _assemblerExecutor.GameTick(_planet, optimizedPowerSystem._assemblerPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         _fractionatorExecutor.GameTick(_planet);
         _ejectorExecutor.GameTick(_planet, time);
         _siloExecutor.GameTick(_planet);
@@ -266,8 +271,8 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.InputFromBelt);
 
         workerTimings.StartTimer();
-        _optimizedBiInserterExecutor.GameTickInserters(_planet);
-        _optimizedInserterExecutor.GameTickInserters(_planet);
+        _optimizedBiInserterExecutor.GameTickInserters(_planet, optimizedPowerSystem._inserterBiPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
+        _optimizedInserterExecutor.GameTickInserters(_planet, optimizedPowerSystem._inserterPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         workerTimings.RecordTime(WorkType.InserterData);
 
         workerTimings.StartTimer();
@@ -300,6 +305,8 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.OutputToBelt);
 
         _optimizedPlanet.AddMiningFlags(miningFlags);
+
+        HasCalculatedPowerConsumption = true;
     }
 
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)

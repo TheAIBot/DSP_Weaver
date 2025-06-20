@@ -134,26 +134,26 @@ internal sealed class InserterExecutor<T>
         _researchingLabNetworkIdAndStates = researchingLabNetworkIdAndStates;
     }
 
-    public void GameTickInserters(PlanetFactory planet)
+    public void GameTickInserters(PlanetFactory planet,
+                                  int[] inserterPowerConsumerIndexes,
+                                  PowerConsumerType[] powerConsumerTypes,
+                                  long[] thisSubFactoryNetworkPowerConsumption)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
 
         for (int inserterIndex = 0; inserterIndex < _inserterNetworkIdAndStates.Length; inserterIndex++)
         {
+            ref OptimizedInserterStage optimizedInserterStage = ref _optimizedInserterStages[inserterIndex];
             ref NetworkIdAndState<InserterState> networkIdAndState = ref _inserterNetworkIdAndStates[inserterIndex];
             InserterState inserterState = (InserterState)networkIdAndState.State;
             if (inserterState != InserterState.Active)
             {
-                if (inserterState == InserterState.InactiveNoInserter ||
-                    inserterState == InserterState.InactiveNotCompletelyConnected)
-                {
-                    continue;
-                }
-                else if (inserterState == InserterState.InactivePickFrom)
+                if (inserterState == InserterState.InactivePickFrom)
                 {
                     if (!IsObjectPickFromActive(inserterIndex))
                     {
+                        UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
                         continue;
                     }
 
@@ -163,6 +163,7 @@ internal sealed class InserterExecutor<T>
                 {
                     if (!IsObjectInsertIntoActive(inserterIndex))
                     {
+                        UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
                         continue;
                     }
 
@@ -173,7 +174,6 @@ internal sealed class InserterExecutor<T>
             float power2 = networkServes[networkIdAndState.Index];
             ref T optimizedInserter = ref _optimizedInserters[inserterIndex];
             InserterGrade inserterGrade = _inserterGrades[optimizedInserter.grade];
-            ref OptimizedInserterStage optimizedInserterStage = ref _optimizedInserterStages[inserterIndex];
             optimizedInserter.Update(planet,
                                      this,
                                      power2,
@@ -181,6 +181,8 @@ internal sealed class InserterExecutor<T>
                                      ref networkIdAndState,
                                      inserterGrade,
                                      ref optimizedInserterStage);
+
+            UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
         }
     }
 
@@ -192,11 +194,21 @@ internal sealed class InserterExecutor<T>
         for (int j = 0; j < _optimizedInserters.Length; j++)
         {
             int networkIndex = inserterNetworkIdAndStates[j].Index;
-            int powerConsumerTypeIndex = inserterPowerConsumerIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
             OptimizedInserterStage optimizedInserterStage = _optimizedInserterStages[j];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += InserterExecutor<T>.GetPowerConsumption(powerConsumerType, optimizedInserterStage);
+            UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, j, networkIndex, optimizedInserterStage);
         }
+    }
+
+    private static void UpdatePower(int[] inserterPowerConsumerIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int inserterIndex,
+                                    int networkIndex,
+                                    OptimizedInserterStage optimizedInserterStage)
+    {
+        int powerConsumerTypeIndex = inserterPowerConsumerIndexes[inserterIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, optimizedInserterStage);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, OptimizedInserterStage stage)
