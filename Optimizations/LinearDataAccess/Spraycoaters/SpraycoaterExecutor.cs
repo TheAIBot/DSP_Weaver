@@ -16,15 +16,24 @@ internal sealed class SpraycoaterExecutor
 
     public int SpraycoaterCount => _optimizedSpraycoaters.Length;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet,
+                         int[] spraycoaterPowerConsumerTypeIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption)
     {
         int[] consumeRegister = GameMain.statistics.production.factoryStatPool[planet.index].consumeRegister;
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
-        for (int i = 0; i < optimizedSpraycoaters.Length; i++)
+        int[] spraycoaterNetworkIds = _spraycoaterNetworkIds;
+        for (int spraycoaterIndex = 0; spraycoaterIndex < optimizedSpraycoaters.Length; spraycoaterIndex++)
         {
-            optimizedSpraycoaters[i].InternalUpdate(consumeRegister, ref isSpraycoatingItems[i], ref sprayTimes[i]);
+            ref bool isSpraycoatingItem = ref isSpraycoatingItems[spraycoaterIndex];
+            ref int sprayTime = ref sprayTimes[spraycoaterIndex];
+            optimizedSpraycoaters[spraycoaterIndex].InternalUpdate(consumeRegister, ref isSpraycoatingItems[spraycoaterIndex], ref sprayTimes[spraycoaterIndex]);
+
+            int networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
+            UpdatePower(spraycoaterPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, spraycoaterIndex, networkIndex, isSpraycoatingItems[spraycoaterIndex], sprayTimes[spraycoaterIndex]);
         }
     }
 
@@ -36,13 +45,24 @@ internal sealed class SpraycoaterExecutor
         int[] spraycoaterNetworkIds = _spraycoaterNetworkIds;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
-        for (int j = 0; j < optimizedSpraycoaters.Length; j++)
+        for (int spraycoaterIndex = 0; spraycoaterIndex < optimizedSpraycoaters.Length; spraycoaterIndex++)
         {
-            int networkIndex = spraycoaterNetworkIds[j];
-            int powerConsumerTypeIndex = spraycoaterPowerConsumerTypeIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItems[j], sprayTimes[j]);
+            int networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
+            UpdatePower(spraycoaterPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, spraycoaterIndex, networkIndex, isSpraycoatingItems[spraycoaterIndex], sprayTimes[spraycoaterIndex]);
         }
+    }
+
+    private static void UpdatePower(int[] spraycoaterPowerConsumerTypeIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int spraycoaterIndex,
+                                    int networkIndex,
+                                    bool isSpraycoatingItem,
+                                    int sprayTime)
+    {
+        int powerConsumerTypeIndex = spraycoaterPowerConsumerTypeIndexes[spraycoaterIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItem, sprayTime);
     }
 
     public static long GetPowerConsumption(PowerConsumerType powerConsumerType, bool isSprayCoatingItem, int sprayTime)

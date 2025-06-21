@@ -106,8 +106,8 @@ internal sealed class OptimizedSubFactory
         InitializeAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeMiners(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
         InitializeStations(subFactoryGraph, _beltExecutor, _stationVeinMinerExecutor);
-        InitializeEjectors(subFactoryGraph);
-        InitializeSilos(subFactoryGraph);
+        InitializeEjectors(subFactoryGraph, optimizedPowerSystemBuilder);
+        InitializeSilos(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeLabAssemblers(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeResearchingLabs(subFactoryGraph, optimizedPowerSystemBuilder);
         InitializeInserters(subFactoryGraph, optimizedPowerSystemBuilder, _beltExecutor);
@@ -153,16 +153,16 @@ internal sealed class OptimizedSubFactory
         _waterMinerExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder, beltExecutor);
     }
 
-    private void InitializeEjectors(Graph subFactoryGraph)
+    private void InitializeEjectors(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _ejectorExecutor = new EjectorExecutor();
-        _ejectorExecutor.Initialize(_planet, subFactoryGraph);
+        _ejectorExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
-    private void InitializeSilos(Graph subFactoryGraph)
+    private void InitializeSilos(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _siloExecutor = new SiloExecutor();
-        _siloExecutor.Initialize(_planet, subFactoryGraph);
+        _siloExecutor.Initialize(_planet, subFactoryGraph, optimizedPowerSystemBuilder);
     }
 
     private void InitializeLabAssemblers(Graph subFactoryGraph, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
@@ -243,22 +243,23 @@ internal sealed class OptimizedSubFactory
     {
         var miningFlags = new MiningFlags();
         long[] networkPowerConsumptions = optimizedPowerSystem._subFactoryToNetworkPowerConsumptions[this];
+        Array.Clear(networkPowerConsumptions, 0, networkPowerConsumptions.Length);
 
         workerTimings.StartTimer();
-        _beltVeinMinerExecutor.GameTick(_planet, ref miningFlags);
-        _stationVeinMinerExecutor.GameTick(_planet, ref miningFlags);
-        _oilMinerExecutor.GameTick(_planet);
-        _waterMinerExecutor.GameTick(_planet);
+        _beltVeinMinerExecutor.GameTick(_planet, optimizedPowerSystem._beltVeinMinerPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions, ref miningFlags);
+        _stationVeinMinerExecutor.GameTick(_planet, optimizedPowerSystem._stationVeinMinerPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions, ref miningFlags);
+        _oilMinerExecutor.GameTick(_planet, optimizedPowerSystem._oilMinerPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
+        _waterMinerExecutor.GameTick(_planet, optimizedPowerSystem._waterMinerPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         _assemblerExecutor.GameTick(_planet, optimizedPowerSystem._assemblerPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
-        _fractionatorExecutor.GameTick(_planet);
-        _ejectorExecutor.GameTick(_planet, time);
-        _siloExecutor.GameTick(_planet);
-        _producingLabExecutor.GameTickLabProduceMode(_planet);
+        _fractionatorExecutor.GameTick(_planet, optimizedPowerSystem._fractionatorPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
+        _ejectorExecutor.GameTick(_planet, time, optimizedPowerSystem._ejectorPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
+        _siloExecutor.GameTick(_planet, optimizedPowerSystem._siloPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
+        _producingLabExecutor.GameTickLabProduceMode(_planet, optimizedPowerSystem._producingLabPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         _producingLabExecutor.GameTickLabOutputToNext();
         workerTimings.RecordTime(WorkType.Assembler);
 
         workerTimings.StartTimer();
-        _researchingLabExecutor.GameTickLabResearchMode(_planet);
+        _researchingLabExecutor.GameTickLabResearchMode(_planet, optimizedPowerSystem._researchingLabPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         _researchingLabExecutor.GameTickLabOutputToNext();
         workerTimings.RecordTime(WorkType.LabResearchMode);
 
@@ -289,15 +290,15 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.Splitter);
 
         workerTimings.StartTimer();
-        _monitorExecutor.GameTick(_planet);
+        _monitorExecutor.GameTick(_planet, optimizedPowerSystem._monitorPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         workerTimings.RecordTime(WorkType.Monitor);
 
         workerTimings.StartTimer();
-        _spraycoaterExecutor.GameTick(_planet);
+        _spraycoaterExecutor.GameTick(_planet, optimizedPowerSystem._subFactoryToSpraycoaterPowerConsumerTypeIndexes[this], optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         workerTimings.RecordTime(WorkType.Spraycoater);
 
         workerTimings.StartTimer();
-        _pilerExecutor.GameTick(_planet);
+        _pilerExecutor.GameTick(_planet, optimizedPowerSystem._pilerPowerConsumerTypeIndexes, optimizedPowerSystem._powerConsumerTypes, networkPowerConsumptions);
         workerTimings.RecordTime(WorkType.Piler);
 
         workerTimings.StartTimer();

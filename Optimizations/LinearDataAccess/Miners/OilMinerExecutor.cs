@@ -12,7 +12,10 @@ internal sealed class OilMinerExecutor
     private OptimizedOilMiner[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet,
+                         int[] oilMinerPowerConsumerIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption)
     {
         GameHistoryData history = GameMain.history;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
@@ -35,10 +38,14 @@ internal sealed class OilMinerExecutor
             num5 = 0f;
         }
 
-        for (int i = 0; i < optimizedMiners.Length; i++)
+        for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            float power = networkServes[networkIds[i]];
-            optimizedMiners[i].InternalUpdate(planet, veinPool, power, num5, miningSpeedScale, productRegister);
+            int networkIndex = networkIds[minerIndex];
+            float power = networkServes[networkIndex];
+            ref OptimizedOilMiner miner = ref optimizedMiners[minerIndex];
+            miner.InternalUpdate(planet, veinPool, power, num5, miningSpeedScale, productRegister);
+
+            UpdatePower(oilMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref miner);
         }
     }
 
@@ -49,20 +56,29 @@ internal sealed class OilMinerExecutor
         int[] networkIds = _networkIds;
         OptimizedOilMiner[] optimizedMiners = _optimizedMiners;
 
-        for (int j = 0; j < optimizedMiners.Length; j++)
+        for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            ref OptimizedOilMiner miner = ref optimizedMiners[j];
-            float num4 = (float)miner.productCount / 50f;
-            num4 = ((num4 > 1f) ? 1f : num4);
-            float num5 = -2.45f * num4 + 2.47f;
-            num5 = ((num5 > 1f) ? 1f : num5);
-            miner.speedDamper = num5;
-
-            int networkIndex = networkIds[j];
-            int powerConsumerTypeIndex = oilMinerPowerConsumerIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
+            int networkIndex = networkIds[minerIndex];
+            UpdatePower(oilMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref optimizedMiners[minerIndex]);
         }
+    }
+
+    private static void UpdatePower(int[] oilMinerPowerConsumerIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int minerIndex,
+                                    int networkIndex,
+                                    ref OptimizedOilMiner miner)
+    {
+        float num4 = (float)miner.productCount / 50f;
+        num4 = ((num4 > 1f) ? 1f : num4);
+        float num5 = -2.45f * num4 + 2.47f;
+        num5 = ((num5 > 1f) ? 1f : num5);
+        miner.speedDamper = num5;
+
+        int powerConsumerTypeIndex = oilMinerPowerConsumerIndexes[minerIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
     public void Save(PlanetFactory planet)

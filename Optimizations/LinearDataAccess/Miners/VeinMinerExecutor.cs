@@ -18,7 +18,11 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         return _minerIdToOptimizedIndex[minerId];
     }
 
-    public void GameTick(PlanetFactory planet, ref MiningFlags miningFlags)
+    public void GameTick(PlanetFactory planet,
+                         int[] veinMinerPowerConsumerIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption,
+                         ref MiningFlags miningFlags)
     {
         GameHistoryData history = GameMain.history;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
@@ -36,10 +40,14 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
             num4 = 0f;
         }
 
-        for (int i = 0; i < optimizedMiners.Length; i++)
+        for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            float power = networkServes[networkIds[i]];
-            optimizedMiners[i].InternalUpdate(planet, veinPool, power, num4, miningSpeedScale, productRegister, ref miningFlags);
+            int networkIndex = networkIds[minerIndex];
+            float power = networkServes[networkIndex];
+            ref OptimizedVeinMiner<TMinerOutput> miner = ref optimizedMiners[minerIndex];
+            miner.InternalUpdate(planet, veinPool, power, num4, miningSpeedScale, productRegister, ref miningFlags);
+
+            UpdatePower(veinMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref miner);
         }
     }
 
@@ -50,16 +58,25 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         int[] networkIds = _networkIds;
         OptimizedVeinMiner<TMinerOutput>[] optimizedMiners = _optimizedMiners;
 
-        for (int j = 0; j < optimizedMiners.Length; j++)
+        for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            ref OptimizedVeinMiner<TMinerOutput> miner = ref optimizedMiners[j];
-            miner.output.PrePowerUpdate(ref miner);
-
-            int networkIndex = networkIds[j];
-            int powerConsumerTypeIndex = veinMinerPowerConsumerIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
+            int networkIndex = networkIds[minerIndex];
+            UpdatePower(veinMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref optimizedMiners[minerIndex]);
         }
+    }
+
+    private static void UpdatePower(int[] veinMinerPowerConsumerIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int minerIndex,
+                                    int networkIndex,
+                                    ref OptimizedVeinMiner<TMinerOutput> miner)
+    {
+        miner.output.PrePowerUpdate(ref miner);
+
+        int powerConsumerTypeIndex = veinMinerPowerConsumerIndexes[minerIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
     public void Save(PlanetFactory planet)

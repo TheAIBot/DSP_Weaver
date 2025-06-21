@@ -16,6 +16,8 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly List<int> _researchingLabPowerConsumerTypeIndexes = [];
     private readonly Dictionary<OptimizedSubFactory, List<int>> _subFactoryToSpraycoaterPowerConsumerTypeIndexes = [];
     private readonly List<int> _fractionatorPowerConsumerTypeIndexes = [];
+    private readonly List<int> _ejectorPowerConsumerTypeIndexes = [];
+    private readonly List<int> _siloPowerConsumerTypeIndexes = [];
     private readonly List<int> _pilerPowerConsumerTypeIndexes = [];
     private readonly List<int> _monitorPowerConsumerTypeIndexes = [];
     private readonly List<int> _waterMinerPowerConsumerTypeIndexes = [];
@@ -69,6 +71,16 @@ internal sealed class OptimizedPowerSystemBuilder
     public void AddFractionator(ref readonly FractionatorComponent fractionator, int networkIndex)
     {
         AddEntity(_fractionatorPowerConsumerTypeIndexes, fractionator.pcId, networkIndex);
+    }
+
+    public void AddEjector(ref readonly EjectorComponent ejector, int networkIndex)
+    {
+        AddEntity(_ejectorPowerConsumerTypeIndexes, ejector.pcId, networkIndex);
+    }
+
+    public void AddSilo(ref readonly SiloComponent silo, int networkIndex)
+    {
+        AddEntity(_siloPowerConsumerTypeIndexes, silo.pcId, networkIndex);
     }
 
     public void AddPiler(ref readonly PilerComponent piler, int networkIndex)
@@ -125,6 +137,8 @@ internal sealed class OptimizedPowerSystemBuilder
                                         _researchingLabPowerConsumerTypeIndexes.ToArray(),
                                         _subFactoryToSpraycoaterPowerConsumerTypeIndexes.ToDictionary(x => x.Key, x => x.Value.ToArray()),
                                         _fractionatorPowerConsumerTypeIndexes.ToArray(),
+                                        _ejectorPowerConsumerTypeIndexes.ToArray(),
+                                        _siloPowerConsumerTypeIndexes.ToArray(),
                                         _pilerPowerConsumerTypeIndexes.ToArray(),
                                         _monitorPowerConsumerTypeIndexes.ToArray(),
                                         _waterMinerPowerConsumerTypeIndexes.ToArray(),

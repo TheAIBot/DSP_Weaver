@@ -18,7 +18,10 @@ internal sealed class ProducingLabExecutor
 
     public int ProducingLabCount => _optimizedLabs.Length;
 
-    public void GameTickLabProduceMode(PlanetFactory planet)
+    public void GameTickLabProduceMode(PlanetFactory planet,
+                                       int[] producingLabPowerConsumerIndexes,
+                                       PowerConsumerType[] powerConsumerTypes,
+                                       long[] thisSubFactoryNetworkPowerConsumption)
     {
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
@@ -28,15 +31,17 @@ internal sealed class ProducingLabExecutor
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
-        for (int i = 0; i < optimizedLabs.Length; i++)
+        for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
         {
-            ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[i];
+            ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[labIndex];
+            ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
             if ((LabState)networkIdAndState.State != LabState.Active)
             {
+                UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIdAndState.Index, labPowerFields);
                 continue;
             }
 
-            ref OptimizedProducingLab lab = ref optimizedLabs[i];
+            ref OptimizedProducingLab lab = ref optimizedLabs[labIndex];
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[lab.producingLabRecipeIndex];
             lab.UpdateNeedsAssemble(in producingLabRecipe);
 
@@ -45,7 +50,9 @@ internal sealed class ProducingLabExecutor
                                                                       productRegister,
                                                                       consumeRegister,
                                                                       in producingLabRecipe,
-                                                                      ref labsPowerFields[i]);
+                                                                      ref labPowerFields);
+
+            UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIdAndState.Index, labPowerFields);
         }
     }
 
@@ -68,13 +75,24 @@ internal sealed class ProducingLabExecutor
     {
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        for (int j = 0; j < _optimizedLabs.Length; j++)
+        for (int labIndex = 0; labIndex < _optimizedLabs.Length; labIndex++)
         {
-            int networkIndex = networkIdAndStates[j].Index;
-            int powerConsumerTypeIndex = producingLabPowerConsumerIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labsPowerFields[j]);
+            int networkIndex = networkIdAndStates[labIndex].Index;
+            LabPowerFields labPowerFields = labsPowerFields[networkIndex];
+            UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
+    }
+
+    private static void UpdatePower(int[] producingLabPowerConsumerIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int labIndex,
+                                    int networkIndex,
+                                    LabPowerFields labPowerFields)
+    {
+        int powerConsumerTypeIndex = producingLabPowerConsumerIndexes[labIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labPowerFields);
     }
 
     public void Save(PlanetFactory planet)

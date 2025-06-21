@@ -9,16 +9,18 @@ internal sealed class OptimizedPowerSystem
     public readonly int[] _assemblerPowerConsumerTypeIndexes;
     public readonly int[] _inserterBiPowerConsumerTypeIndexes;
     public readonly int[] _inserterPowerConsumerTypeIndexes;
-    private readonly int[] _producingLabPowerConsumerTypeIndexes;
-    private readonly int[] _researchingLabPowerConsumerTypeIndexes;
-    private readonly Dictionary<OptimizedSubFactory, int[]> _subFactoryToSpraycoaterPowerConsumerTypeIndexes;
-    private readonly int[] _fractionatorPowerConsumerTypeIndexes;
-    private readonly int[] _pilerPowerConsumerTypeIndexes;
-    private readonly int[] _monitorPowerConsumerTypeIndexes;
-    private readonly int[] _waterMinerPowerConsumerTypeIndexes;
-    private readonly int[] _oilMinerPowerConsumerTypeIndexes;
-    private readonly int[] _beltVeinMinerPowerConsumerTypeIndexes;
-    private readonly int[] _stationVeinMinerPowerConsumerTypeIndexes;
+    public readonly int[] _producingLabPowerConsumerTypeIndexes;
+    public readonly int[] _researchingLabPowerConsumerTypeIndexes;
+    public readonly Dictionary<OptimizedSubFactory, int[]> _subFactoryToSpraycoaterPowerConsumerTypeIndexes;
+    public readonly int[] _fractionatorPowerConsumerTypeIndexes;
+    public readonly int[] _ejectorPowerConsumerTypeIndexes;
+    public readonly int[] _siloPowerConsumerTypeIndexes;
+    public readonly int[] _pilerPowerConsumerTypeIndexes;
+    public readonly int[] _monitorPowerConsumerTypeIndexes;
+    public readonly int[] _waterMinerPowerConsumerTypeIndexes;
+    public readonly int[] _oilMinerPowerConsumerTypeIndexes;
+    public readonly int[] _beltVeinMinerPowerConsumerTypeIndexes;
+    public readonly int[] _stationVeinMinerPowerConsumerTypeIndexes;
     private readonly OptimizedPowerNetwork[] _optimizedPowerNetworks;
     public readonly Dictionary<OptimizedSubFactory, long[]> _subFactoryToNetworkPowerConsumptions;
 
@@ -30,6 +32,8 @@ internal sealed class OptimizedPowerSystem
                                 int[] researchingLabPowerConsumerTypeIndexes,
                                 Dictionary<OptimizedSubFactory, int[]> subFactoryToSpraycoaterPowerConsumerTypeIndexes,
                                 int[] fractionatorPowerConsumerTypeIndexes,
+                                int[] ejectorPowerConsumerTypeIndexes,
+                                int[] siloPowerConsumerTypeIndexes,
                                 int[] pilerPowerConsumerTypeIndexes,
                                 int[] monitorPowerConsumerTypeIndexes,
                                 int[] waterMinerPowerConsumerTypeIndexes,
@@ -47,6 +51,8 @@ internal sealed class OptimizedPowerSystem
         _researchingLabPowerConsumerTypeIndexes = researchingLabPowerConsumerTypeIndexes;
         _subFactoryToSpraycoaterPowerConsumerTypeIndexes = subFactoryToSpraycoaterPowerConsumerTypeIndexes;
         _fractionatorPowerConsumerTypeIndexes = fractionatorPowerConsumerTypeIndexes;
+        _ejectorPowerConsumerTypeIndexes = ejectorPowerConsumerTypeIndexes;
+        _siloPowerConsumerTypeIndexes = siloPowerConsumerTypeIndexes;
         _pilerPowerConsumerTypeIndexes = pilerPowerConsumerTypeIndexes;
         _monitorPowerConsumerTypeIndexes = monitorPowerConsumerTypeIndexes;
         _waterMinerPowerConsumerTypeIndexes = waterMinerPowerConsumerTypeIndexes;
@@ -87,6 +93,11 @@ internal sealed class OptimizedPowerSystem
 
     public void BeforePower(PlanetFactory planet, OptimizedSubFactory subFactory)
     {
+        if (subFactory.HasCalculatedPowerConsumption)
+        {
+            return;
+        }
+
         long[] thisSubFactoryNetworkPowerConsumption = _subFactoryToNetworkPowerConsumptions[subFactory];
         Array.Clear(thisSubFactoryNetworkPowerConsumption, 0, thisSubFactoryNetworkPowerConsumption.Length);
 
@@ -101,6 +112,11 @@ internal sealed class OptimizedPowerSystem
 
     public void GameTick(PlanetFactory planet, long time)
     {
+        foreach (var subFactory in _subFactoryToNetworkPowerConsumptions.Keys)
+        {
+            BeforePower(planet, subFactory);
+        }
+
         PowerSystem powerSystem = planet.powerSystem;
         FactoryProductionStat factoryProductionStat = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = factoryProductionStat.productRegister;
@@ -177,8 +193,8 @@ internal sealed class OptimizedPowerSystem
     private void FactorySystemBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)
     {
         subFactory._beltVeinMinerExecutor.UpdatePower(_beltVeinMinerPowerConsumerTypeIndexes,
-                                                     _powerConsumerTypes,
-                                                     subFactoryNetworkPowerConsumption);
+                                                      _powerConsumerTypes,
+                                                      subFactoryNetworkPowerConsumption);
         subFactory._stationVeinMinerExecutor.UpdatePower(_stationVeinMinerPowerConsumerTypeIndexes,
                                                          _powerConsumerTypes,
                                                          subFactoryNetworkPowerConsumption);
@@ -188,17 +204,23 @@ internal sealed class OptimizedPowerSystem
         subFactory._waterMinerExecutor.UpdatePower(_waterMinerPowerConsumerTypeIndexes,
                                                    _powerConsumerTypes,
                                                    subFactoryNetworkPowerConsumption);
-        if (!subFactory.HasCalculatedPowerConsumption)
-        {
-            subFactory._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
-                                                      _powerConsumerTypes,
-                                                      subFactoryNetworkPowerConsumption);
-        }
+
+        subFactory._assemblerExecutor.UpdatePower(_assemblerPowerConsumerTypeIndexes,
+                                                  _powerConsumerTypes,
+                                                  subFactoryNetworkPowerConsumption);
+
         subFactory._fractionatorExecutor.UpdatePower(_fractionatorPowerConsumerTypeIndexes,
                                                      _powerConsumerTypes,
                                                      subFactoryNetworkPowerConsumption);
-        subFactory._ejectorExecutor.UpdatePower(planet);
-        subFactory._siloExecutor.UpdatePower(planet);
+
+        subFactory._ejectorExecutor.UpdatePower(planet,
+                                                _ejectorPowerConsumerTypeIndexes,
+                                                _powerConsumerTypes,
+                                                subFactoryNetworkPowerConsumption);
+        subFactory._siloExecutor.UpdatePower(planet,
+                                             _siloPowerConsumerTypeIndexes,
+                                             _powerConsumerTypes,
+                                             subFactoryNetworkPowerConsumption);
 
         subFactory._producingLabExecutor.UpdatePower(_producingLabPowerConsumerTypeIndexes,
                                                      _powerConsumerTypes,
@@ -207,15 +229,12 @@ internal sealed class OptimizedPowerSystem
                                                        _powerConsumerTypes,
                                                        subFactoryNetworkPowerConsumption);
 
-        if (!subFactory.HasCalculatedPowerConsumption)
-        {
-            subFactory._optimizedBiInserterExecutor.UpdatePower(_inserterBiPowerConsumerTypeIndexes,
-                                                                _powerConsumerTypes,
-                                                                subFactoryNetworkPowerConsumption);
-            subFactory._optimizedInserterExecutor.UpdatePower(_inserterPowerConsumerTypeIndexes,
-                                                              _powerConsumerTypes,
-                                                              subFactoryNetworkPowerConsumption);
-        }
+        subFactory._optimizedBiInserterExecutor.UpdatePower(_inserterBiPowerConsumerTypeIndexes,
+                                                            _powerConsumerTypes,
+                                                            subFactoryNetworkPowerConsumption);
+        subFactory._optimizedInserterExecutor.UpdatePower(_inserterPowerConsumerTypeIndexes,
+                                                          _powerConsumerTypes,
+                                                          subFactoryNetworkPowerConsumption);
     }
 
     private void CargoTrafficBeforePower(PlanetFactory planet, OptimizedSubFactory subFactory, long[] subFactoryNetworkPowerConsumption)

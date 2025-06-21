@@ -16,7 +16,10 @@ internal sealed class FractionatorExecutor
 
     public int FractionatorCount => _optimizedFractionators.Length;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet,
+                         int[] fractionatorPowerConsumerTypeIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption)
     {
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] productRegister = obj.productRegister;
@@ -28,17 +31,20 @@ internal sealed class FractionatorExecutor
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         FractionatorConfiguration[] fractionatorConfigurations = _fractionatorConfigurations;
 
-        for (int i = 0; i < optimizedFractionators.Length; i++)
+        for (int fractionatorIndex = 0; fractionatorIndex < optimizedFractionators.Length; fractionatorIndex++)
         {
-            float power2 = networkServes[fractionatorNetworkId[i]];
-            ref OptimizedFractionator fractionator = ref optimizedFractionators[i];
+            int networkIndex = fractionatorNetworkId[fractionatorIndex];
+            float power2 = networkServes[networkIndex];
+            ref OptimizedFractionator fractionator = ref optimizedFractionators[fractionatorIndex];
             ref readonly FractionatorConfiguration configuration = ref fractionatorConfigurations[fractionator.configurationIndex];
-            ref FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[i];
+            ref FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[fractionatorIndex];
             fractionator.InternalUpdate(power2,
                                         in configuration,
                                         ref fractionatorPowerFields,
                                         productRegister,
                                         consumeRegister);
+
+            UpdatePower(fractionatorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, fractionatorIndex, networkIndex, in fractionatorPowerFields);
         }
     }
 
@@ -48,13 +54,25 @@ internal sealed class FractionatorExecutor
     {
         int[] fractionatorNetworkId = _fractionatorNetworkId;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
-        for (int j = 0; j < fractionatorsPowerFields.Length; j++)
+        for (int fractionatorIndex = 0; fractionatorIndex < fractionatorsPowerFields.Length; fractionatorIndex++)
         {
-            int networkIndex = fractionatorNetworkId[j];
-            int powerConsumerTypeIndex = fractionatorPowerConsumerTypeIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorsPowerFields[j]);
+            int networkIndex = fractionatorNetworkId[fractionatorIndex];
+            ref readonly FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[fractionatorIndex];
+
+            UpdatePower(fractionatorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, fractionatorIndex, networkIndex, in fractionatorPowerFields);
         }
+    }
+
+    private static void UpdatePower(int[] fractionatorPowerConsumerTypeIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int fractionatorIndex,
+                                    int networkIndex,
+                                    ref readonly FractionatorPowerFields fractionatorPowerFields)
+    {
+        int powerConsumerTypeIndex = fractionatorPowerConsumerTypeIndexes[fractionatorIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorPowerFields);
     }
 
     public void Save(PlanetFactory planet)

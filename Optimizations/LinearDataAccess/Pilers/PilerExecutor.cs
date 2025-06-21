@@ -13,7 +13,10 @@ internal sealed class PilerExecutor
     private int[] _timeSpends = null!;
     private Dictionary<int, int> _pilerIdToOptimizedIndex = null!;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet,
+                         int[] pilerPowerConsumerIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
@@ -21,11 +24,14 @@ internal sealed class PilerExecutor
         OptimizedPiler[] optimizedPilers = _optimizedPilers;
         int[] timeSpends = _timeSpends;
 
-        for (int i = 0; i < optimizedPilers.Length; i++)
+        for (int pilerIndex = 0; pilerIndex < optimizedPilers.Length; pilerIndex++)
         {
-            float power = networkServes[networkIndices[i]];
-            ref int timeSpend = ref timeSpends[i];
-            optimizedPilers[i].InternalUpdate(power, ref timeSpend);
+            int networkIndex = networkIndices[pilerIndex];
+            float power = networkServes[networkIndex];
+            ref int timeSpend = ref timeSpends[pilerIndex];
+            optimizedPilers[pilerIndex].InternalUpdate(power, ref timeSpend);
+
+            UpdatePower(pilerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, pilerIndex, networkIndex, timeSpend);
         }
     }
 
@@ -35,13 +41,24 @@ internal sealed class PilerExecutor
     {
         int[] networkIndices = _networkIndices;
         int[] timeSpends = _timeSpends;
-        for (int j = 0; j < timeSpends.Length; j++)
+        for (int pilerIndex = 0; pilerIndex < timeSpends.Length; pilerIndex++)
         {
-            int networkIndex = networkIndices[j];
-            int powerConsumerTypeIndex = pilerPowerConsumerIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, timeSpends[j]);
+            int networkIndex = networkIndices[pilerIndex];
+            int timeSpend = timeSpends[pilerIndex];
+            UpdatePower(pilerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, pilerIndex, networkIndex, timeSpend);
         }
+    }
+
+    private static void UpdatePower(int[] pilerPowerConsumerIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int pilerIndex,
+                                    int networkIndex,
+                                    int timeSpend)
+    {
+        int powerConsumerTypeIndex = pilerPowerConsumerIndexes[pilerIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, timeSpend);
     }
 
     public void Save(PlanetFactory planet)

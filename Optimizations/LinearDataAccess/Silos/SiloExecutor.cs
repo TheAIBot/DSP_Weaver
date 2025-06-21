@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
 namespace Weaver.Optimizations.LinearDataAccess.Silos;
 
@@ -8,37 +9,65 @@ internal sealed class SiloExecutor
     private int[] _siloIndexes = null!;
     private int[] _siloNetworkIds = null!;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet,
+                         int[] siloPowerConsumerTypeIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption)
     {
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[planet.index];
         int[] consumeRegister = obj.consumeRegister;
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         AnimData[] entityAnimPool = planet.entityAnimPool;
-        FactorySystem factorySystem = planet.factorySystem;
+        int[] siloIndexes = _siloIndexes;
+        int[] siloNetworkIds = _siloNetworkIds;
+        SiloComponent[] silos = planet.factorySystem.siloPool;
 
-        DysonSphere dysonSphere = factorySystem.factory.dysonSphere;
-        for (int siloIndexIndex = 0; siloIndexIndex < _siloIndexes.Length; siloIndexIndex++)
+        DysonSphere dysonSphere = planet.factorySystem.factory.dysonSphere;
+        for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
         {
-            int siloIndex = _siloIndexes[siloIndexIndex];
+            int siloIndex = siloIndexes[siloIndexIndex];
+            int networkIndex = siloNetworkIds[siloIndexIndex];
+            float power4 = networkServes[networkIndex];
+            ref SiloComponent silo = ref silos[siloIndex];
+            silo.InternalUpdate(power4, dysonSphere, entityAnimPool, consumeRegister);
 
-            float power4 = networkServes[_siloNetworkIds[siloIndexIndex]];
-            factorySystem.siloPool[siloIndex].InternalUpdate(power4, dysonSphere, entityAnimPool, consumeRegister);
+            UpdatePower(siloPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, siloIndexIndex, networkIndex, in silo);
         }
     }
 
-    public void UpdatePower(PlanetFactory planet)
+    public void UpdatePower(PlanetFactory planet,
+                            int[] siloPowerConsumerTypeIndexes,
+                            PowerConsumerType[] powerConsumerTypes,
+                            long[] thisSubFactoryNetworkPowerConsumption)
     {
-        PowerConsumerComponent[] consumerPool = planet.powerSystem.consumerPool;
+        int[] siloIndexes = _siloIndexes;
+        int[] siloNetworkIds = _siloNetworkIds;
+        SiloComponent[] silos = planet.factorySystem.siloPool;
 
-        for (int siloIndexIndex = 0; siloIndexIndex < _siloIndexes.Length; siloIndexIndex++)
+        for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
         {
-            int siloIndex = _siloIndexes[siloIndexIndex];
-            planet.factorySystem.siloPool[siloIndex].SetPCState(consumerPool);
+            int siloIndex = siloIndexes[siloIndexIndex];
+            int networkIndex = siloNetworkIds[siloIndexIndex];
+            UpdatePower(siloPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, siloIndexIndex, networkIndex, in silos[siloIndex]);
         }
     }
 
-    public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
+    private static void UpdatePower(int[] siloPowerConsumerTypeIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int siloIndexIndex,
+                                    int networkIndex,
+                                    ref readonly SiloComponent silo)
+    {
+        int powerConsumerTypeIndex = siloPowerConsumerTypeIndexes[siloIndexIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in silo);
+    }
+
+    public void Initialize(PlanetFactory planet,
+                           Graph subFactoryGraph,
+                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
     {
         _siloIndexes = subFactoryGraph.GetAllNodes()
                                       .Where(x => x.EntityTypeIndex.EntityType == EntityType.Silo)
@@ -53,13 +82,21 @@ internal sealed class SiloExecutor
             int siloIndex = _siloIndexes[siloIndexIndex];
             ref SiloComponent silo = ref planet.factorySystem.siloPool[siloIndex];
 
-            siloNetworkIds[siloIndexIndex] = planet.powerSystem.consumerPool[silo.pcId].networkId;
+            int networkIndex = planet.powerSystem.consumerPool[silo.pcId].networkId;
+            siloNetworkIds[siloIndexIndex] = networkIndex;
 
             // set it here so we don't have to set it in the update loop
             silo.needs ??= new int[6];
             planet.entityNeeds[silo.entityId] = silo.needs;
+
+            optimizedPowerSystemBuilder.AddSilo(in silo, networkIndex);
         }
 
         _siloNetworkIds = siloNetworkIds;
+    }
+
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly SiloComponent silo)
+    {
+        return powerConsumerType.GetRequiredEnergy(silo.direction != 0, 1000 + Cargo.powerTable[silo.incLevel]);
     }
 }

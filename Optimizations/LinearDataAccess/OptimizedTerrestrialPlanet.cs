@@ -126,14 +126,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         List<WorkStep> workSteps = [];
 
-        List<IWorkChunk> beforePowerChunks = [];
-        beforePowerChunks.Add(new PlanetWideBeforePower(this));
-        foreach (var subFactory in _subFactories)
-        {
-            beforePowerChunks.Add(new SubFactoryBeforePower(_planet, _optimizedPowerSystem, subFactory));
-        }
-        workSteps.Add(new WorkStep(beforePowerChunks.ToArray()));
-
+        workSteps.Add(new WorkStep([new PlanetWideBeforePower(this)]));
         workSteps.Add(new WorkStep([new PlanetWidePower(this)]));
 
         List<IWorkChunk> gameTickChunks = [];

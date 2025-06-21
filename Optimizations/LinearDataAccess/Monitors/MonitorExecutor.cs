@@ -12,7 +12,10 @@ internal sealed class MonitorExecutor
     private int[] _networkIds = null!;
     private OptimizedMonitor[] _optimizedMonitors = null!;
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick(PlanetFactory planet,
+                         int[] monitorPowerConsumerIndexes,
+                         PowerConsumerType[] powerConsumerTypes,
+                         long[] thisSubFactoryNetworkPowerConsumption)
     {
         SpeakerComponent[] speakerPool = planet.digitalSystem.speakerPool;
         bool sandboxToolsEnabled = GameMain.sandboxToolsEnabled;
@@ -25,8 +28,11 @@ internal sealed class MonitorExecutor
         for (int monitorIndexIndex = 0; monitorIndexIndex < _monitorIndexes.Length; monitorIndexIndex++)
         {
             int monitorIndex = monitorIndexes[monitorIndexIndex];
-            float power = networkServes[networkIds[monitorIndexIndex]];
+            int networkIndex = networkIds[monitorIndexIndex];
+            float power = networkServes[networkIndex];
             optimizedMonitors[monitorIndexIndex].InternalUpdate(ref monitors[monitorIndex], power, sandboxToolsEnabled, speakerPool);
+
+            UpdatePower(monitorPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, monitorIndex, networkIndex);
         }
     }
 
@@ -37,13 +43,22 @@ internal sealed class MonitorExecutor
         int[] networkIds = _networkIds;
         OptimizedMonitor[] optimizedMonitors = _optimizedMonitors;
 
-        for (int j = 0; j < optimizedMonitors.Length; j++)
+        for (int monitorIndex = 0; monitorIndex < optimizedMonitors.Length; monitorIndex++)
         {
-            int networkIndex = networkIds[j];
-            int powerConsumerTypeIndex = monitorPowerConsumerIndexes[j];
-            PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-            thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType);
+            int networkIndex = networkIds[monitorIndex];
+            UpdatePower(monitorPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, monitorIndex, networkIndex);
         }
+    }
+
+    private static void UpdatePower(int[] pilerPowerConsumerIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int monitorIndex,
+                                    int networkIndex)
+    {
+        int powerConsumerTypeIndex = pilerPowerConsumerIndexes[monitorIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType);
     }
 
     public void Initialize(PlanetFactory planet,
