@@ -60,6 +60,7 @@ internal sealed class WindGeneratorExecutor
         Dictionary<long, int> optimizedWindGeneratorGroupToCount = [];
         List<int> optimizedWindIndexes = [];
         int? subId = null;
+        int? prototypeId = null;
 
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
@@ -84,6 +85,13 @@ internal sealed class WindGeneratorExecutor
                 throw new InvalidOperationException($"Assumption that {nameof(PowerGeneratorComponent.subId)} is the same for all wind machines is incorrect.");
             }
             subId = powerGenerator.subId;
+
+            int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
+            if (prototypeId.HasValue && prototypeId != componentPrototypeId)
+            {
+                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all wind machines is incorrect.");
+            }
+            prototypeId = componentPrototypeId;
 
             optimizedWindIndexes.Add(powerGenerator.id);
             if (!optimizedWindGeneratorGroupToCount.TryGetValue(powerGenerator.genEnergyPerTick, out int groupCount))
@@ -192,6 +200,7 @@ internal sealed class GeothermalGeneratorExecutor
         List<OptimizedGeothermalGenerator> optimizedGeothermalGenerators = [];
         Dictionary<int, int> geothermalIdToOptimizedIndex = [];
         int? subId = null;
+        int? prototypeId = null;
 
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
@@ -216,6 +225,13 @@ internal sealed class GeothermalGeneratorExecutor
                 throw new InvalidOperationException($"Assumption that {nameof(PowerGeneratorComponent.subId)} is the same for all geothermal machines is incorrect.");
             }
             subId = powerGenerator.subId;
+
+            int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
+            if (prototypeId.HasValue && prototypeId != componentPrototypeId)
+            {
+                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all geothermal machines is incorrect.");
+            }
+            prototypeId = componentPrototypeId;
 
             geothermalIdToOptimizedIndex.Add(powerGenerator.id, optimizedGeothermalGenerators.Count);
             optimizedGeothermalGenerators.Add(new OptimizedGeothermalGenerator(in powerGenerator));
@@ -320,6 +336,7 @@ internal sealed class SolarGeneratorExecutor
         List<OptimizedSolarGenerator> optimizedSolarGenerators = [];
         Dictionary<int, int> solarIdToOptimizedIndex = [];
         int? subId = null;
+        int? prototypeId = null;
 
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
@@ -344,6 +361,13 @@ internal sealed class SolarGeneratorExecutor
                 throw new InvalidOperationException($"Assumption that {nameof(PowerGeneratorComponent.subId)} is the same for all solar machines is incorrect.");
             }
             subId = powerGenerator.subId;
+
+            int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
+            if (prototypeId.HasValue && prototypeId != componentPrototypeId)
+            {
+                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all solar machines is incorrect.");
+            }
+            prototypeId = componentPrototypeId;
 
             solarIdToOptimizedIndex.Add(powerGenerator.id, optimizedSolarGenerators.Count);
             optimizedSolarGenerators.Add(new OptimizedSolarGenerator(in powerGenerator));
@@ -602,6 +626,8 @@ internal sealed class FuelGeneratorExecutor
         Dictionary<int, SubIdIndexWithOptimizedGeneratorIndex> fuelIdToOptimizedIndex = [];
         Dictionary<int, int> subIdIndexToOptimizedGeneratorIndex = [];
 
+        int? prototypeId = null;
+
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
             ref readonly PowerGeneratorComponent powerGenerator = ref planet.powerSystem.genPool[i];
@@ -628,6 +654,13 @@ internal sealed class FuelGeneratorExecutor
                 subIdToOptimizedFuelGenerators.Add(subId, optimizedFuelGenerators);
                 subIdIndexToOptimizedGeneratorIndex.Add(subId, subIdIndexToOptimizedGeneratorIndex.Count);
             }
+
+            int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
+            if (prototypeId.HasValue && prototypeId != componentPrototypeId)
+            {
+                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all solar machines is incorrect.");
+            }
+            prototypeId = componentPrototypeId;
 
             fuelIdToOptimizedIndex.Add(powerGenerator.id, new SubIdIndexWithOptimizedGeneratorIndex(subIdIndexToOptimizedGeneratorIndex[subId], optimizedFuelGenerators.Count));
             optimizedFuelGenerators.Add(new OptimizedFuelGenerator(in powerGenerator));

@@ -344,6 +344,11 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
     }
 
+    public void RefreshPowerConsumptionDemands()
+    {
+        //_optimizedPowerSystem
+    }
+
     private WorkStep[] CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
     {
         List<WorkStep> work = [];

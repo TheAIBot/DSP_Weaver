@@ -165,7 +165,7 @@ internal sealed class ResearchingLabExecutor
         for (int labIndex = 0; labIndex < networkIdAndStates.Length; labIndex++)
         {
             int networkIndex = networkIdAndStates[labIndex].Index;
-            LabPowerFields labPowerFields = labsPowerFields[networkIndex];
+            LabPowerFields labPowerFields = labsPowerFields[labIndex];
             UpdatePower(researchingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
     }

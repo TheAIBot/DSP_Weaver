@@ -321,6 +321,27 @@ internal static class OptimizedStarCluster
         return optimizedPlanet.RequestDysonSpherePower();
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(PowerSystem), nameof(ProductionStatistics.RefreshPowerConsumptionDemandsWithFactory))]
+    public static bool ProductionStatistics_RefreshPowerConsumptionDemandsWithFactory(PlanetFactory planet)
+    {
+        IOptimizedPlanet optimizedPlanet = GetOptimizedPlanet(planet);
+        if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        // Nothing to do on gas planets
+        if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        terrestrialPlanet.RefreshPowerConsumptionDemands();
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
     public static void ReOptimizeAllPlanets()
     {
         lock (_planetsToReOptimize)

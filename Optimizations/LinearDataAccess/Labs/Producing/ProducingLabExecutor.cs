@@ -78,7 +78,7 @@ internal sealed class ProducingLabExecutor
         for (int labIndex = 0; labIndex < _optimizedLabs.Length; labIndex++)
         {
             int networkIndex = networkIdAndStates[labIndex].Index;
-            LabPowerFields labPowerFields = labsPowerFields[networkIndex];
+            LabPowerFields labPowerFields = labsPowerFields[labIndex];
             UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
     }
