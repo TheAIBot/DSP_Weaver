@@ -79,8 +79,7 @@ internal sealed class PowerExchangerExecutor
 
     public void UpdateOutput(int[] productRegister, int[] consumeRegister, double num45, ref long num44, ref long num24, ref long num3)
     {
-        TotalCapacityCurrentTick = 0;
-
+        long energySum = 0;
         OptimizedPowerExchanger[] optimizedPowerExchangers = _optimizedPowerExchangers;
         for (int num46 = 0; num46 < optimizedPowerExchangers.Length; num46++)
         {
@@ -89,14 +88,16 @@ internal sealed class PowerExchangerExecutor
             {
                 long num47 = (long)(num45 * powerExchanger.capsCurrentTick + 0.99999);
                 long energyPay = num44 < num47 ? num44 : num47;
-                long num48 = powerExchanger.OutputUpdate(energyPay, productRegister, consumeRegister);
-                num24 += num48;
-                num3 += num48;
-                num44 -= num48;
+                energySum += powerExchanger.OutputUpdate(energyPay, productRegister, consumeRegister);
 
-                TotalCapacityCurrentTick += powerExchanger.currEnergyPerTick;
             }
         }
+
+        num24 += energySum;
+        num3 += energySum;
+        num44 -= energySum;
+
+        TotalCapacityCurrentTick = energySum;
     }
 
     public void Save(PlanetFactory planet)

@@ -946,12 +946,11 @@ internal sealed class OptimizedPowerNetwork
         {
             int num = powerGenId2Index[_powerExchangerExecutor.PrototypeId.Value];
 
-            // Game code takes negative values of total capacity. They do that because the number
-            // is negative which i do not understand why is done. Anyway that explains why
-            // the negative value is taken here in comparison to the other generators above.
-            statistics.genCapacities[num] += -_powerExchangerExecutor.TotalCapacityCurrentTick;
+            // Game code takes negative values of total capacity. I inverted the source
+            // so it didn't need to be done here.
+            statistics.genCapacities[num] += _powerExchangerExecutor.TotalCapacityCurrentTick;
             statistics.genCount[num] += _powerExchangerExecutor.GeneratorCount;
-            statistics.totalGenCapacity += -_powerExchangerExecutor.TotalCapacityCurrentTick;
+            statistics.totalGenCapacity += _powerExchangerExecutor.TotalCapacityCurrentTick;
         }
     }
 
