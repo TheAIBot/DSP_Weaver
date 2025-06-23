@@ -85,7 +85,7 @@ internal sealed class WaterMinerExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> networkIds = [];
@@ -129,7 +129,7 @@ internal sealed class WaterMinerExecutor
             OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
-            optimizedPowerSystemBuilder.AddWaterMiner(in miner, networkIndex);
+            subFactoryPowerSystemBuilder.AddWaterMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
             optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, planet.planet.waterItemId, in miner));

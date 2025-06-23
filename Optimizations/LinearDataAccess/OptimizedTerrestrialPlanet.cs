@@ -130,9 +130,9 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         workSteps.Add(new WorkStep([new PlanetWidePower(this)]));
 
         List<IWorkChunk> gameTickChunks = [];
-        foreach (var subFactory in _subFactories)
+        foreach (OptimizedSubFactory subFactory in _subFactories)
         {
-            gameTickChunks.Add(new SubFactoryGameTick(subFactory, _optimizedPowerSystem));
+            gameTickChunks.Add(new SubFactoryGameTick(subFactory, _optimizedPowerSystem.GetSubFactoryPowerConsumption(subFactory)));
         }
         workSteps.Add(new WorkStep(gameTickChunks.ToArray()));
 
@@ -344,9 +344,9 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
     }
 
-    public void RefreshPowerConsumptionDemands()
+    public void RefreshPowerGenerationCapacites(ProductionStatistics statistics, PlanetFactory planet)
     {
-        //_optimizedPowerSystem
+        _optimizedPowerSystem.RefreshPowerGenerationCapacites(statistics, planet);
     }
 
     private WorkStep[] CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)

@@ -5,22 +5,20 @@ namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 internal sealed class OptimizedPowerSystemInserterBuilder
 {
     private readonly PowerSystem _powerSystem;
-    private readonly OptimizedPowerSystemBuilder _optimizedPowerSystemBuilder;
+    private readonly SubFactoryPowerSystemBuilder _subFactoryPowerSystemBuilder;
     private readonly List<int> _inserterPowerConsumerTypeIndexes;
 
-    public OptimizedPowerSystemInserterBuilder(PowerSystem powerSystem, OptimizedPowerSystemBuilder optimizedPowerSystemBuilder, List<int> inserterPowerConsumerTypeIndexes)
+    public OptimizedPowerSystemInserterBuilder(PowerSystem powerSystem,
+                                               SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
+                                               List<int> inserterPowerConsumerTypeIndexes)
     {
         _powerSystem = powerSystem;
-        _optimizedPowerSystemBuilder = optimizedPowerSystemBuilder;
+        _subFactoryPowerSystemBuilder = subFactoryPowerSystemBuilder;
         _inserterPowerConsumerTypeIndexes = inserterPowerConsumerTypeIndexes;
     }
 
     public void AddInserter(ref readonly InserterComponent inserter, int networkIndex)
     {
-        PowerConsumerComponent powerConsumerComponent = _powerSystem.consumerPool[inserter.pcId];
-        PowerConsumerType powerConsumerType = new PowerConsumerType(powerConsumerComponent.workEnergyPerTick, powerConsumerComponent.idleEnergyPerTick);
-        _inserterPowerConsumerTypeIndexes.Add(_optimizedPowerSystemBuilder.GetOrAddPowerConsumerType(powerConsumerType));
-
-        _optimizedPowerSystemBuilder.AddPowerConsumerIndexToNetwork(inserter.pcId, networkIndex);
+        _subFactoryPowerSystemBuilder.AddEntity(_inserterPowerConsumerTypeIndexes, inserter.pcId, networkIndex);
     }
 }

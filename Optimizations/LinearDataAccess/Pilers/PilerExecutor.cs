@@ -79,7 +79,7 @@ internal sealed class PilerExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> networkIndices = [];
@@ -122,7 +122,7 @@ internal sealed class PilerExecutor
             pilerIdToOptimizedIndex.Add(piler.id, optimizedPilers.Count);
             optimizedPilers.Add(new OptimizedPiler(inputBelt, outputBelt, inputBeltComponent.speed, outputBeltComponent.speed, in piler));
             timeSpends.Add(piler.timeSpend);
-            optimizedPowerSystemBuilder.AddPiler(in piler, networkIndex);
+            subFactoryPowerSystemBuilder.AddPiler(in piler, networkIndex);
         }
 
         _networkIndices = networkIndices.ToArray();

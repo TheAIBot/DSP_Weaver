@@ -67,7 +67,7 @@ internal sealed class SiloExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
     {
         _siloIndexes = subFactoryGraph.GetAllNodes()
                                       .Where(x => x.EntityTypeIndex.EntityType == EntityType.Silo)
@@ -89,7 +89,7 @@ internal sealed class SiloExecutor
             silo.needs ??= new int[6];
             planet.entityNeeds[silo.entityId] = silo.needs;
 
-            optimizedPowerSystemBuilder.AddSilo(in silo, networkIndex);
+            subFactoryPowerSystemBuilder.AddSilo(in silo, networkIndex);
         }
 
         _siloNetworkIds = siloNetworkIds;

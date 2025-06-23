@@ -88,9 +88,8 @@ internal sealed class SpraycoaterExecutor
     }
 
     public void Initialize(PlanetFactory planet,
-                           OptimizedSubFactory subFactory,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> spraycoaterNetworkIds = [];
@@ -145,7 +144,7 @@ internal sealed class SpraycoaterExecutor
             int networkId = planet.powerSystem.consumerPool[spraycoater.pcId].networkId;
             PowerNetwork? powerNetwork = networkId != 0 ? planet.powerSystem.netPool[networkId] : null;
 
-            optimizedPowerSystemBuilder.AddSpraycoater(subFactory, in spraycoater, networkId);
+            subFactoryPowerSystemBuilder.AddSpraycoater(in spraycoater, networkId);
             spraycoaterIdToOptimizedSpraycoaterIndex.Add(spraycoaterIndex, optimizedSpraycoaters.Count);
             spraycoaterNetworkIds.Add(networkId);
             optimizedSpraycoaters.Add(new OptimizedSpraycoater(incommingBeltSegIndexPlusSegPivotOffset,

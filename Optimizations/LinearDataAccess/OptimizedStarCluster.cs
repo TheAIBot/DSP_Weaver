@@ -322,10 +322,16 @@ internal static class OptimizedStarCluster
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(PowerSystem), nameof(ProductionStatistics.RefreshPowerConsumptionDemandsWithFactory))]
-    public static bool ProductionStatistics_RefreshPowerConsumptionDemandsWithFactory(PlanetFactory planet)
+    [HarmonyPatch(typeof(ProductionStatistics), nameof(ProductionStatistics.RefreshPowerGenerationCapacitesWithFactory))]
+    public static bool ProductionStatistics_RefreshPowerGenerationCapacitesWithFactory(ProductionStatistics __instance, PlanetFactory factory)
     {
-        IOptimizedPlanet optimizedPlanet = GetOptimizedPlanet(planet);
+        // Game code has this check for some reason
+        if (factory == null)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        IOptimizedPlanet optimizedPlanet = GetOptimizedPlanet(factory);
         if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
         {
             return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
@@ -337,7 +343,7 @@ internal static class OptimizedStarCluster
             return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
 
-        terrestrialPlanet.RefreshPowerConsumptionDemands();
+        terrestrialPlanet.RefreshPowerGenerationCapacites(__instance, factory);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }

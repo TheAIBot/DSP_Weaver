@@ -134,7 +134,7 @@ internal sealed class AssemblerExecutor
 
     public void InitializeAssemblers(PlanetFactory planet,
                                      Graph subFactoryGraph,
-                                     OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                                     SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
     {
         List<NetworkIdAndState<AssemblerState>> assemblerNetworkIdAndStates = [];
         List<OptimizedAssembler> optimizedAssemblers = [];
@@ -209,7 +209,7 @@ internal sealed class AssemblerExecutor
             assemblersTimingData.Add(new AssemblerTimingData(in assembler));
             assemblersNeeds.Add(new AssemblerNeeds(in assembler));
             assemblerRecipeIndexes.Add(assemblerRecipeIndex);
-            optimizedPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
+            subFactoryPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
 
 
             // set it here so we don't have to set it in the update loop.

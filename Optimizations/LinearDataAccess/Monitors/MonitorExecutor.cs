@@ -32,7 +32,7 @@ internal sealed class MonitorExecutor
             float power = networkServes[networkIndex];
             optimizedMonitors[monitorIndexIndex].InternalUpdate(ref monitors[monitorIndex], power, sandboxToolsEnabled, speakerPool);
 
-            UpdatePower(monitorPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, monitorIndex, networkIndex);
+            UpdatePower(monitorPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, monitorIndexIndex, networkIndex);
         }
     }
 
@@ -50,20 +50,20 @@ internal sealed class MonitorExecutor
         }
     }
 
-    private static void UpdatePower(int[] pilerPowerConsumerIndexes,
+    private static void UpdatePower(int[] monitorPowerConsumerIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int monitorIndex,
                                     int networkIndex)
     {
-        int powerConsumerTypeIndex = pilerPowerConsumerIndexes[monitorIndex];
+        int powerConsumerTypeIndex = monitorPowerConsumerIndexes[monitorIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType);
     }
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> monitorIndexes = [];
@@ -96,7 +96,7 @@ internal sealed class MonitorExecutor
 
             OptimizedCargoPath targetBelt = beltExecutor.GetOptimizedCargoPath(targetCargoPath);
             int networkIndex = planet.powerSystem.consumerPool[monitor.pcId].networkId;
-            optimizedPowerSystemBuilder.AddMonitor(in monitor, networkIndex);
+            subFactoryPowerSystemBuilder.AddMonitor(in monitor, networkIndex);
             monitorIndexes.Add(monitorIndex);
             networkIds.Add(networkIndex);
             optimizedMonitors.Add(new OptimizedMonitor(targetBelt, targetBeltComponent.speed, targetBeltOffset));

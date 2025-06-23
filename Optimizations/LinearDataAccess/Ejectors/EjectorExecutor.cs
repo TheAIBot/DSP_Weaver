@@ -72,7 +72,7 @@ internal sealed class EjectorExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
     {
         _ejectorIndexes = subFactoryGraph.GetAllNodes()
                                          .Where(x => x.EntityTypeIndex.EntityType == EntityType.Ejector)
@@ -95,7 +95,7 @@ internal sealed class EjectorExecutor
             ejector.needs ??= new int[6];
             planet.entityNeeds[ejector.entityId] = ejector.needs;
 
-            optimizedPowerSystemBuilder.AddEjector(in ejector, networkIndex);
+            subFactoryPowerSystemBuilder.AddEjector(in ejector, networkIndex);
         }
 
         _ejectorNetworkIds = ejectorNetworkIds;

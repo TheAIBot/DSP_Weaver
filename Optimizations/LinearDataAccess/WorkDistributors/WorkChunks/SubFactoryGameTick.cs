@@ -6,18 +6,18 @@ namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 internal sealed class SubFactoryGameTick : IWorkChunk
 {
     private readonly OptimizedSubFactory _subFactory;
-    private readonly OptimizedPowerSystem _optimizedPowerSystem;
+    private readonly SubFactoryPowerConsumption _subFactoryPowerConsumption;
     private WorkStep? _workStep;
 
-    public SubFactoryGameTick(OptimizedSubFactory subFactory, OptimizedPowerSystem optimizedPowerSystem)
+    public SubFactoryGameTick(OptimizedSubFactory subFactory, SubFactoryPowerConsumption subFactoryPowerConsumption)
     {
         _subFactory = subFactory;
-        _optimizedPowerSystem = optimizedPowerSystem;
+        _subFactoryPowerConsumption = subFactoryPowerConsumption;
     }
 
     public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        _subFactory.GameTick(workerTimings, time, _optimizedPowerSystem);
+        _subFactory.GameTick(workerTimings, time, _subFactoryPowerConsumption);
     }
 
     public void TieToWorkStep(WorkStep workStep)

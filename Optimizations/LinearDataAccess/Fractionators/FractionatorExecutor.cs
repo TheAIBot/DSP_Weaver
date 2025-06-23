@@ -96,7 +96,7 @@ internal sealed class FractionatorExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> fractionatorNetworkId = [];
@@ -159,7 +159,7 @@ internal sealed class FractionatorExecutor
                                                                  fractionatorConfigurationIndex,
                                                                  in fractionator));
             fractionatorsPowerFields.Add(new FractionatorPowerFields(in fractionator));
-            optimizedPowerSystemBuilder.AddFractionator(in fractionator, networkIndex);
+            subFactoryPowerSystemBuilder.AddFractionator(in fractionator, networkIndex);
         }
 
         _fractionatorNetworkId = fractionatorNetworkId.ToArray();

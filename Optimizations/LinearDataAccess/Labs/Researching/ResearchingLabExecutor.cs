@@ -206,7 +206,7 @@ internal sealed class ResearchingLabExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
     {
         int[] matrixPoints = new int[LabComponent.matrixIds.Length];
         bool copiedMatrixPoints = false;
@@ -243,7 +243,7 @@ internal sealed class ResearchingLabExecutor
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
             networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
             entityIds.Add(lab.entityId);
-            optimizedPowerSystemBuilder.AddResearchingLab(in lab, networkIndex);
+            subFactoryPowerSystemBuilder.AddResearchingLab(in lab, networkIndex);
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[lab.entityId] = lab.needs;

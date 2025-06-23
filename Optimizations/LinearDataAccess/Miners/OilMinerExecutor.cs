@@ -98,7 +98,7 @@ internal sealed class OilMinerExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder,
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            BeltExecutor beltExecutor)
     {
         List<int> networkIds = [];
@@ -143,7 +143,7 @@ internal sealed class OilMinerExecutor
             OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
-            optimizedPowerSystemBuilder.AddOilMiner(in miner, networkIndex);
+            subFactoryPowerSystemBuilder.AddOilMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
             optimizedMiners.Add(new OptimizedOilMiner(outputBelt, outputBeltOffset, productId, in miner));

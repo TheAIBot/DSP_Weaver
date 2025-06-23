@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -9,7 +10,7 @@ namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 internal struct OptimizedWindGeneratorGroup
 {
     private readonly long _genEnergyPerTick;
-    private readonly int _componentCount;
+    public readonly int _componentCount;
 
     public OptimizedWindGeneratorGroup(long genEnergyPerTick, int componentCount)
     {
@@ -29,6 +30,12 @@ internal sealed class WindGeneratorExecutor
     private List<int> _optimizedWindIndexes = null!;
     private int _subId;
 
+    [MemberNotNullWhen(true, nameof(PrototypeId))]
+    public bool IsUsed => GeneratorCount > 0;
+    public int GeneratorCount { get; private set; }
+    public int? PrototypeId { get; private set; }
+    public long TotalCapacityCurrentTick { get; private set; }
+
     public IEnumerable<int> OptimizedPowerGeneratorIds => _optimizedWindIndexes;
 
     public long EnergyCap(float windStrength, long[] currentGeneratorCapacities)
@@ -46,6 +53,7 @@ internal sealed class WindGeneratorExecutor
         }
 
         currentGeneratorCapacities[_subId] += energySum;
+        TotalCapacityCurrentTick = energySum;
         return energySum;
     }
 
@@ -104,6 +112,8 @@ internal sealed class WindGeneratorExecutor
         _optimizedWindGeneratorGroups = optimizedWindGeneratorGroupToCount.Select(x => new OptimizedWindGeneratorGroup(x.Key, x.Value)).ToArray();
         _optimizedWindIndexes = optimizedWindIndexes;
         _subId = subId ?? -1;
+        GeneratorCount = optimizedWindGeneratorGroupToCount.Values.Sum();
+        PrototypeId = prototypeId;
     }
 }
 
@@ -149,6 +159,12 @@ internal sealed class GeothermalGeneratorExecutor
     private Dictionary<int, int> _geothermalIdToOptimizedIndex = null!;
     private int _subId;
 
+    [MemberNotNullWhen(true, nameof(PrototypeId))]
+    public bool IsUsed => GeneratorCount > 0;
+    public int GeneratorCount => _optimizedGeothermalGenerators.Length;
+    public int? PrototypeId { get; private set; }
+    public long TotalCapacityCurrentTick { get; private set; }
+
     public Dictionary<int, int>.KeyCollection OptimizedPowerGeneratorIds => _geothermalIdToOptimizedIndex.Keys;
 
     public long EnergyCap(long[] currentGeneratorCapacities)
@@ -166,6 +182,7 @@ internal sealed class GeothermalGeneratorExecutor
         }
 
         currentGeneratorCapacities[_subId] += energySum;
+        TotalCapacityCurrentTick = energySum;
         return energySum;
     }
 
@@ -240,6 +257,7 @@ internal sealed class GeothermalGeneratorExecutor
         _optimizedGeothermalGenerators = optimizedGeothermalGenerators.ToArray();
         _geothermalIdToOptimizedIndex = geothermalIdToOptimizedIndex;
         _subId = subId ?? -1;
+        PrototypeId = prototypeId;
     }
 }
 
@@ -282,6 +300,12 @@ internal sealed class SolarGeneratorExecutor
     private int _subId;
     private long? _cachedEnergySum;
 
+    [MemberNotNullWhen(true, nameof(PrototypeId))]
+    public bool IsUsed => GeneratorCount > 0;
+    public int GeneratorCount => _optimizedSolarGenerators.Length;
+    public int? PrototypeId { get; private set; }
+    public long TotalCapacityCurrentTick { get; private set; }
+
     public Dictionary<int, int>.KeyCollection OptimizedPowerGeneratorIds => _solarIdToOptimizedIndex.Keys;
 
     public long EnergyCap(float luminosity,
@@ -311,6 +335,7 @@ internal sealed class SolarGeneratorExecutor
 
         _cachedEnergySum = energySum;
         currentGeneratorCapacities[_subId] += energySum;
+        TotalCapacityCurrentTick = energySum;
         return energySum;
     }
 
@@ -376,6 +401,7 @@ internal sealed class SolarGeneratorExecutor
         _optimizedSolarGenerators = optimizedSolarGenerators.ToArray();
         _solarIdToOptimizedIndex = solarIdToOptimizedIndex;
         _subId = subId ?? -1;
+        PrototypeId = prototypeId;
     }
 }
 
@@ -562,28 +588,34 @@ internal struct OptimizedFuelGenerator
 
 internal sealed class FuelGeneratorExecutor
 {
-    private SubIdWithGenerators[] _subIdWithOptimizedFuelGenerators = null!;
-    private Dictionary<int, SubIdIndexWithOptimizedGeneratorIndex> _fuelIdToOptimizedIndex = null!;
+    private GeneratorIDWithGenerators<OptimizedFuelGenerator>[] _generatorIDWithOptimizedFuelGenerators = null!;
+    private Dictionary<int, GeneratorIdIndexWithOptimizedGeneratorIndex> _fuelIdToOptimizedIndex = null!;
+    private long[] _totalGeneratorCapacitiesCurrentTick = null!;
+    public GeneratorIDWithGenerators<OptimizedFuelGenerator>[] Generators => _generatorIDWithOptimizedFuelGenerators;
+    public long[] TotalGeneratorCapacitiesCurrentTick => _totalGeneratorCapacitiesCurrentTick;
 
     public long EnergyCap(long[] currentGeneratorCapacities)
     {
-        if (_subIdWithOptimizedFuelGenerators.Length == 0)
+        if (_generatorIDWithOptimizedFuelGenerators.Length == 0)
         {
             return 0;
         }
 
         long energySum = 0;
-        SubIdWithGenerators[] subIdWithOptimizedFuelGenerators = _subIdWithOptimizedFuelGenerators;
-        for (int subIdIndex = 0; subIdIndex < subIdWithOptimizedFuelGenerators.Length; subIdIndex++)
+        long[] totalGeneratorCapacitiesCurrentTick = _totalGeneratorCapacitiesCurrentTick;
+        GeneratorIDWithGenerators<OptimizedFuelGenerator>[] generatorIDWithOptimizedFuelGenerators = _generatorIDWithOptimizedFuelGenerators;
+        for (int generatorIdIndex = 0; generatorIdIndex < generatorIDWithOptimizedFuelGenerators.Length; generatorIdIndex++)
         {
-            OptimizedFuelGenerator[] optimizedFuelGenerators = subIdWithOptimizedFuelGenerators[subIdIndex].OptimizedFuelGenerators;
+            GeneratorIDWithGenerators<OptimizedFuelGenerator> generatorIDWithGenerators = generatorIDWithOptimizedFuelGenerators[generatorIdIndex];
+            OptimizedFuelGenerator[] optimizedFuelGenerators = generatorIDWithGenerators.OptimizedFuelGenerators;
             long subIdEnergySum = 0;
             for (int i = 0; i < optimizedFuelGenerators.Length; i++)
             {
                 subIdEnergySum += optimizedFuelGenerators[i].EnergyCap_Fuel();
             }
 
-            currentGeneratorCapacities[subIdWithOptimizedFuelGenerators[subIdIndex].SubId] += subIdEnergySum;
+            currentGeneratorCapacities[generatorIDWithGenerators.GeneratorID.SubId] += subIdEnergySum;
+            totalGeneratorCapacitiesCurrentTick[generatorIdIndex] = subIdEnergySum;
             energySum += subIdEnergySum;
         }
 
@@ -592,10 +624,10 @@ internal sealed class FuelGeneratorExecutor
 
     public void GameTick(ref long num44, double num51, int[] consumeRegister)
     {
-        SubIdWithGenerators[] subIdWithOptimizedFuelGenerators = _subIdWithOptimizedFuelGenerators;
-        for (int subIdIndex = 0; subIdIndex < subIdWithOptimizedFuelGenerators.Length; subIdIndex++)
+        GeneratorIDWithGenerators<OptimizedFuelGenerator>[] generatorIDWithOptimizedFuelGenerators = _generatorIDWithOptimizedFuelGenerators;
+        for (int generatorIdIndex = 0; generatorIdIndex < generatorIDWithOptimizedFuelGenerators.Length; generatorIdIndex++)
         {
-            OptimizedFuelGenerator[] optimizedFuelGenerators = subIdWithOptimizedFuelGenerators[subIdIndex].OptimizedFuelGenerators;
+            OptimizedFuelGenerator[] optimizedFuelGenerators = generatorIDWithOptimizedFuelGenerators[generatorIdIndex].OptimizedFuelGenerators;
             for (int i = 0; i < optimizedFuelGenerators.Length; i++)
             {
                 optimizedFuelGenerators[i].GeneratePower(ref num44, num51, consumeRegister);
@@ -606,15 +638,15 @@ internal sealed class FuelGeneratorExecutor
     public void Save(PlanetFactory planet)
     {
         PowerGeneratorComponent[] powerGenerators = planet.powerSystem.genPool;
-        SubIdWithGenerators[] subIdWithOptimizedFuelGenerators = _subIdWithOptimizedFuelGenerators;
+        GeneratorIDWithGenerators<OptimizedFuelGenerator>[] generatorIDWithOptimizedFuelGenerators = _generatorIDWithOptimizedFuelGenerators;
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
-            if (!_fuelIdToOptimizedIndex.TryGetValue(i, out SubIdIndexWithOptimizedGeneratorIndex optimizedIndex))
+            if (!_fuelIdToOptimizedIndex.TryGetValue(i, out GeneratorIdIndexWithOptimizedGeneratorIndex optimizedIndex))
             {
                 continue;
             }
 
-            ref readonly OptimizedFuelGenerator optimizedGeothermal = ref subIdWithOptimizedFuelGenerators[optimizedIndex.SubIdIndex].OptimizedFuelGenerators[optimizedIndex.OptimizedGeneratorIndex];
+            ref readonly OptimizedFuelGenerator optimizedGeothermal = ref generatorIDWithOptimizedFuelGenerators[optimizedIndex.GeneratorIDIndex].OptimizedFuelGenerators[optimizedIndex.OptimizedGeneratorIndex];
             optimizedGeothermal.Save(ref powerGenerators[i]);
         }
     }
@@ -622,11 +654,9 @@ internal sealed class FuelGeneratorExecutor
     public void Initialize(PlanetFactory planet,
                            int networkId)
     {
-        Dictionary<int, List<OptimizedFuelGenerator>> subIdToOptimizedFuelGenerators = [];
-        Dictionary<int, SubIdIndexWithOptimizedGeneratorIndex> fuelIdToOptimizedIndex = [];
-        Dictionary<int, int> subIdIndexToOptimizedGeneratorIndex = [];
-
-        int? prototypeId = null;
+        Dictionary<GeneratorID, List<OptimizedFuelGenerator>> generatorIDToOptimizedFuelGenerators = [];
+        Dictionary<int, GeneratorIdIndexWithOptimizedGeneratorIndex> fuelIdToOptimizedIndex = [];
+        Dictionary<GeneratorID, int> generatorIDToOptimizedGeneratorIndex = [];
 
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
@@ -648,31 +678,30 @@ internal sealed class FuelGeneratorExecutor
             }
 
             int subId = powerGenerator.subId;
-            if (!subIdToOptimizedFuelGenerators.TryGetValue(subId, out List<OptimizedFuelGenerator> optimizedFuelGenerators))
+            int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
+            GeneratorID generatorId = new GeneratorID(subId, componentPrototypeId);
+            if (!generatorIDToOptimizedFuelGenerators.TryGetValue(generatorId, out List<OptimizedFuelGenerator> optimizedFuelGenerators))
             {
                 optimizedFuelGenerators = [];
-                subIdToOptimizedFuelGenerators.Add(subId, optimizedFuelGenerators);
-                subIdIndexToOptimizedGeneratorIndex.Add(subId, subIdIndexToOptimizedGeneratorIndex.Count);
+                generatorIDToOptimizedFuelGenerators.Add(generatorId, optimizedFuelGenerators);
+                generatorIDToOptimizedGeneratorIndex.Add(generatorId, generatorIDToOptimizedGeneratorIndex.Count);
             }
 
-            int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
-            if (prototypeId.HasValue && prototypeId != componentPrototypeId)
-            {
-                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all solar machines is incorrect.");
-            }
-            prototypeId = componentPrototypeId;
-
-            fuelIdToOptimizedIndex.Add(powerGenerator.id, new SubIdIndexWithOptimizedGeneratorIndex(subIdIndexToOptimizedGeneratorIndex[subId], optimizedFuelGenerators.Count));
+            fuelIdToOptimizedIndex.Add(powerGenerator.id, new GeneratorIdIndexWithOptimizedGeneratorIndex(generatorIDToOptimizedGeneratorIndex[generatorId], optimizedFuelGenerators.Count));
             optimizedFuelGenerators.Add(new OptimizedFuelGenerator(in powerGenerator));
         }
 
-        _subIdWithOptimizedFuelGenerators = subIdToOptimizedFuelGenerators.Select(x => new SubIdWithGenerators(x.Key, x.Value.ToArray())).ToArray();
+        _generatorIDWithOptimizedFuelGenerators = generatorIDToOptimizedFuelGenerators.Select(x => new GeneratorIDWithGenerators<OptimizedFuelGenerator>(x.Key, x.Value.ToArray())).ToArray();
         _fuelIdToOptimizedIndex = fuelIdToOptimizedIndex;
+        _totalGeneratorCapacitiesCurrentTick = new long[_generatorIDWithOptimizedFuelGenerators.Length];
     }
 
-    private record struct SubIdWithGenerators(int SubId, OptimizedFuelGenerator[] OptimizedFuelGenerators);
-    private record struct SubIdIndexWithOptimizedGeneratorIndex(int SubIdIndex, int OptimizedGeneratorIndex);
+
+    private record struct GeneratorIdIndexWithOptimizedGeneratorIndex(int GeneratorIDIndex, int OptimizedGeneratorIndex);
 }
+
+internal record struct GeneratorID(int SubId, int PrototypeId);
+internal record struct GeneratorIDWithGenerators<T>(GeneratorID GeneratorID, T[] OptimizedFuelGenerators);
 
 internal sealed class OptimizedPowerNetwork
 {
@@ -725,7 +754,7 @@ internal sealed class OptimizedPowerNetwork
                          float luminosity,
                          UnityEngine.Vector3 normalized,
                          bool flag2,
-                         Dictionary<OptimizedSubFactory, long[]>.ValueCollection subFactoryToNetworkPowerConsumptions)
+                         Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption>.ValueCollection subFactoryToPowerConsumption)
     {
         PowerSystem powerSystem = planet.powerSystem;
         PowerNetwork powerNetwork = _powerNetwork;
@@ -737,10 +766,10 @@ internal sealed class OptimizedPowerNetwork
             totalEnergyDemand += requiredEnergy;
             num2 += requiredEnergy;
         }
-        foreach (long[] subFactoryNetworkPowerConsumptionPrepared in subFactoryToNetworkPowerConsumptions)
+        foreach (SubFactoryPowerConsumption subFactoryNetworkPowerConsumptionPrepared in subFactoryToPowerConsumption)
         {
-            totalEnergyDemand += subFactoryNetworkPowerConsumptionPrepared[_networkIndex];
-            num2 += subFactoryNetworkPowerConsumptionPrepared[_networkIndex];
+            totalEnergyDemand += subFactoryNetworkPowerConsumptionPrepared.NetworksPowerConsumption[_networkIndex];
+            num2 += subFactoryNetworkPowerConsumptionPrepared.NetworksPowerConsumption[_networkIndex];
         }
 
         long num23 = 0L;
@@ -860,6 +889,84 @@ internal sealed class OptimizedPowerNetwork
         _gammaPowerGeneratorExecutor.GameTick(planet, time, productRegister, consumeRegister);
         _geothermalGeneratorExecutor.GameTick();
         _fuelGeneratorExecutor.GameTick(ref num44, num51, consumeRegister);
+    }
+
+    public void RefreshPowerGenerationCapacites(ProductionStatistics statistics, PlanetFactory planet)
+    {
+        int[] powerGenId2Index = ItemProto.powerGenId2Index;
+
+        if (_windExecutor.IsUsed)
+        {
+            int num = powerGenId2Index[_windExecutor.PrototypeId.Value];
+            statistics.genCapacities[num] += _windExecutor.TotalCapacityCurrentTick;
+            statistics.genCount[num] += _windExecutor.GeneratorCount;
+            statistics.totalGenCapacity += _windExecutor.TotalCapacityCurrentTick;
+        }
+
+        if (_solarExecutor.IsUsed)
+        {
+            int num = powerGenId2Index[_solarExecutor.PrototypeId.Value];
+            statistics.genCapacities[num] += _solarExecutor.TotalCapacityCurrentTick;
+            statistics.genCount[num] += _solarExecutor.GeneratorCount;
+            statistics.totalGenCapacity += _solarExecutor.TotalCapacityCurrentTick;
+        }
+
+        //if (_gammaPowerGeneratorExecutor.IsUsed)
+        //{
+        //    int num = powerGenId2Index[_gammaPowerGeneratorExecutor.PrototypeId.Value];
+        //    statistics.genCapacities[num] += _gammaPowerGeneratorExecutor.TotalCapacityCurrentTick;
+        //    statistics.genCount[num] += _gammaPowerGeneratorExecutor.GeneratorCount;
+        //    statistics.totalGenCapacity += _gammaPowerGeneratorExecutor.TotalCapacityCurrentTick;
+        //}
+
+        if (_geothermalGeneratorExecutor.IsUsed)
+        {
+            int num = powerGenId2Index[_geothermalGeneratorExecutor.PrototypeId.Value];
+            statistics.genCapacities[num] += _geothermalGeneratorExecutor.TotalCapacityCurrentTick;
+            statistics.genCount[num] += _geothermalGeneratorExecutor.GeneratorCount;
+            statistics.totalGenCapacity += _geothermalGeneratorExecutor.TotalCapacityCurrentTick;
+        }
+
+
+        GeneratorIDWithGenerators<OptimizedFuelGenerator>[] fuelGenerators = _fuelGeneratorExecutor.Generators;
+        long[] fuelGeneratorsTotalCapacityCurrentTick = _fuelGeneratorExecutor.TotalGeneratorCapacitiesCurrentTick;
+        for (int i = 0; i < fuelGenerators.Length; i++)
+        {
+            GeneratorIDWithGenerators<OptimizedFuelGenerator> fuelGenerator = fuelGenerators[i];
+
+            int num = powerGenId2Index[fuelGenerator.GeneratorID.PrototypeId];
+            statistics.genCount[num] += fuelGenerator.OptimizedFuelGenerators.Length;
+
+            long totalCapacityCurrentTick = fuelGeneratorsTotalCapacityCurrentTick[i];
+            statistics.genCapacities[num] += totalCapacityCurrentTick;
+            statistics.totalGenCapacity += totalCapacityCurrentTick;
+        }
+
+
+        //int genCursor = powerSystem.genCursor;
+        //for (int i = 1; i < genCursor; i++)
+        //{
+        //    if (genPool[i].id == i && genPool[i].capacityCurrentTick > 0 && (!genPool[i].gamma || genPool[i].productId <= 0))
+        //    {
+        //        int num = powerGenId2Index[entityPool[genPool[i].entityId].protoId];
+        //        statistics.genCapacities[num] += genPool[i].capacityCurrentTick;
+        //        statistics.genCount[num]++;
+        //        statistics.totalGenCapacity += genPool[i].capacityCurrentTick;
+        //    }
+        //}
+
+        //PowerExchangerComponent[] excPool = powerSystem.excPool;
+        //int excCursor = powerSystem.excCursor;
+        //for (int k = 1; k < excCursor; k++)
+        //{
+        //    if (excPool[k].id == k && excPool[k].currEnergyPerTick < 0)
+        //    {
+        //        int num3 = powerGenId2Index[entityPool[excPool[k].entityId].protoId];
+        //        statistics.genCapacities[num3] += -excPool[k].currEnergyPerTick;
+        //        statistics.genCount[num3]++;
+        //        statistics.totalGenCapacity += -excPool[k].currEnergyPerTick;
+        //    }
+        //}
     }
 
     public void Save(PlanetFactory planet)

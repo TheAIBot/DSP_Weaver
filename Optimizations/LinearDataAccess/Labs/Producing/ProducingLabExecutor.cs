@@ -116,7 +116,7 @@ internal sealed class ProducingLabExecutor
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
-                           OptimizedPowerSystemBuilder optimizedPowerSystemBuilder)
+                           SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
     {
         List<NetworkIdAndState<LabState>> networkIdAndStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
@@ -190,7 +190,7 @@ internal sealed class ProducingLabExecutor
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
             networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
             entityIds.Add(lab.entityId);
-            optimizedPowerSystemBuilder.AddProducingLab(in lab, networkIndex);
+            subFactoryPowerSystemBuilder.AddProducingLab(in lab, networkIndex);
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[lab.entityId] = lab.needs;
