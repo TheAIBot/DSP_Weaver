@@ -223,6 +223,31 @@ internal sealed class OptimizedPowerSystem
         }
     }
 
+    public void RefreshPowerConsumptionDemands(ProductionStatistics statistics, PlanetFactory planet)
+    {
+        OptimizedPowerNetwork[] optimizedPowerNetworks = _optimizedPowerNetworks;
+        for (int i = 0; i < optimizedPowerNetworks.Length; i++)
+        {
+            optimizedPowerNetworks[i].RefreshPowerConsumptionDemands(statistics, planet);
+        }
+
+        EntityData[] entityPool = planet.entityPool;
+        PowerSystem powerSystem = planet.powerSystem;
+        int[] powerConId2Index = ItemProto.powerConId2Index;
+        PowerAccumulatorComponent[] accPool = powerSystem.accPool;
+        int accCursor = powerSystem.accCursor;
+        for (int k = 1; k < accCursor; k++)
+        {
+            if (accPool[k].id == k && accPool[k].curPower > 0)
+            {
+                int num3 = powerConId2Index[entityPool[accPool[k].entityId].protoId];
+                statistics.conDemands[num3] += accPool[k].curPower;
+                statistics.conCount[num3]++;
+                statistics.totalConDemand += accPool[k].curPower;
+            }
+        }
+    }
+
     public void Save(PlanetFactory planet)
     {
         OptimizedPowerNetwork[] optimizedPowerNetworks = _optimizedPowerNetworks;

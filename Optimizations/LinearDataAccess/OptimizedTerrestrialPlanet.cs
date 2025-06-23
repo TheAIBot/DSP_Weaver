@@ -349,6 +349,16 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _optimizedPowerSystem.RefreshPowerGenerationCapacites(statistics, planet);
     }
 
+    public void RefreshPowerConsumptionDemands(ProductionStatistics statistics, PlanetFactory planet)
+    {
+        foreach (OptimizedSubFactory subFactory in _subFactories)
+        {
+            subFactory.RefreshPowerConsumptionDemands(statistics, _optimizedPowerSystem.GetSubFactoryPowerConsumption(subFactory));
+        }
+
+        _optimizedPowerSystem.RefreshPowerConsumptionDemands(statistics, planet);
+    }
+
     private WorkStep[] CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
     {
         List<WorkStep> work = [];

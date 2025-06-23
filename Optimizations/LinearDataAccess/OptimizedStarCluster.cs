@@ -348,6 +348,33 @@ internal static class OptimizedStarCluster
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ProductionStatistics), nameof(ProductionStatistics.RefreshPowerConsumptionDemandsWithFactory))]
+    public static bool ProductionStatistics_RefreshPowerConsumptionDemandsWithFactory(ProductionStatistics __instance, PlanetFactory factory)
+    {
+        // Game code has this check for some reason
+        if (factory == null)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        IOptimizedPlanet optimizedPlanet = GetOptimizedPlanet(factory);
+        if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        // Nothing to do on gas planets
+        if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        terrestrialPlanet.RefreshPowerConsumptionDemands(__instance, factory);
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
     public static void ReOptimizeAllPlanets()
     {
         lock (_planetsToReOptimize)

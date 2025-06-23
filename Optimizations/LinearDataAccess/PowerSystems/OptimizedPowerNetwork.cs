@@ -954,6 +954,23 @@ internal sealed class OptimizedPowerNetwork
         }
     }
 
+    public void RefreshPowerConsumptionDemands(ProductionStatistics statistics, PlanetFactory planet)
+    {
+        EntityData[] entityPool = planet.entityPool;
+        PowerSystem powerSystem = planet.powerSystem;
+        int[] powerConId2Index = ItemProto.powerConId2Index;
+        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+        int[] leftoverConsumers = _networkNonOptimizedPowerConsumerIndexes;
+        for (int i = 0; i < leftoverConsumers.Length; i++)
+        {
+            int consumerIndex = leftoverConsumers[i];
+            int num = powerConId2Index[entityPool[consumerPool[consumerIndex].entityId].protoId];
+            statistics.conDemands[num] += consumerPool[consumerIndex].requiredEnergy;
+            statistics.conCount[num]++;
+            statistics.totalConDemand += consumerPool[consumerIndex].requiredEnergy;
+        }
+    }
+
     public void Save(PlanetFactory planet)
     {
         _windExecutor.Save(planet);

@@ -310,6 +310,11 @@ internal sealed class OptimizedSubFactory
         HasCalculatedPowerConsumption = true;
     }
 
+    public void RefreshPowerConsumptionDemands(ProductionStatistics statistics, SubFactoryPowerConsumption powerSystem)
+    {
+        RefreshPowerConsumptionDemands(statistics, _assemblerExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.AssemblerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
+    }
+
     public TypedObjectIndex GetAsGranularTypedObjectIndex(int index, PlanetFactory planet)
     {
         ref readonly EntityData entity = ref planet.entityPool[index];
@@ -620,5 +625,17 @@ internal sealed class OptimizedSubFactory
             storage.NotifyStorageChange();
         }
         return flag2;
+    }
+
+    private static void RefreshPowerConsumptionDemands(ProductionStatistics statistics, PrototypePowerConsumptions prototypePowerConsumptions)
+    {
+        int[] powerConId2Index = ItemProto.powerConId2Index;
+        for (int i = 0; i < prototypePowerConsumptions.PrototypeIds.Length; i++)
+        {
+            int num = powerConId2Index[prototypePowerConsumptions.PrototypeIds[i]];
+            statistics.conDemands[num] += prototypePowerConsumptions.PrototypeIdPowerConsumption[i];
+            statistics.conCount[num] += prototypePowerConsumptions.PrototypeIdCounts[i];
+            statistics.totalConDemand += prototypePowerConsumptions.PrototypeIdPowerConsumption[i];
+        }
     }
 }
