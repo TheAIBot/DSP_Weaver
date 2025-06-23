@@ -911,13 +911,13 @@ internal sealed class OptimizedPowerNetwork
             statistics.totalGenCapacity += _solarExecutor.TotalCapacityCurrentTick;
         }
 
-        //if (_gammaPowerGeneratorExecutor.IsUsed)
-        //{
-        //    int num = powerGenId2Index[_gammaPowerGeneratorExecutor.PrototypeId.Value];
-        //    statistics.genCapacities[num] += _gammaPowerGeneratorExecutor.TotalCapacityCurrentTick;
-        //    statistics.genCount[num] += _gammaPowerGeneratorExecutor.GeneratorCount;
-        //    statistics.totalGenCapacity += _gammaPowerGeneratorExecutor.TotalCapacityCurrentTick;
-        //}
+        if (_gammaPowerGeneratorExecutor.IsUsed)
+        {
+            int num = powerGenId2Index[_gammaPowerGeneratorExecutor.PrototypeId.Value];
+            statistics.genCapacities[num] += _gammaPowerGeneratorExecutor.TotalCapacityCurrentTick;
+            statistics.genCount[num] += _gammaPowerGeneratorExecutor.GeneratorCount;
+            statistics.totalGenCapacity += _gammaPowerGeneratorExecutor.TotalCapacityCurrentTick;
+        }
 
         if (_geothermalGeneratorExecutor.IsUsed)
         {
@@ -942,31 +942,17 @@ internal sealed class OptimizedPowerNetwork
             statistics.totalGenCapacity += totalCapacityCurrentTick;
         }
 
+        if (_powerExchangerExecutor.IsUsed)
+        {
+            int num = powerGenId2Index[_powerExchangerExecutor.PrototypeId.Value];
 
-        //int genCursor = powerSystem.genCursor;
-        //for (int i = 1; i < genCursor; i++)
-        //{
-        //    if (genPool[i].id == i && genPool[i].capacityCurrentTick > 0 && (!genPool[i].gamma || genPool[i].productId <= 0))
-        //    {
-        //        int num = powerGenId2Index[entityPool[genPool[i].entityId].protoId];
-        //        statistics.genCapacities[num] += genPool[i].capacityCurrentTick;
-        //        statistics.genCount[num]++;
-        //        statistics.totalGenCapacity += genPool[i].capacityCurrentTick;
-        //    }
-        //}
-
-        //PowerExchangerComponent[] excPool = powerSystem.excPool;
-        //int excCursor = powerSystem.excCursor;
-        //for (int k = 1; k < excCursor; k++)
-        //{
-        //    if (excPool[k].id == k && excPool[k].currEnergyPerTick < 0)
-        //    {
-        //        int num3 = powerGenId2Index[entityPool[excPool[k].entityId].protoId];
-        //        statistics.genCapacities[num3] += -excPool[k].currEnergyPerTick;
-        //        statistics.genCount[num3]++;
-        //        statistics.totalGenCapacity += -excPool[k].currEnergyPerTick;
-        //    }
-        //}
+            // Game code takes negative values of total capacity. They do that because the number
+            // is negative which i do not understand why is done. Anyway that explains why
+            // the negative value is taken here in comparison to the other generators above.
+            statistics.genCapacities[num] += -_powerExchangerExecutor.TotalCapacityCurrentTick;
+            statistics.genCount[num] += _powerExchangerExecutor.GeneratorCount;
+            statistics.totalGenCapacity += -_powerExchangerExecutor.TotalCapacityCurrentTick;
+        }
     }
 
     public void Save(PlanetFactory planet)

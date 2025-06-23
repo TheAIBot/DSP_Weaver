@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
@@ -9,6 +10,12 @@ internal sealed class PowerExchangerExecutor
     private OptimizedPowerExchanger[] _optimizedPowerExchangers = null!;
     private Dictionary<int, int> _powerExchangerIdToOptimizedIndex = null!;
     private int _subId;
+
+    [MemberNotNullWhen(true, nameof(PrototypeId))]
+    public bool IsUsed => GeneratorCount > 0;
+    public int GeneratorCount => _optimizedPowerExchangers.Length;
+    public int? PrototypeId { get; private set; }
+    public long TotalCapacityCurrentTick { get; private set; }
 
     public (long inputEnergySum, long outputEnergySum) InputOutputUpdate(long[] currentGeneratorCapacities)
     {
@@ -72,6 +79,8 @@ internal sealed class PowerExchangerExecutor
 
     public void UpdateOutput(int[] productRegister, int[] consumeRegister, double num45, ref long num44, ref long num24, ref long num3)
     {
+        TotalCapacityCurrentTick = 0;
+
         OptimizedPowerExchanger[] optimizedPowerExchangers = _optimizedPowerExchangers;
         for (int num46 = 0; num46 < optimizedPowerExchangers.Length; num46++)
         {
@@ -84,6 +93,8 @@ internal sealed class PowerExchangerExecutor
                 num24 += num48;
                 num3 += num48;
                 num44 -= num48;
+
+                TotalCapacityCurrentTick += powerExchanger.currEnergyPerTick;
             }
         }
     }
@@ -110,6 +121,7 @@ internal sealed class PowerExchangerExecutor
         List<OptimizedPowerExchanger> optimizedPowerExchangers = [];
         Dictionary<int, int> powerExchangerIdToOptimizedIndex = [];
         int? subId = null;
+        int? prototypeId = null;
 
         for (int i = 1; i < planet.powerSystem.excCursor; i++)
         {
@@ -129,6 +141,13 @@ internal sealed class PowerExchangerExecutor
                 throw new InvalidOperationException($"Assumption that {nameof(PowerExchangerComponent.subId)} is the same for all power exchangers is incorrect.");
             }
             subId = powerExchanger.subId;
+
+            int componentPrototypeId = planet.entityPool[powerExchanger.entityId].protoId;
+            if (prototypeId.HasValue && prototypeId != componentPrototypeId)
+            {
+                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all power exchanger machines is incorrect.");
+            }
+            prototypeId = componentPrototypeId;
 
             OptimizedCargoPath? belt0 = null;
             OptimizedCargoPath? belt1 = null;
@@ -159,5 +178,6 @@ internal sealed class PowerExchangerExecutor
         _optimizedPowerExchangers = optimizedPowerExchangers.ToArray();
         _powerExchangerIdToOptimizedIndex = powerExchangerIdToOptimizedIndex;
         _subId = subId ?? -1;
+        PrototypeId = prototypeId;
     }
 }

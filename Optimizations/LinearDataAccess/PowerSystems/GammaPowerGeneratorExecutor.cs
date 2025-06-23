@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
@@ -9,6 +10,13 @@ internal sealed class GammaPowerGeneratorExecutor
     private OptimizedGammaPowerGenerator[] _optimizedGammaPowerGenerators = null!;
     private Dictionary<int, int> _gammaIdToOptimizedIndex = null!;
     private int _subId;
+    private int _gammaMachinesGeneratingEnergyCount;
+
+    [MemberNotNullWhen(true, nameof(PrototypeId))]
+    public bool IsUsed => GeneratorCount > 0;
+    public int GeneratorCount => _gammaMachinesGeneratingEnergyCount;
+    public int? PrototypeId { get; private set; }
+    public long TotalCapacityCurrentTick { get; private set; }
 
     public Dictionary<int, int>.KeyCollection OptimizedPowerGeneratorIds => _gammaIdToOptimizedIndex.Keys;
 
@@ -40,6 +48,7 @@ internal sealed class GammaPowerGeneratorExecutor
         }
 
         currentGeneratorCapacities[_subId] += energySum;
+        TotalCapacityCurrentTick = energySum;
         return energySum;
     }
 
@@ -82,6 +91,8 @@ internal sealed class GammaPowerGeneratorExecutor
         List<OptimizedGammaPowerGenerator> optimizedGammaPowerGenerators = [];
         Dictionary<int, int> gammaIdToOptimizedIndex = [];
         int? subId = null;
+        int? prototypeId = null;
+        int gammaMachinesGeneratingEnergyCount = 0;
 
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
@@ -106,6 +117,13 @@ internal sealed class GammaPowerGeneratorExecutor
                 throw new InvalidOperationException($"Assumption that {nameof(PowerGeneratorComponent.subId)} is the same for all gamma machines is incorrect.");
             }
             subId = powerGenerator.subId;
+
+            int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
+            if (prototypeId.HasValue && prototypeId != componentPrototypeId)
+            {
+                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all gamma machines is incorrect.");
+            }
+            prototypeId = componentPrototypeId;
 
             planet.ReadObjectConn(powerGenerator.entityId, 0, out var isOutput, out var otherObjId, out var _);
             OptimizedCargoPath? slot0Belt = null;
@@ -137,10 +155,17 @@ internal sealed class GammaPowerGeneratorExecutor
                                                                                slot1BeltOffset,
                                                                                isOutput2,
                                                                                in powerGenerator));
+
+            if (powerGenerator.productId <= 0)
+            {
+                gammaMachinesGeneratingEnergyCount++;
+            }
         }
 
         _optimizedGammaPowerGenerators = optimizedGammaPowerGenerators.ToArray();
         _gammaIdToOptimizedIndex = gammaIdToOptimizedIndex;
         _subId = subId ?? -1;
+        PrototypeId = prototypeId;
+        _gammaMachinesGeneratingEnergyCount = gammaMachinesGeneratingEnergyCount;
     }
 }
