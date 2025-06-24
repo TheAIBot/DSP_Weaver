@@ -12,10 +12,12 @@ internal sealed class PowerExchangerExecutor
     private int _subId;
 
     [MemberNotNullWhen(true, nameof(PrototypeId))]
-    public bool IsUsed => GeneratorCount > 0;
-    public int GeneratorCount => _optimizedPowerExchangers.Length;
+    public bool IsUsed => _optimizedPowerExchangers.Length > 0;
+    public int GeneratorCount { get; private set; }
+    public int ConsumerCount { get; private set; }
     public int? PrototypeId { get; private set; }
-    public long TotalCapacityCurrentTick { get; private set; }
+    public long TotalGenerationCapacityCurrentTick { get; private set; }
+    public long TotalConsumptionCapacityCurrentTick { get; private set; }
 
     public (long inputEnergySum, long outputEnergySum) InputOutputUpdate(long[] currentGeneratorCapacities)
     {
@@ -57,6 +59,8 @@ internal sealed class PowerExchangerExecutor
 
     public void UpdateInput(int[] productRegister, int[] consumeRegister, double num40, ref long num32, ref long num23, ref long num4)
     {
+        ConsumerCount = 0;
+        long energySum = 0;
         OptimizedPowerExchanger[] optimizedPowerExchangers = _optimizedPowerExchangers;
         for (int i = 0; i < optimizedPowerExchangers.Length; i++)
         {
@@ -65,20 +69,25 @@ internal sealed class PowerExchangerExecutor
             {
                 long num42 = (long)(num40 * powerExchanger.capsCurrentTick + 0.99999);
                 long remaining = num32 < num42 ? num32 : num42;
-                long num43 = powerExchanger.InputUpdate(remaining, productRegister, consumeRegister);
-                num32 -= num43;
-                num23 += num43;
-                num4 += num43;
+                energySum += powerExchanger.InputUpdate(remaining, productRegister, consumeRegister);
+                ConsumerCount++;
             }
             else
             {
                 powerExchanger.currEnergyPerTick = 0L;
             }
         }
+
+        num32 -= energySum;
+        num23 += energySum;
+        num4 += energySum;
+
+        TotalConsumptionCapacityCurrentTick = energySum;
     }
 
     public void UpdateOutput(int[] productRegister, int[] consumeRegister, double num45, ref long num44, ref long num24, ref long num3)
     {
+        GeneratorCount = 0;
         long energySum = 0;
         OptimizedPowerExchanger[] optimizedPowerExchangers = _optimizedPowerExchangers;
         for (int num46 = 0; num46 < optimizedPowerExchangers.Length; num46++)
@@ -89,7 +98,7 @@ internal sealed class PowerExchangerExecutor
                 long num47 = (long)(num45 * powerExchanger.capsCurrentTick + 0.99999);
                 long energyPay = num44 < num47 ? num44 : num47;
                 energySum += powerExchanger.OutputUpdate(energyPay, productRegister, consumeRegister);
-
+                GeneratorCount++;
             }
         }
 
@@ -97,7 +106,7 @@ internal sealed class PowerExchangerExecutor
         num3 += energySum;
         num44 -= energySum;
 
-        TotalCapacityCurrentTick = energySum;
+        TotalGenerationCapacityCurrentTick = energySum;
     }
 
     public void Save(PlanetFactory planet)

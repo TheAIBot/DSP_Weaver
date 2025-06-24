@@ -234,6 +234,20 @@ internal sealed class OptimizedPowerSystem
         EntityData[] entityPool = planet.entityPool;
         PowerSystem powerSystem = planet.powerSystem;
         int[] powerConId2Index = ItemProto.powerConId2Index;
+
+        PowerNodeComponent[] nodePool = powerSystem.nodePool;
+        int nodeCursor = powerSystem.nodeCursor;
+        for (int j = 1; j < nodeCursor; j++)
+        {
+            if (nodePool[j].id == j)
+            {
+                int num2 = powerConId2Index[entityPool[nodePool[j].entityId].protoId];
+                statistics.conDemands[num2] += nodePool[j].requiredEnergy;
+                statistics.conCount[num2]++;
+                statistics.totalConDemand += nodePool[j].requiredEnergy;
+            }
+        }
+
         PowerAccumulatorComponent[] accPool = powerSystem.accPool;
         int accCursor = powerSystem.accCursor;
         for (int k = 1; k < accCursor; k++)

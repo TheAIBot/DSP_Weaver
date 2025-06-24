@@ -11,6 +11,7 @@ internal sealed class OilMinerExecutor
     private int[] _networkIds = null!;
     private OptimizedOilMiner[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public void GameTick(PlanetFactory planet,
                          int[] oilMinerPowerConsumerIndexes,
@@ -81,6 +82,41 @@ internal sealed class OilMinerExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] oilMinerPowerConsumerIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        OptimizedOilMiner[] optimizedMiners = _optimizedMiners;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
+        {
+            ref readonly OptimizedOilMiner miner = ref optimizedMiners[minerIndex];
+            UpdatePowerConsumptionPerPrototype(oilMinerPowerConsumerIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               minerIndex,
+                                               in miner);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] oilMinerPowerConsumerIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int minerIndex,
+                                                           ref readonly OptimizedOilMiner miner)
+    {
+        int powerConsumerTypeIndex = oilMinerPowerConsumerIndexes[minerIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[minerIndex]] += GetPowerConsumption(powerConsumerType, in miner);
+    }
+
     public void Save(PlanetFactory planet)
     {
         MinerComponent[] miners = planet.factorySystem.minerPool;
@@ -104,6 +140,7 @@ internal sealed class OilMinerExecutor
         List<int> networkIds = [];
         List<OptimizedOilMiner> optimizedMiners = [];
         Dictionary<int, int> minerIdToOptimizedIndex = [];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int minerIndex in subFactoryGraph.GetAllNodes()
                                                   .Where(x => x.EntityTypeIndex.EntityType == EntityType.Miner)
@@ -147,11 +184,13 @@ internal sealed class OilMinerExecutor
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
             optimizedMiners.Add(new OptimizedOilMiner(outputBelt, outputBeltOffset, productId, in miner));
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 
         _networkIds = networkIds.ToArray();
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedOilMiner miner)

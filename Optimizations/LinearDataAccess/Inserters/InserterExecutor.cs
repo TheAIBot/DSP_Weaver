@@ -852,7 +852,7 @@ internal sealed class InserterExecutor<T>
         List<ConnectionBelts> connectionBelts = [];
         List<InsertIntoConsumingPlant> insertIntoConsumingPlants = [];
         Dictionary<int, int> inserterIdToOptimizedIndex = [];
-        PrototypePowerConsumptionBuilder prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int inserterIndex in subFactoryGraph.GetAllNodes()
                                                      .Where(x => x.EntityTypeIndex.EntityType == EntityType.Inserter)

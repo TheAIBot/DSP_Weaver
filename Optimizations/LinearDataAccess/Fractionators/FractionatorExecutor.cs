@@ -13,6 +13,7 @@ internal sealed class FractionatorExecutor
     private FractionatorPowerFields[] _fractionatorsPowerFields = null!;
     private FractionatorConfiguration[] _fractionatorConfigurations = null!;
     public Dictionary<int, int> _fractionatorIdToOptimizedIndex = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public int FractionatorCount => _optimizedFractionators.Length;
 
@@ -75,6 +76,41 @@ internal sealed class FractionatorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorPowerFields);
     }
 
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] fractionatorPowerConsumerTypeIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int fractionatorIndex = 0; fractionatorIndex < fractionatorsPowerFields.Length; fractionatorIndex++)
+        {
+            ref readonly FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[fractionatorIndex];
+            UpdatePowerConsumptionPerPrototype(fractionatorPowerConsumerTypeIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               fractionatorIndex,
+                                               in fractionatorPowerFields);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] fractionatorPowerConsumerTypeIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int fractionatorIndex,
+                                                           ref readonly FractionatorPowerFields fractionatorPowerFields)
+    {
+        int powerConsumerTypeIndex = fractionatorPowerConsumerTypeIndexes[fractionatorIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[fractionatorIndex]] += GetPowerConsumption(powerConsumerType, in fractionatorPowerFields);
+    }
+
     public void Save(PlanetFactory planet)
     {
         SignData[] entitySignPool = planet.entitySignPool;
@@ -105,6 +141,7 @@ internal sealed class FractionatorExecutor
         Dictionary<FractionatorConfiguration, int> fractionatorConfigurationToIndex = [];
         List<FractionatorConfiguration> fractionatorConfigurations = [];
         Dictionary<int, int> fractionatorIdToOptimizedIndex = [];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int fractionatorIndex in subFactoryGraph.GetAllNodes()
                                                          .Where(x => x.EntityTypeIndex.EntityType == EntityType.Fractionator)
@@ -160,6 +197,7 @@ internal sealed class FractionatorExecutor
                                                                  in fractionator));
             fractionatorsPowerFields.Add(new FractionatorPowerFields(in fractionator));
             subFactoryPowerSystemBuilder.AddFractionator(in fractionator, networkIndex);
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[fractionator.entityId]);
         }
 
         _fractionatorNetworkId = fractionatorNetworkId.ToArray();
@@ -167,6 +205,7 @@ internal sealed class FractionatorExecutor
         _fractionatorsPowerFields = fractionatorsPowerFields.ToArray();
         _fractionatorConfigurations = fractionatorConfigurations.ToArray();
         _fractionatorIdToOptimizedIndex = fractionatorIdToOptimizedIndex;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly FractionatorPowerFields fractionatorPowerFields)

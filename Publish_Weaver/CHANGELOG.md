@@ -1,4 +1,5 @@
-* !!! Update RefreshPowerGenerationCapacitesWithFactory !!!
+## 1.3.0
+* !!! Fuel generators are not connected to inserters yet. !!!
 
 
 ## 1.2.6

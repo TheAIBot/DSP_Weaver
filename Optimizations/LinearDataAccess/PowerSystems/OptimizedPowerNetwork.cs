@@ -714,6 +714,7 @@ internal sealed class OptimizedPowerNetwork
     private readonly GeothermalGeneratorExecutor _geothermalGeneratorExecutor;
     private readonly FuelGeneratorExecutor _fuelGeneratorExecutor;
     private readonly PowerExchangerExecutor _powerExchangerExecutor;
+    private readonly long _totalPowerNodeEnergyConsumption;
 
     public OptimizedPowerNetwork(PowerNetwork powerNetwork,
                                  int networkIndex,
@@ -723,7 +724,8 @@ internal sealed class OptimizedPowerNetwork
                                  GammaPowerGeneratorExecutor gammaPowerGeneratorExecutor,
                                  GeothermalGeneratorExecutor geothermalGeneratorExecutor,
                                  FuelGeneratorExecutor fuelGeneratorExecutor,
-                                 PowerExchangerExecutor powerExchangerExecutor)
+                                 PowerExchangerExecutor powerExchangerExecutor,
+                                 long totalPowerNodeEnergyConsumption)
     {
         _powerNetwork = powerNetwork;
         _networkIndex = networkIndex;
@@ -734,6 +736,7 @@ internal sealed class OptimizedPowerNetwork
         _geothermalGeneratorExecutor = geothermalGeneratorExecutor;
         _fuelGeneratorExecutor = fuelGeneratorExecutor;
         _powerExchangerExecutor = powerExchangerExecutor;
+        _totalPowerNodeEnergyConsumption = totalPowerNodeEnergyConsumption;
     }
 
     public (long, bool) RequestDysonSpherePower(PowerSystem powerSystem, float eta, float increase, UnityEngine.Vector3 normalized)
@@ -766,6 +769,8 @@ internal sealed class OptimizedPowerNetwork
             totalEnergyDemand += requiredEnergy;
             num2 += requiredEnergy;
         }
+        totalEnergyDemand += _totalPowerNodeEnergyConsumption;
+        num2 += _totalPowerNodeEnergyConsumption;
         foreach (SubFactoryPowerConsumption subFactoryNetworkPowerConsumptionPrepared in subFactoryToPowerConsumption)
         {
             totalEnergyDemand += subFactoryNetworkPowerConsumptionPrepared.NetworksPowerConsumption[_networkIndex];
@@ -948,9 +953,9 @@ internal sealed class OptimizedPowerNetwork
 
             // Game code takes negative values of total capacity. I inverted the source
             // so it didn't need to be done here.
-            statistics.genCapacities[num] += _powerExchangerExecutor.TotalCapacityCurrentTick;
+            statistics.genCapacities[num] += _powerExchangerExecutor.TotalGenerationCapacityCurrentTick;
             statistics.genCount[num] += _powerExchangerExecutor.GeneratorCount;
-            statistics.totalGenCapacity += _powerExchangerExecutor.TotalCapacityCurrentTick;
+            statistics.totalGenCapacity += _powerExchangerExecutor.TotalGenerationCapacityCurrentTick;
         }
     }
 
@@ -968,6 +973,14 @@ internal sealed class OptimizedPowerNetwork
             statistics.conDemands[num] += consumerPool[consumerIndex].requiredEnergy;
             statistics.conCount[num]++;
             statistics.totalConDemand += consumerPool[consumerIndex].requiredEnergy;
+        }
+
+        if (_powerExchangerExecutor.IsUsed)
+        {
+            int num = powerConId2Index[_powerExchangerExecutor.PrototypeId.Value];
+            statistics.conDemands[num] += _powerExchangerExecutor.TotalConsumptionCapacityCurrentTick;
+            statistics.conCount[num] += _powerExchangerExecutor.GeneratorCount;
+            statistics.totalConDemand += _powerExchangerExecutor.TotalConsumptionCapacityCurrentTick;
         }
     }
 

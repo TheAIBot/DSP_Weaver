@@ -16,6 +16,7 @@ internal sealed class ResearchingLabExecutor
     public int[] _entityIds = null!;
     public Dictionary<int, int> _labIdToOptimizedLabIndex = null!;
     public HashSet<int> _unOptimizedLabIds = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public int ResearchingLabCount => _optimizedLabs.Length;
 
@@ -170,16 +171,51 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    private static void UpdatePower(int[] producingLabPowerConsumerIndexes,
+    private static void UpdatePower(int[] researchingLabPowerConsumerIndexes,
                                 PowerConsumerType[] powerConsumerTypes,
                                 long[] thisSubFactoryNetworkPowerConsumption,
                                 int labIndex,
                                 int networkIndex,
                                 LabPowerFields labPowerFields)
     {
-        int powerConsumerTypeIndex = producingLabPowerConsumerIndexes[labIndex];
+        int powerConsumerTypeIndex = researchingLabPowerConsumerIndexes[labIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labPowerFields);
+    }
+
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] researchingLabPowerConsumerIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        LabPowerFields[] labsPowerFields = _labsPowerFields;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int labIndex = 0; labIndex < labsPowerFields.Length; labIndex++)
+        {
+            LabPowerFields labPowerFields = labsPowerFields[labIndex];
+            UpdatePowerConsumptionPerPrototype(researchingLabPowerConsumerIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               labIndex,
+                                               labPowerFields);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] researchingLabPowerConsumerIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int labIndex,
+                                                           LabPowerFields labPowerFields)
+    {
+        int powerConsumerTypeIndex = researchingLabPowerConsumerIndexes[labIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[labIndex]] += GetPowerConsumption(powerConsumerType, labPowerFields);
     }
 
     public void Save(PlanetFactory planet)
@@ -216,6 +252,7 @@ internal sealed class ResearchingLabExecutor
         List<int> entityIds = [];
         Dictionary<int, int> labIdToOptimizedLabIndex = [];
         HashSet<int> unOptimizedLabIds = [];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int labIndex in subFactoryGraph.GetAllNodes()
                                                 .Where(x => x.EntityTypeIndex.EntityType == EntityType.ResearchingLab)
@@ -244,6 +281,7 @@ internal sealed class ResearchingLabExecutor
             networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
             entityIds.Add(lab.entityId);
             subFactoryPowerSystemBuilder.AddResearchingLab(in lab, networkIndex);
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[lab.entityId]);
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[lab.entityId] = lab.needs;
@@ -272,6 +310,7 @@ internal sealed class ResearchingLabExecutor
         _entityIds = entityIds.ToArray();
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
         _unOptimizedLabIds = unOptimizedLabIds;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, LabPowerFields producingLabPowerFields)

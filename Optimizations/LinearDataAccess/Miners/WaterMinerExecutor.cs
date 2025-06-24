@@ -11,6 +11,7 @@ internal sealed class WaterMinerExecutor
     private int[] _networkIds = null!;
     private OptimizedWaterMiner[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public void GameTick(PlanetFactory planet,
                          int[] waterMinerPowerConsumerIndexes,
@@ -68,6 +69,41 @@ internal sealed class WaterMinerExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] waterMinerPowerConsumerIndexes,
+                                                                     PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        OptimizedWaterMiner[] optimizedMiners = _optimizedMiners;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
+        {
+            ref readonly OptimizedWaterMiner miner = ref optimizedMiners[minerIndex];
+            UpdatePowerConsumptionPerPrototype(waterMinerPowerConsumerIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               minerIndex,
+                                               in miner);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] waterMinerPowerConsumerIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int minerIndex,
+                                                           ref readonly OptimizedWaterMiner miner)
+    {
+        int powerConsumerTypeIndex = waterMinerPowerConsumerIndexes[minerIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[minerIndex]] += GetPowerConsumption(powerConsumerType, in miner);
+    }
+
     public void Save(PlanetFactory planet)
     {
         MinerComponent[] miners = planet.factorySystem.minerPool;
@@ -91,6 +127,7 @@ internal sealed class WaterMinerExecutor
         List<int> networkIds = [];
         List<OptimizedWaterMiner> optimizedMiners = [];
         Dictionary<int, int> minerIdToOptimizedIndex = [];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int minerIndex in subFactoryGraph.GetAllNodes()
                                                   .Where(x => x.EntityTypeIndex.EntityType == EntityType.Miner)
@@ -133,11 +170,13 @@ internal sealed class WaterMinerExecutor
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
             optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, planet.planet.waterItemId, in miner));
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 
         _networkIds = networkIds.ToArray();
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedWaterMiner miner)

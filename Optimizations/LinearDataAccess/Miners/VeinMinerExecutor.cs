@@ -12,6 +12,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
     private int[] _networkIds = null!;
     public OptimizedVeinMiner<TMinerOutput>[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public int GetOptimizedMinerIndexFromMinerId(int minerId)
     {
@@ -79,6 +80,41 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] veinMinerPowerConsumerIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        OptimizedVeinMiner<TMinerOutput>[] optimizedMiners = _optimizedMiners;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
+        {
+            ref readonly OptimizedVeinMiner<TMinerOutput> miner = ref optimizedMiners[minerIndex];
+            UpdatePowerConsumptionPerPrototype(veinMinerPowerConsumerIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               minerIndex,
+                                               in miner);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] veinMinerPowerConsumerIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int minerIndex,
+                                                           ref readonly OptimizedVeinMiner<TMinerOutput> miner)
+    {
+        int powerConsumerTypeIndex = veinMinerPowerConsumerIndexes[minerIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[minerIndex]] += GetPowerConsumption(powerConsumerType, in miner);
+    }
+
     public void Save(PlanetFactory planet)
     {
         MinerComponent[] miners = planet.factorySystem.minerPool;
@@ -103,6 +139,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         List<OptimizedVeinMiner<TMinerOutput>> optimizedMiners = [];
         Dictionary<int, int> minerIdToOptimizedIndex = [];
         TMinerOutput minerOutputBuilder = new TMinerOutput();
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int minerIndex in subFactoryGraph.GetAllNodes()
                                                   .Where(x => x.EntityTypeIndex.EntityType == EntityType.Miner)
@@ -130,11 +167,13 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
             optimizedMiners.Add(new OptimizedVeinMiner<TMinerOutput>(minerOutput, in miner));
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 
         _networkIds = networkIds.ToArray();
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedVeinMiner<TMinerOutput> miner)

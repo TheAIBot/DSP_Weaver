@@ -8,6 +8,7 @@ internal sealed class SiloExecutor
 {
     private int[] _siloIndexes = null!;
     private int[] _siloNetworkIds = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public void GameTick(PlanetFactory planet,
                          int[] siloPowerConsumerTypeIndexes,
@@ -49,7 +50,8 @@ internal sealed class SiloExecutor
         {
             int siloIndex = siloIndexes[siloIndexIndex];
             int networkIndex = siloNetworkIds[siloIndexIndex];
-            UpdatePower(siloPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, siloIndexIndex, networkIndex, in silos[siloIndex]);
+            ref readonly SiloComponent silo = ref silos[siloIndex];
+            UpdatePower(siloPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, siloIndexIndex, networkIndex, in silo);
         }
     }
 
@@ -65,6 +67,44 @@ internal sealed class SiloExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in silo);
     }
 
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(PlanetFactory planet,
+                                                                         int[] siloPowerConsumerTypeIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        int[] siloIndexes = _siloIndexes;
+        SiloComponent[] silos = planet.factorySystem.siloPool;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
+        {
+            int siloIndex = siloIndexes[siloIndexIndex];
+            ref readonly SiloComponent silo = ref silos[siloIndex];
+            UpdatePowerConsumptionPerPrototype(siloPowerConsumerTypeIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               siloIndexIndex,
+                                               in silo);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] siloPowerConsumerTypeIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int siloIndexIndex,
+                                                           ref readonly SiloComponent silo)
+    {
+        int powerConsumerTypeIndex = siloPowerConsumerTypeIndexes[siloIndexIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[siloIndexIndex]] += GetPowerConsumption(powerConsumerType, in silo);
+    }
+
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
@@ -76,6 +116,7 @@ internal sealed class SiloExecutor
                                       .ToArray();
 
         int[] siloNetworkIds = new int[_siloIndexes.Length];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         for (int siloIndexIndex = 0; siloIndexIndex < _siloIndexes.Length; siloIndexIndex++)
         {
@@ -90,9 +131,11 @@ internal sealed class SiloExecutor
             planet.entityNeeds[silo.entityId] = silo.needs;
 
             subFactoryPowerSystemBuilder.AddSilo(in silo, networkIndex);
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[silo.entityId]);
         }
 
         _siloNetworkIds = siloNetworkIds;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly SiloComponent silo)

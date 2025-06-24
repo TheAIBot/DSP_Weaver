@@ -1,5 +1,8 @@
-﻿namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
+﻿using System.Runtime.InteropServices;
 
+namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
+
+[StructLayout(LayoutKind.Auto)]
 internal struct FractionatorPowerFields
 {
     public bool isWorking;

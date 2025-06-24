@@ -13,6 +13,7 @@ internal sealed class SpraycoaterExecutor
     private bool[] _isSpraycoatingItems = null!;
     private int[] _sprayTimes = null!;
     public Dictionary<int, int> _spraycoaterIdToOptimizedSpraycoaterIndex = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public int SpraycoaterCount => _optimizedSpraycoaters.Length;
 
@@ -41,11 +42,10 @@ internal sealed class SpraycoaterExecutor
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
         int[] spraycoaterNetworkIds = _spraycoaterNetworkIds;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
-        for (int spraycoaterIndex = 0; spraycoaterIndex < optimizedSpraycoaters.Length; spraycoaterIndex++)
+        for (int spraycoaterIndex = 0; spraycoaterIndex < spraycoaterNetworkIds.Length; spraycoaterIndex++)
         {
             int networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
             UpdatePower(spraycoaterPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, spraycoaterIndex, networkIndex, isSpraycoatingItems[spraycoaterIndex], sprayTimes[spraycoaterIndex]);
@@ -65,9 +65,43 @@ internal sealed class SpraycoaterExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItem, sprayTime);
     }
 
-    public static long GetPowerConsumption(PowerConsumerType powerConsumerType, bool isSprayCoatingItem, int sprayTime)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] spraycoaterPowerConsumerTypeIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
     {
-        return powerConsumerType.GetRequiredEnergy(sprayTime < 10000 && isSprayCoatingItem);
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        bool[] isSpraycoatingItems = _isSpraycoatingItems;
+        int[] sprayTimes = _sprayTimes;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int spraycoaterIndex = 0; spraycoaterIndex < isSpraycoatingItems.Length; spraycoaterIndex++)
+        {
+            bool isSpraycoatingItem = isSpraycoatingItems[spraycoaterIndex];
+            int sprayTime = sprayTimes[spraycoaterIndex];
+            UpdatePowerConsumptionPerPrototype(spraycoaterPowerConsumerTypeIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               spraycoaterIndex,
+                                               isSpraycoatingItem,
+                                               sprayTime);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] spraycoaterPowerConsumerTypeIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int spraycoaterIndex,
+                                                           bool isSpraycoatingItem,
+                                                           int sprayTime)
+    {
+        int powerConsumerTypeIndex = spraycoaterPowerConsumerTypeIndexes[spraycoaterIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[spraycoaterIndex]] += GetPowerConsumption(powerConsumerType, isSpraycoatingItem, sprayTime);
     }
 
     public void Save(PlanetFactory planet)
@@ -97,6 +131,7 @@ internal sealed class SpraycoaterExecutor
         List<bool> isSpraycoatingItems = [];
         List<int> sprayTimes = [];
         Dictionary<int, int> spraycoaterIdToOptimizedSpraycoaterIndex = [];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int spraycoaterIndex in subFactoryGraph.GetAllNodes()
                                                         .Where(x => x.EntityTypeIndex.EntityType == EntityType.SprayCoater)
@@ -157,6 +192,7 @@ internal sealed class SpraycoaterExecutor
                                                                in spraycoater));
             isSpraycoatingItems.Add(spraycoater.cargoBeltItemId != 0);
             sprayTimes.Add(spraycoater.sprayTime);
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[spraycoater.entityId]);
         }
 
         _spraycoaterNetworkIds = spraycoaterNetworkIds.ToArray();
@@ -164,5 +200,11 @@ internal sealed class SpraycoaterExecutor
         _isSpraycoatingItems = isSpraycoatingItems.ToArray();
         _sprayTimes = sprayTimes.ToArray();
         _spraycoaterIdToOptimizedSpraycoaterIndex = spraycoaterIdToOptimizedSpraycoaterIndex;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+    }
+
+    private static long GetPowerConsumption(PowerConsumerType powerConsumerType, bool isSprayCoatingItem, int sprayTime)
+    {
+        return powerConsumerType.GetRequiredEnergy(sprayTime < 10000 && isSprayCoatingItem);
     }
 }

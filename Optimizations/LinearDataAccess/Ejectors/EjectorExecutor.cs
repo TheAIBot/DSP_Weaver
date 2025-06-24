@@ -8,6 +8,7 @@ internal sealed class EjectorExecutor
 {
     private int[] _ejectorIndexes = null!;
     private int[] _ejectorNetworkIds = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public void GameTick(PlanetFactory planet,
                          long time,
@@ -21,6 +22,7 @@ internal sealed class EjectorExecutor
         float[] networkServes = powerSystem.networkServes;
         AnimData[] entityAnimPool = planet.entityAnimPool;
         AstroData[] astroPoses = planet.factorySystem.planet.galaxy.astrosData;
+        int[] ejectorIndexes = _ejectorIndexes;
         EjectorComponent[] ejectors = planet.factorySystem.ejectorPool;
 
         DysonSwarm? swarm = null;
@@ -30,9 +32,9 @@ internal sealed class EjectorExecutor
         }
 
         int[] ejectorNetworkIds = _ejectorNetworkIds;
-        for (int ejectorIndexIndex = 0; ejectorIndexIndex < _ejectorIndexes.Length; ejectorIndexIndex++)
+        for (int ejectorIndexIndex = 0; ejectorIndexIndex < ejectorIndexes.Length; ejectorIndexIndex++)
         {
-            int ejectorIndex = _ejectorIndexes[ejectorIndexIndex];
+            int ejectorIndex = ejectorIndexes[ejectorIndexIndex];
             int networkIndex = ejectorNetworkIds[ejectorIndexIndex];
             float power3 = networkServes[networkIndex];
             ref EjectorComponent ejector = ref ejectors[ejectorIndex];
@@ -54,7 +56,8 @@ internal sealed class EjectorExecutor
         {
             int ejectorIndex = _ejectorIndexes[ejectorIndexIndex];
             int networkIndex = ejectorNetworkIds[ejectorIndexIndex];
-            UpdatePower(ejectorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, ejectorIndexIndex, networkIndex, ref ejectors[ejectorIndex]);
+            ref readonly EjectorComponent ejector = ref ejectors[ejectorIndex];
+            UpdatePower(ejectorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, ejectorIndexIndex, networkIndex, in ejector);
         }
     }
 
@@ -70,6 +73,44 @@ internal sealed class EjectorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in ejector);
     }
 
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(PlanetFactory planet,
+                                                                         int[] ejectorPowerConsumerTypeIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        int[] ejectorIndexes = _ejectorIndexes;
+        EjectorComponent[] ejectors = planet.factorySystem.ejectorPool;
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int ejectorIndexIndex = 0; ejectorIndexIndex < ejectorIndexes.Length; ejectorIndexIndex++)
+        {
+            int ejectorIndex = ejectorIndexes[ejectorIndexIndex];
+            ref readonly EjectorComponent ejector = ref ejectors[ejectorIndex];
+            UpdatePowerConsumptionPerPrototype(ejectorPowerConsumerTypeIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               ejectorIndexIndex,
+                                               in ejector);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] ejectorPowerConsumerTypeIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int ejectorIndexIndex,
+                                                           ref readonly EjectorComponent ejector)
+    {
+        int powerConsumerTypeIndex = ejectorPowerConsumerTypeIndexes[ejectorIndexIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[ejectorIndexIndex]] += GetPowerConsumption(powerConsumerType, in ejector);
+    }
+
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder)
@@ -81,6 +122,7 @@ internal sealed class EjectorExecutor
                                          .ToArray();
 
         int[] ejectorNetworkIds = new int[_ejectorIndexes.Length];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         for (int ejectorIndexIndex = 0; ejectorIndexIndex < _ejectorIndexes.Length; ejectorIndexIndex++)
         {
@@ -96,9 +138,11 @@ internal sealed class EjectorExecutor
             planet.entityNeeds[ejector.entityId] = ejector.needs;
 
             subFactoryPowerSystemBuilder.AddEjector(in ejector, networkIndex);
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[ejector.entityId]);
         }
 
         _ejectorNetworkIds = ejectorNetworkIds;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly EjectorComponent ejector)

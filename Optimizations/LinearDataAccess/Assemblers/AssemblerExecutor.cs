@@ -112,12 +112,11 @@ internal sealed class AssemblerExecutor
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
-        OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
-        for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
+        for (int assemblerIndex = 0; assemblerIndex < assemblerReplicatings.Length; assemblerIndex++)
         {
             bool replicating = assemblerReplicatings[assemblerIndex];
             int extraPowerRatios = assemblerExtraPowerRatios[assemblerIndex];
@@ -189,7 +188,7 @@ internal sealed class AssemblerExecutor
         List<AssemblerRecipe> assemblerRecipes = [];
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
         HashSet<int> unOptimizedAssemblerIds = [];
-        PrototypePowerConsumptionBuilder prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
         GameHistoryData historyData = planet.gameData.history;
         foreach (int assemblerIndex in subFactoryGraph.GetAllNodes()
                                                       .Where(x => x.EntityTypeIndex.EntityType == EntityType.Assembler)

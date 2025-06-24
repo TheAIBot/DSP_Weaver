@@ -11,6 +11,7 @@ internal sealed class MonitorExecutor
     private int[] _monitorIndexes = null!;
     private int[] _networkIds = null!;
     private OptimizedMonitor[] _optimizedMonitors = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public void GameTick(PlanetFactory planet,
                          int[] monitorPowerConsumerIndexes,
@@ -41,9 +42,8 @@ internal sealed class MonitorExecutor
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
         int[] networkIds = _networkIds;
-        OptimizedMonitor[] optimizedMonitors = _optimizedMonitors;
 
-        for (int monitorIndex = 0; monitorIndex < optimizedMonitors.Length; monitorIndex++)
+        for (int monitorIndex = 0; monitorIndex < networkIds.Length; monitorIndex++)
         {
             int networkIndex = networkIds[monitorIndex];
             UpdatePower(monitorPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, monitorIndex, networkIndex);
@@ -61,6 +61,38 @@ internal sealed class MonitorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType);
     }
 
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(PlanetFactory planet,
+                                                                         int[] monitorPowerConsumerIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int monitorIndex = 0; monitorIndex < prototypeIdIndexes.Length; monitorIndex++)
+        {
+            UpdatePowerConsumptionPerPrototype(monitorPowerConsumerIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               monitorIndex);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] monitorPowerConsumerIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int monitorIndexIndex)
+    {
+        int powerConsumerTypeIndex = monitorPowerConsumerIndexes[monitorIndexIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[monitorIndexIndex]] += GetPowerConsumption(powerConsumerType);
+    }
+
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
@@ -69,6 +101,7 @@ internal sealed class MonitorExecutor
         List<int> monitorIndexes = [];
         List<int> networkIds = [];
         List<OptimizedMonitor> optimizedMonitors = [];
+        var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int monitorIndex in subFactoryGraph.GetAllNodes()
                                                     .Where(x => x.EntityTypeIndex.EntityType == EntityType.Monitor)
@@ -100,11 +133,13 @@ internal sealed class MonitorExecutor
             monitorIndexes.Add(monitorIndex);
             networkIds.Add(networkIndex);
             optimizedMonitors.Add(new OptimizedMonitor(targetBelt, targetBeltComponent.speed, targetBeltOffset));
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[monitor.entityId]);
         }
 
         _monitorIndexes = monitorIndexes.ToArray();
         _networkIds = networkIds.ToArray();
         _optimizedMonitors = optimizedMonitors.ToArray();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType)

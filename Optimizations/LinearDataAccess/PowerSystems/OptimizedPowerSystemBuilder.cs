@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using PowerNetworkStructures;
+using System.Collections.Generic;
 using System.Linq;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 
@@ -222,7 +223,7 @@ internal sealed class OptimizedPowerSystemBuilder
             int[] networkNonOptimizedPowerConsumerIndexes;
             if (networkIndexToOptimizedConsumerIndexes.TryGetValue(i, out HashSet<int> optimizedConsumerIndexes))
             {
-                networkNonOptimizedPowerConsumerIndexes = planet.powerSystem.netPool[i].consumers.Except(networkIndexToOptimizedConsumerIndexes[i])
+                networkNonOptimizedPowerConsumerIndexes = planet.powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes)
                                                                                                  .OrderBy(x => x)
                                                                                                  .ToArray();
             }
@@ -249,6 +250,8 @@ internal sealed class OptimizedPowerSystemBuilder
             var powerExchangerExecutor = new PowerExchangerExecutor();
             powerExchangerExecutor.Initialize(planet, i, planetWideBeltExecutor);
 
+            long totalPowerNodeEnergyConsumption = GetTotalPowerNodeEnergyConsumption(planet, powerNetwork);
+
             optimizedPowerNetworks.Add(new OptimizedPowerNetwork(powerNetwork,
                                                                  i,
                                                                  networkNonOptimizedPowerConsumerIndexes,
@@ -257,9 +260,28 @@ internal sealed class OptimizedPowerSystemBuilder
                                                                  gammaExecutor,
                                                                  geothermalExecutor,
                                                                  fuelExecutor,
-                                                                 powerExchangerExecutor));
+                                                                 powerExchangerExecutor,
+                                                                 totalPowerNodeEnergyConsumption));
         }
 
         return optimizedPowerNetworks.ToArray();
+    }
+
+    private static long GetTotalPowerNodeEnergyConsumption(PlanetFactory planet, PowerNetwork powerNetwork)
+    {
+        long totalPowerNodeEnergyConsumption = 0;
+        foreach (Node node in powerNetwork.nodes)
+        {
+            int id = node.id;
+            if (planet.powerSystem.nodePool[id].id != id || !planet.powerSystem.nodePool[id].isCharger)
+            {
+                continue;
+            }
+
+            planet.powerSystem.nodePool[id].requiredEnergy = planet.powerSystem.nodePool[id].idleEnergyPerTick;
+            totalPowerNodeEnergyConsumption += planet.powerSystem.nodePool[id].requiredEnergy;
+        }
+
+        return totalPowerNodeEnergyConsumption;
     }
 }
