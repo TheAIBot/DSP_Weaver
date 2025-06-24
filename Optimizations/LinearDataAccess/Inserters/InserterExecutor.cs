@@ -118,6 +118,7 @@ internal sealed class InserterExecutor<T>
     public ConnectionBelts[] _connectionBelts = null!;
     public InsertIntoConsumingPlant[] _insertIntoConsumingPlants = null!;
     public Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
+    private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     private readonly NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
     private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
@@ -209,6 +210,40 @@ internal sealed class InserterExecutor<T>
         int powerConsumerTypeIndex = inserterPowerConsumerIndexes[inserterIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, optimizedInserterStage);
+    }
+
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] inserterPowerConsumerIndexes,
+                                                                         PowerConsumerType[] powerConsumerTypes)
+    {
+        var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
+        prototypePowerConsumptionExecutor.Clear();
+
+        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
+        for (int inserterIndex = 0; inserterIndex < _optimizedInserters.Length; inserterIndex++)
+        {
+            OptimizedInserterStage optimizedInserterStage = _optimizedInserterStages[inserterIndex];
+            UpdatePowerConsumptionPerPrototype(inserterPowerConsumerIndexes,
+                                               powerConsumerTypes,
+                                               prototypeIdIndexes,
+                                               prototypeIdPowerConsumption,
+                                               inserterIndex,
+                                               optimizedInserterStage);
+        }
+
+        return prototypePowerConsumptionExecutor.GetPowerConsumption();
+    }
+
+    private static void UpdatePowerConsumptionPerPrototype(int[] inserterPowerConsumerIndexes,
+                                                           PowerConsumerType[] powerConsumerTypes,
+                                                           int[] prototypeIdIndexes,
+                                                           long[] prototypeIdPowerConsumption,
+                                                           int inserterIndex,
+                                                           OptimizedInserterStage optimizedInserterStage)
+    {
+        int powerConsumerTypeIndex = inserterPowerConsumerIndexes[inserterIndex];
+        PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
+        prototypeIdPowerConsumption[prototypeIdIndexes[inserterIndex]] += GetPowerConsumption(powerConsumerType, optimizedInserterStage);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, OptimizedInserterStage stage)
@@ -817,6 +852,7 @@ internal sealed class InserterExecutor<T>
         List<ConnectionBelts> connectionBelts = [];
         List<InsertIntoConsumingPlant> insertIntoConsumingPlants = [];
         Dictionary<int, int> inserterIdToOptimizedIndex = [];
+        PrototypePowerConsumptionBuilder prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
         foreach (int inserterIndex in subFactoryGraph.GetAllNodes()
                                                      .Where(x => x.EntityTypeIndex.EntityType == EntityType.Inserter)
@@ -946,6 +982,7 @@ internal sealed class InserterExecutor<T>
             optimizedInserters.Add(default(T).Create(in inserter, pickFromOffset, insertIntoOffset, inserterGradeIndex));
             optimizedInserterStages.Add(ToOptimizedInserterStage(inserter.stage));
             connectionBelts.Add(new ConnectionBelts(pickFromBelt, insertIntoBelt));
+            prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[inserter.entityId]);
 
             if (pickFrom.EntityType == EntityType.Assembler)
             {
@@ -998,6 +1035,7 @@ internal sealed class InserterExecutor<T>
         _connectionBelts = connectionBelts.ToArray();
         _insertIntoConsumingPlants = insertIntoConsumingPlants.ToArray();
         _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex;
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }
 
     private void Print(int inserterIndex)
