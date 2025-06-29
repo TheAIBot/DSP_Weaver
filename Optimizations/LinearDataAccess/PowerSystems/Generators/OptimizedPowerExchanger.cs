@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -10,8 +11,8 @@ internal struct OptimizedPowerExchanger
     private readonly float targetState;
     private readonly long energyPerTick;
     private readonly long maxPoolEnergy;
-    private readonly int emptyId;
-    private readonly int fullId;
+    private readonly OptimizedItemId emptyId;
+    private readonly OptimizedItemId fullId;
     private readonly OptimizedCargoPath? belt0;
     private readonly OptimizedCargoPath? belt1;
     private readonly OptimizedCargoPath? belt2;
@@ -34,7 +35,9 @@ internal struct OptimizedPowerExchanger
     public long currEnergyPerTick;
     public long capsCurrentTick;
 
-    public OptimizedPowerExchanger(OptimizedCargoPath? belt0,
+    public OptimizedPowerExchanger(OptimizedItemId emptyId,
+                                   OptimizedItemId fullId,
+                                   OptimizedCargoPath? belt0,
                                    OptimizedCargoPath? belt1,
                                    OptimizedCargoPath? belt2,
                                    OptimizedCargoPath? belt3,
@@ -43,8 +46,8 @@ internal struct OptimizedPowerExchanger
         targetState = powerExchanger.targetState;
         energyPerTick = powerExchanger.energyPerTick;
         maxPoolEnergy = powerExchanger.maxPoolEnergy;
-        emptyId = powerExchanger.emptyId;
-        fullId = powerExchanger.fullId;
+        this.emptyId = emptyId;
+        this.fullId = fullId;
         this.belt0 = belt0;
         this.belt1 = belt1;
         this.belt2 = belt2;
@@ -172,14 +175,8 @@ internal struct OptimizedPowerExchanger
                 emptyInc = (short)m;
                 fullCount++;
                 fullInc += b;
-                lock (productRegister)
-                {
-                    productRegister[fullId]++;
-                }
-                lock (consumeRegister)
-                {
-                    consumeRegister[emptyId]++;
-                }
+                productRegister[fullId.OptimizedItemIndex]++;
+                consumeRegister[emptyId.OptimizedItemIndex]++;
             }
             else
             {
@@ -217,14 +214,8 @@ internal struct OptimizedPowerExchanger
                 emptyCount++;
                 emptyInc += b;
                 poolInc = b;
-                lock (productRegister)
-                {
-                    productRegister[emptyId]++;
-                }
-                lock (consumeRegister)
-                {
-                    consumeRegister[fullId]++;
-                }
+                productRegister[emptyId.OptimizedItemIndex]++;
+                consumeRegister[fullId.OptimizedItemIndex]++;
             }
             else
             {
@@ -420,7 +411,7 @@ internal struct OptimizedPowerExchanger
                 int n = emptyCount;
                 int m = emptyInc;
                 byte inc = (byte)split_inc(ref n, ref m, 1);
-                if (belt.TryInsertItemAtHead(emptyId, 1, inc))
+                if (belt.TryInsertItemAtHead(emptyId.ItemIndex, 1, inc))
                 {
                     emptyCount = (short)n;
                     emptyInc = (short)m;
@@ -433,7 +424,7 @@ internal struct OptimizedPowerExchanger
             int n2 = fullCount;
             int m2 = fullInc;
             byte inc2 = (byte)split_inc(ref n2, ref m2, 1);
-            if (belt.TryInsertItemAtHead(fullId, 1, inc2))
+            if (belt.TryInsertItemAtHead(fullId.ItemIndex, 1, inc2))
             {
                 fullCount = (short)n2;
                 fullInc = (short)m2;
@@ -450,7 +441,7 @@ internal struct OptimizedPowerExchanger
             int n = emptyCount;
             int m = emptyInc;
             byte inc = (byte)split_inc(ref n, ref m, 1);
-            if (belt.TryInsertItemAtHead(emptyId, 1, inc))
+            if (belt.TryInsertItemAtHead(emptyId.ItemIndex, 1, inc))
             {
                 emptyCount = (short)n;
                 emptyInc = (short)m;
@@ -462,7 +453,7 @@ internal struct OptimizedPowerExchanger
             int n2 = fullCount;
             int m2 = fullInc;
             byte inc2 = (byte)split_inc(ref n2, ref m2, 1);
-            if (belt.TryInsertItemAtHead(fullId, 1, inc2))
+            if (belt.TryInsertItemAtHead(fullId.ItemIndex, 1, inc2))
             {
                 fullCount = (short)n2;
                 fullInc = (short)m2;
@@ -474,13 +465,13 @@ internal struct OptimizedPowerExchanger
 
     private bool PickItemFromBelt(OptimizedCargoPath beltId)
     {
-        if (emptyCount < 5 && emptyId == CargoPathMethods.TryPickItemAtRear(beltId, emptyId, null, out var stack, out var inc))
+        if (emptyCount < 5 && emptyId.ItemIndex == CargoPathMethods.TryPickItemAtRear(beltId, emptyId.ItemIndex, null, out var stack, out var inc))
         {
             emptyCount += stack;
             emptyInc += inc;
             return true;
         }
-        if (fullCount < 5 && fullId == CargoPathMethods.TryPickItemAtRear(beltId, fullId, null, out stack, out inc))
+        if (fullCount < 5 && fullId.ItemIndex == CargoPathMethods.TryPickItemAtRear(beltId, fullId.ItemIndex, null, out stack, out inc))
         {
             fullCount += stack;
             fullInc += inc;

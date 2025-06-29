@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -12,8 +13,8 @@ internal struct OptimizedGammaPowerGenerator
     private readonly OptimizedCargoPath? slot1Belt;
     private readonly int slot1BeltOffset;
     private readonly bool slot1IsOutput;
-    private readonly int catalystId;
-    private readonly int productId;
+    private readonly OptimizedItemId catalystId;
+    private readonly OptimizedItemId productId;
     private readonly long productHeat;
     private readonly UnityEngine.Vector3 position;
     private readonly float ionEnhance;
@@ -47,6 +48,8 @@ internal struct OptimizedGammaPowerGenerator
                                         OptimizedCargoPath? slot1Belt,
                                         int slot1BeltOffset,
                                         bool slot1IsOutput,
+                                        OptimizedItemId catalystId,
+                                        OptimizedItemId productId,
                                         ref readonly PowerGeneratorComponent powerGenerator)
     {
         this.slot0Belt = slot0Belt;
@@ -59,8 +62,8 @@ internal struct OptimizedGammaPowerGenerator
         ionEnhance = powerGenerator.ionEnhance;
         genEnergyPerTick = powerGenerator.genEnergyPerTick;
         currentStrength = powerGenerator.currentStrength;
-        catalystId = powerGenerator.catalystId;
-        productId = powerGenerator.productId;
+        this.catalystId = catalystId;
+        this.productId = productId;
         productHeat = powerGenerator.productHeat;
         catalystPoint = powerGenerator.catalystPoint;
         incUsed = powerGenerator.incUsed;
@@ -77,7 +80,7 @@ internal struct OptimizedGammaPowerGenerator
         float num = (UnityEngine.Vector3.Dot(normalizedSunDirection, position) + increase * 0.8f + ((catalystPoint > 0) ? ionEnhance : 0f)) * 6f + 0.5f;
         num = (currentStrength = ((num > 1f) ? 1f : ((num < 0f) ? 0f : num)));
         float num2 = (float)Cargo.accTableMilli[catalystIncLevel];
-        capacityCurrentTick = (long)(currentStrength * (1f + warmup * 1.5f) * ((catalystPoint > 0) ? (2f * (1f + num2)) : 1f) * ((productId > 0) ? 8f : 1f) * (float)genEnergyPerTick);
+        capacityCurrentTick = (long)(currentStrength * (1f + warmup * 1.5f) * ((catalystPoint > 0) ? (2f * (1f + num2)) : 1f) * ((productId.ItemIndex > 0) ? 8f : 1f) * (float)genEnergyPerTick);
         eta = 1f - (1f - eta) * (1f - warmup * warmup * 0.4f);
         warmupSpeed = (num - 0.75f) * 4f * 1.3888889E-05f;
         return (long)((double)capacityCurrentTick / (double)eta + 0.49999999);
@@ -90,7 +93,7 @@ internal struct OptimizedGammaPowerGenerator
             warmupSpeed *= response * 4f;
         }
         capacityCurrentTick = (long)((double)capacityCurrentTick * (double)response);
-        if (productId == 0)
+        if (productId.ItemIndex == 0)
         {
             return capacityCurrentTick;
         }
@@ -117,20 +120,14 @@ internal struct OptimizedGammaPowerGenerator
                 }
             }
             int num3 = catalystPoint / 3600;
-            lock (consumeRegister)
-            {
-                consumeRegister[catalystId] += num - num3;
-            }
+            consumeRegister[catalystId.OptimizedItemIndex] += num - num3;
         }
-        if (productId > 0 && productCount < 20f)
+        if (productId.ItemIndex > 0 && productCount < 20f)
         {
             int num4 = (int)productCount;
             productCount += (float)((double)capacityCurrentTick / (double)productHeat);
             int num5 = (int)productCount;
-            lock (productRegister)
-            {
-                productRegister[productId] += num5 - num4;
-            }
+            productRegister[productId.OptimizedItemIndex] += num5 - num4;
             if (productCount > 20f)
             {
                 productCount = 20f;
@@ -142,7 +139,7 @@ internal struct OptimizedGammaPowerGenerator
         {
             return;
         }
-        bool flag = productId > 0 && productCount >= 1f;
+        bool flag = productId.ItemIndex > 0 && productCount >= 1f;
         bool flag2 = keyFrame && useIon && (float)catalystPoint < 72000f;
         if (!(flag || flag2))
         {
@@ -178,23 +175,23 @@ internal struct OptimizedGammaPowerGenerator
             {
                 if (fuelHeat == 0L)
                 {
-                    if (InsertInto(slot0Belt!, slot0BeltOffset, productId, 1, 0, out _) == 1)
+                    if (InsertInto(slot0Belt!, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                     {
                         productCount -= 1f;
                         fuelHeat = 1L;
                     }
-                    else if (InsertInto(slot1Belt!, slot1BeltOffset, productId, 1, 0, out _) == 1)
+                    else if (InsertInto(slot1Belt!, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                     {
                         productCount -= 1f;
                         fuelHeat = 0L;
                     }
                 }
-                else if (InsertInto(slot1Belt!, slot1BeltOffset, productId, 1, 0, out _) == 1)
+                else if (InsertInto(slot1Belt!, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 0L;
                 }
-                else if (InsertInto(slot0Belt!, slot0BeltOffset, productId, 1, 0, out _) == 1)
+                else if (InsertInto(slot0Belt!, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 1L;
@@ -202,13 +199,13 @@ internal struct OptimizedGammaPowerGenerator
             }
             else if (flag3)
             {
-                if (InsertInto(slot0Belt!, slot0BeltOffset, productId, 1, 0, out _) == 1)
+                if (InsertInto(slot0Belt!, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 1L;
                 }
             }
-            else if (flag5 && InsertInto(slot1Belt!, slot1BeltOffset, productId, 1, 0, out _) == 1)
+            else if (flag5 && InsertInto(slot1Belt!, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
             {
                 productCount -= 1f;
                 fuelHeat = 0L;
@@ -216,12 +213,12 @@ internal struct OptimizedGammaPowerGenerator
         }
         if (flag2)
         {
-            if (flag4 && PickFrom(slot0Belt!, slot0BeltOffset, catalystId, null, out var stack, out var inc) == catalystId)
+            if (flag4 && PickFrom(slot0Belt!, slot0BeltOffset, catalystId.ItemIndex, null, out var stack, out var inc) == catalystId.ItemIndex)
             {
                 catalystPoint += 3600 * stack;
                 catalystIncPoint += 3600 * inc;
             }
-            if (flag6 && PickFrom(slot1Belt!, slot1BeltOffset, catalystId, null, out stack, out inc) == catalystId)
+            if (flag6 && PickFrom(slot1Belt!, slot1BeltOffset, catalystId.ItemIndex, null, out stack, out inc) == catalystId.ItemIndex)
             {
                 catalystPoint += 3600 * stack;
                 catalystIncPoint += 3600 * inc;

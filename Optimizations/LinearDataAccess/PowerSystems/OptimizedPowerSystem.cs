@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -67,14 +68,17 @@ internal sealed class OptimizedPowerSystem
     private readonly DysonSphereManager _dysonSphereManager;
     private readonly OptimizedPowerNetwork[] _optimizedPowerNetworks;
     public readonly Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> _subFactoryToPowerConsumption;
+    private OptimizedProductionStatistics _optimizedProductionStatistics;
 
     public OptimizedPowerSystem(DysonSphereManager dysonSphereManager,
                                 OptimizedPowerNetwork[] optimizedPowerNetworks,
-                                Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption)
+                                Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption,
+                                OptimizedProductionStatistics optimizedProductionStatistics)
     {
         _dysonSphereManager = dysonSphereManager;
         _optimizedPowerNetworks = optimizedPowerNetworks;
         _subFactoryToPowerConsumption = subFactoryToPowerConsumption;
+        _optimizedProductionStatistics = optimizedProductionStatistics;
     }
 
     public SubFactoryPowerConsumption GetSubFactoryPowerConsumption(OptimizedSubFactory subFactory)
@@ -153,8 +157,8 @@ internal sealed class OptimizedPowerSystem
 
         PowerSystem powerSystem = planet.powerSystem;
         FactoryProductionStat factoryProductionStat = GameMain.statistics.production.factoryStatPool[planet.index];
-        int[] productRegister = factoryProductionStat.productRegister;
-        int[] consumeRegister = factoryProductionStat.consumeRegister;
+        int[] productRegister = _optimizedProductionStatistics.ProductRegister;
+        int[] consumeRegister = _optimizedProductionStatistics.ConsumeRegister;
         long num = 0L;
         long num2 = 0L;
         long num3 = 0L;

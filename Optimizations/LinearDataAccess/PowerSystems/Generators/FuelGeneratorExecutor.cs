@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -72,11 +73,17 @@ internal sealed class FuelGeneratorExecutor
     }
 
     public void Initialize(PlanetFactory planet,
-                           int networkId)
+                           int networkId,
+                           SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
+                           ref OptimizedItemId[]?[]? fuelNeeds)
     {
         Dictionary<GeneratorID, List<OptimizedFuelGenerator>> generatorIDToOptimizedFuelGenerators = [];
         Dictionary<int, GeneratorIdIndexWithOptimizedGeneratorIndex> fuelIdToOptimizedIndex = [];
         Dictionary<GeneratorID, int> generatorIDToOptimizedGeneratorIndex = [];
+        if (fuelNeeds == null)
+        {
+            fuelNeeds = new OptimizedItemId[ItemProto.fuelNeeds.Length][];
+        }
 
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
         {
@@ -97,6 +104,18 @@ internal sealed class FuelGeneratorExecutor
                 continue;
             }
 
+            if (fuelNeeds[powerGenerator.fuelMask] == null &&
+                ItemProto.fuelNeeds[powerGenerator.fuelMask] != null)
+            {
+                fuelNeeds[powerGenerator.fuelMask] = subProductionRegisterBuilder.AddConsume(ItemProto.fuelNeeds[powerGenerator.fuelMask]);
+            }
+
+            OptimizedItemId fuelId = default;
+            if (powerGenerator.fuelId != 0)
+            {
+                fuelId = subProductionRegisterBuilder.AddConsume(powerGenerator.fuelId);
+            }
+
             int subId = powerGenerator.subId;
             int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
             GeneratorID generatorId = new GeneratorID(subId, componentPrototypeId);
@@ -108,7 +127,7 @@ internal sealed class FuelGeneratorExecutor
             }
 
             fuelIdToOptimizedIndex.Add(powerGenerator.id, new GeneratorIdIndexWithOptimizedGeneratorIndex(generatorIDToOptimizedGeneratorIndex[generatorId], optimizedFuelGenerators.Count));
-            optimizedFuelGenerators.Add(new OptimizedFuelGenerator(in powerGenerator));
+            optimizedFuelGenerators.Add(new OptimizedFuelGenerator(fuelId, in powerGenerator));
         }
 
         _generatorIDWithOptimizedFuelGenerators = generatorIDToOptimizedFuelGenerators.Select(x => new GeneratorIDWithGenerators<OptimizedFuelGenerator>(x.Key, x.Value.ToArray())).ToArray();

@@ -70,10 +70,10 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         //WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
 
-        var optimizedPowerSystemBuilder = OptimizedPowerSystemBuilder.Create(_planet);
+        var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder(_planet);
+        var optimizedPowerSystemBuilder = OptimizedPowerSystemBuilder.Create(_planet, planetWideProductionRegisterBuilder.GetSubFactoryBuilder(), out OptimizedItemId[]?[]? fuelNeeds);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
-        var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder(_planet);
 
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
@@ -84,7 +84,8 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
                                         planetWideBeltExecutor,
                                         turretExecutorBuilder,
                                         planetWideProductionRegisterBuilder,
-                                        planetWideProductionRegisterBuilder.GetSubFactoryBuilder());
+                                        planetWideProductionRegisterBuilder.GetSubFactoryBuilder(),
+                                        fuelNeeds);
         }
 
         _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(_dysonSphereManager, planetWideBeltExecutor);

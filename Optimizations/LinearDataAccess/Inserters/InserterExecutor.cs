@@ -125,18 +125,21 @@ internal sealed class InserterExecutor<T>
     private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
     private readonly NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
     private readonly OptimizedFuelGenerator[][] _generatorSegmentToOptimizedFuelGenerators;
+    private readonly OptimizedItemId[]?[]? _fuelNeeds;
 
     public int InserterCount => _optimizedInserters.Length;
 
     public InserterExecutor(NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates,
                             NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,
                             NetworkIdAndState<LabState>[] researchingLabNetworkIdAndStates,
-                            OptimizedFuelGenerator[][] generatorSegmentToOptimizedFuelGenerators)
+                            OptimizedFuelGenerator[][] generatorSegmentToOptimizedFuelGenerators,
+                            OptimizedItemId[]?[]? fuelNeeds)
     {
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates;
         _producingLabNetworkIdAndStates = producingLabNetworkIdAndStates;
         _researchingLabNetworkIdAndStates = researchingLabNetworkIdAndStates;
         _generatorSegmentToOptimizedFuelGenerators = generatorSegmentToOptimizedFuelGenerators;
+        _fuelNeeds = fuelNeeds;
     }
 
     public void GameTickInserters(PlanetFactory planet,
@@ -509,7 +512,7 @@ internal sealed class InserterExecutor<T>
             ref OptimizedFuelGenerator fuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[offset][objectIndex];
             if (fuelGenerator.fuelCount <= 8)
             {
-                int result = fuelGenerator.PickFuelFrom(filter, out int inc2);
+                int result = fuelGenerator.PickFuelFrom(filter, out int inc2).ItemIndex;
                 inc = (byte)inc2;
                 return result;
             }
@@ -776,7 +779,7 @@ internal sealed class InserterExecutor<T>
         else if (typedObjectIndex.EntityType == EntityType.FuelPowerGenerator)
         {
             ref OptimizedFuelGenerator fuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[offset][objectIndex];
-            if (itemId == fuelGenerator.fuelId)
+            if (itemId == fuelGenerator.fuelId.ItemIndex)
             {
                 if (fuelGenerator.fuelCount < 10)
                 {
@@ -789,18 +792,22 @@ internal sealed class InserterExecutor<T>
                 }
                 return 0;
             }
-            if (fuelGenerator.fuelId == 0)
+            if (fuelGenerator.fuelId.ItemIndex == 0)
             {
-                int[] array = ItemProto.fuelNeeds[fuelGenerator.fuelMask];
+                if (_fuelNeeds == null)
+                {
+                    throw new InvalidOperationException($"{nameof(_fuelNeeds)} was null when inserter attempted to insert into {nameof(EntityType.FuelPowerGenerator)}.");
+                }
+                OptimizedItemId[]? array = _fuelNeeds[fuelGenerator.fuelMask];
                 if (array == null || array.Length == 0)
                 {
                     return 0;
                 }
                 for (int k = 0; k < array.Length; k++)
                 {
-                    if (array[k] == itemId)
+                    if (array[k].ItemIndex == itemId)
                     {
-                        fuelGenerator.SetNewFuel(itemId, itemCount, itemInc);
+                        fuelGenerator.SetNewFuel(array[k], itemCount, itemInc);
                         remainInc = 0;
                         return itemCount;
                     }

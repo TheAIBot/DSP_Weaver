@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -150,6 +151,7 @@ internal sealed class SubFactoryPowerSystemBuilder
 internal sealed class OptimizedPowerSystemBuilder
 {
     private readonly PlanetFactory _planet;
+    private readonly SubFactoryProductionRegisterBuilder _subProductionRegisterBuilder;
     private readonly List<PowerConsumerType> _powerConsumerTypes = [];
     private readonly Dictionary<PowerConsumerType, int> _powerConsumerTypeToIndex = [];
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
@@ -159,21 +161,24 @@ internal sealed class OptimizedPowerSystemBuilder
     private readonly OptimizedFuelGenerator[][] _fuelGeneratorSegments;
 
     private OptimizedPowerSystemBuilder(PlanetFactory planet,
-                                       Dictionary<int, FuelGeneratorExecutor> networkIndexToFueldGeneratorExecutor,
-                                       Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedFueldGeneratorLocation,
-                                       OptimizedFuelGenerator[][] fuelGeneratorSegments)
+                                        SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
+                                        Dictionary<int, FuelGeneratorExecutor> networkIndexToFueldGeneratorExecutor,
+                                        Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedFueldGeneratorLocation,
+                                        OptimizedFuelGenerator[][] fuelGeneratorSegments)
     {
         _planet = planet;
+        _subProductionRegisterBuilder = subProductionRegisterBuilder;
         _networkIndexToFueldGeneratorExecutor = networkIndexToFueldGeneratorExecutor;
         _fuelGeneratorIdToOptimizedFueldGeneratorLocation = fuelGeneratorIdToOptimizedFueldGeneratorLocation;
         _fuelGeneratorSegments = fuelGeneratorSegments;
     }
 
-    public static OptimizedPowerSystemBuilder Create(PlanetFactory planet)
+    public static OptimizedPowerSystemBuilder Create(PlanetFactory planet, SubFactoryProductionRegisterBuilder subProductionRegisterBuilder, out OptimizedItemId[]?[]? fuelNeeds)
     {
         Dictionary<int, FuelGeneratorExecutor> networkIndexToFueldGeneratorExecutor = [];
         Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedFueldGeneratorLocation = [];
         List<OptimizedFuelGenerator[]> fuelGeneratorSegments = [];
+        fuelNeeds = null;
         for (int networkIndex = 1; networkIndex < planet.powerSystem.netCursor; networkIndex++)
         {
             PowerNetwork? powerNetwork = planet.powerSystem.netPool[networkIndex];
@@ -183,7 +188,7 @@ internal sealed class OptimizedPowerSystemBuilder
             }
 
             var fuelExecutor = new FuelGeneratorExecutor();
-            fuelExecutor.Initialize(planet, networkIndex);
+            fuelExecutor.Initialize(planet, networkIndex, subProductionRegisterBuilder, ref fuelNeeds);
             networkIndexToFueldGeneratorExecutor.Add(networkIndex, fuelExecutor);
 
             foreach (KeyValuePair<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdWithOptimizedFuelGeneratorLocation in fuelExecutor.FuelGeneratorIdToOptimizedFuelGeneratorLocation)
@@ -196,6 +201,7 @@ internal sealed class OptimizedPowerSystemBuilder
         }
 
         return new OptimizedPowerSystemBuilder(planet,
+                                               subProductionRegisterBuilder,
                                                networkIndexToFueldGeneratorExecutor,
                                                fuelGeneratorIdToOptimizedFueldGeneratorLocation,
                                                fuelGeneratorSegments.ToArray());
@@ -255,7 +261,8 @@ internal sealed class OptimizedPowerSystemBuilder
 
         return new OptimizedPowerSystem(dysonSphereManager,
                                         optimizedPowerNetworks,
-                                        subFactoryToPowerConsumption);
+                                        subFactoryToPowerConsumption,
+                                        _subProductionRegisterBuilder.Build());
     }
 
     private OptimizedPowerNetwork[] GetOptimizedPowerNetworks(PlanetFactory planet,
@@ -291,7 +298,7 @@ internal sealed class OptimizedPowerSystemBuilder
             solarExecutor.Initialize(planet, i);
 
             var gammaExecutor = new GammaPowerGeneratorExecutor();
-            gammaExecutor.Initialize(planet, i, planetWideBeltExecutor);
+            gammaExecutor.Initialize(planet, i, _subProductionRegisterBuilder, planetWideBeltExecutor);
 
             var geothermalExecutor = new GeothermalGeneratorExecutor();
             geothermalExecutor.Initialize(planet, i);
@@ -299,7 +306,7 @@ internal sealed class OptimizedPowerSystemBuilder
             var fuelExecutor = _networkIndexToFueldGeneratorExecutor[i];
 
             var powerExchangerExecutor = new PowerExchangerExecutor();
-            powerExchangerExecutor.Initialize(planet, i, planetWideBeltExecutor);
+            powerExchangerExecutor.Initialize(planet, i, _subProductionRegisterBuilder, planetWideBeltExecutor);
 
             long totalPowerNodeEnergyConsumption = GetTotalPowerNodeEnergyConsumption(planet, powerNetwork);
 

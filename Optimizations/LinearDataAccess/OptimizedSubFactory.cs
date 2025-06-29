@@ -102,7 +102,8 @@ internal sealed class OptimizedSubFactory
                            PlanetWideBeltExecutor planetWideBeltExecutor,
                            TurretExecutorBuilder turretExecutorBuilder,
                            PlanetWideProductionRegisterBuilder planetWideProductionRegisterBuilder,
-                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
+                           OptimizedItemId[]?[]? fuelNeeds)
     {
         SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder = optimizedPowerSystemBuilder.AddSubFactory(this);
 
@@ -114,7 +115,7 @@ internal sealed class OptimizedSubFactory
         InitializeSilos(subFactoryGraph, subFactoryPowerSystemBuilder, subFactoryProductionRegisterBuilder);
         InitializeLabAssemblers(subFactoryGraph, subFactoryPowerSystemBuilder, subFactoryProductionRegisterBuilder);
         InitializeResearchingLabs(subFactoryGraph, subFactoryPowerSystemBuilder, subFactoryProductionRegisterBuilder);
-        InitializeInserters(subFactoryGraph, subFactoryPowerSystemBuilder, _beltExecutor);
+        InitializeInserters(subFactoryGraph, subFactoryPowerSystemBuilder, _beltExecutor, fuelNeeds);
         InitializeMonitors(subFactoryGraph, subFactoryPowerSystemBuilder, _beltExecutor);
         InitializeSpraycoaters(subFactoryGraph, subFactoryPowerSystemBuilder, subFactoryProductionRegisterBuilder, _beltExecutor);
         InitializePilers(subFactoryGraph, subFactoryPowerSystemBuilder, _beltExecutor);
@@ -128,18 +129,20 @@ internal sealed class OptimizedSubFactory
         HasCalculatedPowerConsumption = false;
     }
 
-    private void InitializeInserters(Graph subFactoryGraph, SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, BeltExecutor beltExecutor)
+    private void InitializeInserters(Graph subFactoryGraph, SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, BeltExecutor beltExecutor, OptimizedItemId[]?[]? fuelNeeds)
     {
         _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerExecutor._assemblerNetworkIdAndStates,
                                                                                  _producingLabNetworkIdAndStates,
                                                                                  _researchingLabNetworkIdAndStates,
-                                                                                 subFactoryPowerSystemBuilder.FuelGeneratorSegments);
+                                                                                 subFactoryPowerSystemBuilder.FuelGeneratorSegments,
+                                                                                 fuelNeeds);
         _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, subFactoryPowerSystemBuilder.CreateBiInserterBuilder(), beltExecutor);
 
         _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerExecutor._assemblerNetworkIdAndStates,
                                                                              _producingLabNetworkIdAndStates,
                                                                              _researchingLabNetworkIdAndStates,
-                                                                             subFactoryPowerSystemBuilder.FuelGeneratorSegments);
+                                                                             subFactoryPowerSystemBuilder.FuelGeneratorSegments,
+                                                                             fuelNeeds);
         _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, subFactoryPowerSystemBuilder.CreateInserterBuilder(), beltExecutor);
     }
 

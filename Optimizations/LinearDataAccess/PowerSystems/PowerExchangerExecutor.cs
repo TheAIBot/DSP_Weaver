@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -126,6 +127,7 @@ internal sealed class PowerExchangerExecutor
 
     public void Initialize(PlanetFactory planet,
                            int networkId,
+                           SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
                            PlanetWideBeltExecutor beltExecutor)
     {
         List<OptimizedPowerExchanger> optimizedPowerExchangers = [];
@@ -164,6 +166,19 @@ internal sealed class PowerExchangerExecutor
             OptimizedCargoPath? belt2 = null;
             OptimizedCargoPath? belt3 = null;
 
+            OptimizedItemId emptyId = default;
+            OptimizedItemId fullId = default;
+            if (powerExchanger.targetState == 1f)
+            {
+                emptyId = subProductionRegisterBuilder.AddConsume(powerExchanger.emptyId);
+                fullId = subProductionRegisterBuilder.AddProduct(powerExchanger.fullId);
+            }
+            else if (powerExchanger.targetState == -1f)
+            {
+                emptyId = subProductionRegisterBuilder.AddProduct(powerExchanger.emptyId);
+                fullId = subProductionRegisterBuilder.AddConsume(powerExchanger.fullId);
+            }
+
             if (powerExchanger.belt0 > 0)
             {
                 belt0 = beltExecutor.GetOptimizedCargoPath(planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[powerExchanger.belt0].segPathId]);
@@ -182,7 +197,13 @@ internal sealed class PowerExchangerExecutor
             }
 
             powerExchangerIdToOptimizedIndex.Add(powerExchanger.id, optimizedPowerExchangers.Count);
-            optimizedPowerExchangers.Add(new OptimizedPowerExchanger(belt0, belt1, belt2, belt3, in powerExchanger));
+            optimizedPowerExchangers.Add(new OptimizedPowerExchanger(emptyId,
+                                                                     fullId,
+                                                                     belt0,
+                                                                     belt1,
+                                                                     belt2,
+                                                                     belt3,
+                                                                     in powerExchanger));
         }
 
         _optimizedPowerExchangers = optimizedPowerExchangers.ToArray();

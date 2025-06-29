@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -9,11 +10,10 @@ internal struct OptimizedFuelGenerator
     private readonly long genEnergyPerTick;
     private readonly long useFuelPerTick;
     public readonly short fuelMask;
-    private readonly int productId;
     private readonly bool boost;
     private long fuelEnergy;
     private short curFuelId;
-    public short fuelId;
+    public OptimizedItemId fuelId;
     public short fuelCount;
     public short fuelInc;
     private bool productive;
@@ -23,17 +23,16 @@ internal struct OptimizedFuelGenerator
     private float currentStrength;
     private long capacityCurrentTick;
 
-    public OptimizedFuelGenerator(ref readonly PowerGeneratorComponent powerGenerator)
+    public OptimizedFuelGenerator(OptimizedItemId fuelId, ref readonly PowerGeneratorComponent powerGenerator)
     {
         id = powerGenerator.id;
         genEnergyPerTick = powerGenerator.genEnergyPerTick;
         useFuelPerTick = powerGenerator.useFuelPerTick;
         fuelMask = powerGenerator.fuelMask;
-        productId = powerGenerator.productId;
         boost = powerGenerator.boost;
         fuelEnergy = powerGenerator.fuelEnergy;
         curFuelId = powerGenerator.curFuelId;
-        fuelId = powerGenerator.fuelId;
+        this.fuelId = fuelId;
         fuelCount = powerGenerator.fuelCount;
         fuelInc = powerGenerator.fuelInc;
         productive = powerGenerator.productive;
@@ -54,7 +53,7 @@ internal struct OptimizedFuelGenerator
             {
                 capacityCurrentTick *= 100L;
             }
-            if (curFuelId == 1804)
+            if (curFuelId == 1804) // Strange annihilation fuel rod
             {
                 capacityCurrentTick *= 2L;
             }
@@ -65,7 +64,7 @@ internal struct OptimizedFuelGenerator
     public void GeneratePower(ref long num44, double num51, int[] consumeRegister)
     {
         currentStrength = num44 > 0 && capacityCurrentTick > 0 ? 1 : 0;
-        if (num44 > 0 && productId == 0)
+        if (num44 > 0)
         {
             long num57 = (long)(num51 * capacityCurrentTick + 0.99999);
             long num56 = num44 < num57 ? num44 : num57;
@@ -92,7 +91,7 @@ internal struct OptimizedFuelGenerator
             int num2 = fuelInc / fuelCount;
             num2 = ((num2 > 0) ? ((num2 > 10) ? 10 : num2) : 0);
             fuelInc -= (short)num2;
-            productive = LDB.items.Select(fuelId).Productive;
+            productive = LDB.items.Select(fuelId.ItemIndex).Productive;
             if (productive)
             {
                 fuelIncLevel = (byte)num2;
@@ -109,12 +108,12 @@ internal struct OptimizedFuelGenerator
             }
             long num3 = num - fuelEnergy;
             fuelEnergy = fuelHeat - num3;
-            curFuelId = fuelId;
+            curFuelId = fuelId.ItemIndex;
             fuelCount--;
-            consumeRegister[fuelId]++;
+            consumeRegister[fuelId.OptimizedItemIndex]++;
             if (fuelCount == 0)
             {
-                fuelId = 0;
+                fuelId = default;
                 fuelInc = 0;
                 fuelHeat = 0L;
             }
@@ -130,28 +129,19 @@ internal struct OptimizedFuelGenerator
         }
     }
 
-    public void SetNewFuel(int _itemId, short _count, short _inc)
+    public void SetNewFuel(OptimizedItemId _itemId, short _count, short _inc)
     {
-        fuelId = (short)_itemId;
+        fuelId = _itemId;
         fuelCount = _count;
         fuelInc = _inc;
-        fuelHeat = LDB.items.Select(_itemId)?.HeatValue ?? 0;
+        fuelHeat = LDB.items.Select(_itemId.ItemIndex)?.HeatValue ?? 0;
         incUsed = false;
     }
 
-    public void ClearFuel()
-    {
-        fuelId = 0;
-        fuelCount = 0;
-        fuelInc = 0;
-        fuelHeat = 0L;
-        incUsed = false;
-    }
-
-    public int PickFuelFrom(int filter, out int inc)
+    public OptimizedItemId PickFuelFrom(int filter, out int inc)
     {
         inc = 0;
-        if (fuelId > 0 && fuelCount > 5 && (filter == 0 || filter == fuelId))
+        if (fuelId.ItemIndex > 0 && fuelCount > 5 && (filter == 0 || filter == fuelId.ItemIndex))
         {
             if (fuelInc > 0)
             {
@@ -161,7 +151,7 @@ internal struct OptimizedFuelGenerator
             fuelCount--;
             return fuelId;
         }
-        return 0;
+        return default;
     }
 
     public readonly void Save(ref PowerGeneratorComponent powerGenerator)
@@ -169,11 +159,10 @@ internal struct OptimizedFuelGenerator
         powerGenerator.genEnergyPerTick = genEnergyPerTick;
         powerGenerator.useFuelPerTick = useFuelPerTick;
         powerGenerator.fuelMask = fuelMask;
-        powerGenerator.productId = productId;
         powerGenerator.boost = boost;
         powerGenerator.fuelEnergy = fuelEnergy;
         powerGenerator.curFuelId = curFuelId;
-        powerGenerator.fuelId = fuelId;
+        powerGenerator.fuelId = fuelId.ItemIndex;
         powerGenerator.fuelCount = fuelCount;
         powerGenerator.fuelInc = fuelInc;
         powerGenerator.productive = productive;

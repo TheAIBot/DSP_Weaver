@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -86,6 +87,7 @@ internal sealed class GammaPowerGeneratorExecutor
 
     public void Initialize(PlanetFactory planet,
                            int networkId,
+                           SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
                            PlanetWideBeltExecutor beltExecutor)
     {
         List<OptimizedGammaPowerGenerator> optimizedGammaPowerGenerators = [];
@@ -147,6 +149,17 @@ internal sealed class GammaPowerGeneratorExecutor
                 slot1Belt = beltExecutor.GetOptimizedCargoPath(cargoPath);
             }
 
+            OptimizedItemId catalystId = default;
+            if (powerGenerator.catalystId != 0)
+            {
+                catalystId = subProductionRegisterBuilder.AddConsume(powerGenerator.catalystId);
+            }
+            OptimizedItemId productId = default;
+            if (powerGenerator.productId != 0)
+            {
+                productId = subProductionRegisterBuilder.AddProduct(powerGenerator.productId);
+            }
+
             gammaIdToOptimizedIndex.Add(powerGenerator.id, optimizedGammaPowerGenerators.Count);
             optimizedGammaPowerGenerators.Add(new OptimizedGammaPowerGenerator(slot0Belt,
                                                                                slot0BeltOffset,
@@ -154,6 +167,8 @@ internal sealed class GammaPowerGeneratorExecutor
                                                                                slot1Belt,
                                                                                slot1BeltOffset,
                                                                                isOutput2,
+                                                                               catalystId,
+                                                                               productId,
                                                                                in powerGenerator));
 
             if (powerGenerator.productId <= 0)
