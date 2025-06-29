@@ -16,6 +16,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     public static bool ViewBeltsOnLocalOptimizedPlanet = false;
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
+    private readonly DysonSphereManager _dysonSphereManager;
     private OptimizedSubFactory[] _subFactories = null!;
     private OptimizedPowerSystem _optimizedPowerSystem = null!;
     private TurretExecutor _turretExecutor = null!;
@@ -25,10 +26,13 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     private WorkStep[]? _workSteps;
     private int _workStepsParallelism;
 
-    public OptimizedTerrestrialPlanet(PlanetFactory planet, StarClusterResearchManager starClusterResearchManager)
+    public OptimizedTerrestrialPlanet(PlanetFactory planet,
+                                      StarClusterResearchManager starClusterResearchManager,
+                                      DysonSphereManager dysonSphereManager)
     {
         _planet = planet;
         _starClusterResearchManager = starClusterResearchManager;
+        _dysonSphereManager = dysonSphereManager;
     }
 
     public void Save()
@@ -78,7 +82,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
                                         turretExecutorBuilder);
         }
 
-        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(planetWideBeltExecutor);
+        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(_dysonSphereManager, planetWideBeltExecutor);
         _turretExecutor = turretExecutorBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
@@ -141,17 +145,6 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         workSteps.Add(new WorkStep([new PlanetWideDigitalSystem(this)]));
 
         return workSteps.ToArray();
-    }
-
-    public bool RequestDysonSpherePower()
-    {
-        if (Status == OptimizedPlanetStatus.Stopped)
-        {
-            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
-        }
-
-        _optimizedPowerSystem.RequestDysonSpherePower(_planet);
-        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
     public void BeforePowerStep(long time)

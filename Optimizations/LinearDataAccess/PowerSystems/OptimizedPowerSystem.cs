@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -63,12 +64,15 @@ internal sealed class SubFactoryPowerConsumption
 
 internal sealed class OptimizedPowerSystem
 {
+    private readonly DysonSphereManager _dysonSphereManager;
     private readonly OptimizedPowerNetwork[] _optimizedPowerNetworks;
     public readonly Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> _subFactoryToPowerConsumption;
 
-    public OptimizedPowerSystem(OptimizedPowerNetwork[] optimizedPowerNetworks,
+    public OptimizedPowerSystem(DysonSphereManager dysonSphereManager,
+                                OptimizedPowerNetwork[] optimizedPowerNetworks,
                                 Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption)
     {
+        _dysonSphereManager = dysonSphereManager;
         _optimizedPowerNetworks = optimizedPowerNetworks;
         _subFactoryToPowerConsumption = subFactoryToPowerConsumption;
     }
@@ -98,11 +102,22 @@ internal sealed class OptimizedPowerSystem
 
         if (powerSystem.dysonSphere == null && flag)
         {
-            powerSystem.dysonSphere = powerSystem.factory.CheckOrCreateDysonSphere();
+            if ((uint)planet.planet.star.index >= planet.gameData.galaxy.starCount)
+            {
+                // Nothing according to code in CheckOrCreateDysonSphere
+            }
+            else if (planet.gameData.dysonSpheres[planet.planet.star.index] != null)
+            {
+                // Nothing according to code in CheckOrCreateDysonSphere
+            }
+            else
+            {
+                _dysonSphereManager.AddDysonDysonSphere(planet);
+            }
         }
-        if (powerSystem.dysonSphere != null)
+        if (powerSystem.dysonSphere != null && energySum > 0)
         {
-            powerSystem.dysonSphere.energyReqCurrentTick += energySum;
+            Interlocked.Add(ref powerSystem.dysonSphere.energyReqCurrentTick, energySum);
         }
     }
 
@@ -129,6 +144,8 @@ internal sealed class OptimizedPowerSystem
 
     public void GameTick(PlanetFactory planet, long time)
     {
+        RequestDysonSpherePower(planet);
+
         foreach (var subFactory in _subFactoryToPowerConsumption.Keys)
         {
             BeforePower(planet, subFactory);

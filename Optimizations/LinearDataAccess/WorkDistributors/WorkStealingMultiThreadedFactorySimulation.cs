@@ -9,12 +9,15 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private readonly object _singleThreadedCodeLock = new();
     private readonly PerformanceMonitorUpdater _performanceMonitorUpdater = PerformanceMonitorUpdater.Create();
     private readonly StarClusterResearchManager _starClusterResearchManager;
+    private readonly DysonSphereManager _dysonSphereManager;
     private StarClusterWorkManager? _starClusterWorkManager;
     private WorkExecutor[]? _workExecutors;
 
-    public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager)
+    public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager,
+                                                      DysonSphereManager dysonSphereManager)
     {
         _starClusterResearchManager = starClusterResearchManager;
+        _dysonSphereManager = dysonSphereManager;
     }
 
     /// <summary>
@@ -60,6 +63,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(localPlanet, time, playerPosition));
         _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
+        _dysonSphereManager.UIThreadCreateDysonSpheres();
 
         double totalTime = _stopWatch.duration;
 

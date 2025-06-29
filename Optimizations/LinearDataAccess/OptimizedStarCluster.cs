@@ -8,13 +8,43 @@ using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 namespace Weaver.Optimizations.LinearDataAccess;
 
+internal sealed class DysonSphereManager
+{
+    private readonly Queue<PlanetFactory> _createDysonSpheresFor = [];
+
+    public void AddDysonDysonSphere(PlanetFactory planet)
+    {
+        lock (_createDysonSpheresFor)
+        {
+            _createDysonSpheresFor.Enqueue(planet);
+        }
+    }
+
+    public void UIThreadCreateDysonSpheres()
+    {
+        try
+        {
+            foreach (var planet in _createDysonSpheresFor)
+            {
+                planet.CheckOrCreateDysonSphere();
+                WeaverFixes.Logger.LogInfo("Did the thing! Spheres!");
+            }
+        }
+        finally
+        {
+            _createDysonSpheresFor.Clear();
+        }
+    }
+}
+
 internal static class OptimizedStarCluster
 {
     private static readonly Dictionary<PlanetFactory, IOptimizedPlanet> _planetToOptimizedPlanet = [];
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
     public static readonly StarClusterResearchManager _starClusterResearchManager = new();
-    private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager);
+    public static readonly DysonSphereManager _dysonSphereManager = new();
+    private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager, _dysonSphereManager);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
 
     private static readonly Random random = new Random();
@@ -77,7 +107,9 @@ internal static class OptimizedStarCluster
         }
         else
         {
-            _planetToOptimizedPlanet.Add(planet, new OptimizedTerrestrialPlanet(planet, _starClusterResearchManager));
+            _planetToOptimizedPlanet.Add(planet, new OptimizedTerrestrialPlanet(planet,
+                                                                                _starClusterResearchManager,
+                                                                                _dysonSphereManager));
         }
     }
 
@@ -318,7 +350,12 @@ internal static class OptimizedStarCluster
     public static bool PowerSystem_RequestDysonSpherePower(PowerSystem __instance)
     {
         IOptimizedPlanet optimizedPlanet = GetOptimizedPlanet(__instance.factory);
-        return optimizedPlanet.RequestDysonSpherePower();
+        if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
     [HarmonyPrefix]

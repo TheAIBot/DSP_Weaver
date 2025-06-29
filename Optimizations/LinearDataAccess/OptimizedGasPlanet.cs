@@ -44,13 +44,6 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         Status = OptimizedPlanetStatus.Stopped;
     }
 
-    public bool RequestDysonSpherePower()
-    {
-        // Gas giant is not able to contain components that can request power from
-        // a dyson sphere.
-        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-    }
-
     public void TransportGameTick(long time, UnityEngine.Vector3 playerPos)
     {
         var miningFlags = new MiningFlags();

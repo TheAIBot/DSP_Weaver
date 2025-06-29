@@ -235,7 +235,7 @@ internal sealed class OptimizedPowerSystemBuilder
         optimizedConsumerIndexes.Add(powerConsumerIndex);
     }
 
-    public OptimizedPowerSystem Build(PlanetWideBeltExecutor planetWideBeltExecutor)
+    public OptimizedPowerSystem Build(DysonSphereManager dysonSphereManager, PlanetWideBeltExecutor planetWideBeltExecutor)
     {
         int[][] networkNonOptimizedPowerConsumerIndexes = new int[_planet.powerSystem.netCursor][];
         for (int i = 0; i < networkNonOptimizedPowerConsumerIndexes.Length; i++)
@@ -253,7 +253,8 @@ internal sealed class OptimizedPowerSystemBuilder
         OptimizedPowerNetwork[] optimizedPowerNetworks = GetOptimizedPowerNetworks(_planet, planetWideBeltExecutor, _networkIndexToOptimizedConsumerIndexes);
         Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption = _subFactoryToPowerSystemBuilder.ToDictionary(x => x.Key, x => x.Value.Build(powerConsumerTypes));
 
-        return new OptimizedPowerSystem(optimizedPowerNetworks,
+        return new OptimizedPowerSystem(dysonSphereManager,
+                                        optimizedPowerNetworks,
                                         subFactoryToPowerConsumption);
     }
 
