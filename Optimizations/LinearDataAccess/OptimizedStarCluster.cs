@@ -8,35 +8,6 @@ using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 
 namespace Weaver.Optimizations.LinearDataAccess;
 
-internal sealed class DysonSphereManager
-{
-    private readonly Queue<PlanetFactory> _createDysonSpheresFor = [];
-
-    public void AddDysonDysonSphere(PlanetFactory planet)
-    {
-        lock (_createDysonSpheresFor)
-        {
-            _createDysonSpheresFor.Enqueue(planet);
-        }
-    }
-
-    public void UIThreadCreateDysonSpheres()
-    {
-        try
-        {
-            foreach (var planet in _createDysonSpheresFor)
-            {
-                planet.CheckOrCreateDysonSphere();
-                WeaverFixes.Logger.LogInfo("Did the thing! Spheres!");
-            }
-        }
-        finally
-        {
-            _createDysonSpheresFor.Clear();
-        }
-    }
-}
-
 internal static class OptimizedStarCluster
 {
     private static readonly Dictionary<PlanetFactory, IOptimizedPlanet> _planetToOptimizedPlanet = [];
