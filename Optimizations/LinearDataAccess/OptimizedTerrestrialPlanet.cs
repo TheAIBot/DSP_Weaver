@@ -64,7 +64,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         //WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
 
-        var optimizedPowerSystemBuilder = new OptimizedPowerSystemBuilder(_planet);
+        var optimizedPowerSystemBuilder = OptimizedPowerSystemBuilder.Create(_planet);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
 

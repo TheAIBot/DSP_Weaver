@@ -125,10 +125,16 @@ internal sealed class OptimizedSubFactory
 
     private void InitializeInserters(Graph subFactoryGraph, SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, BeltExecutor beltExecutor)
     {
-        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
+        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerExecutor._assemblerNetworkIdAndStates,
+                                                                                 _producingLabNetworkIdAndStates,
+                                                                                 _researchingLabNetworkIdAndStates,
+                                                                                 subFactoryPowerSystemBuilder.FuelGeneratorSegments);
         _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, subFactoryPowerSystemBuilder.CreateBiInserterBuilder(), beltExecutor);
 
-        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerExecutor._assemblerNetworkIdAndStates, _producingLabNetworkIdAndStates, _researchingLabNetworkIdAndStates);
+        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerExecutor._assemblerNetworkIdAndStates,
+                                                                             _producingLabNetworkIdAndStates,
+                                                                             _researchingLabNetworkIdAndStates,
+                                                                             subFactoryPowerSystemBuilder.FuelGeneratorSegments);
         _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, subFactoryPowerSystemBuilder.CreateInserterBuilder(), beltExecutor);
     }
 
@@ -400,7 +406,10 @@ internal sealed class OptimizedSubFactory
         }
         else if (entity.powerGenId != 0)
         {
-            return new TypedObjectIndex(EntityType.PowerGenerator, entity.powerGenId);
+            ref readonly PowerGeneratorComponent component = ref planet.powerSystem.genPool[entity.powerGenId];
+            bool isFuelGenerator = !component.wind && !component.photovoltaic && !component.gamma && !component.geothermal;
+            EntityType powerGeneratorType = isFuelGenerator ? EntityType.FuelPowerGenerator : EntityType.PowerGenerator;
+            return new TypedObjectIndex(powerGeneratorType, entity.powerGenId);
         }
         else if (entity.splitterId != 0)
         {
@@ -409,6 +418,10 @@ internal sealed class OptimizedSubFactory
         else if (entity.inserterId != 0)
         {
             return new TypedObjectIndex(EntityType.Inserter, entity.inserterId);
+        }
+        else if (entity.powerGenId != 0)
+        {
+            return new TypedObjectIndex(EntityType.FuelPowerGenerator, entity.powerGenId);
         }
 
         throw new InvalidOperationException("Unknown entity type.");

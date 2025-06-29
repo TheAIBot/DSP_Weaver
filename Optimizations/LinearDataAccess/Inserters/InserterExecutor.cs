@@ -123,16 +123,19 @@ internal sealed class InserterExecutor<T>
     private readonly NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
     private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
     private readonly NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
+    private readonly OptimizedFuelGenerator[][] _generatorSegmentToOptimizedFuelGenerators;
 
     public int InserterCount => _optimizedInserters.Length;
 
     public InserterExecutor(NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates,
-        NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,
-        NetworkIdAndState<LabState>[] researchingLabNetworkIdAndStates)
+                            NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,
+                            NetworkIdAndState<LabState>[] researchingLabNetworkIdAndStates,
+                            OptimizedFuelGenerator[][] generatorSegmentToOptimizedFuelGenerators)
     {
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates;
         _producingLabNetworkIdAndStates = producingLabNetworkIdAndStates;
         _researchingLabNetworkIdAndStates = researchingLabNetworkIdAndStates;
+        _generatorSegmentToOptimizedFuelGenerators = generatorSegmentToOptimizedFuelGenerators;
     }
 
     public void GameTickInserters(PlanetFactory planet,
@@ -500,18 +503,14 @@ internal sealed class InserterExecutor<T>
             }
             return 0;
         }
-        else if (typedObjectIndex.EntityType == EntityType.PowerGenerator)
+        else if (typedObjectIndex.EntityType == EntityType.FuelPowerGenerator)
         {
-            ref PowerGeneratorComponent powerGenerator = ref planet.powerSystem.genPool[offset];
-            int inc2;
-            if (offset > 0 && planet.powerSystem.genPool[offset].id == offset)
+            ref OptimizedFuelGenerator fuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[offset][objectIndex];
+            if (fuelGenerator.fuelCount <= 8)
             {
-                if (planet.powerSystem.genPool[offset].fuelCount <= 8)
-                {
-                    int result = planet.powerSystem.genPool[objectIndex].PickFuelFrom(filter, out inc2);
-                    inc = (byte)inc2;
-                    return result;
-                }
+                int result = fuelGenerator.PickFuelFrom(filter, out int inc2);
+                inc = (byte)inc2;
+                return result;
             }
             return 0;
         }
@@ -773,26 +772,25 @@ internal sealed class InserterExecutor<T>
 
             return 0;
         }
-        else if (typedObjectIndex.EntityType == EntityType.PowerGenerator)
+        else if (typedObjectIndex.EntityType == EntityType.FuelPowerGenerator)
         {
-            PowerGeneratorComponent[] genPool = planet.powerSystem.genPool;
-            ref PowerGeneratorComponent powerGenerator = ref genPool[objectIndex];
-            if (itemId == powerGenerator.fuelId)
+            ref OptimizedFuelGenerator fuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[offset][objectIndex];
+            if (itemId == fuelGenerator.fuelId)
             {
-                if (powerGenerator.fuelCount < 10)
+                if (fuelGenerator.fuelCount < 10)
                 {
-                    ref short fuelCount = ref powerGenerator.fuelCount;
+                    ref short fuelCount = ref fuelGenerator.fuelCount;
                     fuelCount += itemCount;
-                    ref short fuelInc = ref powerGenerator.fuelInc;
+                    ref short fuelInc = ref fuelGenerator.fuelInc;
                     fuelInc += itemInc;
                     remainInc = 0;
                     return itemCount;
                 }
                 return 0;
             }
-            if (powerGenerator.fuelId == 0)
+            if (fuelGenerator.fuelId == 0)
             {
-                int[] array = ItemProto.fuelNeeds[powerGenerator.fuelMask];
+                int[] array = ItemProto.fuelNeeds[fuelGenerator.fuelMask];
                 if (array == null || array.Length == 0)
                 {
                     return 0;
@@ -801,7 +799,7 @@ internal sealed class InserterExecutor<T>
                 {
                     if (array[k] == itemId)
                     {
-                        powerGenerator.SetNewFuel(itemId, itemCount, itemInc);
+                        fuelGenerator.SetNewFuel(itemId, itemCount, itemInc);
                         remainInc = 0;
                         return itemCount;
                     }
@@ -915,7 +913,6 @@ internal sealed class InserterExecutor<T>
             inserterIdToOptimizedIndex.Add(inserterIndex, optimizedInserters.Count);
             int networkIndex = planet.powerSystem.consumerPool[inserter.pcId].networkId;
             inserterNetworkIdAndStates.Add(new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), networkIndex));
-            inserterConnections.Add(new InserterConnections(pickFrom, insertInto));
             inserterConnectionNeeds.Add(insertIntoNeeds);
             optimizedPowerSystemInserterBuilder.AddInserter(ref inserter, networkIndex);
 
@@ -964,6 +961,15 @@ internal sealed class InserterExecutor<T>
                 }
                 pickFromOffset += belt.pivotOnPath;
             }
+            else if (pickFrom.EntityType == EntityType.FuelPowerGenerator)
+            {
+                if (pickFromOffset > 0 && planet.powerSystem.genPool[pickFromOffset].id == pickFromOffset)
+                {
+                    OptimizedFuelGeneratorLocation optimizedFuelGeneratorLocation = optimizedPowerSystemInserterBuilder.GetOptimizedFuelGeneratorLocation(pickFromOffset);
+                    pickFromOffset = optimizedFuelGeneratorLocation.SegmentIndex;
+                    pickFrom = new TypedObjectIndex(pickFrom.EntityType, optimizedFuelGeneratorLocation.Index);
+                }
+            }
 
             OptimizedCargoPath? insertIntoBelt = null;
             int insertIntoOffset = inserter.insertOffset;
@@ -978,7 +984,17 @@ internal sealed class InserterExecutor<T>
                 }
                 insertIntoOffset += belt.pivotOnPath;
             }
+            else if (insertInto.EntityType == EntityType.FuelPowerGenerator)
+            {
+                if (planet.powerSystem.genPool[insertInto.Index].id == insertInto.Index)
+                {
+                    OptimizedFuelGeneratorLocation optimizedFuelGeneratorLocation = optimizedPowerSystemInserterBuilder.GetOptimizedFuelGeneratorLocation(insertInto.Index);
+                    insertIntoOffset = optimizedFuelGeneratorLocation.SegmentIndex;
+                    insertInto = new TypedObjectIndex(insertInto.EntityType, optimizedFuelGeneratorLocation.Index);
+                }
+            }
 
+            inserterConnections.Add(new InserterConnections(pickFrom, insertInto));
             optimizedInserters.Add(default(T).Create(in inserter, pickFromOffset, insertIntoOffset, inserterGradeIndex));
             optimizedInserterStages.Add(ToOptimizedInserterStage(inserter.stage));
             connectionBelts.Add(new ConnectionBelts(pickFromBelt, insertIntoBelt));

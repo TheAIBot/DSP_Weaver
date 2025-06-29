@@ -408,16 +408,17 @@ internal sealed class SolarGeneratorExecutor
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedFuelGenerator
 {
+    public int id;
     private readonly long genEnergyPerTick;
     private readonly long useFuelPerTick;
-    private readonly short fuelMask;
+    public readonly short fuelMask;
     private readonly int productId;
     private readonly bool boost;
     private long fuelEnergy;
     private short curFuelId;
-    private short fuelId;
-    private short fuelCount;
-    private short fuelInc;
+    public short fuelId;
+    public short fuelCount;
+    public short fuelInc;
     private bool productive;
     private bool incUsed;
     private byte fuelIncLevel;
@@ -427,6 +428,7 @@ internal struct OptimizedFuelGenerator
 
     public OptimizedFuelGenerator(ref readonly PowerGeneratorComponent powerGenerator)
     {
+        id = powerGenerator.id;
         genEnergyPerTick = powerGenerator.genEnergyPerTick;
         useFuelPerTick = powerGenerator.useFuelPerTick;
         fuelMask = powerGenerator.fuelMask;
@@ -591,8 +593,11 @@ internal sealed class FuelGeneratorExecutor
     private GeneratorIDWithGenerators<OptimizedFuelGenerator>[] _generatorIDWithOptimizedFuelGenerators = null!;
     private Dictionary<int, GeneratorIdIndexWithOptimizedGeneratorIndex> _fuelIdToOptimizedIndex = null!;
     private long[] _totalGeneratorCapacitiesCurrentTick = null!;
+    private Dictionary<int, OptimizedFuelGeneratorLocation> _fuelGeneratorIdToOptimizedFuelGeneratorLocation = null!;
     public GeneratorIDWithGenerators<OptimizedFuelGenerator>[] Generators => _generatorIDWithOptimizedFuelGenerators;
     public long[] TotalGeneratorCapacitiesCurrentTick => _totalGeneratorCapacitiesCurrentTick;
+    public Dictionary<int, OptimizedFuelGeneratorLocation> FuelGeneratorIdToOptimizedFuelGeneratorLocation => _fuelGeneratorIdToOptimizedFuelGeneratorLocation;
+    public IEnumerable<OptimizedFuelGenerator[]> GeneratorSegments => _generatorIDWithOptimizedFuelGenerators.Select(x => x.OptimizedFuelGenerators);
 
     public long EnergyCap(long[] currentGeneratorCapacities)
     {
@@ -694,6 +699,19 @@ internal sealed class FuelGeneratorExecutor
         _generatorIDWithOptimizedFuelGenerators = generatorIDToOptimizedFuelGenerators.Select(x => new GeneratorIDWithGenerators<OptimizedFuelGenerator>(x.Key, x.Value.ToArray())).ToArray();
         _fuelIdToOptimizedIndex = fuelIdToOptimizedIndex;
         _totalGeneratorCapacitiesCurrentTick = new long[_generatorIDWithOptimizedFuelGenerators.Length];
+
+        Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedFuelGeneratorLocation = [];
+        for (int generatorSegmentIndex = 0; generatorSegmentIndex < _generatorIDWithOptimizedFuelGenerators.Length; generatorSegmentIndex++)
+        {
+            GeneratorIDWithGenerators<OptimizedFuelGenerator> generatorSegment = _generatorIDWithOptimizedFuelGenerators[generatorSegmentIndex];
+
+            for (int generatorIndex = 0; generatorIndex < generatorSegment.OptimizedFuelGenerators.Length; generatorIndex++)
+            {
+                fuelGeneratorIdToOptimizedFuelGeneratorLocation.Add(generatorSegment.OptimizedFuelGenerators[generatorIndex].id,
+                                                                    new OptimizedFuelGeneratorLocation(generatorSegmentIndex, generatorIndex));
+            }
+        }
+        _fuelGeneratorIdToOptimizedFuelGeneratorLocation = fuelGeneratorIdToOptimizedFuelGeneratorLocation;
     }
 
 

@@ -30,6 +30,7 @@ internal static class Graphifier
         AddBeltsToGraph(planet, entityTypeIndexToNode);
         AddTurretsToGraph(planet, entityTypeIndexToNode);
         AddPowerExchangers(planet, entityTypeIndexToNode);
+        AddPowerGenerators(planet, entityTypeIndexToNode);
 
         HashSet<Node> nodes = new(entityTypeIndexToNode.Values);
         List<Graph> graphs = new List<Graph>();
@@ -132,7 +133,14 @@ internal static class Graphifier
             if (inserter.pickTarget != 0)
             {
                 EntityTypeIndex pickEntityTypeIndex = GetEntityTypeIndex(inserter.pickTarget, planet.factorySystem);
-                ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, pickEntityTypeIndex);
+                if (pickEntityTypeIndex.EntityType != EntityType.FuelPowerGenerator)
+                {
+                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, pickEntityTypeIndex);
+                }
+                else
+                {
+                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, new EntityTypeIndex(pickEntityTypeIndex.EntityType, inserter.pickOffset));
+                }
             }
 
             if (inserter.insertTarget != 0)
@@ -707,6 +715,22 @@ internal static class Graphifier
         }
     }
 
+    private static void AddPowerGenerators(PlanetFactory planet, Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode)
+    {
+        for (int i = 1; i < planet.powerSystem.genCursor; i++)
+        {
+            ref readonly PowerGeneratorComponent component = ref planet.powerSystem.genPool[i];
+            if (component.id != i)
+            {
+                continue;
+            }
+
+            bool isFuelGenerator = !component.wind && !component.photovoltaic && !component.gamma && !component.geothermal;
+            EntityType powerGeneratorType = isFuelGenerator ? EntityType.FuelPowerGenerator : EntityType.PowerGenerator;
+            GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(powerGeneratorType, i));
+        }
+    }
+
     private static void BiDirectionConnection(Dictionary<EntityTypeIndex, Node> entityTypeIndexToNode, Node a, EntityTypeIndex b)
     {
         ConnectReceiveFrom(entityTypeIndexToNode, a, b);
@@ -771,7 +795,10 @@ internal static class Graphifier
         }
         else if (entity.powerGenId != 0)
         {
-            return new EntityTypeIndex(EntityType.PowerGenerator, entity.powerGenId);
+            ref readonly PowerGeneratorComponent component = ref factory.factory.powerSystem.genPool[entity.powerGenId];
+            bool isFuelGenerator = !component.wind && !component.photovoltaic && !component.gamma && !component.geothermal;
+            EntityType powerGeneratorType = isFuelGenerator ? EntityType.FuelPowerGenerator : EntityType.PowerGenerator;
+            return new EntityTypeIndex(powerGeneratorType, entity.powerGenId);
         }
         else if (entity.splitterId != 0)
         {
