@@ -1,6 +1,13 @@
 ## 1.3.0
-* !!! Fuel generators are not connected to inserters yet. !!!
-
+* 3-10% performance improvment compared to 1.2.6
+* Power system no longer has any performance impact.
+	* Calculation of power consumption is now done in an entitys regular update loop.
+	* Wind power generation is now a constant time operation.
+	* Calculation of power transmission tower power usage is now a constant time operation.
+	* Updating ray receivers view of a dyson sphere has been parallelized.
+* Fix real time power consumption statistics was not updating.
+* Fix power consumption calculation did not include power transmission towers.
+* Fix power consumption calculation was not correct due to sub-factories changing power consumer indexes.
 
 ## 1.2.6
 * Fix some sorters were not assigned the correct sorter grade.

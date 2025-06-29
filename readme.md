@@ -73,8 +73,13 @@ Whenever a research completes, the mod will reoptimize all planets one at a time
 			* Optimized data format.
 			* Optimized access to belts.
 		* Optimized Ray Receivers.
-			* Optimized data format
+			* Optimized data format.
 			* Optimized access to belts.
+		* Optimized all Power generators.
+			* Optimized data format.
+			* Wind power generation is now simply `windGeneratorCount * planetWindStrength`.
+	* Calculation of power consumption is now done in an entitys regular update loops.
+	* Ray receivers view of a dyson sphere has been parallelized.
 * Splitters, Pilers and Monitors
 	* Optimized data formats.
 	* Parallelized logic on a sub-factory basis.
@@ -148,6 +153,14 @@ To simulate a planet, weaver splits it up into multiple steps. Firs the power sy
 To efficiently execute these steps for all planets, Weaver implements a work stealing work pool where workers compete against each other to complete steps as fast as possible. There is no synchroniation of step execution between planets like there is with the games multithreading logic.
 
 Workers will prioritize executing work for a specific planet, unless the planet has no work immediately available. In that case the worker will attempt to find available work on other planets. Only if it can't find any immediately available work in any planet, will the worker have to wait for other workers to complete their work. A worker will attempt to reserve work in the next step before it waits. If it can't reserve work then it will find another planet to try and reserve work in. This ensures 10 threads aren't waiting in a planet where the next step only consists of 2 work chunks.
+
+## Power system
+Weaver calculates the energy consumption of an entity right after updating the entity. Although the same work is being done, the work is cheaper due to the entities power data already being in cache. This effectively eliminates the performance impact the power system previously had in the game. 
+Additionally, wind power generators are now calculated in constant time. This is possible because all wind generators generate the same amount of power. Counting the number of wind generators and multiplying that by a planets wind strength is all that is needed to calculate their power generation. 
+
+### Potential additional power system optimizations
+This same methodology could be used for geothermal power generators once they've all warmed. The performance impact of ray receivers and calculating their view of dyson spheres could equally be optimized by excluding ray receivers from this call if they've been determined to always view the dyson sphere. This check could simply be done by determining if the entire planet is inside a dyson sphere, by determining if the ray receiver was created close to the planets poles or by checking if they are placed on a tidally locked planet. Solar power could make use of the same optimization.
+
 
 ## Base game
 I hope most of these optimizations are eventually merged into the base game. Then I don't have to maintain them and more players would be able to enjoy them.
