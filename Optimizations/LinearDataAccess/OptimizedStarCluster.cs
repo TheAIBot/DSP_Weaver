@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection.Emit;
 using Weaver.Optimizations.LinearDataAccess.Labs;
@@ -11,10 +12,12 @@ namespace Weaver.Optimizations.LinearDataAccess;
 internal static class OptimizedStarCluster
 {
     private static readonly Dictionary<PlanetFactory, IOptimizedPlanet> _planetToOptimizedPlanet = [];
+    private static readonly Dictionary<FactoryProductionStat, IOptimizedPlanet> _planetProductionStatisticsToOptimizedPlanet = [];
     private static readonly Queue<PlanetFactory> _newPlanets = [];
     private static readonly Queue<PlanetFactory> _planetsToReOptimize = [];
     public static readonly StarClusterResearchManager _starClusterResearchManager = new();
     public static readonly DysonSphereManager _dysonSphereManager = new();
+    private static readonly DysonSphereStatisticsManager _dysonSphereStatisticsManager = new();
     private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager, _dysonSphereManager);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
 
@@ -34,6 +37,7 @@ internal static class OptimizedStarCluster
     }
 
     public static IOptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
+    public static bool TryGetOptimizedPlanet(FactoryProductionStat productionStatistics, [NotNullWhenAttribute(true)] out IOptimizedPlanet? optimizedPlanet) => _planetProductionStatisticsToOptimizedPlanet.TryGetValue(productionStatistics, out optimizedPlanet);
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GameMain), nameof(GameMain.End))]
@@ -55,14 +59,24 @@ internal static class OptimizedStarCluster
     {
         WeaverFixes.Logger.LogInfo($"Initializing {nameof(OptimizedStarCluster)}");
 
-        _planetToOptimizedPlanet.Clear();
-        _workStealingMultiThreadedFactorySimulation.Clear();
-        _clearOptimizedPlanetsOnNextTick = false;
+        PrepareOptimizedStarClusterForGame();
 
         for (int i = 0; i < GameMain.data.factoryCount; i++)
         {
             TryAddNewPlanet(GameMain.data.factories[i]);
         }
+
+        _dysonSphereStatisticsManager.FindAllDysonSphereProductRegisters();
+    }
+
+    private static void PrepareOptimizedStarClusterForGame()
+    {
+        _clearOptimizedPlanetsOnNextTick = false;
+        _planetToOptimizedPlanet.Clear();
+        _planetProductionStatisticsToOptimizedPlanet.Clear();
+        _dysonSphereStatisticsManager.ClearDysonSphereProductRegisters();
+        _workStealingMultiThreadedFactorySimulation.Clear();
+        //GameMain.statistics.PrepareTick(GameMain.gameTick);
     }
 
     private static void TryAddNewPlanet(PlanetFactory planet)
@@ -74,13 +88,17 @@ internal static class OptimizedStarCluster
 
         if (OptimizedGasPlanet.IsGasPlanet(planet))
         {
-            _planetToOptimizedPlanet.Add(planet, new OptimizedGasPlanet(planet));
+            var optimizedPlanet = new OptimizedGasPlanet(planet);
+            _planetToOptimizedPlanet.Add(planet, optimizedPlanet);
+            _planetProductionStatisticsToOptimizedPlanet.Add(GameMain.statistics.production.factoryStatPool[planet.index], optimizedPlanet);
         }
         else
         {
-            _planetToOptimizedPlanet.Add(planet, new OptimizedTerrestrialPlanet(planet,
-                                                                                _starClusterResearchManager,
-                                                                                _dysonSphereManager));
+            var optimizedPlanet = new OptimizedTerrestrialPlanet(planet,
+                                                                 _starClusterResearchManager,
+                                                                 _dysonSphereManager);
+            _planetToOptimizedPlanet.Add(planet, optimizedPlanet);
+            _planetProductionStatisticsToOptimizedPlanet.Add(GameMain.statistics.production.factoryStatPool[planet.index], optimizedPlanet);
         }
     }
 
@@ -108,19 +126,22 @@ internal static class OptimizedStarCluster
     {
         if (_clearOptimizedPlanetsOnNextTick)
         {
-            _clearOptimizedPlanetsOnNextTick = false;
-            _planetToOptimizedPlanet.Clear();
-            _workStealingMultiThreadedFactorySimulation.Clear();
+            PrepareOptimizedStarClusterForGame();
         }
 
         lock (_newPlanets)
         {
-            while (_newPlanets.Count > 0)
+            if (_newPlanets.Count > 0)
             {
-                PlanetFactory newPlanet = _newPlanets.Dequeue();
+                while (_newPlanets.Count > 0)
+                {
+                    PlanetFactory newPlanet = _newPlanets.Dequeue();
 
-                WeaverFixes.Logger.LogInfo($"Adding planet: {newPlanet.planet.displayName}");
-                TryAddNewPlanet(newPlanet);
+                    WeaverFixes.Logger.LogInfo($"Adding planet: {newPlanet.planet.displayName}");
+                    TryAddNewPlanet(newPlanet);
+                }
+
+                _dysonSphereStatisticsManager.FindAllDysonSphereProductRegisters();
             }
         }
 
@@ -385,8 +406,23 @@ internal static class OptimizedStarCluster
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(FactoryProductionStat), nameof(FactoryProductionStat.GameTick))]
-    public static bool FactoryProductionStat_GameTick()
+    public static bool FactoryProductionStat_GameTick(FactoryProductionStat __instance, long time)
     {
+        if (_dysonSphereStatisticsManager.IsDysonSphereStatistics(__instance))
+        {
+            _dysonSphereStatisticsManager.DysonSphereGameTick(__instance, time);
+        }
+
+        if (!TryGetOptimizedPlanet(__instance, out IOptimizedPlanet? optimizedPlanet))
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
@@ -394,6 +430,21 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(FactoryProductionStat), nameof(FactoryProductionStat.ClearRegisters))]
     public static bool FactoryProductionStat_ClearRegisters(FactoryProductionStat __instance)
     {
+        if (_dysonSphereStatisticsManager.IsDysonSphereStatistics(__instance))
+        {
+            _dysonSphereStatisticsManager.DysonSphereClearRegisters(__instance);
+        }
+
+        if (!TryGetOptimizedPlanet(__instance, out IOptimizedPlanet? optimizedPlanet))
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
         __instance.powerGenRegister = 0L;
         __instance.powerConRegister = 0L;
         __instance.powerDisRegister = 0L;

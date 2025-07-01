@@ -55,11 +55,12 @@ internal sealed class EjectorExecutor
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
         int[] ejectorNetworkIds = _ejectorNetworkIds;
+        int[] ejectorIndexes = _ejectorIndexes;
         EjectorComponent[] ejectors = planet.factorySystem.ejectorPool;
 
-        for (int ejectorIndexIndex = 0; ejectorIndexIndex < _ejectorIndexes.Length; ejectorIndexIndex++)
+        for (int ejectorIndexIndex = 0; ejectorIndexIndex < ejectorIndexes.Length; ejectorIndexIndex++)
         {
-            int ejectorIndex = _ejectorIndexes[ejectorIndexIndex];
+            int ejectorIndex = ejectorIndexes[ejectorIndexIndex];
             int networkIndex = ejectorNetworkIds[ejectorIndexIndex];
             ref readonly EjectorComponent ejector = ref ejectors[ejectorIndex];
             UpdatePower(ejectorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, ejectorIndexIndex, networkIndex, in ejector);
