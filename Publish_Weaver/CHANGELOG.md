@@ -1,7 +1,6 @@
 ## 1.4.0
 * Optimized production statistics.
 	* !!! Need to fix battle statis statistics !!!
-	* !!! Need to handle statistics when planet is not optimized !!!
 
 ## 1.3.0
 * 3-10% DSP performance improvement compared to 1.2.6
