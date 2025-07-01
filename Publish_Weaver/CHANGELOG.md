@@ -4,11 +4,11 @@
 	* !!! Need to handle statistics when planet is not optimized !!!
 
 ## 1.3.0
-* 3-10% performance improvement compared to 1.2.6
+* 3-10% DSP performance improvement compared to 1.2.6
 * Power system should no longer have any performance impact.
 	* Calculation of power consumption is now done in an entitys regular update loop.
-	* Wind power generation is now a constant time operation.
-	* Calculation of power transmission tower power usage is now a constant time operation.
+	* Wind power generation update is now a constant time operation i.e. it will never have a performance impact, no matter how many wind generators you have.
+	* Power system calculation of transmission tower power usage is now a constant time operation. Any number of tesla towers, Satellite substations etc will not affect performance at all.
 	* Updating ray receivers view of a dyson sphere has been parallelized.
 * Fix real time power consumption statistics was not updating.
 * Fix power consumption calculation did not include power transmission towers.
@@ -38,7 +38,7 @@
 * Fix items moving vertically in stacked labs would briefly clog causing a 1-2% production reduction.
 
 ## 1.2.0
-* 10-15% performance improvement compared to 1.1.5
+* 10-15% DSP performance improvement compared to 1.1.5
 * Improved multithreading.
 * Optimized multiple entity types: Ejectors, belts, all types of miners, belt monitors, pilers, splitters, stations, tanks, turrets, ray receivers and power exchangers.
 * Fix spray coaters did not consume power.
@@ -60,7 +60,7 @@
 * Fix optimized power system in single threaded mode.
 
 ## 1.1.0
-* ~15% performance improvement compared to 1.0.1
+* ~15% DSP performance improvement compared to 1.0.1
 * Optimized fractionators.
 * Additional assembler data access optimizations.
 * Optimized multithreaded work distribution method.
