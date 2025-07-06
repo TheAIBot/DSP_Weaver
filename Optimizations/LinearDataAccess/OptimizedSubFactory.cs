@@ -121,7 +121,7 @@ internal sealed class OptimizedSubFactory
         InitializePilers(subFactoryGraph, subFactoryPowerSystemBuilder, _beltExecutor);
         InitializeFractionators(subFactoryGraph, subFactoryPowerSystemBuilder, subFactoryProductionRegisterBuilder, _beltExecutor);
         InitializeTanks(subFactoryGraph, _beltExecutor);
-        InitializeSplitters(subFactoryGraph, _beltExecutor);
+        InitializeSplitters(subFactoryGraph);
 
         turretExecutorBuilder.Initialize(_planet, subFactoryGraph, planetWideProductionRegisterBuilder, _beltExecutor);
 
@@ -268,10 +268,10 @@ internal sealed class OptimizedSubFactory
         planetWideBeltExecutor.AddBeltExecutor(_beltExecutor);
     }
 
-    private void InitializeSplitters(Graph subFactoryGraph, BeltExecutor beltExecutor)
+    private void InitializeSplitters(Graph subFactoryGraph)
     {
         _splitterExecutor = new SplitterExecutor();
-        _splitterExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
+        _splitterExecutor.Initialize(_planet, subFactoryGraph);
     }
 
     public void GameTick(WorkerTimings workerTimings, long time, SubFactoryPowerConsumption powerSystem)
@@ -306,7 +306,7 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.TransportData);
 
         workerTimings.StartTimer();
-        _stationExecutor.InputFromBelt(_planet, time);
+        _stationExecutor.InputFromBelt();
         workerTimings.RecordTime(WorkType.InputFromBelt);
 
         workerTimings.StartTimer();
@@ -320,11 +320,11 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.Storage);
 
         workerTimings.StartTimer();
-        _beltExecutor.GameTick(_planet);
+        _beltExecutor.GameTick();
         workerTimings.RecordTime(WorkType.CargoPathsData);
 
         workerTimings.StartTimer();
-        _splitterExecutor.GameTick(_planet, this, _beltExecutor, time);
+        _splitterExecutor.GameTick(_planet, this, _beltExecutor);
         workerTimings.RecordTime(WorkType.Splitter);
 
         workerTimings.StartTimer();
@@ -332,7 +332,7 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.Monitor);
 
         workerTimings.StartTimer();
-        _spraycoaterExecutor.GameTick(_planet, powerSystem.SpraycoaterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister);
+        _spraycoaterExecutor.GameTick(powerSystem.SpraycoaterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister);
         workerTimings.RecordTime(WorkType.Spraycoater);
 
         workerTimings.StartTimer();
@@ -340,7 +340,7 @@ internal sealed class OptimizedSubFactory
         workerTimings.RecordTime(WorkType.Piler);
 
         workerTimings.StartTimer();
-        _stationExecutor.OutputToBelt(_planet, time);
+        _stationExecutor.OutputToBelt();
         workerTimings.RecordTime(WorkType.OutputToBelt);
 
         _optimizedPlanet.AddMiningFlags(miningFlags);
@@ -362,7 +362,7 @@ internal sealed class OptimizedSubFactory
         RefreshPowerConsumptionDemands(statistics, _researchingLabExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.ResearchingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _optimizedBiInserterExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.InserterBiPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _optimizedInserterExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.InserterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
-        RefreshPowerConsumptionDemands(statistics, _monitorExecutor.UpdatePowerConsumptionPerPrototype(_planet, powerSystem.MonitorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
+        RefreshPowerConsumptionDemands(statistics, _monitorExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.MonitorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _spraycoaterExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.SpraycoaterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _pilerExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.PilerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes));
     }

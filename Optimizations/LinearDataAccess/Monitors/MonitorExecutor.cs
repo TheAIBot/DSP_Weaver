@@ -61,8 +61,7 @@ internal sealed class MonitorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(PlanetFactory planet,
-                                                                         int[] monitorPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] monitorPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;

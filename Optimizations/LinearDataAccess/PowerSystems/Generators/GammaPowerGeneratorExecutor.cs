@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 internal sealed class GammaPowerGeneratorExecutor
 {
@@ -53,8 +53,7 @@ internal sealed class GammaPowerGeneratorExecutor
         return energySum;
     }
 
-    public void GameTick(PlanetFactory planet,
-                         long time,
+    public void GameTick(long time,
                          int[] productRegister,
                          int[] consumeRegister)
     {

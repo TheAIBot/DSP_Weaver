@@ -22,7 +22,7 @@ public sealed class TrafficStatisticsPatches
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.PrepareTick))]
-    public static void PrepareTick(TrafficStatistics __instance, long time)
+    public static void PrepareTick(TrafficStatistics __instance)
     {
         if (_isStarUpdated == null || __instance.starTrafficPool.Length != _isStarUpdated.Length)
         {

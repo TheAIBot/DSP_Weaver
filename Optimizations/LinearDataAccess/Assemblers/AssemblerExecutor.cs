@@ -149,12 +149,10 @@ internal sealed class AssemblerExecutor
     {
         AssemblerComponent[] assemblers = planet.factorySystem.assemblerPool;
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
-        AssemblerRecipe[] assemblerRecipes = _assemblerRecipes;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         AssemblerTimingData[] assemblersTimingData = _assemblersTimingData;
         AssemblerNeeds[] assemblersNeeds = _assemblersNeeds;
-        int[] assemblerRecipeIndexes = _assemblerRecipeIndexes;
         for (int i = 1; i < planet.factorySystem.assemblerCursor; i++)
         {
             if (!_assemblerIdToOptimizedIndex.TryGetValue(i, out int optimizedIndex))
@@ -163,9 +161,7 @@ internal sealed class AssemblerExecutor
             }
 
             ref readonly OptimizedAssembler optimizedAssembler = ref optimizedAssemblers[optimizedIndex];
-            ref readonly AssemblerRecipe assemblerRecipe = ref assemblerRecipes[assemblerRecipeIndexes[optimizedIndex]];
             optimizedAssembler.Save(ref assemblers[i],
-                                    in assemblerRecipe,
                                     assemblerReplicatings[optimizedIndex],
                                     assemblerExtraPowerRatios[optimizedIndex],
                                     in assemblersTimingData[optimizedIndex],

@@ -37,7 +37,7 @@ internal sealed class GasPlanetWideStationExecutor
         for (int i = 0; i < optimizedStations.Length; i++)
         {
             OptimizedStation station = optimizedStations[i];
-            station.UpdateCollection(transport.factory, collectSpeedRate, productRegister, ref miningFlags);
+            station.UpdateCollection(collectSpeedRate, productRegister, ref miningFlags);
             additionalEnergyConsumption += transport.collectorWorkEnergyPerTick;
 
             station.stationComponent.InternalTickRemote(transport.factory, num2, logisticShipSailSpeedModified, shipWarpSpeed, logisticShipCarries, gStationPool, astrosData, ref relativePos, ref relativeRot, starmap, consumeRegister);

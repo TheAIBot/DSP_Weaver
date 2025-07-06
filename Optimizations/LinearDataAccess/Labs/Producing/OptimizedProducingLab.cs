@@ -240,13 +240,8 @@ internal struct OptimizedProducingLab
     }
 
     public readonly void Save(ref LabComponent lab,
-                              ref readonly ProducingLabRecipe producingLabRecipe,
                               LabPowerFields labPowerFields)
     {
-        //lab.requires = producingLabRecipe.Requires;
-        //lab.requireCounts = producingLabRecipe.RequireCounts;
-        //lab.products = producingLabRecipe.Products;
-        //lab.productCounts = producingLabRecipe.ProductCounts;
         lab.served = served;
         lab.incServed = incServed;
         lab.needs = needs;

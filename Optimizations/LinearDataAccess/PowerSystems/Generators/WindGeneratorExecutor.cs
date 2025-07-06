@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 internal sealed class WindGeneratorExecutor
 {

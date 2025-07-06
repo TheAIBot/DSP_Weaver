@@ -136,7 +136,6 @@ internal sealed class ProducingLabExecutor
         LabComponent[] labComponents = planet.factorySystem.labPool;
         OptimizedProducingLab[] optimizedProducingLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
         for (int i = 1; i < planet.factorySystem.labCursor; i++)
         {
             if (!_labIdToOptimizedLabIndex.TryGetValue(i, out int optimizedIndex))
@@ -145,8 +144,7 @@ internal sealed class ProducingLabExecutor
             }
 
             ref OptimizedProducingLab optimizedLab = ref optimizedProducingLabs[optimizedIndex];
-            ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[optimizedLab.producingLabRecipeIndex];
-            optimizedLab.Save(ref labComponents[i], in producingLabRecipe, labsPowerFields[optimizedIndex]);
+            optimizedLab.Save(ref labComponents[i], labsPowerFields[optimizedIndex]);
         }
     }
 

@@ -25,7 +25,7 @@ internal sealed class BeltExecutor
         return _cargoPathIdToOptimizedIndex[cargoPathIndex];
     }
 
-    public void GameTick(PlanetFactory planet)
+    public void GameTick()
     {
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
         for (int i = 0; i < optimizedCargoPaths.Length; i++)

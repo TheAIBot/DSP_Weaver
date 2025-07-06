@@ -281,16 +281,11 @@ internal struct OptimizedAssembler
     }
 
     public readonly void Save(ref AssemblerComponent assembler,
-                              ref readonly AssemblerRecipe assemblerRecipeData,
                               bool replicating,
                               int extraPowerRatio,
                               ref readonly AssemblerTimingData assemblerTimingData,
                               ref readonly AssemblerNeeds assemblerNeeds)
     {
-        //assembler.requires = assemblerRecipeData.Requires;
-        //assembler.requireCounts = assemblerRecipeData.RequireCounts;
-        //assembler.products = assemblerRecipeData.Products;
-        //assembler.productCounts = assemblerRecipeData.ProductCounts;
         assembler.served = assemblerNeeds.served;
         assembler.incServed = incServed;
         assembler.needs = assemblerNeeds.needs;

@@ -11,7 +11,7 @@ internal sealed class StationExecutor
     private OptimizedStation[] _optimizedStations = null!;
     private int[] _networkIds = null!;
 
-    public void InputFromBelt(PlanetFactory planet, long time)
+    public void InputFromBelt()
     {
         OptimizedStation[] optimizedStations = _optimizedStations;
         for (int i = 0; i < optimizedStations.Length; i++)
@@ -73,7 +73,7 @@ internal sealed class StationExecutor
         }
     }
 
-    public void OutputToBelt(PlanetFactory planet, long time)
+    public void OutputToBelt()
     {
         OptimizedStation[] optimizedStations = _optimizedStations;
         int stationPilerLevel = GameMain.history.stationPilerLevel;

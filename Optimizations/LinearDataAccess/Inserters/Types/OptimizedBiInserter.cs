@@ -312,7 +312,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         inserter.stage = inserterStage;
     }
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return $"""
             Bi Inserter

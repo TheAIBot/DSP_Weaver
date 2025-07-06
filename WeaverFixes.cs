@@ -24,7 +24,7 @@ internal static class ModDependencies
 public class WeaverFixes : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(ModInfo.Name);
-    private static bool _enableDebugOptions = false;
+    private static readonly bool _enableDebugOptions = false;
 
     private void Awake()
     {

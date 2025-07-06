@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -190,7 +191,7 @@ internal sealed class OptimizedPowerNetwork
         powerSystem.networkServes[_networkIndex] = num52;
         powerSystem.networkGenerates[_networkIndex] = num53;
 
-        _gammaPowerGeneratorExecutor.GameTick(planet, time, productRegister, consumeRegister);
+        _gammaPowerGeneratorExecutor.GameTick(time, productRegister, consumeRegister);
         _geothermalGeneratorExecutor.GameTick();
         _fuelGeneratorExecutor.GameTick(ref num44, num51, consumeRegister);
     }

@@ -2,7 +2,7 @@
 using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedGammaPowerGenerator
@@ -33,7 +33,7 @@ internal struct OptimizedGammaPowerGenerator
     {
         get
         {
-            int num = ((catalystPoint != 0) ? (catalystIncPoint / catalystPoint) : 0);
+            int num = catalystPoint != 0 ? catalystIncPoint / catalystPoint : 0;
             if (num >= 10)
             {
                 return 10;
@@ -77,13 +77,13 @@ internal struct OptimizedGammaPowerGenerator
 
     public long EnergyCap_Gamma_Req(UnityEngine.Vector3 normalizedSunDirection, float increase, float eta)
     {
-        float num = (UnityEngine.Vector3.Dot(normalizedSunDirection, position) + increase * 0.8f + ((catalystPoint > 0) ? ionEnhance : 0f)) * 6f + 0.5f;
-        num = (currentStrength = ((num > 1f) ? 1f : ((num < 0f) ? 0f : num)));
+        float num = (UnityEngine.Vector3.Dot(normalizedSunDirection, position) + increase * 0.8f + (catalystPoint > 0 ? ionEnhance : 0f)) * 6f + 0.5f;
+        num = currentStrength = num > 1f ? 1f : num < 0f ? 0f : num;
         float num2 = (float)Cargo.accTableMilli[catalystIncLevel];
-        capacityCurrentTick = (long)(currentStrength * (1f + warmup * 1.5f) * ((catalystPoint > 0) ? (2f * (1f + num2)) : 1f) * ((productId.ItemIndex > 0) ? 8f : 1f) * (float)genEnergyPerTick);
+        capacityCurrentTick = (long)(currentStrength * (1f + warmup * 1.5f) * (catalystPoint > 0 ? 2f * (1f + num2) : 1f) * (productId.ItemIndex > 0 ? 8f : 1f) * genEnergyPerTick);
         eta = 1f - (1f - eta) * (1f - warmup * warmup * 0.4f);
         warmupSpeed = (num - 0.75f) * 4f * 1.3888889E-05f;
-        return (long)((double)capacityCurrentTick / (double)eta + 0.49999999);
+        return (long)(capacityCurrentTick / (double)eta + 0.49999999);
     }
 
     public long EnergyCap_Gamma(float response)
@@ -92,7 +92,7 @@ internal struct OptimizedGammaPowerGenerator
         {
             warmupSpeed *= response * 4f;
         }
-        capacityCurrentTick = (long)((double)capacityCurrentTick * (double)response);
+        capacityCurrentTick = (long)(capacityCurrentTick * (double)response);
         if (productId.ItemIndex == 0)
         {
             return capacityCurrentTick;
@@ -125,7 +125,7 @@ internal struct OptimizedGammaPowerGenerator
         if (productId.ItemIndex > 0 && productCount < 20f)
         {
             int num4 = (int)productCount;
-            productCount += (float)((double)capacityCurrentTick / (double)productHeat);
+            productCount += (float)(capacityCurrentTick / (double)productHeat);
             int num5 = (int)productCount;
             productRegister[productId.OptimizedItemIndex] += num5 - num4;
             if (productCount > 20f)
@@ -134,13 +134,13 @@ internal struct OptimizedGammaPowerGenerator
             }
         }
         warmup += warmupSpeed;
-        warmup = ((warmup > 1f) ? 1f : ((warmup < 0f) ? 0f : warmup));
+        warmup = warmup > 1f ? 1f : warmup < 0f ? 0f : warmup;
         if (!keyFrame && !(productCount < 20f))
         {
             return;
         }
         bool flag = productId.ItemIndex > 0 && productCount >= 1f;
-        bool flag2 = keyFrame && useIon && (float)catalystPoint < 72000f;
+        bool flag2 = keyFrame && useIon && catalystPoint < 72000f;
         if (!(flag || flag2))
         {
             return;

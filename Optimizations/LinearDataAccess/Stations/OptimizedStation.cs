@@ -196,7 +196,7 @@ internal readonly struct OptimizedStation
         }
     }
 
-    public void UpdateCollection(PlanetFactory factory, float collectSpeedRate, int[] productRegister, ref MiningFlags miningFlags)
+    public void UpdateCollection(float collectSpeedRate, int[] productRegister, ref MiningFlags miningFlags)
     {
         if (stationComponent.collectionPerTick == null)
         {

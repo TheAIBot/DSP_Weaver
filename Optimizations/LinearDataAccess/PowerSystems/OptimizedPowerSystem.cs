@@ -68,7 +68,7 @@ internal sealed class OptimizedPowerSystem
     private readonly DysonSphereManager _dysonSphereManager;
     private readonly OptimizedPowerNetwork[] _optimizedPowerNetworks;
     public readonly Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> _subFactoryToPowerConsumption;
-    private OptimizedProductionStatistics _optimizedProductionStatistics;
+    private readonly OptimizedProductionStatistics _optimizedProductionStatistics;
 
     public OptimizedPowerSystem(DysonSphereManager dysonSphereManager,
                                 OptimizedPowerNetwork[] optimizedPowerNetworks,
@@ -138,7 +138,7 @@ internal sealed class OptimizedPowerSystem
         Array.Clear(networksPowerConsumption, 0, networksPowerConsumption.Length);
 
         FactorySystemBeforePower(planet, subFactory, subFactoryPowerConsumption, networksPowerConsumption);
-        CargoTrafficBeforePower(planet, subFactory, subFactoryPowerConsumption, networksPowerConsumption);
+        CargoTrafficBeforePower(subFactory, subFactoryPowerConsumption, networksPowerConsumption);
         // Transport has to be done on a per planet basis due to dispenser logic execution order.
         // Might also be the case stations require it but i have not checked.
         // Same seems to be true for field generators so everything defense will also be handled
@@ -342,8 +342,7 @@ internal sealed class OptimizedPowerSystem
                                                           networksPowerConsumption);
     }
 
-    private void CargoTrafficBeforePower(PlanetFactory planet,
-                                         OptimizedSubFactory subFactory,
+    private void CargoTrafficBeforePower(OptimizedSubFactory subFactory,
                                          SubFactoryPowerConsumption subFactoryPowerConsumption,
                                          long[] networksPowerConsumption)
     {

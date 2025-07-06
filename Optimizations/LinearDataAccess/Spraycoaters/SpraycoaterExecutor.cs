@@ -20,8 +20,7 @@ internal sealed class SpraycoaterExecutor
 
     public int SpraycoaterCount => _optimizedSpraycoaters.Length;
 
-    public void GameTick(PlanetFactory planet,
-                         int[] spraycoaterPowerConsumerTypeIndexes,
+    public void GameTick(int[] spraycoaterPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] consumeRegister)

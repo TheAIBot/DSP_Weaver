@@ -9,6 +9,7 @@ using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;

@@ -2,7 +2,7 @@
 using System.Linq;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 internal sealed class FuelGeneratorExecutor
 {

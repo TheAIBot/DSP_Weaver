@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedFuelGenerator
@@ -45,8 +45,8 @@ internal struct OptimizedFuelGenerator
 
     public long EnergyCap_Fuel()
     {
-        long num = ((fuelCount > 0 || fuelEnergy >= useFuelPerTick) ? genEnergyPerTick : (fuelEnergy * genEnergyPerTick / useFuelPerTick));
-        capacityCurrentTick = (productive ? ((long)((double)num * (1.0 + Cargo.incTableMilli[fuelIncLevel]) + 0.1)) : ((long)((double)num * (1.0 + Cargo.accTableMilli[fuelIncLevel]) + 0.1)));
+        long num = fuelCount > 0 || fuelEnergy >= useFuelPerTick ? genEnergyPerTick : fuelEnergy * genEnergyPerTick / useFuelPerTick;
+        capacityCurrentTick = productive ? (long)(num * (1.0 + Cargo.incTableMilli[fuelIncLevel]) + 0.1) : (long)(num * (1.0 + Cargo.accTableMilli[fuelIncLevel]) + 0.1);
         if (fuelMask == 4)
         {
             if (boost)
@@ -78,8 +78,8 @@ internal struct OptimizedFuelGenerator
 
     public void GenEnergyByFuel(long energy, int[] consumeRegister)
     {
-        long num = (productive ? (energy * useFuelPerTick * 40 / (genEnergyPerTick * Cargo.incFastDivisionNumerator[fuelIncLevel])) : (energy * useFuelPerTick / genEnergyPerTick));
-        num = ((energy > 0 && num == 0L) ? 1 : num);
+        long num = productive ? energy * useFuelPerTick * 40 / (genEnergyPerTick * Cargo.incFastDivisionNumerator[fuelIncLevel]) : energy * useFuelPerTick / genEnergyPerTick;
+        num = energy > 0 && num == 0L ? 1 : num;
         if (fuelEnergy >= num)
         {
             fuelEnergy -= num;
@@ -89,7 +89,7 @@ internal struct OptimizedFuelGenerator
         if (fuelCount > 0)
         {
             int num2 = fuelInc / fuelCount;
-            num2 = ((num2 > 0) ? ((num2 > 10) ? 10 : num2) : 0);
+            num2 = num2 > 0 ? num2 > 10 ? 10 : num2 : 0;
             fuelInc -= (short)num2;
             productive = LDB.items.Select(fuelId.ItemIndex).Productive;
             if (productive)

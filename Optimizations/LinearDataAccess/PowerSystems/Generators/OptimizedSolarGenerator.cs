@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedSolarGenerator
@@ -21,9 +21,9 @@ internal struct OptimizedSolarGenerator
     public long EnergyCap_PV(UnityEngine.Vector3 normalized, float lumino)
     {
         float num = UnityEngine.Vector3.Dot(normalized, position) * 2.5f + 0.8572445f;
-        num = ((num > 1f) ? 1f : ((num < 0f) ? 0f : num));
+        num = num > 1f ? 1f : num < 0f ? 0f : num;
         currentStrength = num * lumino;
-        capacityCurrentTick = (long)(currentStrength * (float)genEnergyPerTick);
+        capacityCurrentTick = (long)(currentStrength * genEnergyPerTick);
         return capacityCurrentTick;
     }
 

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Weaver.Optimizations.LinearDataAccess.Statistics;
 
-internal struct OptimizedItemId
+internal readonly struct OptimizedItemId
 {
     public readonly short ItemIndex;
     public readonly short OptimizedItemIndex;
@@ -188,7 +188,7 @@ internal sealed class OptimizedPlanetWideProductionStatistics
         _sumConsumeRegister = new int[consumeIndexes.Length];
     }
 
-    public void UpdateStatistics(long time, int[] gameProductRegister, int[] gameConsumeRegister)
+    public void UpdateStatistics(long time)
     {
         int[] sumProductRegister = _sumProductRegister;
         int[] sumConsumeRegister = _sumConsumeRegister;

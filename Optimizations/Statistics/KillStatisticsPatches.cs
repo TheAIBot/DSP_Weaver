@@ -155,7 +155,7 @@ internal static class KillStatisticsPatches
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(KillStatistics), nameof(KillStatistics.AfterTick))]
-    private static bool AfterTick_Parallelize(KillStatistics __instance)
+    private static bool AfterTick_Parallelize()
     {
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }

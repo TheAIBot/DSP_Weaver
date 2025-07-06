@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;

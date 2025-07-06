@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 

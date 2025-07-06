@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedGeothermalGenerator
@@ -20,10 +20,10 @@ internal struct OptimizedGeothermalGenerator
         warmup = powerGenerator.warmup;
     }
 
-    public long EnergyCap_GTH()
+    public readonly long EnergyCap_GTH()
     {
         float currentStrength = gthStrength * gthAffectStrength * warmup;
-        return (long)((float)genEnergyPerTick * currentStrength);
+        return (long)(genEnergyPerTick * currentStrength);
     }
 
     public void GeneratePower()

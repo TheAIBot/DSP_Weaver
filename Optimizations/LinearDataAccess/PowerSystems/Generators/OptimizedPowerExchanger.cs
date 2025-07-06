@@ -3,7 +3,7 @@ using Weaver.Optimizations.LinearDataAccess.Belts;
 using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
-namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
+namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedPowerExchanger
@@ -158,7 +158,7 @@ internal struct OptimizedPowerExchanger
         }
         long num = remaining;
         long num2 = CalculateActualEnergyPerTick(isOutput: false);
-        num = ((num < num2) ? num : num2);
+        num = num < num2 ? num : num2;
         if (num >= maxPoolEnergy - currPoolEnergy)
         {
             if (emptyCount > 0 && fullCount < 20)
@@ -196,7 +196,7 @@ internal struct OptimizedPowerExchanger
         }
         long num = energyPay;
         long num2 = CalculateActualEnergyPerTick(isOutput: true);
-        num = ((num < num2) ? num : num2);
+        num = num < num2 ? num : num2;
         if (num >= currPoolEnergy)
         {
             if (fullCount > 0 && emptyCount < 20)
@@ -315,7 +315,7 @@ internal struct OptimizedPowerExchanger
             }
             if (num != null)
             {
-                inputRectify = (ComputeInsertOrPick(num, flag) ? FindTheNextSlot(flag) : inputRectify);
+                inputRectify = ComputeInsertOrPick(num, flag) ? FindTheNextSlot(flag) : inputRectify;
                 inputSlot = FindTheNextSlot(flag);
             }
         }
@@ -358,7 +358,7 @@ internal struct OptimizedPowerExchanger
             }
             if (num != null)
             {
-                outputRectify = (ComputeInsertOrPick(num, flag) ? FindTheNextSlot(flag) : outputRectify);
+                outputRectify = ComputeInsertOrPick(num, flag) ? FindTheNextSlot(flag) : outputRectify;
                 outputSlot = FindTheNextSlot(flag);
             }
         }
@@ -488,7 +488,7 @@ internal struct OptimizedPowerExchanger
             for (int i = 0; i < 4; i++)
             {
                 num++;
-                num = ((num <= 3) ? num : (num - 4));
+                num = num <= 3 ? num : num - 4;
                 if (num == 0 && belt0 != null && isOutput0)
                 {
                     return num;
@@ -513,7 +513,7 @@ internal struct OptimizedPowerExchanger
             for (int j = 0; j < 4; j++)
             {
                 num2++;
-                num2 = ((num2 <= 3) ? num2 : (num2 - 4));
+                num2 = num2 <= 3 ? num2 : num2 - 4;
                 if (num2 == 0 && belt0 != null && !isOutput0)
                 {
                     return num2;
@@ -550,7 +550,7 @@ internal struct OptimizedPowerExchanger
         }
         if (num != 0)
         {
-            return energyPerTick + (long)((double)energyPerTick * Cargo.accTableMilli[num] + 0.1);
+            return energyPerTick + (long)(energyPerTick * Cargo.accTableMilli[num] + 0.1);
         }
         return energyPerTick;
     }
@@ -565,7 +565,7 @@ internal struct OptimizedPowerExchanger
         int num2 = m - num * n;
         n -= p;
         num2 -= n;
-        num = ((num2 > 0) ? (num * p + num2) : (num * p));
+        num = num2 > 0 ? num * p + num2 : num * p;
         m -= num;
         return num;
     }
