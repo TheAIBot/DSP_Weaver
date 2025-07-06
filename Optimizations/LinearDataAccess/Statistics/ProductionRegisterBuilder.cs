@@ -104,11 +104,62 @@ internal sealed class PlanetWideProductionRegisterBuilder
                                                                                .OrderBy(x => x.ItemIndex)
                                                                                .ToArray();
 
+        if (CanPickupItemsFromEnemy(_planet))
+        {
+            int[] enemyDropItemIds = ItemProto.enemyDropRangeTable;
+            for (int i = 0; i < enemyDropItemIds.Length; i++)
+            {
+                _additionalItemsIdsToWatch.Add(enemyDropItemIds[i]);
+            }
+        }
+
+        for (int i = 0; i < productIndexes.Length; i++)
+        {
+            _additionalItemsIdsToWatch.Remove(productIndexes[i].ItemIndex);
+        }
+
+        for (int i = 0; i < consumeIndexes.Length; i++)
+        {
+            _additionalItemsIdsToWatch.Remove(consumeIndexes[i].ItemIndex);
+        }
+
         return new OptimizedPlanetWideProductionStatistics(productIndexes,
                                                            consumeIndexes,
                                                            _optimizedProductionStatistics.ToArray(),
                                                            _additionalItemsIdsToWatch.OrderBy(x => x).ToArray(),
                                                            GameMain.statistics.production.factoryStatPool[_planet.index]);
+    }
+
+    private static bool CanPickupItemsFromEnemy(PlanetFactory planet)
+    {
+        if (planet.defenseSystem.battleBases.count == 0)
+        {
+            return false;
+        }
+
+        bool hasBattleBaseThatCanPickUpItems = false;
+        for (int i = 1; i < planet.defenseSystem.battleBases.cursor; i++)
+        {
+            ref readonly BattleBaseComponent component = ref planet.defenseSystem.battleBases.buffer[i];
+            if (component == null || component.id != i)
+            {
+                continue;
+            }
+
+            if (component.autoPickEnabled)
+            {
+                hasBattleBaseThatCanPickUpItems = true;
+            }
+        }
+
+        if (!hasBattleBaseThatCanPickUpItems)
+        {
+            return false;
+        }
+
+        // Can't check if there is any enemies because they might
+        // show up at a later time.
+        return true;
     }
 }
 
@@ -150,6 +201,7 @@ internal sealed class OptimizedPlanetWideProductionStatistics
 
         GameTick(time);
 
+        ClearAdditionalItemsToWatch();
         Array.Clear(sumProductRegister, 0, sumProductRegister.Length);
         Array.Clear(sumConsumeRegister, 0, sumConsumeRegister.Length);
         for (int i = 0; i < optimizedProductionStatistics.Length; i++)
@@ -161,6 +213,8 @@ internal sealed class OptimizedPlanetWideProductionStatistics
     private void GameTick(long time)
     {
         FactoryProductionStat factoryProductionStat = _factoryProductionStat;
+
+        ProductionHelper.PartialProductionStatisticsGameTick(factoryProductionStat, time, _additionalItemsIdsToWatch);
 
         if (time % 1 == 0L)
         {
@@ -307,6 +361,24 @@ internal sealed class OptimizedPlanetWideProductionStatistics
         {
             int level5 = 5;
             factoryProductionStat.ComputeTheMiddleLevel(level5);
+        }
+    }
+
+    private void ClearAdditionalItemsToWatch()
+    {
+        FactoryProductionStat factoryProductionStat = _factoryProductionStat;
+        int[] additionalItemsIdsToWatch = _additionalItemsIdsToWatch;
+
+        int[] productRegister = factoryProductionStat.productRegister;
+        for (int i = 0; i < additionalItemsIdsToWatch.Length; i++)
+        {
+            productRegister[additionalItemsIdsToWatch[i]] = 0;
+        }
+
+        int[] consumeRegister = factoryProductionStat.consumeRegister;
+        for (int i = 0; i < additionalItemsIdsToWatch.Length; i++)
+        {
+            consumeRegister[additionalItemsIdsToWatch[i]] = 0;
         }
     }
 }

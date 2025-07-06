@@ -1,6 +1,5 @@
 ## 1.4.0
 * Optimized production statistics.
-	* !!! Need to fix battle statis statistics !!!
 
 ## 1.3.0
 * 3-10% DSP performance improvement compared to 1.2.6

@@ -42,7 +42,7 @@ internal sealed class DysonSphereStatisticsManager
 
     public void DysonSphereGameTick(FactoryProductionStat factoryStats, long time)
     {
-        GameTick(factoryStats, time);
+        ProductionHelper.PartialProductionStatisticsGameTick(factoryStats, time, _dysonItemIds);
     }
 
     public void DysonSphereClearRegisters(FactoryProductionStat factoryStats)
@@ -54,8 +54,11 @@ internal sealed class DysonSphereStatisticsManager
             factoryStats.consumeRegister[dysonitemIds[i]] = 0;
         }
     }
+}
 
-    public void GameTick(FactoryProductionStat factoryStats, long time)
+internal static class ProductionHelper
+{
+    public static void PartialProductionStatisticsGameTick(FactoryProductionStat factoryStats, long time, int[] itemsIdsToCheck)
     {
         if (time % 1 == 0L)
         {
@@ -65,11 +68,10 @@ internal sealed class DysonSphereStatisticsManager
             int num4 = 7 + num;
             int num5 = 13;
             int num6 = 4200;
-            int[] dysonitemIds = _dysonItemIds;
-            int num7 = dysonitemIds.Length;
+            int num7 = itemsIdsToCheck.Length;
             for (int i = 0; i < num7; i++)
             {
-                int num8 = dysonitemIds[i];
+                int num8 = itemsIdsToCheck[i];
                 int num9 = num8;
                 int num10 = factoryStats.productRegister[num8];
                 int num11 = factoryStats.consumeRegister[num8];
@@ -110,67 +112,6 @@ internal sealed class DysonSphereStatisticsManager
                     cursor[num3] -= 600;
                 }
             }
-            //for (int j = 0; j < factoryStats.powerPool.Length; j++)
-            //{
-            //    PowerStat obj2 = factoryStats.powerPool[j];
-            //    long[] energy = obj2.energy;
-            //    long[] total2 = obj2.total;
-            //    int[] cursor2 = obj2.cursor;
-            //    long num18 = 0L;
-            //    switch (j)
-            //    {
-            //        case 0:
-            //            num18 = factoryStats.powerGenRegister;
-            //            break;
-            //        case 1:
-            //            num18 = factoryStats.powerConRegister;
-            //            break;
-            //        case 2:
-            //            num18 = factoryStats.powerChaRegister;
-            //            break;
-            //        case 3:
-            //            num18 = factoryStats.powerDisRegister;
-            //            break;
-            //        case 4:
-            //            num18 = factoryStats.hashRegister;
-            //            break;
-            //    }
-            //    int num19 = cursor2[num];
-            //    long num20 = num18 - energy[num19];
-            //    energy[num19] = num18;
-            //    total2[num] += num20;
-            //    total2[num2] += num18;
-            //    cursor2[num]++;
-            //    if (cursor2[num] >= 600)
-            //    {
-            //        cursor2[num] -= 600;
-            //    }
-            //}
         }
-        //if (time % 6 == 0L)
-        //{
-        //    int level = 1;
-        //    factoryStats.ComputeTheMiddleLevel(level);
-        //}
-        //if (time % 60 == 0L)
-        //{
-        //    int level2 = 2;
-        //    factoryStats.ComputeTheMiddleLevel(level2);
-        //}
-        //if (time % 360 == 0L)
-        //{
-        //    int level3 = 3;
-        //    factoryStats.ComputeTheMiddleLevel(level3);
-        //}
-        //if (time % 3600 == 0L)
-        //{
-        //    int level4 = 4;
-        //    factoryStats.ComputeTheMiddleLevel(level4);
-        //}
-        //if (time % 36000 == 0L)
-        //{
-        //    int level5 = 5;
-        //    factoryStats.ComputeTheMiddleLevel(level5);
-        //}
     }
 }

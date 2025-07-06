@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
+using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess;
 
@@ -76,7 +77,8 @@ internal static class OptimizedStarCluster
         _planetProductionStatisticsToOptimizedPlanet.Clear();
         _dysonSphereStatisticsManager.ClearDysonSphereProductRegisters();
         _workStealingMultiThreadedFactorySimulation.Clear();
-        //GameMain.statistics.PrepareTick(GameMain.gameTick);
+        KillStatisticsPatches.Clear();
+        TrafficStatisticsPatches.Clear();
     }
 
     private static void TryAddNewPlanet(PlanetFactory planet)

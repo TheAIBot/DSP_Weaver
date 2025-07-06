@@ -9,8 +9,6 @@ public class CustomChartsPatches
     [HarmonyPatch(typeof(CustomCharts), nameof(CustomCharts.GameTick))]
     private static bool GameTick_Parallelize(CustomCharts __instance)
     {
-        //Logger.LogMessage("Did the thing! 3");
-
         // Only enable parallelization if multithreading is enabled.
         // Not sure why one would disable it but hey lets just support it!
         if (!GameMain.multithreadSystem.multithreadSystemEnable)
