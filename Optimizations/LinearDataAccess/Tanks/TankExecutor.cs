@@ -61,15 +61,10 @@ internal sealed class TankExecutor
                 continue;
             }
 
-            CargoPath? belt0 = tank.belt0 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt0].segPathId] : null;
-            CargoPath? belt1 = tank.belt1 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt1].segPathId] : null;
-            CargoPath? belt2 = tank.belt2 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt2].segPathId] : null;
-            CargoPath? belt3 = tank.belt3 > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[tank.belt3].segPathId] : null;
-
-            OptimizedCargoPath? optimizedBelt0 = belt0 != null ? beltExecutor.GetOptimizedCargoPath(belt0) : null;
-            OptimizedCargoPath? optimizedBelt1 = belt1 != null ? beltExecutor.GetOptimizedCargoPath(belt1) : null;
-            OptimizedCargoPath? optimizedBelt2 = belt2 != null ? beltExecutor.GetOptimizedCargoPath(belt2) : null;
-            OptimizedCargoPath? optimizedBelt3 = belt3 != null ? beltExecutor.GetOptimizedCargoPath(belt3) : null;
+            beltExecutor.TryOptimizedCargoPath(planet, tank.belt0, out OptimizedCargoPath? optimizedBelt0);
+            beltExecutor.TryOptimizedCargoPath(planet, tank.belt1, out OptimizedCargoPath? optimizedBelt1);
+            beltExecutor.TryOptimizedCargoPath(planet, tank.belt2, out OptimizedCargoPath? optimizedBelt2);
+            beltExecutor.TryOptimizedCargoPath(planet, tank.belt3, out OptimizedCargoPath? optimizedBelt3);
 
             int optimizedTankIndex = optimizedTanks.Count;
             tankIdToOptimizedTankIndex.Add(tank.id, optimizedTankIndex);

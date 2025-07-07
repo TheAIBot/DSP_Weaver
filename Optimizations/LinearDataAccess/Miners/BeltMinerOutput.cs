@@ -37,16 +37,13 @@ internal readonly struct BeltMinerOutput : IMinerOutput<BeltMinerOutput>
         }
 
         int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
-        if (outputBeltId <= 0)
+        if (!beltExecutor.TryOptimizedCargoPath(planet, outputBeltId, out OptimizedCargoPath? outputBelt))
         {
             minerOutput = default;
             return false;
         }
 
         BeltComponent beltComponent = planet.cargoTraffic.beltPool[outputBeltId];
-        CargoPath outputCargoPath = planet.cargoTraffic.pathPool[beltComponent.segPathId];
-        OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
-
         minerOutput = new BeltMinerOutput(outputBelt, beltComponent.pivotOnPath);
         return true;
     }

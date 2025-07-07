@@ -105,8 +105,7 @@ internal sealed class StationExecutor
             OptimizedCargoPath?[] belts = new OptimizedCargoPath[station.slots.Length];
             for (int i = 0; i < belts.Length; i++)
             {
-                CargoPath? belt = station.slots[i].beltId > 0 ? planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[station.slots[i].beltId].segPathId] : null;
-                belts[i] = belt != null ? beltExecutor.GetOptimizedCargoPath(belt) : null;
+                belts[i] = beltExecutor.TryOptimizedCargoPath(planet, station.slots[i].beltId, out OptimizedCargoPath? belt) ? belt : null;
             }
 
             int? optimizedMinerIndex = null;

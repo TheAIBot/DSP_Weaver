@@ -139,17 +139,13 @@ internal sealed class PilerExecutor
             }
 
             BeltComponent inputBeltComponent = planet.cargoTraffic.beltPool[piler.inputBeltId];
-            CargoPath? inputCargoPath = planet.cargoTraffic.GetCargoPath(inputBeltComponent.segPathId);
-            OptimizedCargoPath? inputBelt = inputCargoPath != null ? beltExecutor.GetOptimizedCargoPath(inputCargoPath) : null;
-            if (inputBelt == null)
+            if (!beltExecutor.TryOptimizedCargoPath(planet, piler.inputBeltId, out OptimizedCargoPath? inputBelt))
             {
                 continue;
             }
 
             BeltComponent outputBeltComponent = planet.cargoTraffic.beltPool[piler.outputBeltId];
-            CargoPath? outputCargoPath = planet.cargoTraffic.GetCargoPath(outputBeltComponent.segPathId);
-            OptimizedCargoPath? outputBelt = outputCargoPath != null ? beltExecutor.GetOptimizedCargoPath(outputCargoPath) : null;
-            if (outputBelt == null)
+            if (!beltExecutor.TryOptimizedCargoPath(planet, piler.outputBeltId, out OptimizedCargoPath? outputBelt))
             {
                 continue;
             }

@@ -26,13 +26,10 @@ internal sealed class TurretExecutorBuilder
                 continue;
             }
 
-            OptimizedCargoPath? targetBelt = null;
             int targetBeltOffset = 0;
-            if (turret.targetBeltId > 0)
+            if (beltExecutor.TryOptimizedCargoPath(planet, turret.targetBeltId, out OptimizedCargoPath? targetBelt))
             {
                 targetBeltOffset = planet.cargoTraffic.beltPool[turret.targetBeltId].pivotOnPath;
-                CargoPath targetCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[turret.targetBeltId].segPathId];
-                targetBelt = beltExecutor.GetOptimizedCargoPath(targetCargoPath);
             }
 
             int[] turretAmmunitionItemIds = ItemProto.turretNeeds[(uint)turret.ammoType];

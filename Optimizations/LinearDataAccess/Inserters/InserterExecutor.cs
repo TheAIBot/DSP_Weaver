@@ -962,11 +962,9 @@ internal sealed class InserterExecutor<T>
             if (pickFrom.EntityType == EntityType.Belt)
             {
                 BeltComponent belt = planet.cargoTraffic.beltPool[pickFrom.Index];
-                CargoPath? pickFromCargoPath = planet.cargoTraffic.GetCargoPath(belt.segPathId);
-                pickFromBelt = pickFromCargoPath != null ? beltExecutor.GetOptimizedCargoPath(pickFromCargoPath) : null;
-                if (pickFromCargoPath != null)
+                if (beltExecutor.TryOptimizedCargoPath(planet, pickFrom.Index, out pickFromBelt))
                 {
-                    pickFromOffset = GetCorrectedPickOffset(inserter.pickOffset, ref belt, pickFromCargoPath);
+                    pickFromOffset = GetCorrectedPickOffset(inserter.pickOffset, ref belt, pickFromBelt);
                 }
                 pickFromOffset += belt.pivotOnPath;
             }
@@ -985,11 +983,9 @@ internal sealed class InserterExecutor<T>
             if (insertInto.EntityType == EntityType.Belt)
             {
                 BeltComponent belt = planet.cargoTraffic.beltPool[insertInto.Index];
-                CargoPath? insertIntoCargoPath = planet.cargoTraffic.pathPool[belt.segPathId];
-                insertIntoBelt = insertIntoCargoPath != null ? beltExecutor.GetOptimizedCargoPath(insertIntoCargoPath) : null;
-                if (insertIntoCargoPath != null)
+                if (beltExecutor.TryOptimizedCargoPath(planet, insertInto.Index, out insertIntoBelt))
                 {
-                    insertIntoOffset = GetCorrectedInsertOffset(inserter.insertOffset, ref belt, insertIntoCargoPath);
+                    insertIntoOffset = GetCorrectedInsertOffset(inserter.insertOffset, ref belt, insertIntoBelt);
                 }
                 insertIntoOffset += belt.pivotOnPath;
             }
@@ -1092,7 +1088,7 @@ internal sealed class InserterExecutor<T>
         _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
     };
 
-    private static int GetCorrectedPickOffset(int pickOffset, ref readonly BeltComponent belt, CargoPath cargoPath)
+    private static int GetCorrectedPickOffset(int pickOffset, ref readonly BeltComponent belt, OptimizedCargoPath cargoPath)
     {
         int num = belt.segPivotOffset + belt.segIndex;
         int num2 = num + pickOffset;
@@ -1107,7 +1103,7 @@ internal sealed class InserterExecutor<T>
         return (short)(num2 - num);
     }
 
-    private static int GetCorrectedInsertOffset(int insertOffset, ref readonly BeltComponent belt, CargoPath cargoPath)
+    private static int GetCorrectedInsertOffset(int insertOffset, ref readonly BeltComponent belt, OptimizedCargoPath cargoPath)
     {
         int num3 = belt.segPivotOffset + belt.segIndex;
         int num4 = num3 + insertOffset;

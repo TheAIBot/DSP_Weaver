@@ -170,14 +170,11 @@ internal sealed class OilMinerExecutor
             }
 
             int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
-            if (outputBeltId <= 0)
+            if (!beltExecutor.TryOptimizedCargoPath(planet, outputBeltId, out OptimizedCargoPath? outputBelt))
             {
                 continue;
             }
-
             int outputBeltOffset = planet.cargoTraffic.beltPool[outputBeltId].pivotOnPath;
-            CargoPath outputCargoPath = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[outputBeltId].segPathId];
-            OptimizedCargoPath outputBelt = beltExecutor.GetOptimizedCargoPath(outputCargoPath);
 
             int veinProductId = planet.veinPool[miner.veins[0]].productId;
             OptimizedItemId oilProductId = default;

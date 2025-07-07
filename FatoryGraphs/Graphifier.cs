@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Weaver.FatoryGraphs;
@@ -177,10 +178,9 @@ internal static class Graphifier
 
             var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Monitor, i));
 
-            if (component.targetBeltId > 0)
+            if (TryGetBeltSegmentTypeIndex(component.targetBeltId, planet, out EntityTypeIndex? incBelt))
             {
-                EntityTypeIndex incBelt = GetBeltSegmentTypeIndex(component.targetBeltId, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt.Value);
             }
         }
     }
@@ -197,16 +197,14 @@ internal static class Graphifier
 
             var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.SprayCoater, i));
 
-            if (component.incBeltId > 0)
+            if (TryGetBeltSegmentTypeIndex(component.incBeltId, planet, out EntityTypeIndex? incBelt))
             {
-                EntityTypeIndex incBelt = GetBeltSegmentTypeIndex(component.incBeltId, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt.Value);
             }
 
-            if (component.cargoBeltId > 0)
+            if (TryGetBeltSegmentTypeIndex(component.cargoBeltId, planet, out EntityTypeIndex? cargoBelt))
             {
-                EntityTypeIndex cargoBelt = GetBeltSegmentTypeIndex(component.cargoBeltId, planet);
-                ConnectSendTo(entityTypeIndexToNode, node, cargoBelt);
+                ConnectSendTo(entityTypeIndexToNode, node, cargoBelt.Value);
             }
         }
     }
@@ -223,16 +221,14 @@ internal static class Graphifier
 
             var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Piler, i));
 
-            if (component.inputBeltId > 0)
+            if (TryGetBeltSegmentTypeIndex(component.inputBeltId, planet, out EntityTypeIndex? incBelt))
             {
-                EntityTypeIndex incBelt = GetBeltSegmentTypeIndex(component.inputBeltId, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, incBelt.Value);
             }
 
-            if (component.outputBeltId > 0)
+            if (TryGetBeltSegmentTypeIndex(component.outputBeltId, planet, out EntityTypeIndex? cargoBelt))
             {
-                EntityTypeIndex cargoBelt = GetBeltSegmentTypeIndex(component.outputBeltId, planet);
-                ConnectSendTo(entityTypeIndexToNode, node, cargoBelt);
+                ConnectSendTo(entityTypeIndexToNode, node, cargoBelt.Value);
             }
         }
     }
@@ -286,40 +282,37 @@ internal static class Graphifier
 
             var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Fractionator, i));
 
-            if (component.belt0 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt0, planet, out EntityTypeIndex? connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt0, planet);
                 if (component.isOutput0)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt1 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt1, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt1, planet);
                 if (component.isOutput1)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt2 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt2, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt2, planet);
                 if (component.isOutput2)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
         }
@@ -404,19 +397,18 @@ internal static class Graphifier
 
             foreach (SlotData slot in component.slots)
             {
-                if (slot.beltId == 0)
+                if (!TryGetBeltSegmentTypeIndex(slot.beltId, planet, out EntityTypeIndex? connectedEntityIndex))
                 {
                     continue;
                 }
 
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(slot.beltId, planet);
                 if (slot.dir == IODir.Output)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else if (slot.dir == IODir.Input)
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
         }
@@ -505,52 +497,48 @@ internal static class Graphifier
                 BiDirectionConnection(entityTypeIndexToNode, node, connectedTank);
             }
 
-            if (component.belt0 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt0, planet, out EntityTypeIndex? connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt0, planet);
                 if (component.isOutput0)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt1 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt1, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt1, planet);
                 if (component.isOutput1)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt2 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt2, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt2, planet);
                 if (component.isOutput2)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt3 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt3, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt3, planet);
                 if (component.isOutput3)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
         }
@@ -568,46 +556,38 @@ internal static class Graphifier
 
             var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Splitter, i));
 
-            if (component.input0 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.input0, planet, out EntityTypeIndex? connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input0, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
-            if (component.input1 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.input1, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input1, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
-            if (component.input2 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.input2, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input2, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
-            if (component.input3 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.input3, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.input3, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
 
-            if (component.output0 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.output0, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output0, planet);
-                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
-            if (component.output1 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.output1, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output1, planet);
-                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
-            if (component.output2 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.output2, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output2, planet);
-                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
-            if (component.output3 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.output3, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.output3, planet);
-                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
         }
     }
@@ -644,10 +624,9 @@ internal static class Graphifier
 
             var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.Turret, i));
 
-            if (component.targetBeltId > 0)
+            if (TryGetBeltSegmentTypeIndex(component.targetBeltId, planet, out EntityTypeIndex? connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.targetBeltId, planet);
-                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
         }
     }
@@ -664,52 +643,48 @@ internal static class Graphifier
 
             var node = GetOrCreateNode(entityTypeIndexToNode, new EntityTypeIndex(EntityType.PowerExchanger, i));
 
-            if (component.belt0 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt0, planet, out EntityTypeIndex? connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt0, planet);
                 if (component.isOutput0)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt1 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt1, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt1, planet);
                 if (component.isOutput1)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt2 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt2, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt2, planet);
                 if (component.isOutput2)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
-            if (component.belt3 > 0)
+            if (TryGetBeltSegmentTypeIndex(component.belt3, planet, out connectedEntityIndex))
             {
-                EntityTypeIndex connectedEntityIndex = GetBeltSegmentTypeIndex(component.belt3, planet);
                 if (component.isOutput3)
                 {
-                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex);
+                    ConnectReceiveFrom(entityTypeIndexToNode, node, connectedEntityIndex.Value);
                 }
             }
         }
@@ -765,9 +740,9 @@ internal static class Graphifier
     public static EntityTypeIndex GetEntityTypeIndex(int index, FactorySystem factory)
     {
         ref readonly EntityData entity = ref factory.factory.entityPool[index];
-        if (entity.beltId != 0)
+        if (TryGetBeltSegmentTypeIndex(entity.beltId, factory.factory, out EntityTypeIndex? beltEntityTypeIndex))
         {
-            return GetBeltSegmentTypeIndex(entity.beltId, factory.factory);
+            return beltEntityTypeIndex.Value;
         }
         else if (entity.assemblerId != 0)
         {
@@ -812,8 +787,22 @@ internal static class Graphifier
         throw new InvalidOperationException("Unknown entity type.");
     }
 
-    private static EntityTypeIndex GetBeltSegmentTypeIndex(int beltId, PlanetFactory planet)
+    private static bool TryGetBeltSegmentTypeIndex(int beltId, PlanetFactory planet, [NotNullWhen(true)] out EntityTypeIndex? entityTypeIndex)
     {
-        return new EntityTypeIndex(EntityType.Belt, planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[beltId].segPathId).id);
+        if (beltId <= 0)
+        {
+            entityTypeIndex = null;
+            return false;
+        }
+
+        CargoPath? cargoPath = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[beltId].segPathId);
+        if (cargoPath == null)
+        {
+            entityTypeIndex = null;
+            return false;
+        }
+
+        entityTypeIndex = new EntityTypeIndex(EntityType.Belt, cargoPath.id);
+        return true;
     }
 }

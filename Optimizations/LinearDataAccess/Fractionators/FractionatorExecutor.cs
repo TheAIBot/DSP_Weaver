@@ -176,25 +176,9 @@ internal sealed class FractionatorExecutor
                 fractionatorConfigurations.Add(configuration);
             }
 
-            OptimizedCargoPath? belt0 = null;
-            OptimizedCargoPath? belt1 = null;
-            OptimizedCargoPath? belt2 = null;
-
-            if (fractionator.belt0 > 0)
-            {
-                CargoPath cargoPath0 = planet.cargoTraffic.pathPool[planet.cargoTraffic.beltPool[fractionator.belt0].segPathId];
-                belt0 = cargoPath0 != null ? beltExecutor.GetOptimizedCargoPath(cargoPath0) : null;
-            }
-            if (fractionator.belt1 > 0)
-            {
-                CargoPath cargoPat1 = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[fractionator.belt1].segPathId);
-                belt1 = cargoPat1 != null ? beltExecutor.GetOptimizedCargoPath(cargoPat1) : null;
-            }
-            if (fractionator.belt2 > 0)
-            {
-                CargoPath cargoPat2 = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[fractionator.belt2].segPathId);
-                belt2 = cargoPat2 != null ? beltExecutor.GetOptimizedCargoPath(cargoPat2) : null;
-            }
+            beltExecutor.TryOptimizedCargoPath(planet, fractionator.belt0, out OptimizedCargoPath? belt0);
+            beltExecutor.TryOptimizedCargoPath(planet, fractionator.belt1, out OptimizedCargoPath? belt1);
+            beltExecutor.TryOptimizedCargoPath(planet, fractionator.belt2, out OptimizedCargoPath? belt2);
 
             OptimizedItemId fluidId = default;
             if (fractionator.fluidId > 0)

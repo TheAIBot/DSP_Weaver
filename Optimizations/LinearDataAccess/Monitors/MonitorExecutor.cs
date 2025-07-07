@@ -113,20 +113,13 @@ internal sealed class MonitorExecutor
                 continue;
             }
 
-            if (monitor.targetBeltId <= 0)
+            if (!beltExecutor.TryOptimizedCargoPath(planet, monitor.targetBeltId, out OptimizedCargoPath? targetBelt))
             {
                 continue;
             }
-
             BeltComponent targetBeltComponent = planet.cargoTraffic.beltPool[monitor.targetBeltId];
             int targetBeltOffset = targetBeltComponent.segIndex + targetBeltComponent.segPivotOffset;
-            CargoPath? targetCargoPath = planet.cargoTraffic.pathPool[targetBeltComponent.segPathId];
-            if (targetCargoPath == null)
-            {
-                continue;
-            }
 
-            OptimizedCargoPath targetBelt = beltExecutor.GetOptimizedCargoPath(targetCargoPath);
             int networkIndex = planet.powerSystem.consumerPool[monitor.pcId].networkId;
             subFactoryPowerSystemBuilder.AddMonitor(in monitor, networkIndex);
             monitorIndexes.Add(monitorIndex);

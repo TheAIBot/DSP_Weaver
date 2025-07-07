@@ -15,7 +15,7 @@ internal sealed class SplitterExecutor
         OptimizedSplitter[] optimizedSplitters = _optimizedSplitters;
         for (int i = 0; i < optimizedSplitters.Length; i++)
         {
-            optimizedSplitters[i].UpdateSplitter(cargoTraffic, subFactory, beltExecutor);
+            optimizedSplitters[i].UpdateSplitter(planet, cargoTraffic, subFactory, beltExecutor);
         }
     }
 

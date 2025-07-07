@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Weaver.FatoryGraphs;
 
@@ -15,9 +16,23 @@ internal sealed class BeltExecutor
 
     public Dictionary<CargoPath, OptimizedCargoPath> CargoPathToOptimizedCargoPath => _cargoPathToOptimizedCargoPath;
 
-    public OptimizedCargoPath GetOptimizedCargoPath(CargoPath cargoPath)
+    public bool TryOptimizedCargoPath(PlanetFactory planet, int beltId, [NotNullWhen(true)] out OptimizedCargoPath? belt)
     {
-        return _cargoPathToOptimizedCargoPath[cargoPath];
+        if (beltId <= 0)
+        {
+            belt = null;
+            return false;
+        }
+
+        CargoPath? cargoPath = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[beltId].segPathId);
+        if (cargoPath == null)
+        {
+            belt = null;
+            return false;
+        }
+
+        belt = _cargoPathToOptimizedCargoPath[cargoPath];
+        return true;
     }
 
     public int GetOptimizedCargoPathIndex(int cargoPathIndex)

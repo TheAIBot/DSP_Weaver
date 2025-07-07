@@ -1,5 +1,6 @@
 ## 1.4.0
 * Optimized production statistics.
+* Fix accessing belts when other mods do not remove them in the same way the game does it.
 
 ## 1.3.0
 * 3-10% DSP performance improvement compared to 1.2.6
