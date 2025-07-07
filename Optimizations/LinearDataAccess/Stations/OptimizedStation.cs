@@ -214,13 +214,10 @@ internal readonly struct OptimizedStation
                 int num = (int)stationComponent.currentCollections[i];
                 if (num != 0)
                 {
-                    lock (productRegister)
-                    {
-                        stationComponent.storage[i].count += num;
-                        productRegister[stationComponent.storage[i].itemId] += num;
-                        stationComponent.currentCollections[i] -= num;
-                        miningFlags.AddMiningFlagUnsafe(LDB.veins.GetVeinTypeByItemId(stationComponent.storage[i].itemId));
-                    }
+                    stationComponent.storage[i].count += num;
+                    productRegister[stationComponent.storage[i].itemId] += num;
+                    stationComponent.currentCollections[i] -= num;
+                    miningFlags.AddMiningFlagUnsafe(LDB.veins.GetVeinTypeByItemId(stationComponent.storage[i].itemId));
                 }
             }
         }

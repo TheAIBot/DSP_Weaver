@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Weaver.Optimizations.LinearDataAccess.Miners;
 using Weaver.Optimizations.LinearDataAccess.Stations;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
@@ -10,6 +11,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
 {
     private readonly PlanetFactory _planet;
     private GasPlanetWideStationExecutor _planetWideStationExecutor = null!;
+    private OptimizedPlanetWideProductionStatistics _optimizedPlanetWideProductionStatistics = null!;
 
     private WorkStep[]? _workSteps;
     private int _workStepsParallelism;
@@ -32,6 +34,14 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         _planetWideStationExecutor = new GasPlanetWideStationExecutor();
         _planetWideStationExecutor.Initialize(_planet);
 
+        var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder(_planet);
+        for (int i = 0; i < _planet.planet.gasItems.Length; i++)
+        {
+            planetWideProductionRegisterBuilder.AdditionalProductItemsIdToWatch(_planet.planet.gasItems[i]);
+        }
+
+        _optimizedPlanetWideProductionStatistics = planetWideProductionRegisterBuilder.Build();
+
         Status = OptimizedPlanetStatus.Running;
         _workSteps = null;
         _workStepsParallelism = -1;
@@ -51,6 +61,11 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
 
         _planet._miningFlag |= miningFlags.MiningFlag;
         _planet._veinMiningFlag |= miningFlags.VeinMiningFlag;
+
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        _optimizedPlanetWideProductionStatistics.UpdateStatistics(time, productRegister, consumeRegister);
     }
 
     public WorkStep[] GetMultithreadedWork(int maxParallelism)

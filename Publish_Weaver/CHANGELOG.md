@@ -1,3 +1,6 @@
+## 1.4.1
+* Fix gas planet production statistics.
+
 ## 1.4.0
 * 5-20% DSP performance improvement compared to 1.3.0
 * Optimized production statistics.
