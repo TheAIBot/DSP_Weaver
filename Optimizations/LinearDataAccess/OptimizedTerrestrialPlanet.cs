@@ -218,7 +218,10 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
     public void AggregateSubFactoryDataStep(long time)
     {
-        _optimizedPlanetWideProductionStatistics.UpdateStatistics(time);
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        _optimizedPlanetWideProductionStatistics.UpdateStatistics(time, productRegister, consumeRegister);
     }
 
     private void DefenseGameTick(DefenseSystem defenseSystem, long tick)

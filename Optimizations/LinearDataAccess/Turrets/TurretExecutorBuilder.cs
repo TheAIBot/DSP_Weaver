@@ -35,7 +35,7 @@ internal sealed class TurretExecutorBuilder
             int[] turretAmmunitionItemIds = ItemProto.turretNeeds[(uint)turret.ammoType];
             for (int i = 0; i < turretAmmunitionItemIds.Length; i++)
             {
-                planetWideProductionRegisterBuilder.AdditionalItemsIdsToWatch(turretAmmunitionItemIds[i]);
+                planetWideProductionRegisterBuilder.AdditionalConsumeItemsIdToWatch(turretAmmunitionItemIds[i]);
             }
 
 
