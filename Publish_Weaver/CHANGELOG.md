@@ -1,6 +1,10 @@
 ## 1.4.0
+* 5-20% DSP performance improvement compared to 1.3.0
 * Optimized production statistics.
-* Fix accessing belts when other mods do not remove them in the same way the game does it.
+	* Fix lag spikes caused by statistics calculations.
+	* Removed locks on production statistics.
+	* Traffic and combat statistics only run on planets when they actually have any traffic or combat.
+* Fix accessing belts when other mods do not remove them in the same way the games does it.
 
 ## 1.3.0
 * 3-10% DSP performance improvement compared to 1.2.6

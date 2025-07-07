@@ -1,8 +1,8 @@
 {
   "namespace": "Loom",
   "name": "Weaver",
-  "description": "Performance optimizations for DSP",
-  "version_number": "1.3.0",
+  "description": "Performance optimizations for DSP, ~3x performance improvement.",
+  "version_number": "1.4.0",
   "dependencies": [
     "xiaoye97-BepInEx-5.4.17"
   ],

@@ -1,7 +1,7 @@
 # Summary
 
-Weaver is a mod that roughly doubles the performance of DSP. The mod does not alter gameplay, does not disable achievements and can be enabled/disabled anytime.
-In my tests of late game saves, Weaver improves the game's performance by roughly 2.5-3.0x.
+Weaver is a mod that roughly triples the performance of DSP. The mod does not alter gameplay, does not disable achievements and can be enabled/disabled anytime.
+In my tests of late game saves, Weaver improves the game's performance by roughly 3.0-3.5x.
 You'll experience the best performance while flying in outer space. You can read why in the **_How it works_** section.
  
 # Mod compatibility
@@ -112,7 +112,15 @@ Whenever a research completes, the mod will reoptimize all planets one at a time
 	* Step by step logic has been replaced with a work stealing worker system.
 	* Independent factories on the same planet are considered sub factories. Sub factories are threaded independently from each other even though they are on the same planet.
 * Statistics
-	* No need to run statistics logic on planets that cannot generate any statistical values.
+	* Production statistics
+		* Replace locks around updates to production statistics with per-sub-factory statistics that are aggregated afterwards.
+		* Track which items a sub factory create and only calculate statistics for those.
+	* Traffic statistics
+		* Parallelized statistics calculations.
+		* Track which planets/solar systems has statistics updates and only do expensive updates on those. The rest do a fast statistics update.
+	* Combat statistics
+		* Parallelized statistics calculations.
+		* Track which planets/solar systems has statistics updates and only do expensive updates on those. The rest do a fast statistics update.
 
 # Could DSP developers implement these optimizations?
 
@@ -150,7 +158,7 @@ Splitting simulation up into sub-factories allows the game to more effectively u
 
 To split the simulation up into sub-factories, the power system has to not connect entities together. Weaver handles this by updating a planets power system before updating the planets sub factories. A few other things can also not be simulated on the sub-factory level. A notable example is logistics distributors which must be updated in a certain order on each planet.
 To simulate a planet, weaver splits it up into multiple steps. Firs the power system is updated. Then all sub-factories are updated. Lastly logistic distributors are updated.
-To efficiently execute these steps for all planets, Weaver implements a work stealing work pool where workers compete against each other to complete steps as fast as possible. There is no synchroniation of step execution between planets like there is with the games multithreading logic.
+To efficiently execute these steps for all planets, Weaver implements a work stealing work pool where workers compete against each other to complete steps as fast as possible. There is no synchronization of step execution between planets like there is with the games multithreading logic.
 
 Workers will prioritize executing work for a specific planet, unless the planet has no work immediately available. In that case the worker will attempt to find available work on other planets. Only if it can't find any immediately available work in any planet, will the worker have to wait for other workers to complete their work. A worker will attempt to reserve work in the next step before it waits. If it can't reserve work then it will find another planet to try and reserve work in. This ensures 10 threads aren't waiting in a planet where the next step only consists of 2 work chunks.
 
@@ -161,6 +169,23 @@ Additionally, wind power generators are now calculated in constant time. This is
 ### Potential additional power system optimizations
 This same methodology could be used for geothermal power generators once they've all warmed. The performance impact of ray receivers and calculating their view of dyson spheres could equally be optimized by excluding ray receivers from this call if they've been determined to always view the dyson sphere. This check could simply be done by determining if the entire planet is inside a dyson sphere, by determining if the ray receiver was created close to the planets poles or by checking if they are placed on a tidally locked planet. Solar power could make use of the same optimization.
 
+## Statistics
+There is three primary types of statistics that weaver optimizes. First one is production statistics. This type of statistics keep track of how much each planet has produced/consumed each game update. The two other types of statistics are combat statistics. They track how many enemies have been destroyed and traffic statistics which tracks how many items are imported/exported from each planet.
+True for all types of statistics is that their calculations, for each planet/solar system, are fully independent of each other. Weaver has multithreaded the statistics calculations for all the statistic types.
+
+### Production statistics
+Internally the game stores production and consumption statistics in two arrays of size 12.000. An items item id is the index into the arrays that the item uses to store how much was produced and consumed.
+Each tick the game goes over these two arrays of size 12.000 and updates some statistics history data about how much was produced on that game update. Then the game proceeds to clear all data in the two arrays for each planet.
+There is roughly ~200 items in the current game. Checking for all the remaining ~11.800 non existing items and then clearing them for every single planet is unnecessary and expensive.
+Weaver optimized production statistics by letting each sub factory figure out which item ids it produces and consumes. Each sub factory then creates two smaller arrays, one for production and one for consumption, where each array only keep tracks of the items the sub factory produces/consumes. Once all sub factories have been updated, a follow up aggregation step runs that sums the production and consumption data for all sub factories on the planet and adds it to the historical statistics. The game was modifying the 12.000 item large arrays in parallel which required locks around updates to the arrays. Since updating a sub factory is handled by a single thread, these locks no longer exist. The result is an implementation that is more cache efficient and which allows multiple threads to update production statistics on a single planet in parallel without any need for synchronization primitives.
+
+### Traffic and combat statistics
+Traffic and combat statistics are very similar to production statistics but with an important difference that will be described shortly. The arrays for traffic statistics are also 12.000 large while combat statistics use arrays of size 2.048. There exist as many items for traffic statistics to keep track of as there exist items for production statistics to keep track of. I would guestimate there exist less than 50 types of enemies.
+
+Weaver splits updating statistics for these two types into an expensive and cheap update. The expensive update is where both arrays are fully iterated. Secondly is the cheap update where the historical statistics are simply updated with no changes to the import/export and destroyed historical data. The cheap update can only be used when there is no changes to the statistics of a planet/solar system.
+The important difference between production statistics and traffic/combat statistics is that traffic and combat statistic arrays are accessed through methods. This allows weaver to observe which planets/solar systems these methods are called for and then run the cheap update for all planets/solar systems that were not updated.
+
+The same method used for production statistics would be more efficient than what is currently used but it's also a lot more complex to implement. The optimizations applied for statistics are already making the statistics performance impact irrelevant so there was no need to go overboard.
 
 ## Base game
 I hope most of these optimizations are eventually merged into the base game. Then I don't have to maintain them and more players would be able to enjoy them.
@@ -168,4 +193,4 @@ I hope most of these optimizations are eventually merged into the base game. The
 # Future plans
 
 There are still quite a few optimizations I've yet to implement.
-I believe it is possible for the mod to improve the game's performance by 3-3.5x.
+I believe it is possible for the mod to improve the game's performance by ~4x.
