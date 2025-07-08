@@ -1,3 +1,6 @@
+## 1.4.2
+* Fix fractionator consumption of fluid was added to production statistics instead of consumptions statistics.
+
 ## 1.4.1
 * Fix gas planet production statistics.
 

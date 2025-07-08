@@ -183,7 +183,7 @@ internal sealed class FractionatorExecutor
             OptimizedItemId fluidId = default;
             if (fractionator.fluidId > 0)
             {
-                fluidId = subFactoryProductionRegisterBuilder.AddProduct(fractionator.fluidId);
+                fluidId = subFactoryProductionRegisterBuilder.AddConsume(fractionator.fluidId);
             }
 
             OptimizedItemId productId = default;
