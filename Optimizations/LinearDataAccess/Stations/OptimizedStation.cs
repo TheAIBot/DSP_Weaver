@@ -175,12 +175,10 @@ internal readonly struct OptimizedStation
                             continue;
                         }
                         int needIdx = -1;
-                        byte stack;
-                        byte inc;
-                        int num3 = cargoPath.TryPickItemAtRear(stationComponent.needs, out needIdx, out stack, out inc);
+                        OptimizedCargo num3 = cargoPath.TryPickItemAtRear(stationComponent.needs, out needIdx);
                         if (needIdx >= 0)
                         {
-                            InputItem(num3, needIdx, stack, inc);
+                            InputItem(num3, needIdx);
                             reference.storageIdx = needIdx + 1;
                             reference.counter = 1;
                         }
@@ -279,22 +277,22 @@ internal readonly struct OptimizedStation
         return num;
     }
 
-    public void InputItem(int itemId, int needIdx, int stack, int inc)
+    public void InputItem(OptimizedCargo optimizedCargo, int needIdx)
     {
-        if (itemId <= 0)
+        if (optimizedCargo.Item <= 0)
         {
             return;
         }
         lock (stationComponent.storage)
         {
-            if (needIdx < stationComponent.storage.Length && stationComponent.storage[needIdx].itemId == itemId)
+            if (needIdx < stationComponent.storage.Length && stationComponent.storage[needIdx].itemId == optimizedCargo.Item)
             {
-                stationComponent.storage[needIdx].count += stack;
-                stationComponent.storage[needIdx].inc += inc;
+                stationComponent.storage[needIdx].count += optimizedCargo.Stack;
+                stationComponent.storage[needIdx].inc += optimizedCargo.Inc;
             }
-            else if (itemId == 1210)
+            else if (optimizedCargo.Item == 1210)
             {
-                stationComponent.warperCount += stack;
+                stationComponent.warperCount += optimizedCargo.Stack;
             }
         }
     }

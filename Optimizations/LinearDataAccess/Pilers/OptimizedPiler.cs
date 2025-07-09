@@ -61,35 +61,33 @@ internal struct OptimizedPiler
             {
                 if (cacheItemId2 == 0)
                 {
-                    int num = inputBelt.TryPickCargoAtEnd();
-                    if (num >= 0)
+                    OptimizedCargo cargo = inputBelt.TryPickCargoAtEnd(out int cargoBufferIndex);
+                    if (cargo != default)
                     {
-                        OptimizedCargo cargo = inputBelt.cargoContainer.cargoPool[num];
                         if (cacheItemId1 != 0)
                         {
                             cacheItemId2 = cacheItemId1;
                             cacheCargoStack2 = cacheCargoStack1;
                             cacheCargoInc2 = cacheCargoInc1;
                         }
-                        cacheItemId1 = cargo.item;
-                        cacheCargoStack1 = cargo.stack;
-                        cacheCargoInc1 = cargo.inc;
+                        cacheItemId1 = cargo.Item;
+                        cacheCargoStack1 = cargo.Stack;
+                        cacheCargoInc1 = cargo.Inc;
                         cacheCdTick = (byte)(PilerComponent.cacheCdTickArray[slowlyBeltSpeed - 1] + 1);
                         timeSpend -= 10000;
-                        inputBelt.cargoContainer.RemoveCargo(num);
+                        inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                     }
                 }
             }
             else if (cacheItemId1 == 0)
             {
-                int num2 = inputBelt.TryPickCargoAtEnd();
-                if (num2 >= 0)
+                OptimizedCargo cargo = inputBelt.TryPickCargoAtEnd(out int cargoBufferIndex);
+                if (cargo != default)
                 {
-                    OptimizedCargo cargo2 = inputBelt.cargoContainer.cargoPool[num2];
-                    cacheItemId1 = cargo2.item;
-                    cacheCargoStack1 = cargo2.stack;
-                    cacheCargoInc1 = cargo2.inc;
-                    inputBelt.cargoContainer.RemoveCargo(num2);
+                    cacheItemId1 = cargo.Item;
+                    cacheCargoStack1 = cargo.Stack;
+                    cacheCargoInc1 = cargo.Inc;
+                    inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                 }
             }
             int num3 = outputBelt.TestBlankAtHead();
@@ -104,8 +102,8 @@ internal struct OptimizedPiler
                             int num4 = cacheCargoStack1 + cacheCargoStack2;
                             int num5 = cacheCargoInc1 + cacheCargoInc2;
                             byte b = (byte)((float)num5 / (float)num4 * 4f + 0.5f);
-                            int cargoId = outputBelt.cargoContainer.AddCargo(cacheItemId1, 4, b);
-                            outputBelt.InsertCargoAtHeadDirect(cargoId, num3);
+                            OptimizedCargo optimizedCargo = new OptimizedCargo(cacheItemId1, 4, b);
+                            outputBelt.InsertCargoAtHeadDirect(optimizedCargo, num3);
                             cacheCargoStack1 = (byte)(num4 - 4);
                             cacheCargoInc1 = (byte)(num5 - b);
                             cacheItemId2 = 0;
@@ -114,8 +112,8 @@ internal struct OptimizedPiler
                         }
                         else
                         {
-                            int cargoId2 = outputBelt.cargoContainer.AddCargo(cacheItemId1, (byte)(cacheCargoStack1 + cacheCargoStack2), (byte)(cacheCargoInc1 + cacheCargoInc2));
-                            outputBelt.InsertCargoAtHeadDirect(cargoId2, num3);
+                            OptimizedCargo optimizedCargo = new OptimizedCargo(cacheItemId1, (byte)(cacheCargoStack1 + cacheCargoStack2), (byte)(cacheCargoInc1 + cacheCargoInc2));
+                            outputBelt.InsertCargoAtHeadDirect(optimizedCargo, num3);
                             cacheItemId1 = 0;
                             cacheCargoStack1 = 0;
                             cacheCargoInc1 = 0;
@@ -126,8 +124,8 @@ internal struct OptimizedPiler
                     }
                     else
                     {
-                        int cargoId3 = outputBelt.cargoContainer.AddCargo(cacheItemId2, cacheCargoStack2, cacheCargoInc2);
-                        outputBelt.InsertCargoAtHeadDirect(cargoId3, num3);
+                        OptimizedCargo optimizedCargo = new OptimizedCargo(cacheItemId2, cacheCargoStack2, cacheCargoInc2);
+                        outputBelt.InsertCargoAtHeadDirect(optimizedCargo, num3);
                         cacheItemId2 = 0;
                         cacheCargoStack2 = 0;
                         cacheCargoInc2 = 0;
@@ -135,8 +133,8 @@ internal struct OptimizedPiler
                 }
                 else if (cacheCdTick == 0 && cacheItemId1 != 0)
                 {
-                    int cargoId4 = outputBelt.cargoContainer.AddCargo(cacheItemId1, cacheCargoStack1, cacheCargoInc1);
-                    outputBelt.InsertCargoAtHeadDirect(cargoId4, num3);
+                    OptimizedCargo optimizedCargo = new OptimizedCargo(cacheItemId1, cacheCargoStack1, cacheCargoInc1);
+                    outputBelt.InsertCargoAtHeadDirect(optimizedCargo, num3);
                     cacheItemId1 = 0;
                     cacheCargoStack1 = 0;
                     cacheCargoInc1 = 0;
@@ -147,42 +145,40 @@ internal struct OptimizedPiler
         {
             if (cacheItemId1 == 0 && cacheItemId2 == 0)
             {
-                int num6 = inputBelt.TryPickCargoAtEnd();
+                OptimizedCargo cargo = inputBelt.TryPickCargoAtEnd(out int cargoBufferIndex);
                 if (flag2)
                 {
-                    if (num6 >= 0)
+                    if (cargo != default)
                     {
-                        OptimizedCargo cargo3 = inputBelt.cargoContainer.cargoPool[num6];
-                        byte b2 = (byte)((float)(int)cargo3.stack / 2f + 0.5f);
-                        byte b3 = (byte)((float)(int)cargo3.inc / (float)(int)cargo3.stack * (float)(int)b2 + 0.5f);
-                        cacheItemId2 = cargo3.item;
+                        byte b2 = (byte)((float)(int)cargo.Stack / 2f + 0.5f);
+                        byte b3 = (byte)((float)(int)cargo.Inc / (float)(int)cargo.Stack * (float)(int)b2 + 0.5f);
+                        cacheItemId2 = cargo.Item;
                         cacheCargoStack2 = b2;
                         cacheCargoInc2 = b3;
-                        if (cargo3.stack > b2)
+                        if (cargo.Stack > b2)
                         {
-                            cacheItemId1 = cargo3.item;
-                            cacheCargoStack1 = (byte)(cargo3.stack - b2);
-                            cacheCargoInc1 = (byte)(cargo3.inc - b3);
+                            cacheItemId1 = cargo.Item;
+                            cacheCargoStack1 = (byte)(cargo.Stack - b2);
+                            cacheCargoInc1 = (byte)(cargo.Inc - b3);
                             cacheCdTick = (byte)(PilerComponent.cacheCdTickArray[slowlyBeltSpeed - 1] * 2 + 1);
                             timeSpend -= 10000;
                         }
-                        inputBelt.cargoContainer.RemoveCargo(num6);
+                        inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                     }
                 }
-                else if (num6 >= 0)
+                else if (cargo != default)
                 {
-                    OptimizedCargo cargo4 = inputBelt.cargoContainer.cargoPool[num6];
-                    cacheItemId2 = cargo4.item;
-                    cacheCargoStack2 = cargo4.stack;
-                    cacheCargoInc2 = cargo4.inc;
-                    inputBelt.cargoContainer.RemoveCargo(num6);
+                    cacheItemId2 = cargo.Item;
+                    cacheCargoStack2 = cargo.Stack;
+                    cacheCargoInc2 = cargo.Inc;
+                    inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                 }
             }
             int num7 = outputBelt.TestBlankAtHead();
             if (cacheItemId2 != 0 && num7 >= 0)
             {
-                int cargoId5 = outputBelt.cargoContainer.AddCargo(cacheItemId2, cacheCargoStack2, cacheCargoInc2);
-                outputBelt.InsertCargoAtHeadDirect(cargoId5, num7);
+                OptimizedCargo optimizedCargo = new OptimizedCargo(cacheItemId2, cacheCargoStack2, cacheCargoInc2);
+                outputBelt.InsertCargoAtHeadDirect(optimizedCargo, num7);
                 cacheItemId2 = cacheItemId1;
                 cacheCargoStack2 = cacheCargoStack1;
                 cacheCargoInc2 = cacheCargoInc1;

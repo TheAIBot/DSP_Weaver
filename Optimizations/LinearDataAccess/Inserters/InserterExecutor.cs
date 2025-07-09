@@ -152,56 +152,45 @@ internal record struct GroupNeeds(int GroupStartIndex, int GroupNeedsSize)
 internal static class CargoPathMethods
 {
     // Takes CargoPath instead of belt id
-    public static int TryPickItemAtRear(OptimizedCargoPath cargoPath, int filter, int[]? needs, out byte stack, out byte inc)
+    public static OptimizedCargo TryPickItemAtRear(OptimizedCargoPath cargoPath, int filter, int[]? needs)
     {
-        stack = 1;
-        inc = 0;
-        int cargoIdAtRear = cargoPath.GetCargoIdAtRear();
-        if (cargoIdAtRear == -1)
+        OptimizedCargo cargoAtRear = cargoPath.GetCargoIdAtRear();
+        if (cargoAtRear == default)
         {
-            return 0;
+            return default;
         }
-        int item = cargoPath.cargoContainer.cargoPool[cargoIdAtRear].item;
-        stack = cargoPath.cargoContainer.cargoPool[cargoIdAtRear].stack;
-        inc = cargoPath.cargoContainer.cargoPool[cargoIdAtRear].inc;
+        int item = cargoAtRear.Item;
         if (filter != 0)
         {
             if (item == filter)
             {
-                cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
-                return item;
+                cargoPath.TryRemoveItemAtRear();
+                return cargoAtRear;
             }
         }
         else
         {
             if (needs == null)
             {
-                cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
-                return item;
+                cargoPath.TryRemoveItemAtRear();
+                return cargoAtRear;
             }
             for (int i = 0; i < needs.Length; i++)
             {
                 if (needs[i] == item)
                 {
-                    cargoPath.TryRemoveItemAtRear(cargoIdAtRear);
-                    return item;
+                    cargoPath.TryRemoveItemAtRear();
+                    return cargoAtRear;
                 }
             }
         }
-        stack = 1;
-        inc = 0;
-        return 0;
+        return default;
     }
 
     // Takes CargoPath instead of belt id
-    public static int GetItemIdAtRear(OptimizedCargoPath cargoPath)
+    public static OptimizedCargo GetItemIdAtRear(OptimizedCargoPath cargoPath)
     {
-        int cargoIdAtRear = cargoPath.GetCargoIdAtRear();
-        if (cargoIdAtRear == -1)
-        {
-            return 0;
-        }
-        return cargoPath.cargoContainer.cargoPool[cargoIdAtRear].item;
+        return cargoPath.GetCargoIdAtRear();
     }
 }
 
@@ -514,15 +503,28 @@ internal sealed class InserterExecutor<T>
             {
                 if (filter != 0)
                 {
-                    return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, out stack, out inc);
+                    OptimizedCargo optimizedCargo = connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter);
+                    stack = optimizedCargo.Stack;
+                    inc = optimizedCargo.Inc;
+                    return optimizedCargo.Item;
                 }
-                return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, out stack, out inc);
+                {
+                    OptimizedCargo optimizedCargo = connectionBelts.PickFrom.TryPickItem(offset - 2, 5);
+                    stack = optimizedCargo.Stack;
+                    inc = optimizedCargo.Inc;
+                    return optimizedCargo.Item;
+                }
             }
 
-            short[] needs = _subFactoryNeeds.Needs;
-            int needsSize = groupNeeds.GroupNeedsSize;
-            int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
-            return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, needs, needsOffset, needsSize, out stack, out inc);
+            {
+                short[] needs = _subFactoryNeeds.Needs;
+                int needsSize = groupNeeds.GroupNeedsSize;
+                int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+                OptimizedCargo optimizedCargo = connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, needs, needsOffset, needsSize);
+                stack = optimizedCargo.Stack;
+                inc = optimizedCargo.Inc;
+                return optimizedCargo.Item;
+            }
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {

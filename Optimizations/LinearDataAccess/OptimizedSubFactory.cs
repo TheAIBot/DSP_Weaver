@@ -520,7 +520,7 @@ internal sealed class OptimizedSubFactory
         throw new InvalidOperationException("Unknown entity type.");
     }
 
-    public bool InsertCargoIntoStorage(int entityId, ref OptimizedCargo cargo, bool useBan = true)
+    public bool InsertCargoIntoStorage(int entityId, OptimizedCargo cargo, bool useBan = true)
     {
         int storageId = _planet.entityPool[entityId].storageId;
         if (storageId > 0)
@@ -528,9 +528,9 @@ internal sealed class OptimizedSubFactory
             StorageComponent storageComponent = _planet.factoryStorage.storagePool[storageId];
             while (storageComponent != null)
             {
-                if (!useBan || storageComponent.lastFullItem != cargo.item)
+                if (!useBan || storageComponent.lastFullItem != cargo.Item)
                 {
-                    if (AddWholeCargo(storageComponent, ref cargo, useBan))
+                    if (AddWholeCargo(storageComponent, cargo, useBan))
                     {
                         return true;
                     }
@@ -592,28 +592,28 @@ internal sealed class OptimizedSubFactory
         return num - count;
     }
 
-    private static bool AddWholeCargo(StorageComponent storage, ref OptimizedCargo cargo, bool useBan = false)
+    private static bool AddWholeCargo(StorageComponent storage, OptimizedCargo cargo, bool useBan = false)
     {
-        if (cargo.item <= 0 || cargo.stack == 0 || cargo.item >= 12000)
+        if (cargo.Item <= 0 || cargo.Stack == 0 || cargo.Item >= 12000)
         {
             return false;
         }
         bool flag = storage.type > EStorageType.Default;
         if (flag)
         {
-            if (storage.type == EStorageType.Fuel && !StorageComponent.itemIsFuel[cargo.item])
+            if (storage.type == EStorageType.Fuel && !StorageComponent.itemIsFuel[cargo.Item])
             {
                 return false;
             }
-            if (storage.type == EStorageType.Ammo && (!StorageComponent.itemIsAmmo[cargo.item] || StorageComponent.itemIsBomb[cargo.item]))
+            if (storage.type == EStorageType.Ammo && (!StorageComponent.itemIsAmmo[cargo.Item] || StorageComponent.itemIsBomb[cargo.Item]))
             {
                 return false;
             }
-            if (storage.type == EStorageType.Bomb && !StorageComponent.itemIsBomb[cargo.item])
+            if (storage.type == EStorageType.Bomb && !StorageComponent.itemIsBomb[cargo.Item])
             {
                 return false;
             }
-            if (storage.type == EStorageType.Fighter && !StorageComponent.itemIsFighter[cargo.item])
+            if (storage.type == EStorageType.Fighter && !StorageComponent.itemIsFighter[cargo.Item])
             {
                 return false;
             }
@@ -625,31 +625,31 @@ internal sealed class OptimizedSubFactory
         {
             if (storage.grids[i].itemId == 0)
             {
-                if (flag && (storage.type == EStorageType.DeliveryFiltered || storage.grids[i].filter > 0) && cargo.item != storage.grids[i].filter)
+                if (flag && (storage.type == EStorageType.DeliveryFiltered || storage.grids[i].filter > 0) && cargo.Item != storage.grids[i].filter)
                 {
                     continue;
                 }
                 if (num == 0)
                 {
-                    num = StorageComponent.itemStackCount[cargo.item];
+                    num = StorageComponent.itemStackCount[cargo.Item];
                 }
-                storage.grids[i].itemId = cargo.item;
+                storage.grids[i].itemId = cargo.Item;
                 if (storage.grids[i].filter == 0)
                 {
                     storage.grids[i].stackSize = num;
                 }
             }
-            if (storage.grids[i].itemId == cargo.item)
+            if (storage.grids[i].itemId == cargo.Item)
             {
                 if (num == 0)
                 {
                     num = storage.grids[i].stackSize;
                 }
                 int num3 = num - storage.grids[i].count;
-                if (cargo.stack <= num3)
+                if (cargo.Stack <= num3)
                 {
-                    storage.grids[i].count += cargo.stack;
-                    storage.grids[i].inc += cargo.inc;
+                    storage.grids[i].count += cargo.Stack;
+                    storage.grids[i].inc += cargo.Inc;
                     flag2 = true;
                     break;
                 }

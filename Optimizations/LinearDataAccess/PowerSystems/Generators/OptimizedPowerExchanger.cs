@@ -465,17 +465,25 @@ internal struct OptimizedPowerExchanger
 
     private bool PickItemFromBelt(OptimizedCargoPath beltId)
     {
-        if (emptyCount < 5 && emptyId.ItemIndex == CargoPathMethods.TryPickItemAtRear(beltId, emptyId.ItemIndex, null, out var stack, out var inc))
+        if (emptyCount < 5)
         {
-            emptyCount += stack;
-            emptyInc += inc;
-            return true;
+            OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(beltId, emptyId.ItemIndex, null);
+            if (emptyId.ItemIndex == optimizedCargo.Item)
+            {
+                emptyCount += optimizedCargo.Stack;
+                emptyInc += optimizedCargo.Inc;
+                return true;
+            }
         }
-        if (fullCount < 5 && fullId.ItemIndex == CargoPathMethods.TryPickItemAtRear(beltId, fullId.ItemIndex, null, out stack, out inc))
+        if (fullCount < 5)
         {
-            fullCount += stack;
-            fullInc += inc;
-            return true;
+            OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(beltId, fullId.ItemIndex, null);
+            if (fullId.ItemIndex == optimizedCargo.Item)
+            {
+                fullCount += optimizedCargo.Stack;
+                fullInc += optimizedCargo.Inc;
+                return true;
+            }
         }
         return false;
     }

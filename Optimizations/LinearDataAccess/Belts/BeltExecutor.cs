@@ -12,8 +12,6 @@ internal sealed class BeltExecutor
     private Dictionary<CargoPath, OptimizedCargoPath> _cargoPathToOptimizedCargoPath = null!;
     private Dictionary<int, int> _cargoPathIdToOptimizedIndex = null!;
 
-    public OptimizedCargoContainer OptimizedCargoContainer = null!;
-
     public Dictionary<CargoPath, OptimizedCargoPath> CargoPathToOptimizedCargoPath => _cargoPathToOptimizedCargoPath;
 
     public bool TryOptimizedCargoPath(PlanetFactory planet, int beltId, [NotNullWhen(true)] out OptimizedCargoPath? belt)
@@ -60,7 +58,6 @@ internal sealed class BeltExecutor
 
     public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
     {
-        OptimizedCargoContainer optimizedCargoContainer = new();
         List<OptimizedCargoPath> optimizedCargoPaths = [];
         Dictionary<CargoPath, OptimizedCargoPath> cargoPathToOptimizedCargoPath = [];
         Dictionary<int, int> cargoPathIdToOptimizedIndex = [];
@@ -76,8 +73,8 @@ internal sealed class BeltExecutor
                 continue;
             }
 
-            byte[] updatedBuffer = GetBufferWithUpdatedCargoIndexes(cargoPath, optimizedCargoContainer);
-            var optimizedCargoPath = new OptimizedCargoPath(optimizedCargoContainer, updatedBuffer, cargoPath);
+            byte[] updatedBuffer = GetBufferWithUpdatedCargoIndexes(cargoPath);
+            var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath);
             cargoPathIdToOptimizedIndex.Add(cargoPathIndex, optimizedCargoPaths.Count);
             optimizedCargoPaths.Add(optimizedCargoPath);
             cargoPathToOptimizedCargoPath.Add(cargoPath, optimizedCargoPath);
@@ -93,7 +90,6 @@ internal sealed class BeltExecutor
             cargoPathWithOptimizedCargoPath.Value.SetOutputPath(cargoPathToOptimizedCargoPath[cargoPathWithOptimizedCargoPath.Key.outputPath]);
         }
 
-        OptimizedCargoContainer = optimizedCargoContainer;
         _optimizedCargoPaths = optimizedCargoPaths.ToArray();
         _cargoPathToOptimizedCargoPath = cargoPathToOptimizedCargoPath;
         _cargoPathIdToOptimizedIndex = cargoPathIdToOptimizedIndex;
@@ -102,7 +98,7 @@ internal sealed class BeltExecutor
     /// <summary>
     /// Modified <see cref="CargoPath.PresentCargos"/>
     /// </summary>
-    private static byte[] GetBufferWithUpdatedCargoIndexes(CargoPath cargoPath, OptimizedCargoContainer optimizedCargoContainer)
+    private static byte[] GetBufferWithUpdatedCargoIndexes(CargoPath cargoPath)
     {
         byte[] bufferCopy = new byte[cargoPath.buffer.Length];
         Array.Copy(cargoPath.buffer, bufferCopy, cargoPath.buffer.Length);
@@ -128,8 +124,8 @@ internal sealed class BeltExecutor
                 else
                 {
                     Cargo oldCargo = oldCargoPool[num4];
-                    int newCargoIndex = optimizedCargoContainer.AddCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
-                    SetCargoIndexInBuffer(bufferCopy, num3 + 1, newCargoIndex);
+                    OptimizedCargo optimizedCargo = new OptimizedCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
+                    OptimizedCargoPath.SetCargoIndexInBuffer(bufferCopy, num3 + 1, optimizedCargo);
                 }
                 num3 += num2;
                 continue;
@@ -140,8 +136,8 @@ internal sealed class BeltExecutor
                 int num5 = cargoPath.buffer[num3 + 1] - 1 + (cargoPath.buffer[num3 + 2] - 1) * 100 + (cargoPath.buffer[num3 + 3] - 1) * 10000 + (cargoPath.buffer[num3 + 4] - 1) * 1000000;
 
                 Cargo oldCargo = oldCargoPool[num5];
-                int newCargoIndex = optimizedCargoContainer.AddCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
-                SetCargoIndexInBuffer(bufferCopy, num3 + 1, newCargoIndex);
+                OptimizedCargo optimizedCargo = new OptimizedCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
+                OptimizedCargoPath.SetCargoIndexInBuffer(bufferCopy, num3 + 1, optimizedCargo);
                 num3 += num2;
                 continue;
             }
@@ -163,7 +159,6 @@ internal sealed class BeltExecutor
         }
         Array.Copy(optimizedCargoPath.buffer, bufferCopy, optimizedCargoPath.buffer.Length);
 
-        OptimizedCargo[] oldCargoPool = optimizedCargoPath.cargoContainer.cargoPool;
         int num = 5;
         int num2 = 10;
         int num3 = 0;
@@ -176,28 +171,19 @@ internal sealed class BeltExecutor
             }
             if (optimizedCargoPath.buffer[num3] == 250)
             {
-                int num4 = optimizedCargoPath.buffer[num3 + 1] - 1 + (optimizedCargoPath.buffer[num3 + 2] - 1) * 100 + (optimizedCargoPath.buffer[num3 + 3] - 1) * 10000 + (optimizedCargoPath.buffer[num3 + 4] - 1) * 1000000;
-                if (num4 >= oldCargoPool.Length || num4 < 0 || num3 >= optimizedCargoPath.buffer.Length)
-                {
-                    Assert.CannotBeReached();
-                }
-                else
-                {
-                    OptimizedCargo oldCargo = oldCargoPool[num4];
-                    int newCargoIndex = cargoContainer.AddCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
-                    SetCargoIndexInBuffer(bufferCopy, num3 + 1, newCargoIndex);
-                }
+                OptimizedCargo oldCargo = GetCargo(optimizedCargoPath.buffer, num3 + 1);
+                int newCargoIndex = cargoContainer.AddCargo(oldCargo.Item, oldCargo.Stack, oldCargo.Inc);
+                SetCargoIndexInBufferDefaultGameWay(bufferCopy, num3 + 1, newCargoIndex);
                 num3 += num2;
                 continue;
             }
             if (246 <= optimizedCargoPath.buffer[num3] && optimizedCargoPath.buffer[num3] < 250)
             {
                 num3 += 250 - optimizedCargoPath.buffer[num3];
-                int num5 = optimizedCargoPath.buffer[num3 + 1] - 1 + (optimizedCargoPath.buffer[num3 + 2] - 1) * 100 + (optimizedCargoPath.buffer[num3 + 3] - 1) * 10000 + (optimizedCargoPath.buffer[num3 + 4] - 1) * 1000000;
 
-                OptimizedCargo oldCargo = oldCargoPool[num5];
-                int newCargoIndex = cargoContainer.AddCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
-                SetCargoIndexInBuffer(bufferCopy, num3 + 1, newCargoIndex);
+                OptimizedCargo oldCargo = GetCargo(optimizedCargoPath.buffer, num3 + 1);
+                int newCargoIndex = cargoContainer.AddCargo(oldCargo.Item, oldCargo.Stack, oldCargo.Inc);
+                SetCargoIndexInBufferDefaultGameWay(bufferCopy, num3 + 1, newCargoIndex);
                 num3 += num2;
                 continue;
             }
@@ -206,7 +192,18 @@ internal sealed class BeltExecutor
         }
     }
 
-    private static void SetCargoIndexInBuffer(byte[] buffer, int bufferIndex, int cargoIndex)
+    internal static void SetCargoIndexInBuffer(byte[] buffer, int bufferIndex, uint cargoIndex)
+    {
+        buffer[bufferIndex + 0] = (byte)(cargoIndex % 128 + 1);
+        cargoIndex /= 128;
+        buffer[bufferIndex + 1] = (byte)(cargoIndex % 128 + 1);
+        cargoIndex /= 128;
+        buffer[bufferIndex + 2] = (byte)(cargoIndex % 128 + 1);
+        cargoIndex /= 128;
+        buffer[bufferIndex + 3] = (byte)(cargoIndex % 128 + 1);
+    }
+
+    internal static void SetCargoIndexInBufferDefaultGameWay(byte[] buffer, int bufferIndex, int cargoIndex)
     {
         buffer[bufferIndex + 0] = (byte)(cargoIndex % 100 + 1);
         cargoIndex /= 100;
@@ -215,5 +212,10 @@ internal sealed class BeltExecutor
         buffer[bufferIndex + 2] = (byte)(cargoIndex % 100 + 1);
         cargoIndex /= 100;
         buffer[bufferIndex + 3] = (byte)(cargoIndex % 100 + 1);
+    }
+
+    internal static OptimizedCargo GetCargo(byte[] buffer, int index)
+    {
+        return new OptimizedCargo(buffer[index] - 1 + (buffer[index + 1] - 1) * 128 + (buffer[index + 2] - 1) * (128 * 128) + (buffer[index + 3] - 1) * (128 * 128 * 128));
     }
 }

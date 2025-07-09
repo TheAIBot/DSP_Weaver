@@ -66,11 +66,11 @@ internal struct OptimizedSplitter
         OptimizedCargoPath? us_tmp_inputPath1 = null;
         OptimizedCargoPath? us_tmp_inputPath2 = null;
         OptimizedCargoPath? us_tmp_inputPath3 = null;
-        int us_tmp_inputCargo;
-        int us_tmp_inputCargo0 = -1;
-        int us_tmp_inputCargo1 = -1;
-        int us_tmp_inputCargo2 = -1;
-        int us_tmp_inputCargo3 = -1;
+        OptimizedCargo us_tmp_inputCargo;
+        OptimizedCargo us_tmp_inputCargo0 = default;
+        OptimizedCargo us_tmp_inputCargo1 = default;
+        OptimizedCargo us_tmp_inputCargo2 = default;
+        OptimizedCargo us_tmp_inputCargo3 = default;
         int us_tmp_inputIndex0 = -1;
         int us_tmp_inputIndex1 = -1;
         int us_tmp_inputIndex2 = -1;
@@ -84,7 +84,7 @@ internal struct OptimizedSplitter
             // SUPER HACK!!!!
             beltExecutor.TryOptimizedCargoPath(planet, input0, out us_tmp_inputPath);
             us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-            if (us_tmp_inputCargo != -1)
+            if (us_tmp_inputCargo != default)
             {
                 us_tmp_inputCargo0 = us_tmp_inputCargo;
                 us_tmp_inputPath0 = us_tmp_inputPath;
@@ -95,7 +95,7 @@ internal struct OptimizedSplitter
                 // SUPER HACK!!!!
                 beltExecutor.TryOptimizedCargoPath(planet, input1, out us_tmp_inputPath);
                 us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-                if (us_tmp_inputCargo != -1)
+                if (us_tmp_inputCargo != default)
                 {
                     if (us_tmp_inputPath0 == null)
                     {
@@ -115,7 +115,7 @@ internal struct OptimizedSplitter
                     // SUPER HACK!!!!
                     beltExecutor.TryOptimizedCargoPath(planet, input2, out us_tmp_inputPath);
                     us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-                    if (us_tmp_inputCargo != -1)
+                    if (us_tmp_inputCargo != default)
                     {
                         if (us_tmp_inputPath0 == null)
                         {
@@ -141,7 +141,7 @@ internal struct OptimizedSplitter
                         // SUPER HACK!!!!
                         beltExecutor.TryOptimizedCargoPath(planet, input3, out us_tmp_inputPath);
                         us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-                        if (us_tmp_inputCargo != -1)
+                        if (us_tmp_inputCargo != default)
                         {
                             if (us_tmp_inputPath0 == null)
                             {
@@ -177,7 +177,7 @@ internal struct OptimizedSplitter
             bool flag = true;
             if (outFilter != 0)
             {
-                flag = beltExecutor.OptimizedCargoContainer.cargoPool[us_tmp_inputCargo0].item == outFilter;
+                flag = us_tmp_inputCargo0.Item == outFilter;
             }
             us_tmp_outputPath0 = null;
             us_tmp_outputIdx = 0;
@@ -237,17 +237,17 @@ internal struct OptimizedSplitter
         IL_0514:
             if (us_tmp_outputPath0 != null)
             {
-                int num2 = us_tmp_inputPath0.TryPickCargoAtEnd();
-                Assert.True(num2 >= 0);
+                OptimizedCargo num2 = us_tmp_inputPath0.TryPickCargoAtEnd();
+                Assert.True(num2.Item >= 0);
                 us_tmp_outputPath0.InsertCargoAtHeadDirect(num2, num);
                 InputAlternate(us_tmp_inputIndex0);
                 OutputAlternate(us_tmp_outputIdx);
             }
-            else if (topId != 0 && (flag || outFilter == 0) && subFactory.InsertCargoIntoStorage(topId, ref beltExecutor.OptimizedCargoContainer.cargoPool[us_tmp_inputCargo0]))
+            else if (topId != 0 && (flag || outFilter == 0) && subFactory.InsertCargoIntoStorage(topId, us_tmp_inputCargo0))
             {
-                int num3 = us_tmp_inputPath0.TryPickCargoAtEnd();
-                Assert.True(num3 >= 0);
-                beltExecutor.OptimizedCargoContainer.RemoveCargo(num3);
+                OptimizedCargo num3 = us_tmp_inputPath0.TryPickCargoAtEnd(out int cargoBufferIndex);
+                Assert.True(num3.Item >= 0);
+                us_tmp_inputPath0.RemoveCargoAtIndexDirect(cargoBufferIndex);
                 InputAlternate(us_tmp_inputIndex0);
             }
             us_tmp_inputPath0 = us_tmp_inputPath1;
@@ -260,7 +260,7 @@ internal struct OptimizedSplitter
             us_tmp_inputCargo2 = us_tmp_inputCargo3;
             us_tmp_inputIndex2 = us_tmp_inputIndex3;
             us_tmp_inputPath3 = null;
-            us_tmp_inputCargo3 = -1;
+            us_tmp_inputCargo3 = default;
             us_tmp_inputIndex3 = -1;
         }
         if (topId == 0)
@@ -326,8 +326,8 @@ internal struct OptimizedSplitter
                     int num6 = subFactory.PickFromStorageFiltered(topId, ref filter, 1, out inc);
                     if (filter > 0 && num6 > 0)
                     {
-                        int cargoId = beltExecutor.OptimizedCargoContainer.AddCargo((short)filter, (byte)num6, (byte)inc);
-                        us_tmp_outputPath0.InsertCargoAtHeadDirect(cargoId, num5);
+                        OptimizedCargo optimizedCargo = new OptimizedCargo((short)filter, (byte)num6, (byte)inc);
+                        us_tmp_outputPath0.InsertCargoAtHeadDirect(optimizedCargo, num5);
                         OutputAlternate(us_tmp_outputIdx);
                         continue;
                     }
@@ -358,8 +358,8 @@ internal struct OptimizedSplitter
             int num8 = subFactory.PickFromStorageFiltered(topId, ref filter2, 1, out inc2);
             if (filter2 > 0 && num8 > 0)
             {
-                int cargoId2 = beltExecutor.OptimizedCargoContainer.AddCargo((short)filter2, (byte)num8, (byte)inc2);
-                us_tmp_outputPath0.InsertCargoAtHeadDirect(cargoId2, num7);
+                OptimizedCargo optimizedCargo = new OptimizedCargo((short)filter2, (byte)num8, (byte)inc2);
+                us_tmp_outputPath0.InsertCargoAtHeadDirect(optimizedCargo, num7);
                 OutputAlternate(us_tmp_outputIdx);
             }
         }
@@ -409,8 +409,8 @@ internal struct OptimizedSplitter
                 int num11 = subFactory.PickFromStorageFiltered(topId, ref filter3, 1, out inc3);
                 if (filter3 > 0 && num11 > 0)
                 {
-                    int cargoId3 = beltExecutor.OptimizedCargoContainer.AddCargo((short)filter3, (byte)num11, (byte)inc3);
-                    us_tmp_outputPath0.InsertCargoAtHeadDirect(cargoId3, num10);
+                    OptimizedCargo optimizedCargo = new OptimizedCargo((short)filter3, (byte)num11, (byte)inc3);
+                    us_tmp_outputPath0.InsertCargoAtHeadDirect(optimizedCargo, num10);
                     OutputAlternate(us_tmp_outputIdx);
                     continue;
                 }

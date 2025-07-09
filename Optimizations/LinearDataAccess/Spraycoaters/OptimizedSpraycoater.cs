@@ -51,16 +51,16 @@ internal struct OptimizedSpraycoater
         {
             if (incommingCargoPath.GetCargoAtIndex(incommingBeltSegIndexPlusSegPivotOffset, out OptimizedCargo cargo, out var _, out var _))
             {
-                if (cargo.item != incItemId.ItemIndex && incCount == 0 && incCount == 0)
+                if (cargo.Item != incItemId.ItemIndex && incCount == 0 && incCount == 0)
                 {
                     incItemId = default;
                     incAbility = 0;
                 }
-                if (incItemId.ItemIndex == 0 && cargo.item != 0)
+                if (incItemId.ItemIndex == 0 && cargo.Item != 0)
                 {
                     for (int i = 0; i < incItemIds.Length; i++)
                     {
-                        if (cargo.item == incItemIds[i].ItemIndex)
+                        if (cargo.Item == incItemIds[i].ItemIndex)
                         {
                             ItemProto itemProto = LDB.items.Select(incItemIds[i].ItemIndex);
                             incItemId = incItemIds[i];
@@ -70,21 +70,26 @@ internal struct OptimizedSpraycoater
                         }
                     }
                 }
-                if (incItemId.ItemIndex != 0 && incItemId.ItemIndex == cargo.item && incommingCargoPath.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId.ItemIndex, out var stack, out var inc) > 0)
+                if (incItemId.ItemIndex != 0 && incItemId.ItemIndex == cargo.Item)
                 {
-                    int num = inc;
-                    for (int j = 0; j < stack; j++)
+                    OptimizedCargo someOtherCargo = incommingCargoPath.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId.ItemIndex);
+                    if (someOtherCargo != default)
                     {
-                        int num2 = stack - j;
-                        int num3 = (int)(num / (float)num2 + 0.5f);
-                        num3 = num3 > 10 ? 10 : num3;
-                        incCount += incSprayTimes;
-                        extraIncCount += (int)(incSprayTimes * (Cargo.incTable[num3] * 0.001) + 0.1);
-                        if (!incUsed)
+                        int inc = someOtherCargo.Inc;
+                        int stack = someOtherCargo.Stack;
+                        for (int j = 0; j < stack; j++)
                         {
-                            incUsed = extraIncCount > 0;
+                            int num2 = stack - j;
+                            int num3 = (int)(inc / (float)num2 + 0.5f);
+                            num3 = num3 > 10 ? 10 : num3;
+                            incCount += incSprayTimes;
+                            extraIncCount += (int)(incSprayTimes * (Cargo.incTable[num3] * 0.001) + 0.1);
+                            if (!incUsed)
+                            {
+                                incUsed = extraIncCount > 0;
+                            }
+                            inc -= num3;
                         }
-                        num -= num3;
                     }
                 }
             }
@@ -101,13 +106,14 @@ internal struct OptimizedSpraycoater
             {
                 isSpraycoatingItem = false;
             }
-            if (flag && outgoingCargoPath != null && outgoingCargoPath.GetCargoAtIndex(outgoingBeltSegIndexPlusSegPivotOffset, out var cargo2, out var cargoId2, out var _) && sprayTime >= 10000)
+            if (flag && outgoingCargoPath != null && outgoingCargoPath.GetCargoAtIndex(outgoingBeltSegIndexPlusSegPivotOffset, out var cargo2, out var cargoBufferIndex, out var _) && sprayTime >= 10000)
             {
-                int num5 = cargo2.stack > incCount + extraIncCount ? incCount + extraIncCount : cargo2.stack;
-                if (num5 * incAbility > cargo2.inc)
+                int num5 = cargo2.Stack > incCount + extraIncCount ? incCount + extraIncCount : cargo2.Stack;
+                if (num5 * incAbility > cargo2.Inc)
                 {
                     sprayTime -= 10000;
-                    outgoingCargoPath.cargoContainer.cargoPool[cargoId2].inc = (byte)(num5 * incAbility);
+                    cargo2.Inc = (byte)(num5 * incAbility);
+                    outgoingCargoPath.SetCargoIndexInBuffer(cargoBufferIndex, cargo2);
                     extraIncCount -= num5;
                     if (extraIncCount < 0)
                     {

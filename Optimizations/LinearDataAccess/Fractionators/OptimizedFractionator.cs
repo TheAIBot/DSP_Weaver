@@ -137,8 +137,6 @@ internal struct OptimizedFractionator
         {
             fractionSuccess = false;
         }
-        byte stack;
-        byte inc;
         if (belt1 != null)
         {
             if (configuration.IsOutput1)
@@ -166,22 +164,23 @@ internal struct OptimizedFractionator
             {
                 if (fluidId.ItemIndex > 0)
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt1, fluidId.ItemIndex, null, out stack, out inc) > 0)
+                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt1, fluidId.ItemIndex, null);
+                    if (optimizedCargo != default)
                     {
-                        fractionatorPowerFields.fluidInputCount += stack;
-                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
+                        fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
                         fractionatorPowerFields.fluidInputCargoCount += 1f;
                     }
                 }
                 else
                 {
-                    int num5 = CargoPathMethods.TryPickItemAtRear(belt1, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
-                    if (num5 > 0)
+                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt1, 0, RecipeProto.fractionatorNeeds);
+                    if (optimizedCargo != default)
                     {
-                        fractionatorPowerFields.fluidInputCount += stack;
-                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
+                        fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
                         fractionatorPowerFields.fluidInputCargoCount += 1f;
-                        SetRecipe(num5, fractionatorRecipeProducts);
+                        SetRecipe(optimizedCargo.Item, fractionatorRecipeProducts);
                     }
                 }
             }
@@ -213,22 +212,23 @@ internal struct OptimizedFractionator
             {
                 if (fluidId.ItemIndex > 0)
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt2, fluidId.ItemIndex, null, out stack, out inc) > 0)
+                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt2, fluidId.ItemIndex, null);
+                    if (optimizedCargo != default)
                     {
-                        fractionatorPowerFields.fluidInputCount += stack;
-                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
+                        fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
                         fractionatorPowerFields.fluidInputCargoCount += 1f;
                     }
                 }
                 else
                 {
-                    int num7 = CargoPathMethods.TryPickItemAtRear(belt2, 0, RecipeProto.fractionatorNeeds, out stack, out inc);
-                    if (num7 > 0)
+                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt2, 0, RecipeProto.fractionatorNeeds);
+                    if (optimizedCargo != default)
                     {
-                        fractionatorPowerFields.fluidInputCount += stack;
-                        fractionatorPowerFields.fluidInputInc += inc;
+                        fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
+                        fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
                         fractionatorPowerFields.fluidInputCargoCount += 1f;
-                        SetRecipe(num7, fractionatorRecipeProducts);
+                        SetRecipe(optimizedCargo.Item, fractionatorRecipeProducts);
                     }
                 }
             }

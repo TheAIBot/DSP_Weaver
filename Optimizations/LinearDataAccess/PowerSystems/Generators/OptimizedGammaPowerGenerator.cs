@@ -213,15 +213,24 @@ internal struct OptimizedGammaPowerGenerator
         }
         if (flag2)
         {
-            if (flag4 && PickFrom(slot0Belt!, slot0BeltOffset, catalystId.ItemIndex, null, out var stack, out var inc) == catalystId.ItemIndex)
+            if (flag4)
             {
-                catalystPoint += 3600 * stack;
-                catalystIncPoint += 3600 * inc;
+                OptimizedCargo optimizedCargo = PickFrom(slot0Belt!, slot0BeltOffset, catalystId.ItemIndex, null);
+                if (optimizedCargo.Item == catalystId.ItemIndex)
+                {
+                    catalystPoint += 3600 * optimizedCargo.Stack;
+                    catalystIncPoint += 3600 * optimizedCargo.Inc;
+                }
             }
-            if (flag6 && PickFrom(slot1Belt!, slot1BeltOffset, catalystId.ItemIndex, null, out stack, out inc) == catalystId.ItemIndex)
+
+            if (flag6)
             {
-                catalystPoint += 3600 * stack;
-                catalystIncPoint += 3600 * inc;
+                OptimizedCargo optimizedCargo = PickFrom(slot1Belt!, slot1BeltOffset, catalystId.ItemIndex, null);
+                if (optimizedCargo.Item == catalystId.ItemIndex)
+                {
+                    catalystPoint += 3600 * optimizedCargo.Stack;
+                    catalystIncPoint += 3600 * optimizedCargo.Inc;
+                }
             }
         }
     }
@@ -250,17 +259,17 @@ internal struct OptimizedGammaPowerGenerator
         return 0;
     }
 
-    private static int PickFrom(OptimizedCargoPath belt, int offset, int filter, int[]? needs, out byte stack, out byte inc)
+    private static OptimizedCargo PickFrom(OptimizedCargoPath belt, int offset, int filter, int[]? needs)
     {
         if (needs == null)
         {
             if (filter != 0)
             {
-                return belt.TryPickItem(offset - 2, 5, filter, out stack, out inc);
+                return belt.TryPickItem(offset - 2, 5, filter);
             }
-            return belt.TryPickItem(offset - 2, 5, out stack, out inc);
+            return belt.TryPickItem(offset - 2, 5);
         }
 
-        return belt.TryPickItem(offset - 2, 5, filter, needs, out stack, out inc);
+        return belt.TryPickItem(offset - 2, 5, filter, needs);
     }
 }

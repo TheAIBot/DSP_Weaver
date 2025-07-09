@@ -210,65 +210,83 @@ internal struct OptimizedTank
             }
             else if (!isOutput && inputSwitch)
             {
-                if (fluidId > 0 && fluidCount < fluidCapacity && CargoPathMethods.TryPickItemAtRear(belt, fluidId, null, out stack, out inc) > 0)
+                if (fluidId > 0 && fluidCount < fluidCapacity)
                 {
-                    fluidCount += stack;
-                    fluidInc += inc;
-                }
-                if (fluidId == 0)
-                {
-                    int num2 = CargoPathMethods.TryPickItemAtRear(belt, 0, ItemProto.fluids, out stack, out inc);
-                    if (num2 > 0)
+                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt, fluidId, null);
+                    stack = optimizedCargo.Stack;
+                    inc = optimizedCargo.Inc;
+                    if (optimizedCargo != default)
                     {
-                        fluidId = num2;
                         fluidCount += stack;
                         fluidInc += inc;
                     }
                 }
-                if (fluidCount >= fluidCapacity && CargoPathMethods.GetItemIdAtRear(belt) == fluidId && nextTankIndex > NO_TANK)
+                if (fluidId == 0)
                 {
-                    OptimizedTank tankComponent = tankExecutor._optimizedTanks[nextTankIndex];
-                    OptimizedTank tankComponent2 = tankComponent;
-                    while (tankComponent.fluidCount >= tankComponent.fluidCapacity)
+                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt, 0, ItemProto.fluids);
+                    stack = optimizedCargo.Stack;
+                    inc = optimizedCargo.Inc;
+                    if (optimizedCargo != default)
                     {
-                        OptimizedTank tankComponent3 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
-                        if (tankComponent.fluidId != tankComponent3.fluidId)
+                        fluidId = optimizedCargo.Item;
+                        fluidCount += stack;
+                        fluidInc += inc;
+                    }
+                }
+                if (fluidCount >= fluidCapacity)
+                {
+                    OptimizedCargo optimizedCargo = CargoPathMethods.GetItemIdAtRear(belt);
+                    if (optimizedCargo.Item == fluidId && nextTankIndex > NO_TANK)
+                    {
+                        OptimizedTank tankComponent = tankExecutor._optimizedTanks[nextTankIndex];
+                        OptimizedTank tankComponent2 = tankComponent;
+                        while (tankComponent.fluidCount >= tankComponent.fluidCapacity)
                         {
-                            tankComponent2 = tankComponent3;
-                            break;
-                        }
-                        if (tankComponent.inputSwitch)
-                        {
-                            if (tankComponent.nextTankIndex > NO_TANK)
+                            OptimizedTank tankComponent3 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
+                            if (tankComponent.fluidId != tankComponent3.fluidId)
                             {
-                                tankComponent = tankExecutor._optimizedTanks[tankComponent.nextTankIndex];
-                                tankComponent2 = tankComponent;
-                                continue;
+                                tankComponent2 = tankComponent3;
+                                break;
                             }
-                            tankComponent2.id = id;
+                            if (tankComponent.inputSwitch)
+                            {
+                                if (tankComponent.nextTankIndex > NO_TANK)
+                                {
+                                    tankComponent = tankExecutor._optimizedTanks[tankComponent.nextTankIndex];
+                                    tankComponent2 = tankComponent;
+                                    continue;
+                                }
+                                tankComponent2.id = id;
+                                break;
+                            }
+                            tankComponent2 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
                             break;
                         }
-                        tankComponent2 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
-                        break;
-                    }
-                    OptimizedTank tankComponent4 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
-                    if (!tankComponent2.inputSwitch || (tankComponent2.fluidId != tankComponent4.fluidId && tankComponent2.fluidId != 0))
-                    {
-                        tankComponent2 = tankComponent4;
-                    }
-                    bool flag = true;
-                    if (tankComponent2.id == id || tankComponent2.fluidCount >= tankComponent2.fluidCapacity || !tankComponent4.outputSwitch)
-                    {
-                        flag = false;
-                    }
-                    if (flag && CargoPathMethods.TryPickItemAtRear(belt, fluidId, null, out stack, out inc) > 0)
-                    {
-                        if (tankExecutor._optimizedTanks[tankComponent2.id].fluidCount == 0)
+                        OptimizedTank tankComponent4 = tankExecutor._optimizedTanks[tankComponent2.lastTankIndex];
+                        if (!tankComponent2.inputSwitch || (tankComponent2.fluidId != tankComponent4.fluidId && tankComponent2.fluidId != 0))
                         {
-                            tankExecutor._optimizedTanks[tankComponent2.id].fluidId = fluidId;
+                            tankComponent2 = tankComponent4;
                         }
-                        tankExecutor._optimizedTanks[tankComponent2.id].fluidCount += stack;
-                        tankExecutor._optimizedTanks[tankComponent2.id].fluidInc += inc;
+                        bool flag = true;
+                        if (tankComponent2.id == id || tankComponent2.fluidCount >= tankComponent2.fluidCapacity || !tankComponent4.outputSwitch)
+                        {
+                            flag = false;
+                        }
+                        if (flag)
+                        {
+                            OptimizedCargo someOtherCargo = CargoPathMethods.TryPickItemAtRear(belt, fluidId, null);
+                            stack = someOtherCargo.Stack;
+                            inc = someOtherCargo.Inc;
+                            if (someOtherCargo != default)
+                            {
+                                if (tankExecutor._optimizedTanks[tankComponent2.id].fluidCount == 0)
+                                {
+                                    tankExecutor._optimizedTanks[tankComponent2.id].fluidId = fluidId;
+                                }
+                                tankExecutor._optimizedTanks[tankComponent2.id].fluidCount += stack;
+                                tankExecutor._optimizedTanks[tankComponent2.id].fluidInc += inc;
+                            }
+                        }
                     }
                 }
             }
