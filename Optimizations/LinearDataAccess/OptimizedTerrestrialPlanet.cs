@@ -135,9 +135,14 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
             return [];
         }
 
+        if (_subFactories.Length == 1)
+        {
+            OptimizedSubFactory subFactory = _subFactories[0];
+            return [new WorkStep([new EntirePlanet(this, subFactory, _optimizedPowerSystem.GetSubFactoryPowerConsumption(subFactory))])];
+        }
+
         List<WorkStep> workSteps = [];
 
-        workSteps.Add(new WorkStep([new PlanetWideBeforePower(this)]));
         workSteps.Add(new WorkStep([new PlanetWidePower(this)]));
 
         List<IWorkChunk> gameTickChunks = [];
@@ -147,8 +152,6 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
         workSteps.Add(new WorkStep(gameTickChunks.ToArray()));
 
-        //workSteps.Add(new WorkStep([new PlanetWideTransport(this)]));
-        //workSteps.Add(new WorkStep([new PlanetWideDigitalSystem(this)]));
         workSteps.Add(new WorkStep([new PostSubFactoryStep(this)]));
 
         return workSteps.ToArray();

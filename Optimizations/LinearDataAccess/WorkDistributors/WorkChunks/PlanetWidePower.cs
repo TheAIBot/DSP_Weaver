@@ -15,6 +15,10 @@ internal sealed class PlanetWidePower : IWorkChunk
     public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         workerTimings.StartTimer();
+        _optimizedPlanet.BeforePowerStep(time);
+        workerTimings.RecordTime(WorkType.BeforePower);
+
+        workerTimings.StartTimer();
         _optimizedPlanet.PowerStep(time);
         workerTimings.RecordTime(WorkType.Power);
     }
