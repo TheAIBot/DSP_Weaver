@@ -11,6 +11,8 @@ internal sealed class WorkStep : IDisposable
     private int _scheduledCount;
     private int _completedCount;
 
+    public int WorkChunkCount => _workChunks.Length;
+
     public WorkStep(IWorkChunk[] workChunks)
     {
         _waitForCompletion = new(false);

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
@@ -74,6 +75,27 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     {
         _starClusterWorkManager = null;
         _workExecutors = null;
+    }
+
+    public void PrintWorkStatistics()
+    {
+        MultithreadSystem multithreadSystem = GameMain.multithreadSystem;
+        if (_starClusterWorkManager == null)
+        {
+            _starClusterWorkManager = new StarClusterWorkManager();
+        }
+
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, GameMain.data.factories, multithreadSystem.usedThreadCnt);
+        StarClusterWorkStatistics starClusterWorkStatistics = _starClusterWorkManager.GetStartClusterStatistics();
+
+        WeaverFixes.Logger.LogInfo($"Planet Count: {starClusterWorkStatistics.PlanetWorkStatistics.Length:N0}");
+        WeaverFixes.Logger.LogInfo($"Total work steps: {starClusterWorkStatistics.PlanetWorkStatistics.Sum(x => x.WorkStepsCount):N0}");
+        WeaverFixes.Logger.LogInfo($"Total work chunks: {starClusterWorkStatistics.PlanetWorkStatistics.Sum(x => x.TotalWorkChunkCount):N0}");
+        WeaverFixes.Logger.LogInfo($"All planets:");
+        foreach (PlanetWorkStatistics planetWorkStatistics in starClusterWorkStatistics.PlanetWorkStatistics)
+        {
+            WeaverFixes.Logger.LogInfo($"\t{planetWorkStatistics}");
+        }
     }
 
     private static void ExecuteSingleThreadedSteps(PlanetFactory?[] planetsToUpdate)

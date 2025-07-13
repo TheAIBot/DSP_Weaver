@@ -32,4 +32,27 @@ internal static class LinqExtenstions
             yield return enumValue;
         }
     }
+
+    public static T MinBy<T>(this IEnumerable<T> enumerable, Func<T, int> comparatorSelector)
+    {
+        T? minItem = default;
+        int? minValue = null;
+        foreach (var item in enumerable)
+        {
+            int comparatorValue = comparatorSelector(item);
+            if (minValue == null || comparatorValue < minValue.Value)
+            {
+                minItem = item;
+                minValue = comparatorValue;
+            }
+        }
+
+        if (!minValue.HasValue)
+        {
+            throw new InvalidOperationException("No data to enumerate.");
+        }
+
+        // minItem is not not when minValue is not null
+        return minItem!;
+    }
 }

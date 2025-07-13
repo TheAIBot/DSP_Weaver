@@ -21,9 +21,11 @@ internal static class OptimizedStarCluster
     private static readonly DysonSphereStatisticsManager _dysonSphereStatisticsManager = new();
     private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager, _dysonSphereManager);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
+    private static bool _firstUpdate = true;
 
     private static readonly Random random = new Random();
     private static bool _debugEnableHeavyReOptimization = false;
+    private static bool _enableStatistics = false;
 
     public static bool ForceOptimizeLocalPlanet { get; set; } = false;
 
@@ -35,6 +37,11 @@ internal static class OptimizedStarCluster
     public static void DebugEnableHeavyReOptimization()
     {
         _debugEnableHeavyReOptimization = true;
+    }
+
+    public static void EnableStatistics()
+    {
+        _enableStatistics = true;
     }
 
     public static IOptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
@@ -73,6 +80,7 @@ internal static class OptimizedStarCluster
     private static void PrepareOptimizedStarClusterForGame()
     {
         _clearOptimizedPlanetsOnNextTick = false;
+        _firstUpdate = true;
         _planetToOptimizedPlanet.Clear();
         _planetProductionStatisticsToOptimizedPlanet.Clear();
         _dysonSphereStatisticsManager.ClearDysonSphereProductRegisters();
@@ -174,6 +182,16 @@ internal static class OptimizedStarCluster
 
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
             planetToOptimizedPlanet.Value.Save();
+        }
+
+        if (_firstUpdate)
+        {
+            _firstUpdate = false;
+
+            if (_enableStatistics)
+            {
+                _workStealingMultiThreadedFactorySimulation.PrintWorkStatistics();
+            }
         }
 
         if (_planetsToReOptimize.Count > 0)

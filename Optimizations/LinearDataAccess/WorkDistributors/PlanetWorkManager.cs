@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Linq;
+using System.Threading;
 using Weaver.Optimizations.LinearDataAccess.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.LinearDataAccess.WorkDistributors;
@@ -17,8 +18,13 @@ internal sealed class PlanetWorkManager
         OptimizedPlanet = optimizedPlanet;
     }
 
-    public void UpdatePlanetWork(int parallelism)
+    public bool UpdatePlanetWork(int parallelism)
     {
+        if (OptimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+        {
+            return false;
+        }
+
         WorkStep[] updatedWorkSteps = OptimizedPlanet.GetMultithreadedWork(parallelism);
         if (_workSteps != updatedWorkSteps && _workSteps != null)
         {
@@ -28,7 +34,13 @@ internal sealed class PlanetWorkManager
             }
         }
 
+        if (updatedWorkSteps.Length == 0)
+        {
+            return false;
+        }
+
         _workSteps = updatedWorkSteps;
+        return true;
     }
 
     public IWorkChunk? TryGetWork(out bool canScheduleMoreWork)
@@ -85,6 +97,17 @@ internal sealed class PlanetWorkManager
             Interlocked.Increment(ref _currentWorkStepIndex);
             workChunk.CompleteStep();
         }
+    }
+
+    public PlanetWorkStatistics? GetPlanetWorkStatistics()
+    {
+        if (_workSteps == null)
+        {
+            return null;
+        }
+
+        int totalWorkChunks = _workSteps.Sum(x => x.WorkChunkCount);
+        return new PlanetWorkStatistics(_workSteps.Length, totalWorkChunks);
     }
 
     public void Reset()

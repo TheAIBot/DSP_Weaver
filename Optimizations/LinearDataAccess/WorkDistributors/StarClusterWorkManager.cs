@@ -42,7 +42,11 @@ internal sealed class StarClusterWorkManager
             }
 
             PlanetWorkManager workManager = _planetToWorkManagers[planet];
-            workManager.UpdatePlanetWork(parallelism);
+            if (!workManager.UpdatePlanetWork(parallelism))
+            {
+                continue;
+            }
+
             _planetWorkManagers.Add(workManager);
         }
     }
@@ -100,6 +104,23 @@ internal sealed class StarClusterWorkManager
 
         _planetsWithWorkScheduledCount = 0;
         _planetsNotCompletedCount = _planetWorkManagers.Count;
+    }
+
+    public StarClusterWorkStatistics GetStartClusterStatistics()
+    {
+        List<PlanetWorkStatistics> planetWorkStatistics = [];
+        foreach (var planetWorkManager in _planetWorkManagers)
+        {
+            PlanetWorkStatistics? planetWorkStatistic = planetWorkManager.GetPlanetWorkStatistics();
+            if (planetWorkStatistic == null)
+            {
+                continue;
+            }
+
+            planetWorkStatistics.Add(planetWorkStatistic.Value);
+        }
+
+        return new StarClusterWorkStatistics(planetWorkStatistics.ToArray());
     }
 
     private PlanetWorkPlan? TryGetWork(int planetIndex)
