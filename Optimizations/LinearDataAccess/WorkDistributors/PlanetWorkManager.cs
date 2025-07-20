@@ -20,11 +20,6 @@ internal sealed class PlanetWorkManager
 
     public bool UpdatePlanetWork(int parallelism)
     {
-        if (OptimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
-        {
-            return false;
-        }
-
         WorkStep[] updatedWorkSteps = OptimizedPlanet.GetMultithreadedWork(parallelism);
         if (_workSteps != updatedWorkSteps && _workSteps != null)
         {

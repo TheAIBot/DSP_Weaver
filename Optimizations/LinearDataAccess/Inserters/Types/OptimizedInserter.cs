@@ -54,7 +54,9 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                        int inserterIndex,
                        ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                        InserterGrade inserterGrade,
-                       ref OptimizedInserterStage stage)
+                       ref OptimizedInserterStage stage,
+                       InserterConnections[] insertersConnections,
+                       ref readonly SubFactoryNeeds subFactoryNeeds)
     {
         if (power < 0.1f)
         {
@@ -72,15 +74,19 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         {
                             if (idleTick-- < 1)
                             {
-                                int[]? array = inserterExecutor._inserterConnectionNeeds[inserterIndex];
-                                if (array != null && (array[0] != 0 || array[1] != 0 || array[2] != 0 || array[3] != 0 || array[4] != 0 || array[5] != 0))
+                                if (OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
+                                                                        in subFactoryNeeds,
+                                                                        inserterIndex,
+                                                                        out InserterConnections inserterConnections,
+                                                                        out GroupNeeds groupNeeds))
                                 {
                                     int num = inserterExecutor.PickFrom(planet,
                                                                         ref inserterNetworkIdAndState,
                                                                         inserterIndex,
                                                                         pickOffset,
                                                                         filter,
-                                                                        array,
+                                                                        inserterConnections,
+                                                                        groupNeeds,
                                                                         out stack,
                                                                         out inc);
                                     if (num > 0)
@@ -100,12 +106,14 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         }
                         else
                         {
+                            InserterConnections inserterConnections = insertersConnections[inserterIndex];
                             int num = inserterExecutor.PickFrom(planet,
                                                                 ref inserterNetworkIdAndState,
                                                                 inserterIndex,
                                                                 pickOffset,
                                                                 filter,
-                                                                null,
+                                                                inserterConnections,
+                                                                default,
                                                                 out stack,
                                                                 out inc);
                             if (num > 0)
@@ -124,15 +132,19 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         {
                             if (idleTick-- < 1)
                             {
-                                int[]? array2 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
-                                if (array2 != null && (array2[0] != 0 || array2[1] != 0 || array2[2] != 0 || array2[3] != 0 || array2[4] != 0 || array2[5] != 0))
+                                if (OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
+                                                                        in subFactoryNeeds,
+                                                                        inserterIndex,
+                                                                        out InserterConnections inserterConnections,
+                                                                        out GroupNeeds groupNeeds))
                                 {
                                     if (inserterExecutor.PickFrom(planet,
                                                                   ref inserterNetworkIdAndState,
                                                                   inserterIndex,
                                                                   pickOffset,
                                                                   itemId,
-                                                                  array2,
+                                                                  inserterConnections,
+                                                                  groupNeeds,
                                                                   out stack,
                                                                   out inc) > 0)
                                     {
@@ -148,19 +160,24 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                                 }
                             }
                         }
-                        else if (inserterExecutor.PickFrom(planet,
+                        else
+                        {
+                            InserterConnections inserterConnections = insertersConnections[inserterIndex];
+                            if (inserterExecutor.PickFrom(planet,
                                                            ref inserterNetworkIdAndState,
                                                            inserterIndex,
                                                            pickOffset,
                                                            itemId,
-                                                           null,
+                                                           inserterConnections,
+                                                           default,
                                                            out stack,
                                                            out inc) > 0)
-                        {
-                            itemCount += stack;
-                            itemInc += inc;
-                            stackCount++;
-                            time = 0;
+                            {
+                                itemCount += stack;
+                                itemInc += inc;
+                                stackCount++;
+                                time = 0;
+                            }
                         }
                     }
                     if (itemId > 0)
@@ -207,7 +224,9 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                     {
                         break;
                     }
-                    TypedObjectIndex num2 = inserterGrade.StackOutput > 1 ? inserterExecutor._inserterConnections[inserterIndex].InsertInto : default;
+
+                    InserterConnections inserterConnections = insertersConnections[inserterIndex];
+                    TypedObjectIndex num2 = inserterGrade.StackOutput > 1 ? inserterConnections.InsertInto : default;
                     if (num2.EntityType == EntityType.Belt)
                     {
                         int num3 = itemCount;
@@ -232,10 +251,13 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                         }
                         break;
                     }
-                    int[]? array3 = inserterExecutor._inserterConnectionNeeds[inserterIndex];
+
+                    GroupNeeds groupNeeds = default;
                     if (careNeeds)
                     {
-                        if (array3 == null || array3[0] == 0 && array3[1] == 0 && array3[2] == 0 && array3[3] == 0 && array3[4] == 0 && array3[5] == 0)
+                        if (OptimizedBiInserter.IsNeedsEmpty(in subFactoryNeeds,
+                                                             inserterConnections,
+                                                             out groupNeeds))
                         {
                             idleTick = 10;
                             break;
@@ -247,7 +269,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
                     int num7 = inserterExecutor.InsertInto(planet,
                                                            ref inserterNetworkIdAndState,
                                                            inserterIndex,
-                                                           array3,
+                                                           inserterConnections,
+                                                           groupNeeds,
                                                            insertOffset,
                                                            itemId,
                                                            (byte)num5,

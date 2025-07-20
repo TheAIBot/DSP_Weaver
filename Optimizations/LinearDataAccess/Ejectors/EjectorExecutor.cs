@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 using static EjectorComponent;
@@ -10,17 +12,25 @@ namespace Weaver.Optimizations.LinearDataAccess.Ejectors;
 
 internal sealed class EjectorExecutor
 {
-    private int[] _ejectorIndexes = null!;
+    public int[] _ejectorIndexes = null!;
     private short[] _optimizedBulletItemId = null!;
     private int[] _ejectorNetworkIds = null!;
+    private Dictionary<int, int> _ejectorIdToOptimizedEjectorIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
+    public const int SoleEjectorNeedsIndex = 0;
+
+    public int GetOptimizedEjectorIndex(int ejectorId)
+    {
+        return _ejectorIdToOptimizedEjectorIndex[ejectorId];
+    }
 
     public void GameTick(PlanetFactory planet,
                          long time,
                          int[] ejectorPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
-                         int[] consumeRegister)
+                         int[] consumeRegister,
+                         SubFactoryNeeds subFactoryNeeds)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
@@ -28,6 +38,8 @@ internal sealed class EjectorExecutor
         int[] ejectorIndexes = _ejectorIndexes;
         EjectorComponent[] ejectors = planet.factorySystem.ejectorPool;
         short[] optimizedBulletItemId = _optimizedBulletItemId;
+        GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Ejector);
+        short[] needs = subFactoryNeeds.Needs;
 
         DysonSwarm? swarm = null;
         if (planet.factorySystem.factory.dysonSphere != null)
@@ -40,10 +52,11 @@ internal sealed class EjectorExecutor
         {
             int ejectorIndex = ejectorIndexes[ejectorIndexIndex];
             short optimizedBulletId = optimizedBulletItemId[ejectorIndexIndex];
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(ejectorIndexIndex);
             int networkIndex = ejectorNetworkIds[ejectorIndexIndex];
             float power3 = networkServes[networkIndex];
             ref EjectorComponent ejector = ref ejectors[ejectorIndex];
-            InternalUpdate(ref planet.factorySystem.ejectorPool[ejectorIndex], power3, time, swarm, astroPoses, optimizedBulletId, consumeRegister);
+            InternalUpdate(ref planet.factorySystem.ejectorPool[ejectorIndex], power3, time, swarm, astroPoses, optimizedBulletId, consumeRegister, needs, needsOffset);
 
             UpdatePower(ejectorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, ejectorIndexIndex, networkIndex, ref ejector);
         }
@@ -117,10 +130,31 @@ internal sealed class EjectorExecutor
         prototypeIdPowerConsumption[prototypeIdIndexes[ejectorIndexIndex]] += GetPowerConsumption(powerConsumerType, in ejector);
     }
 
+    public void Save(PlanetFactory planet, SubFactoryNeeds subFactoryNeeds)
+    {
+        int[] ejectorIndexes = _ejectorIndexes;
+        EjectorComponent[] ejectors = planet.factorySystem.ejectorPool;
+        GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Ejector);
+        short[] needs = subFactoryNeeds.Needs;
+
+        for (int ejectorIndexIndex = 0; ejectorIndexIndex < ejectorIndexes.Length; ejectorIndexIndex++)
+        {
+            int ejectorIndex = ejectorIndexes[ejectorIndexIndex];
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(ejectorIndexIndex);
+            ref EjectorComponent ejector = ref ejectors[ejectorIndex];
+
+            for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
+            {
+                GroupNeeds.SetIfInRange(ejector.needs, needs, i, needsOffset + i);
+            }
+        }
+    }
+
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
-                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
+                           SubFactoryNeedsBuilder subFactoryNeedsBuilder)
     {
         _ejectorIndexes = subFactoryGraph.GetAllNodes()
                                          .Where(x => x.EntityTypeIndex.EntityType == EntityType.Ejector)
@@ -130,7 +164,9 @@ internal sealed class EjectorExecutor
 
         short[] optimizedBulletItemId = new short[_ejectorIndexes.Length];
         int[] ejectorNetworkIds = new int[_ejectorIndexes.Length];
+        Dictionary<int, int> ejectorIdToOptimizedEjectorIndex = [];
         var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
+        GroupNeedsBuilder needsBuilder = subFactoryNeedsBuilder.CreateGroupNeedsBuilder(EntityType.Ejector);
 
         for (int ejectorIndexIndex = 0; ejectorIndexIndex < _ejectorIndexes.Length; ejectorIndexIndex++)
         {
@@ -140,11 +176,13 @@ internal sealed class EjectorExecutor
             optimizedBulletItemId[ejectorIndexIndex] = subFactoryProductionRegisterBuilder.AddConsume(ejector.bulletId).OptimizedItemIndex;
             int networkIndex = planet.powerSystem.consumerPool[ejector.pcId].networkId;
             ejectorNetworkIds[ejectorIndexIndex] = networkIndex;
+            ejectorIdToOptimizedEjectorIndex.Add(ejectorIndex, ejectorIndexIndex);
 
             // set it here so we don't have to set it in the update loop.
             // Need to investigate when i need to update it.
             ejector.needs ??= new int[6];
             planet.entityNeeds[ejector.entityId] = ejector.needs;
+            needsBuilder.AddNeeds(ejector.needs, 1);
 
             subFactoryPowerSystemBuilder.AddEjector(in ejector, networkIndex);
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[ejector.entityId]);
@@ -152,7 +190,9 @@ internal sealed class EjectorExecutor
 
         _optimizedBulletItemId = optimizedBulletItemId;
         _ejectorNetworkIds = ejectorNetworkIds;
+        _ejectorIdToOptimizedEjectorIndex = ejectorIdToOptimizedEjectorIndex;
         _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        needsBuilder.Complete();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly EjectorComponent ejector)
@@ -160,14 +200,22 @@ internal sealed class EjectorExecutor
         return powerConsumerType.GetRequiredEnergy(ejector.direction != 0, 1000 + Cargo.powerTable[ejector.incLevel]);
     }
 
-    private static uint InternalUpdate(ref EjectorComponent ejector, float power, long tick, DysonSwarm? swarm, AstroData[] astroPoses, short optimizedBulletId, int[] consumeRegister)
+    private static uint InternalUpdate(ref EjectorComponent ejector,
+                                       float power,
+                                       long tick,
+                                       DysonSwarm? swarm,
+                                       AstroData[] astroPoses,
+                                       short optimizedBulletId,
+                                       int[] consumeRegister,
+                                       short[] needs,
+                                       int needsOffset)
     {
         if (swarm == null)
         {
             throw new InvalidOperationException("I am very confused about why this ever worked to begin with. Swarm was null for ejector which is possible. The game ignores it but it will cause a crash.");
         }
 
-        ejector.needs[0] = ((ejector.bulletCount < 20) ? ejector.bulletId : 0);
+        needs[needsOffset + SoleEjectorNeedsIndex] = (short)((ejector.bulletCount < 20) ? ejector.bulletId : 0);
         ejector.targetState = ETargetState.None;
         if (!ejector.autoOrbit)
         {
