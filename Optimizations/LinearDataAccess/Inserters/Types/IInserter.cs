@@ -13,7 +13,9 @@ internal interface IInserter<T>
                 int inserterIndex,
                 ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                 InserterGrade inserterGrade,
-                ref OptimizedInserterStage stage);
+                ref OptimizedInserterStage stage,
+                InserterConnections[] insertersConnections,
+                ref readonly SubFactoryNeeds subFactoryNeeds);
 
     void Save(ref InserterComponent inserter, EInserterStage inserterStage);
 }

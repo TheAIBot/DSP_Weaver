@@ -1123,6 +1123,50 @@ internal sealed class OptimizedCargoPath
         return 0;
     }
 
+    public int TryPickItem(int index, int length, int filter, short[] needs, int needsOffset, int needsSize, out byte stack, out byte inc)
+    {
+        stack = 1;
+        inc = 0;
+        if (index < 0)
+        {
+            index = 0;
+        }
+        else if (index >= bufferLength)
+        {
+            index = bufferLength - 1;
+        }
+        int num = index + length;
+        if (num > bufferLength)
+        {
+            num = bufferLength;
+        }
+        for (int i = index; i < num; i++)
+        {
+            if (buffer[i] < 246)
+            {
+                continue;
+            }
+            i += 250 - buffer[i];
+            int num2 = buffer[i + 1] - 1 + (buffer[i + 2] - 1) * 100 + (buffer[i + 3] - 1) * 10000 + (buffer[i + 4] - 1) * 1000000;
+            int item = cargoContainer.cargoPool[num2].item;
+            stack = cargoContainer.cargoPool[num2].stack;
+            inc = cargoContainer.cargoPool[num2].inc;
+            if ((filter == 0 || item == filter) && AnyMatch(needs, needsOffset, needsSize, item))
+            {
+                Array.Clear(buffer, i - 4, 10);
+                int num3 = i + 5 + 1;
+                if (updateLen < num3)
+                {
+                    updateLen = num3;
+                }
+                cargoContainer.RemoveCargo(num2);
+                return item;
+            }
+            return 0;
+        }
+        return 0;
+    }
+
     public void TryRemoveItemAtRear(int cargoId)
     {
         int num = bufferLength - 5 - 1;
@@ -1662,5 +1706,18 @@ internal sealed class OptimizedCargoPath
                 }
             }
         }
+    }
+
+    private static bool AnyMatch(short[] needs, int needsOffset, int needsSize, int match)
+    {
+        for (int i = 0; i < needsSize; i++)
+        {
+            if (needs[needsOffset + i] == match)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

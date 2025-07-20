@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems;
 
@@ -29,6 +30,14 @@ internal sealed class PrototypePowerConsumptionBuilder
         return new PrototypePowerConsumptionExecutor(_prototypeIds.ToArray(),
                                                      _prototypeCounts.ToArray(),
                                                      _prototypeIdIndexes.ToArray(),
+                                                     new long[_prototypeIds.Count]);
+    }
+
+    public PrototypePowerConsumptionExecutor Build(int[] reorder)
+    {
+        return new PrototypePowerConsumptionExecutor(_prototypeIds.ToArray(),
+                                                     _prototypeCounts.ToArray(),
+                                                     reorder.Select(x => _prototypeIdIndexes[x]).ToArray(),
                                                      new long[_prototypeIds.Count]);
     }
 }

@@ -66,6 +66,7 @@ public class WeaverFixes : BaseUnityPlugin
 
         OptimizedStarCluster.EnableOptimization(harmony);
         //OptimizedStarCluster.DebugEnableHeavyReOptimization();
+        //OptimizedStarCluster.EnableStatistics();
         //GraphStatistics.Enable(harmony);
         //GameStatistics.MemoryStatistics.EnableGameStatistics(harmony);
     }

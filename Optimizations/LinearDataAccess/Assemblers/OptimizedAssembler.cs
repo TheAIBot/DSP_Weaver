@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Inserters;
+using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
@@ -31,25 +33,11 @@ internal struct AssemblerTimingData
     }
 }
 
-internal readonly struct AssemblerNeeds
-{
-    public readonly int[] served;
-    public readonly int[] needs;
-
-    public AssemblerNeeds(ref readonly AssemblerComponent assembler)
-    {
-        served = assembler.served;
-        needs = assembler.needs;
-    }
-}
-
 [StructLayout(LayoutKind.Auto)]
 internal struct OptimizedAssembler
 {
     public readonly bool forceAccMode;
     public readonly int speed;
-    public readonly int[] incServed;
-    public readonly int[] produced;
     public bool incUsed;
     public int cycleCount;
     public int extraCycleCount;
@@ -58,8 +46,6 @@ internal struct OptimizedAssembler
     {
         forceAccMode = assembler.forceAccMode;
         speed = assembler.speed;
-        incServed = assembler.incServed;
-        produced = assembler.produced;
         incUsed = assembler.incUsed;
         cycleCount = assembler.cycleCount;
         extraCycleCount = assembler.extraCycleCount;
@@ -67,23 +53,25 @@ internal struct OptimizedAssembler
 
     public static void UpdateNeeds(ref readonly AssemblerRecipe assemblerRecipeData,
                                    ref readonly AssemblerTimingData assemblerTimingData,
-                                   ref readonly AssemblerNeeds assemblerNeeds)
+                                   GroupNeeds groupNeeds,
+                                   short[] served,
+                                   short[] needs,
+                                   int assemblerIndex)
     {
-        int num = assemblerRecipeData.Requires.Length;
         int num2 = assemblerTimingData.speedOverride * 180 / assemblerRecipeData.TimeSpend + 1;
         if (num2 < 2)
         {
             num2 = 2;
         }
 
-        int[] served = assemblerNeeds.served;
-        int[] needs = assemblerNeeds.needs;
-        needs[0] = 0 < num && served[0] < assemblerRecipeData.RequireCounts[0] * num2 ? assemblerRecipeData.Requires[0].ItemIndex : 0;
-        needs[1] = 1 < num && served[1] < assemblerRecipeData.RequireCounts[1] * num2 ? assemblerRecipeData.Requires[1].ItemIndex : 0;
-        needs[2] = 2 < num && served[2] < assemblerRecipeData.RequireCounts[2] * num2 ? assemblerRecipeData.Requires[2].ItemIndex : 0;
-        needs[3] = 3 < num && served[3] < assemblerRecipeData.RequireCounts[3] * num2 ? assemblerRecipeData.Requires[3].ItemIndex : 0;
-        needs[4] = 4 < num && served[4] < assemblerRecipeData.RequireCounts[4] * num2 ? assemblerRecipeData.Requires[4].ItemIndex : 0;
-        needs[5] = 5 < num && served[5] < assemblerRecipeData.RequireCounts[5] * num2 ? assemblerRecipeData.Requires[5].ItemIndex : 0;
+        int needsOffset = groupNeeds.GetObjectNeedsIndex(assemblerIndex);
+        int servedOffset = groupNeeds.GroupNeedsSize * assemblerIndex;
+        int[] requireCounts = assemblerRecipeData.RequireCounts;
+        OptimizedItemId[] requires = assemblerRecipeData.Requires;
+        for (int i = 0; i < requireCounts.Length; i++)
+        {
+            needs[needsOffset + i] = served[servedOffset + i] < requireCounts[i] * num2 ? requires[i].ItemIndex : (short)0;
+        }
     }
 
     public AssemblerState Update(float power,
@@ -93,7 +81,11 @@ internal struct OptimizedAssembler
                                  ref bool replicating,
                                  ref int extraPowerRatio,
                                  ref AssemblerTimingData assemblerTimingData,
-                                 ref readonly AssemblerNeeds assemblerNeeds)
+                                 int servedOffset,
+                                 int producedOffset,
+                                 short[] served,
+                                 short[] incServed,
+                                 short[] produced)
     {
         if (power < 0.1f)
         {
@@ -103,19 +95,10 @@ internal struct OptimizedAssembler
 
         if (assemblerTimingData.extraTime >= assemblerRecipeData.ExtraTimeSpend)
         {
-            int num = assemblerRecipeData.Products.Length;
-            if (num == 1)
+            for (int i = 0; i < assemblerRecipeData.ProductCounts.Length; i++)
             {
-                produced[0] += assemblerRecipeData.ProductCounts[0];
-                productRegister[assemblerRecipeData.Products[0].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[0];
-            }
-            else
-            {
-                for (int i = 0; i < num; i++)
-                {
-                    produced[i] += assemblerRecipeData.ProductCounts[i];
-                    productRegister[assemblerRecipeData.Products[i].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[i];
-                }
+                produced[producedOffset + i] += (short)assemblerRecipeData.ProductCounts[i];
+                productRegister[assemblerRecipeData.Products[i].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[i];
             }
             extraCycleCount++;
             assemblerTimingData.extraTime -= assemblerRecipeData.ExtraTimeSpend;
@@ -128,25 +111,25 @@ internal struct OptimizedAssembler
                 switch (assemblerRecipeData.RecipeType)
                 {
                     case ERecipeType.Smelt:
-                        if (produced[0] + assemblerRecipeData.ProductCounts[0] > 100)
+                        if (produced[producedOffset] + assemblerRecipeData.ProductCounts[0] > 100)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
                         break;
                     case ERecipeType.Assemble:
-                        if (produced[0] > assemblerRecipeData.ProductCounts[0] * 9)
+                        if (produced[producedOffset] > assemblerRecipeData.ProductCounts[0] * 9)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
                         break;
                     default:
-                        if (produced[0] > assemblerRecipeData.ProductCounts[0] * 19)
+                        if (produced[producedOffset] > assemblerRecipeData.ProductCounts[0] * 19)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
                         break;
                 }
-                produced[0] += assemblerRecipeData.ProductCounts[0];
+                produced[producedOffset] += (short)assemblerRecipeData.ProductCounts[0];
                 productRegister[assemblerRecipeData.Products[0].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[0];
             }
             else
@@ -156,7 +139,7 @@ internal struct OptimizedAssembler
                 {
                     for (int j = 0; j < num2; j++)
                     {
-                        if (produced[j] > assemblerRecipeData.ProductCounts[j] * 19)
+                        if (produced[producedOffset + j] > assemblerRecipeData.ProductCounts[j] * 19)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
@@ -166,7 +149,7 @@ internal struct OptimizedAssembler
                 {
                     for (int k = 0; k < num2; k++)
                     {
-                        if (produced[k] > assemblerRecipeData.ProductCounts[k] * 19)
+                        if (produced[producedOffset + k] > assemblerRecipeData.ProductCounts[k] * 19)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
@@ -176,7 +159,7 @@ internal struct OptimizedAssembler
                 {
                     for (int l = 0; l < num2; l++)
                     {
-                        if (produced[l] > assemblerRecipeData.ProductCounts[l] * 19)
+                        if (produced[producedOffset + l] > assemblerRecipeData.ProductCounts[l] * 19)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
@@ -186,7 +169,7 @@ internal struct OptimizedAssembler
                 {
                     for (int m = 0; m < num2; m++)
                     {
-                        if (produced[m] + assemblerRecipeData.ProductCounts[m] > 100)
+                        if (produced[producedOffset + m] + assemblerRecipeData.ProductCounts[m] > 100)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
@@ -196,7 +179,7 @@ internal struct OptimizedAssembler
                 {
                     for (int n = 0; n < num2; n++)
                     {
-                        if (produced[n] > assemblerRecipeData.ProductCounts[n] * 9)
+                        if (produced[producedOffset + n] > assemblerRecipeData.ProductCounts[n] * 9)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
@@ -206,7 +189,7 @@ internal struct OptimizedAssembler
                 {
                     for (int num3 = 0; num3 < num2; num3++)
                     {
-                        if (produced[num3] > assemblerRecipeData.ProductCounts[num3] * 19)
+                        if (produced[producedOffset + num3] > assemblerRecipeData.ProductCounts[num3] * 19)
                         {
                             return AssemblerState.InactiveOutputFull;
                         }
@@ -214,7 +197,7 @@ internal struct OptimizedAssembler
                 }
                 for (int num4 = 0; num4 < num2; num4++)
                 {
-                    produced[num4] += assemblerRecipeData.ProductCounts[num4];
+                    produced[producedOffset + num4] += (short)assemblerRecipeData.ProductCounts[num4];
                     productRegister[assemblerRecipeData.Products[num4].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[num4];
                 }
             }
@@ -229,11 +212,11 @@ internal struct OptimizedAssembler
             int num5 = assemblerRecipeData.RequireCounts.Length;
             for (int num6 = 0; num6 < num5; num6++)
             {
-                if (incServed[num6] <= 0)
+                if (incServed[servedOffset + num6] <= 0)
                 {
-                    incServed[num6] = 0;
+                    incServed[servedOffset + num6] = 0;
                 }
-                if (assemblerNeeds.served[num6] < assemblerRecipeData.RequireCounts[num6] || assemblerNeeds.served[num6] == 0)
+                if (served[servedOffset + num6] < assemblerRecipeData.RequireCounts[num6] || served[servedOffset + num6] == 0)
                 {
                     assemblerTimingData.time = 0;
                     return AssemblerState.InactiveInputMissing;
@@ -242,15 +225,15 @@ internal struct OptimizedAssembler
             int num7 = num5 > 0 ? 10 : 0;
             for (int num8 = 0; num8 < num5; num8++)
             {
-                int num9 = split_inc_level(ref assemblerNeeds.served[num8], ref incServed[num8], assemblerRecipeData.RequireCounts[num8]);
+                int num9 = split_inc_level(ref served[servedOffset + num8], ref incServed[servedOffset + num8], (short)assemblerRecipeData.RequireCounts[num8]);
                 num7 = num7 < num9 ? num7 : num9;
                 if (!incUsed)
                 {
                     incUsed = num9 > 0;
                 }
-                if (assemblerNeeds.served[num8] == 0)
+                if (served[servedOffset + num8] == 0)
                 {
-                    incServed[num8] = 0;
+                    incServed[servedOffset + num8] = 0;
                 }
                 consumeRegister[assemblerRecipeData.Requires[num8].OptimizedItemIndex] += assemblerRecipeData.RequireCounts[num8];
             }
@@ -284,12 +267,29 @@ internal struct OptimizedAssembler
                               bool replicating,
                               int extraPowerRatio,
                               ref readonly AssemblerTimingData assemblerTimingData,
-                              ref readonly AssemblerNeeds assemblerNeeds)
+                              GroupNeeds groupNeeds,
+                              short[] needs,
+                              int producedSize,
+                              short[] served,
+                              short[] incServed,
+                              short[] produced,
+                              int assemblerIndex)
     {
-        assembler.served = assemblerNeeds.served;
-        assembler.incServed = incServed;
-        assembler.needs = assemblerNeeds.needs;
-        assembler.produced = produced;
+        int needsOffset = groupNeeds.GetObjectNeedsIndex(assemblerIndex);
+        int servedOffset = groupNeeds.GroupNeedsSize * assemblerIndex;
+        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
+        {
+            GroupNeeds.SetIfInRange(assembler.served, served, i, servedOffset + i);
+            GroupNeeds.SetIfInRange(assembler.needs, needs, i, needsOffset + i);
+            GroupNeeds.SetIfInRange(assembler.incServed, incServed, i, servedOffset + i);
+        }
+
+        int producedOffset = assemblerIndex * producedSize;
+        for (int i = 0; i < producedSize; i++)
+        {
+            GroupNeeds.SetIfInRange(assembler.produced, produced, i, producedOffset + i);
+        }
+
         assembler.incUsed = incUsed;
         assembler.speedOverride = assemblerTimingData.speedOverride;
         assembler.time = assemblerTimingData.time;
@@ -301,13 +301,13 @@ internal struct OptimizedAssembler
         assembler.extraPowerRatio = extraPowerRatio;
     }
 
-    private static int split_inc_level(ref int n, ref int m, int p)
+    private static int split_inc_level(ref short n, ref short m, short p)
     {
         int num = m / n;
         int num2 = m - num * n;
         n -= p;
         num2 -= n;
-        m -= num2 > 0 ? num * p + num2 : num * p;
+        m -= (short)(num2 > 0 ? num * p + num2 : num * p);
         return num;
     }
 }

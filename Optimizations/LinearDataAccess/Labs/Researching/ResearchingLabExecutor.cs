@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
@@ -20,6 +21,9 @@ internal sealed class ResearchingLabExecutor
     public HashSet<int> _unOptimizedLabIds = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
+    public int[] _matrixServed = null!;
+    public int[] _matrixIncServed = null!;
+
     public int ResearchingLabCount => _optimizedLabs.Length;
 
     public ResearchingLabExecutor(StarClusterResearchManager starClusterResearchManager)
@@ -31,7 +35,8 @@ internal sealed class ResearchingLabExecutor
                                         int[] researchingLabPowerConsumerIndexes,
                                         PowerConsumerType[] powerConsumerTypes,
                                         long[] thisSubFactoryNetworkPowerConsumption,
-                                        int[] consumeRegister)
+                                        int[] consumeRegister,
+                                        SubFactoryNeeds subFactoryNeeds)
     {
         lock (_starClusterResearchManager)
         {
@@ -83,6 +88,9 @@ internal sealed class ResearchingLabExecutor
                 }
             }
 
+            GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ResearchingLab);
+            short[] needs = subFactoryNeeds.Needs;
+
             if (factorySystem.researchTechId != num)
             {
                 factorySystem.researchTechId = num;
@@ -93,7 +101,10 @@ internal sealed class ResearchingLabExecutor
                     optimizedLabs[i].SetFunction(entityIds[i],
                                                  factorySystem.researchTechId,
                                                  entitySignPool,
-                                                 ref labsPowerFields[i]);
+                                                 ref labsPowerFields[i],
+                                                 groupNeeds,
+                                                 needs,
+                                                 i);
                 }
             }
 
@@ -102,6 +113,9 @@ internal sealed class ResearchingLabExecutor
             {
                 return;
             }
+
+            int[] matrixServed = _matrixServed;
+            int[] matrixIncServed = _matrixIncServed;
 
             for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
             {
@@ -114,7 +128,7 @@ internal sealed class ResearchingLabExecutor
                 }
 
                 ref OptimizedResearchingLab reference = ref optimizedLabs[labIndex];
-                reference.UpdateNeedsResearch();
+                reference.UpdateNeedsResearch(groupNeeds, needs, matrixServed, labIndex);
                 if (flag2)
                 {
                     int curLevel = ts.curLevel;
@@ -129,7 +143,11 @@ internal sealed class ResearchingLabExecutor
                                                                                     ref techHashedThisFrame,
                                                                                     ref uMatrixPoint,
                                                                                     ref hashRegister,
-                                                                                    ref labPowerFields);
+                                                                                    ref labPowerFields,
+                                                                                    groupNeeds,
+                                                                                    matrixServed,
+                                                                                    matrixIncServed,
+                                                                                    labIndex);
                     if (ts.unlocked)
                     {
                         history.techStates[factorySystem.researchTechId] = ts;
@@ -156,13 +174,23 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    public void GameTickLabOutputToNext()
+    public void GameTickLabOutputToNext(SubFactoryNeeds subFactoryNeeds)
     {
+        GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ResearchingLab);
+        short[] needs = subFactoryNeeds.Needs;
+        int[] matrixServed = _matrixServed;
+        int[] matrixIncServed = _matrixIncServed;
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         for (int i = (int)(GameMain.gameTick % 5); i < optimizedLabs.Length; i += 5)
         {
-            optimizedLabs[i].UpdateOutputToNext(i, optimizedLabs, networkIdAndStates);
+            optimizedLabs[i].UpdateOutputToNext(i,
+                                                optimizedLabs,
+                                                networkIdAndStates,
+                                                groupNeeds,
+                                                needs,
+                                                matrixServed,
+                                                matrixIncServed);
         }
     }
 
@@ -227,13 +255,17 @@ internal sealed class ResearchingLabExecutor
         prototypeIdPowerConsumption[prototypeIdIndexes[labIndex]] += GetPowerConsumption(powerConsumerType, labPowerFields);
     }
 
-    public void Save(PlanetFactory planet)
+    public void Save(PlanetFactory planet, SubFactoryNeeds subFactoryNeeds)
     {
         SignData[] entitySignPool = planet.entitySignPool;
         LabComponent[] labComponents = planet.factorySystem.labPool;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         int researchTechId = planet.factorySystem.researchTechId;
+        GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ResearchingLab);
+        short[] needs = subFactoryNeeds.Needs;
+        int[] matrixServed = _matrixServed;
+        int[] matrixIncServed = _matrixIncServed;
         for (int i = 1; i < planet.factorySystem.labCursor; i++)
         {
             if (!_labIdToOptimizedLabIndex.TryGetValue(i, out int optimizedIndex))
@@ -242,7 +274,15 @@ internal sealed class ResearchingLabExecutor
             }
 
             ref LabComponent unoptimizedLab = ref labComponents[i];
-            optimizedLabs[optimizedIndex].Save(ref unoptimizedLab, labsPowerFields[optimizedIndex], _matrixPoints, researchTechId);
+            optimizedLabs[optimizedIndex].Save(ref unoptimizedLab,
+                                               labsPowerFields[optimizedIndex],
+                                               _matrixPoints,
+                                               researchTechId,
+                                               groupNeeds,
+                                               needs,
+                                               matrixServed,
+                                               matrixIncServed,
+                                               optimizedIndex);
 
             entitySignPool[unoptimizedLab.entityId].iconId0 = (uint)researchTechId;
             entitySignPool[unoptimizedLab.entityId].iconType = ((researchTechId != 0) ? 3u : 0u);
@@ -252,7 +292,8 @@ internal sealed class ResearchingLabExecutor
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
-                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
+                           SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
+                           SubFactoryNeedsBuilder subFactoryNeedsBuilder)
     {
         int[] matrixPoints = new int[LabComponent.matrixIds.Length];
         bool copiedMatrixPoints = false;
@@ -262,7 +303,10 @@ internal sealed class ResearchingLabExecutor
         List<int> entityIds = [];
         Dictionary<int, int> labIdToOptimizedLabIndex = [];
         HashSet<int> unOptimizedLabIds = [];
+        List<int[]> matrixServed = [];
+        List<int[]> matrixIncServed = [];
         var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
+        GroupNeedsBuilder needsBuilder = subFactoryNeedsBuilder.CreateGroupNeedsBuilder(EntityType.ResearchingLab);
 
         foreach (int labIndex in subFactoryGraph.GetAllNodes()
                                                 .Where(x => x.EntityTypeIndex.EntityType == EntityType.ResearchingLab)
@@ -290,11 +334,14 @@ internal sealed class ResearchingLabExecutor
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
             networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
             entityIds.Add(lab.entityId);
+            matrixServed.Add(lab.matrixServed);
+            matrixIncServed.Add(lab.matrixIncServed);
             subFactoryPowerSystemBuilder.AddResearchingLab(in lab, networkIndex);
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[lab.entityId]);
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[lab.entityId] = lab.needs;
+            needsBuilder.AddNeeds(lab.needs, LabComponent.matrixIds.Length);
         }
 
         for (int i = 0; i < optimizedLabs.Count; i++)
@@ -319,6 +366,25 @@ internal sealed class ResearchingLabExecutor
             _matrixIds = subFactoryProductionRegisterBuilder.AddConsume(LabComponent.matrixIds);
         }
 
+        if (optimizedLabs.Count > 0)
+        {
+            int maxServedSize = LabComponent.matrixIds.Length;
+            List<int> matrixServedFlat = [];
+            List<int> matrixIncServedFlat = [];
+
+            for (int labIndex = 0; labIndex < optimizedLabs.Count; labIndex++)
+            {
+                for (int servedIndex = 0; servedIndex < maxServedSize; servedIndex++)
+                {
+                    matrixServedFlat.Add(GetOrDefault(matrixServed[labIndex], servedIndex));
+                    matrixIncServedFlat.Add(GetOrDefault(matrixIncServed[labIndex], servedIndex));
+                }
+            }
+
+            _matrixServed = matrixServedFlat.ToArray();
+            _matrixIncServed = matrixIncServedFlat.ToArray();
+        }
+
         _matrixPoints = matrixPoints.ToArray();
         _networkIdAndStates = networkIdAndStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
@@ -327,10 +393,21 @@ internal sealed class ResearchingLabExecutor
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
         _unOptimizedLabIds = unOptimizedLabIds;
         _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        needsBuilder.Complete();
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, LabPowerFields producingLabPowerFields)
     {
         return powerConsumerType.GetRequiredEnergy(producingLabPowerFields.replicating, 1000 + producingLabPowerFields.extraPowerRatio);
+    }
+
+    private static int GetOrDefault(int[] values, int index)
+    {
+        if (values.Length <= index)
+        {
+            return 0;
+        }
+
+        return values[index];
     }
 }

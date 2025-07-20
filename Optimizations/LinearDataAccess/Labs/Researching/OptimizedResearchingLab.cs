@@ -1,5 +1,5 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using Weaver.Optimizations.LinearDataAccess.Inserters;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
@@ -8,9 +8,6 @@ namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 internal struct OptimizedResearchingLab
 {
     public const int NO_NEXT_LAB = -1;
-    public readonly int[] needs;
-    public readonly int[] matrixServed;
-    public readonly int[] matrixIncServed;
     public readonly int nextLabIndex;
     public bool incUsed;
     public int hashBytes;
@@ -19,9 +16,6 @@ internal struct OptimizedResearchingLab
     public OptimizedResearchingLab(int? nextLabIndex,
                                    ref readonly LabComponent lab)
     {
-        needs = lab.needs;
-        matrixServed = lab.matrixServed;
-        matrixIncServed = lab.matrixIncServed;
         this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
         incUsed = lab.incUsed;
         hashBytes = lab.hashBytes;
@@ -31,9 +25,6 @@ internal struct OptimizedResearchingLab
     public OptimizedResearchingLab(int nextLabIndex,
                                    ref readonly OptimizedResearchingLab lab)
     {
-        needs = lab.needs;
-        matrixServed = lab.matrixServed;
-        matrixIncServed = lab.matrixIncServed;
         this.nextLabIndex = nextLabIndex;
         incUsed = lab.incUsed;
         hashBytes = lab.hashBytes;
@@ -43,25 +34,35 @@ internal struct OptimizedResearchingLab
     public void SetFunction(int entityId,
                             int techId,
                             SignData[] signPool,
-                            ref LabPowerFields labPowerFields)
+                            ref LabPowerFields labPowerFields,
+                            GroupNeeds groupNeeds,
+                            short[] needs,
+                            int labIndex)
     {
         hashBytes = 0;
         extraHashBytes = 0;
         labPowerFields.extraPowerRatio = 0;
         incUsed = false;
-        Array.Copy(LabComponent.matrixIds, needs, LabComponent.matrixIds.Length);
+        int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
+        for (int i = 0; i < LabComponent.matrixIds.Length; i++)
+        {
+            needs[needsOffset + i] = (short)LabComponent.matrixIds[i];
+        }
         signPool[entityId].iconId0 = (uint)techId;
         signPool[entityId].iconType = techId != 0 ? 3u : 0u;
     }
 
-    public readonly void UpdateNeedsResearch()
+    public readonly void UpdateNeedsResearch(GroupNeeds groupNeeds,
+                                             short[] needs,
+                                             int[] matrixServed,
+                                             int labIndex)
     {
-        needs[0] = matrixServed[0] < 36000 ? 6001 : 0;
-        needs[1] = matrixServed[1] < 36000 ? 6002 : 0;
-        needs[2] = matrixServed[2] < 36000 ? 6003 : 0;
-        needs[3] = matrixServed[3] < 36000 ? 6004 : 0;
-        needs[4] = matrixServed[4] < 36000 ? 6005 : 0;
-        needs[5] = matrixServed[5] < 36000 ? 6006 : 0;
+        int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
+        int matrixServedOffset = groupNeeds.GroupNeedsSize * labIndex;
+        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
+        {
+            needs[needsOffset + i] = matrixServed[matrixServedOffset + i] < 36000 ? (short)(6001 + i) : (short)0;
+        }
     }
 
     public LabState InternalUpdateResearch(float power,
@@ -74,17 +75,28 @@ internal struct OptimizedResearchingLab
                                            ref int techHashedThisFrame,
                                            ref long uMatrixPoint,
                                            ref long hashRegister,
-                                           ref LabPowerFields labPowerFields)
+                                           ref LabPowerFields labPowerFields,
+                                           GroupNeeds groupNeeds,
+                                           int[] matrixServed,
+                                           int[] matrixIncServed,
+                                           int labIndex)
     {
         if (power < 0.1f)
         {
             // Lets not deal with missing power for now. Just check every tick.
             return LabState.Active;
         }
+
         int num = (int)(research_speed + 2f);
-        if (matrixPoints[0] > 0)
+        int matrixServedOffset = groupNeeds.GroupNeedsSize * labIndex;
+        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
-            int num2 = matrixServed[0] / matrixPoints[0];
+            if (matrixPoints[i] <= 0)
+            {
+                continue;
+            }
+
+            int num2 = matrixServed[matrixServedOffset + i] / matrixPoints[i];
             if (num2 < num)
             {
                 num = num2;
@@ -95,71 +107,7 @@ internal struct OptimizedResearchingLab
                 }
             }
         }
-        if (matrixPoints[1] > 0)
-        {
-            int num2 = matrixServed[1] / matrixPoints[1];
-            if (num2 < num)
-            {
-                num = num2;
-                if (num == 0)
-                {
-                    labPowerFields.replicating = false;
-                    return LabState.InactiveInputMissing;
-                }
-            }
-        }
-        if (matrixPoints[2] > 0)
-        {
-            int num2 = matrixServed[2] / matrixPoints[2];
-            if (num2 < num)
-            {
-                num = num2;
-                if (num == 0)
-                {
-                    labPowerFields.replicating = false;
-                    return LabState.InactiveInputMissing;
-                }
-            }
-        }
-        if (matrixPoints[3] > 0)
-        {
-            int num2 = matrixServed[3] / matrixPoints[3];
-            if (num2 < num)
-            {
-                num = num2;
-                if (num == 0)
-                {
-                    labPowerFields.replicating = false;
-                    return LabState.InactiveInputMissing;
-                }
-            }
-        }
-        if (matrixPoints[4] > 0)
-        {
-            int num2 = matrixServed[4] / matrixPoints[4];
-            if (num2 < num)
-            {
-                num = num2;
-                if (num == 0)
-                {
-                    labPowerFields.replicating = false;
-                    return LabState.InactiveInputMissing;
-                }
-            }
-        }
-        if (matrixPoints[5] > 0)
-        {
-            int num2 = matrixServed[5] / matrixPoints[5];
-            if (num2 < num)
-            {
-                num = num2;
-                if (num == 0)
-                {
-                    labPowerFields.replicating = false;
-                    return LabState.InactiveInputMissing;
-                }
-            }
-        }
+
         labPowerFields.replicating = true;
         research_speed = research_speed < num ? research_speed : num;
         int num3 = (int)(power * 10000f * research_speed + 0.5f);
@@ -172,19 +120,19 @@ internal struct OptimizedResearchingLab
         int num6 = (int)num4;
         if (num6 > 0)
         {
-            int num7 = matrixServed.Length;
+            int num7 = groupNeeds.GroupNeedsSize;
             int num8 = num7 != 0 ? 10 : 0;
             for (int i = 0; i < num7; i++)
             {
                 if (matrixPoints[i] > 0)
                 {
-                    int num9 = matrixServed[i] / 3600;
-                    int num10 = split_inc_level(ref matrixServed[i], ref matrixIncServed[i], matrixPoints[i] * num6);
+                    int num9 = matrixServed[matrixServedOffset + i] / 3600;
+                    int num10 = split_inc_level(ref matrixServed[matrixServedOffset + i], ref matrixIncServed[matrixServedOffset + i], matrixPoints[i] * num6);
                     num8 = num8 < num10 ? num8 : num10;
-                    int num11 = matrixServed[i] / 3600;
-                    if (matrixServed[i] <= 0 || matrixIncServed[i] < 0)
+                    int num11 = matrixServed[matrixServedOffset + i] / 3600;
+                    if (matrixServed[matrixServedOffset + i] <= 0 || matrixIncServed[matrixServedOffset + i] < 0)
                     {
-                        matrixIncServed[i] = 0;
+                        matrixIncServed[matrixServedOffset + i] = 0;
                     }
                     int num12 = num9 - num11;
                     if (num12 > 0 && !incUsed)
@@ -237,86 +185,34 @@ internal struct OptimizedResearchingLab
 
     public readonly void UpdateOutputToNext(int labIndex,
                                             OptimizedResearchingLab[] labPool,
-                                            NetworkIdAndState<LabState>[] networkIdAndStates)
+                                            NetworkIdAndState<LabState>[] networkIdAndStates,
+                                            GroupNeeds groupNeeds,
+                                            short[] needs,
+                                            int[] matrixServed,
+                                            int[] matrixIncServed)
     {
         if (nextLabIndex == NO_NEXT_LAB)
         {
             return;
         }
 
+        int matrixServedOffset = groupNeeds.GroupNeedsSize * labIndex;
+        int nextLabMatrixServedOffset = groupNeeds.GroupNeedsSize * nextLabIndex;
+
         bool movedItems = false;
-        if (matrixServed != null && labPool[nextLabIndex].matrixServed != null)
+        int nextLabNeedsOffset = groupNeeds.GetObjectNeedsIndex(nextLabIndex);
+        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
-            if (labPool[nextLabIndex].needs[0] == 6001 && matrixServed[0] >= 7200)
+            if (needs[nextLabNeedsOffset + i] == 6001 + i && matrixServed[matrixServedOffset + i] >= 7200)
             {
-                int num = (matrixServed[0] - 7200) / 3600 * 3600;
+                int num = (matrixServed[matrixServedOffset + i] - 7200) / 3600 * 3600;
                 if (num > 36000)
                 {
                     num = 36000;
                 }
-                int num2 = split_inc(ref matrixServed[0], ref matrixIncServed[0], num);
-                labPool[nextLabIndex].matrixIncServed[0] += num2;
-                labPool[nextLabIndex].matrixServed[0] += num;
-                movedItems = true;
-            }
-            if (labPool[nextLabIndex].needs[1] == 6002 && matrixServed[1] >= 7200)
-            {
-                int num3 = (matrixServed[1] - 7200) / 3600 * 3600;
-                if (num3 > 36000)
-                {
-                    num3 = 36000;
-                }
-                int num4 = split_inc(ref matrixServed[1], ref matrixIncServed[1], num3);
-                labPool[nextLabIndex].matrixIncServed[1] += num4;
-                labPool[nextLabIndex].matrixServed[1] += num3;
-                movedItems = true;
-            }
-            if (labPool[nextLabIndex].needs[2] == 6003 && matrixServed[2] >= 7200)
-            {
-                int num5 = (matrixServed[2] - 7200) / 3600 * 3600;
-                if (num5 > 36000)
-                {
-                    num5 = 36000;
-                }
-                int num6 = split_inc(ref matrixServed[2], ref matrixIncServed[2], num5);
-                labPool[nextLabIndex].matrixIncServed[2] += num6;
-                labPool[nextLabIndex].matrixServed[2] += num5;
-                movedItems = true;
-            }
-            if (labPool[nextLabIndex].needs[3] == 6004 && matrixServed[3] >= 7200)
-            {
-                int num7 = (matrixServed[3] - 7200) / 3600 * 3600;
-                if (num7 > 36000)
-                {
-                    num7 = 36000;
-                }
-                int num8 = split_inc(ref matrixServed[3], ref matrixIncServed[3], num7);
-                labPool[nextLabIndex].matrixIncServed[3] += num8;
-                labPool[nextLabIndex].matrixServed[3] += num7;
-                movedItems = true;
-            }
-            if (labPool[nextLabIndex].needs[4] == 6005 && matrixServed[4] >= 7200)
-            {
-                int num9 = (matrixServed[4] - 7200) / 3600 * 3600;
-                if (num9 > 36000)
-                {
-                    num9 = 36000;
-                }
-                int num10 = split_inc(ref matrixServed[4], ref matrixIncServed[4], num9);
-                labPool[nextLabIndex].matrixIncServed[4] += num10;
-                labPool[nextLabIndex].matrixServed[4] += num9;
-                movedItems = true;
-            }
-            if (labPool[nextLabIndex].needs[5] == 6006 && matrixServed[5] >= 7200)
-            {
-                int num11 = (matrixServed[5] - 7200) / 3600 * 3600;
-                if (num11 > 36000)
-                {
-                    num11 = 36000;
-                }
-                int num12 = split_inc(ref matrixServed[5], ref matrixIncServed[5], num11);
-                labPool[nextLabIndex].matrixIncServed[5] += num12;
-                labPool[nextLabIndex].matrixServed[5] += num11;
+                int num2 = split_inc(ref matrixServed[matrixServedOffset + i], ref matrixIncServed[matrixServedOffset + i], num);
+                matrixIncServed[nextLabMatrixServedOffset + i] += num2;
+                matrixServed[nextLabMatrixServedOffset + i] += num;
                 movedItems = true;
             }
         }
@@ -331,9 +227,22 @@ internal struct OptimizedResearchingLab
     public readonly void Save(ref LabComponent lab,
                               LabPowerFields labPowerFields,
                               int[] matrixPoints,
-                              int researchTechId)
+                              int researchTechId,
+                              GroupNeeds groupNeeds,
+                              short[] needs,
+                              int[] matrixServed,
+                              int[] matrixIncServed,
+                              int labIndex)
     {
-        lab.needs = needs;
+        int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
+        int servedOffset = groupNeeds.GroupNeedsSize * labIndex;
+        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
+        {
+            GroupNeeds.SetIfInRange(lab.matrixServed, matrixServed, i, servedOffset + i);
+            GroupNeeds.SetIfInRange(lab.needs, needs, i, needsOffset + i);
+            GroupNeeds.SetIfInRange(lab.matrixIncServed, matrixIncServed, i, servedOffset + i);
+        }
+
         lab.matrixServed = matrixServed;
         lab.matrixIncServed = matrixIncServed;
         lab.replicating = labPowerFields.replicating;

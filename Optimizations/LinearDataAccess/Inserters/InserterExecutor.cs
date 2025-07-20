@@ -1,18 +1,153 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Belts;
+using Weaver.Optimizations.LinearDataAccess.Ejectors;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
-using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
+using Weaver.Optimizations.LinearDataAccess.Silos;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;
+
+internal interface IWholeNeedsBuilder
+{
+    List<short> GetNeedsFlat();
+    void CompletedGroup(EntityType entityType, GroupNeeds groupNeeds);
+}
+
+internal sealed class SubFactoryNeedsBuilder : IWholeNeedsBuilder
+{
+    private readonly List<short> _needsFlat = [];
+    private readonly GroupNeeds[] _groupNeeds = new GroupNeeds[ArrayExtensions.GetEnumValuesEnumerable<EntityType>().Max(x => (int)x) + 1];
+
+    public GroupNeedsBuilder CreateGroupNeedsBuilder(EntityType entityType)
+    {
+        return new GroupNeedsBuilder(this, entityType);
+    }
+
+    List<short> IWholeNeedsBuilder.GetNeedsFlat() => _needsFlat;
+
+    void IWholeNeedsBuilder.CompletedGroup(EntityType entityType, GroupNeeds groupNeeds)
+    {
+        _groupNeeds[(int)entityType] = groupNeeds;
+    }
+
+    public SubFactoryNeeds Build()
+    {
+        return new SubFactoryNeeds(_groupNeeds, _needsFlat.ToArray());
+    }
+}
+
+internal sealed class GroupNeedsBuilder
+{
+    private readonly IWholeNeedsBuilder _wholeNeedsBuilder;
+    private readonly EntityType _groupEntityType;
+    private readonly List<int[]> _allNeeds = [];
+    private int _maxNeedsSize = int.MinValue;
+
+    public GroupNeedsBuilder(IWholeNeedsBuilder wholeNeedsBuilder, EntityType groupEntityType)
+    {
+        _wholeNeedsBuilder = wholeNeedsBuilder;
+        _groupEntityType = groupEntityType;
+    }
+
+    public void AddNeeds(int[] needs, int needsSize)
+    {
+        _allNeeds.Add(needs);
+        _maxNeedsSize = Math.Max(_maxNeedsSize, needsSize);
+    }
+
+    public void Complete()
+    {
+        List<int[]> allNeeds = _allNeeds;
+        if (allNeeds.Count == 0)
+        {
+            return;
+        }
+
+        List<short> needsFlat = _wholeNeedsBuilder.GetNeedsFlat();
+        int groupStartIndex = needsFlat.Count;
+        int maxNeedsSize = _maxNeedsSize;
+
+        for (int i = 0; i < allNeeds.Count; i++)
+        {
+            for (int needsIndex = 0; needsIndex < maxNeedsSize; needsIndex++)
+            {
+
+                needsFlat.Add(GetOrDefault(allNeeds[i], needsIndex));
+            }
+        }
+
+        _wholeNeedsBuilder.CompletedGroup(_groupEntityType, new GroupNeeds(groupStartIndex, maxNeedsSize));
+    }
+
+    private static short GetOrDefault(int[] values, int index)
+    {
+        if (values.Length <= index)
+        {
+            return 0;
+        }
+
+        return (short)values[index];
+    }
+}
+
+internal readonly struct SubFactoryNeeds
+{
+    private readonly GroupNeeds[] _groupNeeds;
+    public readonly short[] Needs;
+
+    public SubFactoryNeeds(GroupNeeds[] groupNeeds, short[] needs)
+    {
+        _groupNeeds = groupNeeds;
+        Needs = needs;
+    }
+
+    public readonly GroupNeeds GetGroupNeeds(EntityType entityType)
+    {
+        return _groupNeeds[(int)entityType];
+    }
+
+    public readonly int GetTypedObjectNeedsIndex(TypedObjectIndex typedObjectIndex)
+    {
+        return _groupNeeds[(int)typedObjectIndex.EntityType].GetObjectNeedsIndex(typedObjectIndex.Index);
+    }
+}
+
+internal record struct GroupNeeds(int GroupStartIndex, int GroupNeedsSize)
+{
+    public int GetObjectNeedsIndex(int objectIndex)
+    {
+        return GroupStartIndex + objectIndex * GroupNeedsSize;
+    }
+
+    public static void SetIfInRange(int[] copyTo, short[] copyFrom, int copyToIndex, int copyFromIndex)
+    {
+        if (copyTo.Length <= copyToIndex)
+        {
+            return;
+        }
+
+        copyTo[copyToIndex] = copyFrom[copyFromIndex];
+    }
+
+    public static void SetIfInRange(int[] copyTo, int[] copyFrom, int copyToIndex, int copyFromIndex)
+    {
+        if (copyTo.Length <= copyToIndex)
+        {
+            return;
+        }
+
+        copyTo[copyToIndex] = copyFrom[copyFromIndex];
+    }
+}
 
 internal static class CargoPathMethods
 {
@@ -70,18 +205,6 @@ internal static class CargoPathMethods
     }
 }
 
-internal record struct PickFromProducingPlant(OptimizedItemId[] Products, int[] Produced)
-{
-    public override string ToString()
-    {
-        return $"""
-            PickFromProducingPlant
-            \t{nameof(Products)}: {string.Join(", ", Products ?? [])}
-            \t{nameof(Produced)}: {string.Join(", ", Produced ?? [])}
-            """;
-    }
-}
-
 internal record struct ConnectionBelts(OptimizedCargoPath? PickFrom, OptimizedCargoPath? InsertInto)
 {
     public override string ToString()
@@ -94,19 +217,6 @@ internal record struct ConnectionBelts(OptimizedCargoPath? PickFrom, OptimizedCa
     }
 }
 
-internal record struct InsertIntoConsumingPlant(OptimizedItemId[]? Requires, int[] Served, int[] IncServed)
-{
-    public override string ToString()
-    {
-        return $"""
-            InsertIntoConsumingPlant
-            \t{nameof(Requires)}: {string.Join(", ", Requires ?? [])}
-            \t{nameof(Served)}: {string.Join(", ", Served ?? [])}
-            \t{nameof(IncServed)}: {string.Join(", ", IncServed ?? [])}
-            """;
-    }
-}
-
 internal sealed class InserterExecutor<T>
     where T : struct, IInserter<T>
 {
@@ -115,10 +225,7 @@ internal sealed class InserterExecutor<T>
     private InserterGrade[] _inserterGrades = null!;
     public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates = null!;
     public InserterConnections[] _inserterConnections = null!;
-    public int[]?[] _inserterConnectionNeeds = null!;
-    public PickFromProducingPlant[] _pickFromProducingPlants = null!;
     public ConnectionBelts[] _connectionBelts = null!;
-    public InsertIntoConsumingPlant[] _insertIntoConsumingPlants = null!;
     public Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
@@ -127,6 +234,27 @@ internal sealed class InserterExecutor<T>
     private readonly NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
     private readonly OptimizedFuelGenerator[][] _generatorSegmentToOptimizedFuelGenerators;
     private readonly OptimizedItemId[]?[]? _fuelNeeds;
+    private readonly SubFactoryNeeds _subFactoryNeeds;
+
+    private readonly int _assemblerProducedSize;
+    private readonly short[] _assemblerServed;
+    private readonly short[] _assemblerIncServed;
+    private readonly short[] _assemblerProduced;
+    private readonly short[] _assemblerRecipeIndexes;
+    private readonly AssemblerRecipe[] _assemblerRecipes;
+
+    private readonly int _producingLabProducedSize;
+    private readonly short[] _producingLabServed;
+    private readonly short[] _producingLabIncServed;
+    private readonly short[] _producingLabProduced;
+    private readonly short[] _producingLabRecipeIndexes;
+    private readonly ProducingLabRecipe[] _producingLabRecipes;
+
+    private readonly int[] _researchingLabMatrixServed = null!;
+    private readonly int[] _researchingLabMatrixIncServed = null!;
+
+    private readonly int[] _siloIndexes;
+    private readonly int[] _ejectorIndexes;
 
     public int InserterCount => _optimizedInserters.Length;
 
@@ -134,13 +262,47 @@ internal sealed class InserterExecutor<T>
                             NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,
                             NetworkIdAndState<LabState>[] researchingLabNetworkIdAndStates,
                             OptimizedFuelGenerator[][] generatorSegmentToOptimizedFuelGenerators,
-                            OptimizedItemId[]?[]? fuelNeeds)
+                            OptimizedItemId[]?[]? fuelNeeds,
+                            SubFactoryNeeds subFactoryNeeds,
+                            int assemblerProducedSize,
+                            short[] assemblerServed,
+                            short[] assemblerIncServed,
+                            short[] assemblerProduced,
+                            short[] assemblerRecipeIndexes,
+                            AssemblerRecipe[] assemblerRecipes,
+                            int producingLabProducedSize,
+                            short[] producingLabServed,
+                            short[] producingLabIncServed,
+                            short[] producingLabProduced,
+                            short[] producingLabRecipeIndexes,
+                            ProducingLabRecipe[] producingLabRecipes,
+                            int[] researchingLabMatrixServed,
+                            int[] researchingLabMatrixIncServed,
+                            int[] siloIndexes,
+                            int[] ejectorIndexes)
     {
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates;
         _producingLabNetworkIdAndStates = producingLabNetworkIdAndStates;
         _researchingLabNetworkIdAndStates = researchingLabNetworkIdAndStates;
         _generatorSegmentToOptimizedFuelGenerators = generatorSegmentToOptimizedFuelGenerators;
         _fuelNeeds = fuelNeeds;
+        _subFactoryNeeds = subFactoryNeeds;
+        _assemblerProducedSize = assemblerProducedSize;
+        _assemblerServed = assemblerServed;
+        _assemblerIncServed = assemblerIncServed;
+        _assemblerProduced = assemblerProduced;
+        _assemblerRecipeIndexes = assemblerRecipeIndexes;
+        _assemblerRecipes = assemblerRecipes;
+        _producingLabProducedSize = producingLabProducedSize;
+        _producingLabServed = producingLabServed;
+        _producingLabIncServed = producingLabIncServed;
+        _producingLabProduced = producingLabProduced;
+        _producingLabRecipeIndexes = producingLabRecipeIndexes;
+        _producingLabRecipes = producingLabRecipes;
+        _researchingLabMatrixServed = researchingLabMatrixServed;
+        _researchingLabMatrixIncServed = researchingLabMatrixIncServed;
+        _siloIndexes = siloIndexes;
+        _ejectorIndexes = ejectorIndexes;
     }
 
     public void GameTickInserters(PlanetFactory planet,
@@ -150,11 +312,15 @@ internal sealed class InserterExecutor<T>
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
+        OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
+        NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = _inserterNetworkIdAndStates;
+        T[] optimizedInserters = _optimizedInserters;
+        InserterGrade[] inserterGrades = _inserterGrades;
 
-        for (int inserterIndex = 0; inserterIndex < _inserterNetworkIdAndStates.Length; inserterIndex++)
+        for (int inserterIndex = 0; inserterIndex < inserterNetworkIdAndStates.Length; inserterIndex++)
         {
-            ref OptimizedInserterStage optimizedInserterStage = ref _optimizedInserterStages[inserterIndex];
-            ref NetworkIdAndState<InserterState> networkIdAndState = ref _inserterNetworkIdAndStates[inserterIndex];
+            ref OptimizedInserterStage optimizedInserterStage = ref optimizedInserterStages[inserterIndex];
+            ref NetworkIdAndState<InserterState> networkIdAndState = ref inserterNetworkIdAndStates[inserterIndex];
             InserterState inserterState = (InserterState)networkIdAndState.State;
             if (inserterState != InserterState.Active)
             {
@@ -181,15 +347,17 @@ internal sealed class InserterExecutor<T>
             }
 
             float power2 = networkServes[networkIdAndState.Index];
-            ref T optimizedInserter = ref _optimizedInserters[inserterIndex];
-            InserterGrade inserterGrade = _inserterGrades[optimizedInserter.grade];
+            ref T optimizedInserter = ref optimizedInserters[inserterIndex];
+            InserterGrade inserterGrade = inserterGrades[optimizedInserter.grade];
             optimizedInserter.Update(planet,
                                      this,
                                      power2,
                                      inserterIndex,
                                      ref networkIdAndState,
                                      inserterGrade,
-                                     ref optimizedInserterStage);
+                                     ref optimizedInserterStage,
+                                     _inserterConnections,
+                                     in _subFactoryNeeds);
 
             UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
         }
@@ -297,18 +465,41 @@ internal sealed class InserterExecutor<T>
         }
     }
 
+    private static bool IsInNeed(short productItemIndex,
+                                 short[] needs,
+                                 int needsOffset,
+                                 int needsSize)
+    {
+        // What is inserted into might not have any needs. For example a belt.
+        if (needsSize == 0)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < needsSize; i++)
+        {
+            if (needs[needsOffset + i] == productItemIndex)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public int PickFrom(PlanetFactory planet,
                         ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                         int inserterIndex,
                         int offset,
                         int filter,
-                        int[]? needs,
+                        InserterConnections inserterConnections,
+                        GroupNeeds groupNeeds,
                         out byte stack,
                         out byte inc)
     {
         stack = 1;
         inc = 0;
-        TypedObjectIndex typedObjectIndex = _inserterConnections[inserterIndex].PickFrom;
+        TypedObjectIndex typedObjectIndex = inserterConnections.PickFrom;
         int objectIndex = typedObjectIndex.Index;
 
         if (typedObjectIndex.EntityType == EntityType.Belt)
@@ -319,7 +510,7 @@ internal sealed class InserterExecutor<T>
                 throw new InvalidOperationException($"{nameof(connectionBelts.PickFrom)} was null.");
             }
 
-            if (needs == null)
+            if (groupNeeds.GroupNeedsSize == 0)
             {
                 if (filter != 0)
                 {
@@ -327,7 +518,11 @@ internal sealed class InserterExecutor<T>
                 }
                 return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, out stack, out inc);
             }
-            return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, needs, out stack, out inc);
+
+            short[] needs = _subFactoryNeeds.Needs;
+            int needsSize = groupNeeds.GroupNeedsSize;
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+            return connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, needs, needsOffset, needsSize, out stack, out inc);
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
@@ -339,57 +534,36 @@ internal sealed class InserterExecutor<T>
                 return 0;
             }
 
-            PickFromProducingPlant producingPlant = _pickFromProducingPlants[inserterIndex];
-            OptimizedItemId[] products = producingPlant.Products;
-            int[] produced = producingPlant.Produced;
+            short[] needs = _subFactoryNeeds.Needs;
+            int needsSize = groupNeeds.GroupNeedsSize;
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
 
-            int num = products.Length;
-            switch (num)
+            OptimizedItemId[] products = _assemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Products;
+            short[] produced = _assemblerProduced;
+            int producedOffset = _assemblerProducedSize * objectIndex;
+
+            for (int i = 0; i < products.Length; i++)
             {
-                case 1:
-                    if (produced[0] > 0 && products[0].ItemIndex > 0 && (filter == 0 || filter == products[0].ItemIndex) && (needs == null || needs[0] == products[0].ItemIndex || needs[1] == products[0].ItemIndex || needs[2] == products[0].ItemIndex || needs[3] == products[0].ItemIndex || needs[4] == products[0].ItemIndex || needs[5] == products[0].ItemIndex))
-                    {
-                        produced[0]--;
-                        _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                        return products[0].ItemIndex;
-                    }
-                    break;
-                case 2:
-                    if ((filter == products[0].ItemIndex || filter == 0) && produced[0] > 0 && products[0].ItemIndex > 0 && (needs == null || needs[0] == products[0].ItemIndex || needs[1] == products[0].ItemIndex || needs[2] == products[0].ItemIndex || needs[3] == products[0].ItemIndex || needs[4] == products[0].ItemIndex || needs[5] == products[0].ItemIndex))
-                    {
-                        produced[0]--;
-                        _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                        return products[0].ItemIndex;
-                    }
-                    if ((filter == products[1].ItemIndex || filter == 0) && produced[1] > 0 && products[1].ItemIndex > 0 && (needs == null || needs[0] == products[1].ItemIndex || needs[1] == products[1].ItemIndex || needs[2] == products[1].ItemIndex || needs[3] == products[1].ItemIndex || needs[4] == products[1].ItemIndex || needs[5] == products[1].ItemIndex))
-                    {
-                        produced[1]--;
-                        _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                        return products[1].ItemIndex;
-                    }
-                    break;
-                default:
-                    {
-                        for (int i = 0; i < num; i++)
-                        {
-                            if ((filter == products[i].ItemIndex || filter == 0) && produced[i] > 0 && products[i].ItemIndex > 0 && (needs == null || needs[0] == products[i].ItemIndex || needs[1] == products[i].ItemIndex || needs[2] == products[i].ItemIndex || needs[3] == products[i].ItemIndex || needs[4] == products[i].ItemIndex || needs[5] == products[i].ItemIndex))
-                            {
-                                produced[i]--;
-                                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                                return products[i].ItemIndex;
-                            }
-                        }
-                        break;
-                    }
+                short productItemIndex = products[i].ItemIndex;
+                if ((filter == productItemIndex || filter == 0) && produced[producedOffset + i] > 0 && productItemIndex > 0 && IsInNeed(productItemIndex, needs, needsOffset, needsSize))
+                {
+                    produced[producedOffset + i]--;
+                    _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                    return products[i].ItemIndex;
+                }
             }
+
             return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Ejector)
         {
-            ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[objectIndex];
+            int ejectorId = _ejectorIndexes[objectIndex];
+            short[] needs = _subFactoryNeeds.Needs;
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+            ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[ejectorId];
             int bulletId = ejector.bulletId;
             int bulletCount = ejector.bulletCount;
-            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && (needs == null || needs[0] == bulletId || needs[1] == bulletId || needs[2] == bulletId || needs[3] == bulletId || needs[4] == bulletId || needs[5] == bulletId))
+            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && needs[needsOffset + EjectorExecutor.SoleEjectorNeedsIndex] == bulletId)
             {
                 ejector.TakeOneBulletUnsafe(out inc);
                 return bulletId;
@@ -398,10 +572,13 @@ internal sealed class InserterExecutor<T>
         }
         else if (typedObjectIndex.EntityType == EntityType.Silo)
         {
-            ref SiloComponent silo = ref planet.factorySystem.siloPool[objectIndex];
+            int siloId = _siloIndexes[objectIndex];
+            short[] needs = _subFactoryNeeds.Needs;
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+            ref SiloComponent silo = ref planet.factorySystem.siloPool[siloId];
             int bulletId2 = silo.bulletId;
             int bulletCount2 = silo.bulletCount;
-            if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && (needs == null || needs[0] == bulletId2 || needs[1] == bulletId2 || needs[2] == bulletId2 || needs[3] == bulletId2 || needs[4] == bulletId2 || needs[5] == bulletId2))
+            if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && needs[needsOffset + SiloExecutor.SoleSiloNeedsIndex] == bulletId2)
             {
                 silo.TakeOneBulletUnsafe(out inc);
                 return bulletId2;
@@ -415,6 +592,7 @@ internal sealed class InserterExecutor<T>
             StorageComponent storageComponent2 = storageComponent;
             if (storageComponent != null)
             {
+                int[] needs = planet.entityNeeds[storageComponent.entityId];
                 storageComponent = storageComponent.topStorage;
                 while (storageComponent != null)
                 {
@@ -457,28 +635,7 @@ internal sealed class InserterExecutor<T>
         }
         else if (typedObjectIndex.EntityType == EntityType.Station)
         {
-            int inc2;
-            StationComponent stationComponent = planet.transport.stationPool[objectIndex];
-            if (stationComponent != null)
-            {
-                int _itemId = filter;
-                int _count = 1;
-                if (needs == null)
-                {
-                    stationComponent.TakeItem(ref _itemId, ref _count, out inc2);
-                    inc = (byte)inc2;
-                }
-                else
-                {
-                    stationComponent.TakeItem(ref _itemId, ref _count, needs, out inc2);
-                    inc = (byte)inc2;
-                }
-                if (_count == 1)
-                {
-                    return _itemId;
-                }
-            }
-            return 0;
+            throw new InvalidOperationException("Assumption that sorters can not interact with stations is incorrect.");
         }
         else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
         {
@@ -490,20 +647,22 @@ internal sealed class InserterExecutor<T>
                 return 0;
             }
 
-            PickFromProducingPlant producingPlant = _pickFromProducingPlants[inserterIndex];
-            OptimizedItemId[] products2 = producingPlant.Products;
-            int[] produced2 = producingPlant.Produced;
-            if (products2 == null || produced2 == null)
+            OptimizedItemId[] products = _producingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Products;
+            short[] produced = _producingLabProduced;
+            int producedOffset = _producingLabProducedSize * objectIndex;
+
+            short[] needs = _subFactoryNeeds.Needs;
+            int needsSize = groupNeeds.GroupNeedsSize;
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+
+            for (int j = 0; j < products.Length; j++)
             {
-                return 0;
-            }
-            for (int j = 0; j < products2.Length; j++)
-            {
-                if (produced2[j] > 0 && products2[j].ItemIndex > 0 && (filter == 0 || filter == products2[j].ItemIndex) && (needs == null || needs[0] == products2[j].ItemIndex || needs[1] == products2[j].ItemIndex || needs[2] == products2[j].ItemIndex || needs[3] == products2[j].ItemIndex || needs[4] == products2[j].ItemIndex || needs[5] == products2[j].ItemIndex))
+                short productItemIndex = products[j].ItemIndex;
+                if (produced[producedOffset + j] > 0 && productItemIndex > 0 && (filter == 0 || filter == productItemIndex) && IsInNeed(productItemIndex, needs, needsOffset, needsSize))
                 {
-                    produced2[j]--;
+                    produced[producedOffset + j]--;
                     _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
-                    return products2[j].ItemIndex;
+                    return products[j].ItemIndex;
                 }
             }
             return 0;
@@ -526,7 +685,8 @@ internal sealed class InserterExecutor<T>
     public int InsertInto(PlanetFactory planet,
                           ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
                           int inserterIndex,
-                          int[]? entityNeeds,
+                          InserterConnections inserterConnections,
+                          GroupNeeds groupNeeds,
                           int offset,
                           int itemId,
                           byte itemCount,
@@ -534,7 +694,7 @@ internal sealed class InserterExecutor<T>
                           out byte remainInc)
     {
         remainInc = itemInc;
-        TypedObjectIndex typedObjectIndex = _inserterConnections[inserterIndex].InsertInto;
+        TypedObjectIndex typedObjectIndex = inserterConnections.InsertInto;
         int objectIndex = typedObjectIndex.Index;
 
         if (typedObjectIndex.EntityType == EntityType.Belt)
@@ -562,80 +722,46 @@ internal sealed class InserterExecutor<T>
                 return 0;
             }
 
-            if (entityNeeds == null)
+            if (groupNeeds.GroupNeedsSize == 0)
             {
-                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if assembler is inactive which the above if statement should have caught.");
-            }
-            InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            OptimizedItemId[]? requires = insertIntoConsumingPlant.Requires;
-            int[] served = insertIntoConsumingPlant.Served;
-            int[] incServed = insertIntoConsumingPlant.IncServed;
-            if (requires == null)
-            {
-                throw new InvalidOperationException($"{nameof(requires)} was null.");
+                throw new InvalidOperationException($"Needs should only be null if assembler is inactive which the above if statement should have caught.");
             }
 
-            int num = requires.Length;
-            if (0 < num && requires[0].ItemIndex == itemId)
+            OptimizedItemId[] requires = _assemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Requires;
+            short[] assemblerServed = _assemblerServed;
+            short[] assemblerIncServed = _assemblerIncServed;
+            int assemblerServedOffset = groupNeeds.GroupNeedsSize * objectIndex;
+
+            for (int i = 0; i < requires.Length; i++)
             {
-                served[0] += itemCount;
-                incServed[0] += itemInc;
+                if (requires[i].ItemIndex != itemId)
+                {
+                    continue;
+                }
+
+                assemblerServed[assemblerServedOffset + i] += itemCount;
+                assemblerIncServed[assemblerServedOffset + i] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
                 return itemCount;
             }
-            if (1 < num && requires[1].ItemIndex == itemId)
-            {
-                served[1] += itemCount;
-                incServed[1] += itemInc;
-                remainInc = 0;
-                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                return itemCount;
-            }
-            if (2 < num && requires[2].ItemIndex == itemId)
-            {
-                served[2] += itemCount;
-                incServed[2] += itemInc;
-                remainInc = 0;
-                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                return itemCount;
-            }
-            if (3 < num && requires[3].ItemIndex == itemId)
-            {
-                served[3] += itemCount;
-                incServed[3] += itemInc;
-                remainInc = 0;
-                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                return itemCount;
-            }
-            if (4 < num && requires[4].ItemIndex == itemId)
-            {
-                served[4] += itemCount;
-                incServed[4] += itemInc;
-                remainInc = 0;
-                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                return itemCount;
-            }
-            if (5 < num && requires[5].ItemIndex == itemId)
-            {
-                served[5] += itemCount;
-                incServed[5] += itemInc;
-                remainInc = 0;
-                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
-                return itemCount;
-            }
+
             return 0;
         }
         else if (typedObjectIndex.EntityType == EntityType.Ejector)
         {
-            if (entityNeeds == null)
+            if (groupNeeds.GroupNeedsSize == 0)
             {
                 throw new InvalidOperationException("Need was null for active ejector.");
             }
-            if (entityNeeds[0] == itemId && planet.factorySystem.ejectorPool[objectIndex].bulletId == itemId)
+
+            int ejectorId = _ejectorIndexes[objectIndex];
+            short[] needs = _subFactoryNeeds.Needs;
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(objectIndex);
+            if (needs[needsOffset + EjectorExecutor.SoleEjectorNeedsIndex] == itemId && planet.factorySystem.ejectorPool[ejectorId].bulletId == itemId)
             {
-                planet.factorySystem.ejectorPool[objectIndex].bulletCount += itemCount;
-                planet.factorySystem.ejectorPool[objectIndex].bulletInc += itemInc;
+                planet.factorySystem.ejectorPool[ejectorId].bulletCount += itemCount;
+                planet.factorySystem.ejectorPool[ejectorId].bulletInc += itemInc;
                 remainInc = 0;
                 return itemCount;
             }
@@ -643,14 +769,18 @@ internal sealed class InserterExecutor<T>
         }
         else if (typedObjectIndex.EntityType == EntityType.Silo)
         {
-            if (entityNeeds == null)
+            if (groupNeeds.GroupNeedsSize == 0)
             {
                 throw new InvalidOperationException("Need was null for active silo.");
             }
-            if (entityNeeds[0] == itemId && planet.factorySystem.siloPool[objectIndex].bulletId == itemId)
+
+            int siloId = _siloIndexes[objectIndex];
+            short[] needs = _subFactoryNeeds.Needs;
+            int needsOffset = groupNeeds.GetObjectNeedsIndex(objectIndex);
+            if (needs[needsOffset + SiloExecutor.SoleSiloNeedsIndex] == itemId && planet.factorySystem.siloPool[siloId].bulletId == itemId)
             {
-                planet.factorySystem.siloPool[objectIndex].bulletCount += itemCount;
-                planet.factorySystem.siloPool[objectIndex].bulletInc += itemInc;
+                planet.factorySystem.siloPool[siloId].bulletCount += itemCount;
+                planet.factorySystem.siloPool[siloId].bulletInc += itemInc;
                 remainInc = 0;
                 return itemCount;
             }
@@ -666,25 +796,22 @@ internal sealed class InserterExecutor<T>
                 return 0;
             }
 
-            if (entityNeeds == null)
+            if (groupNeeds.GroupNeedsSize == 0)
             {
-                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if producing lab is inactive which the above if statement should have caught.");
+                throw new InvalidOperationException($"Needs should only be null if producing lab is inactive which the above if statement should have caught.");
             }
-            InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            OptimizedItemId[]? requires2 = insertIntoConsumingPlant.Requires;
-            int[] served = insertIntoConsumingPlant.Served;
-            int[] incServed = insertIntoConsumingPlant.IncServed;
-            if (requires2 == null)
+
+            OptimizedItemId[] requires = _producingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Requires;
+            short[] served = _producingLabServed;
+            short[] incServed = _producingLabIncServed;
+            int servedOffset = groupNeeds.GroupNeedsSize * objectIndex;
+
+            for (int i = 0; i < requires.Length; i++)
             {
-                return 0;
-            }
-            int num3 = requires2.Length;
-            for (int i = 0; i < num3; i++)
-            {
-                if (requires2[i].ItemIndex == itemId)
+                if (requires[i].ItemIndex == itemId)
                 {
-                    served[i] += itemCount;
-                    incServed[i] += itemInc;
+                    served[servedOffset + i] += itemCount;
+                    incServed[servedOffset + i] += itemInc;
                     remainInc = 0;
                     _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                     return itemCount;
@@ -702,22 +829,20 @@ internal sealed class InserterExecutor<T>
                 return 0;
             }
 
-            if (entityNeeds == null)
+            if (groupNeeds.GroupNeedsSize == 0)
             {
-                throw new InvalidOperationException($"Array from {nameof(entityNeeds)} should only be null if researching lab is inactive which the above if statement should have caught.");
+                throw new InvalidOperationException($"Needs should only be null if researching lab is inactive which the above if statement should have caught.");
             }
-            InsertIntoConsumingPlant insertIntoConsumingPlant = _insertIntoConsumingPlants[inserterIndex];
-            int[] matrixServed = insertIntoConsumingPlant.Served;
-            int[] matrixIncServed = insertIntoConsumingPlant.IncServed;
-            if (matrixServed == null)
-            {
-                return 0;
-            }
+
+            int matrixServedOffset = groupNeeds.GroupNeedsSize * objectIndex;
+            int[] matrixServed = _researchingLabMatrixServed;
+            int[] matrixIncServed = _researchingLabMatrixIncServed;
+
             int num2 = itemId - 6001;
             if (num2 >= 0 && num2 < 6)
             {
-                matrixServed[num2] += 3600 * itemCount;
-                matrixIncServed[num2] += 3600 * itemInc;
+                matrixServed[matrixServedOffset + num2] += 3600 * itemCount;
+                matrixIncServed[matrixServedOffset + num2] += 3600 * itemInc;
                 remainInc = 0;
                 _researchingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
                 return itemCount;
@@ -752,30 +877,7 @@ internal sealed class InserterExecutor<T>
         }
         else if (typedObjectIndex.EntityType == EntityType.Station)
         {
-            if (entityNeeds == null)
-            {
-                throw new InvalidOperationException("Need was null for active station.");
-            }
-            StationComponent stationComponent = planet.transport.stationPool[objectIndex];
-            if (itemId == 1210 && stationComponent.warperCount < stationComponent.warperMaxCount)
-            {
-                stationComponent.warperCount += itemCount;
-                remainInc = 0;
-                return itemCount;
-            }
-            StationStore[] storage = stationComponent.storage;
-            for (int j = 0; j < entityNeeds.Length && j < storage.Length; j++)
-            {
-                if (entityNeeds[j] == itemId && storage[j].itemId == itemId)
-                {
-                    storage[j].count += itemCount;
-                    storage[j].inc += itemInc;
-                    remainInc = 0;
-                    return itemCount;
-                }
-            }
-
-            return 0;
+            throw new InvalidOperationException("Assumption that sorters can not interact with stations is incorrect.");
         }
         else if (typedObjectIndex.EntityType == EntityType.FuelPowerGenerator)
         {
@@ -850,14 +952,11 @@ internal sealed class InserterExecutor<T>
     {
         List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates = [];
         List<InserterConnections> inserterConnections = [];
-        List<int[]?> inserterConnectionNeeds = [];
         List<InserterGrade> inserterGrades = [];
         Dictionary<InserterGrade, int> inserterGradeToIndex = [];
         List<T> optimizedInserters = [];
         List<OptimizedInserterStage> optimizedInserterStages = [];
-        List<PickFromProducingPlant> pickFromProducingPlants = [];
         List<ConnectionBelts> connectionBelts = [];
-        List<InsertIntoConsumingPlant> insertIntoConsumingPlants = [];
         Dictionary<int, int> inserterIdToOptimizedIndex = [];
         var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
@@ -893,7 +992,6 @@ internal sealed class InserterExecutor<T>
             }
 
             TypedObjectIndex insertInto = new TypedObjectIndex(EntityType.None, 0);
-            int[]? insertIntoNeeds = null;
             if (inserter.insertTarget != 0)
             {
                 insertInto = subFactory.GetAsGranularTypedObjectIndex(inserter.insertTarget, planet);
@@ -901,8 +999,6 @@ internal sealed class InserterExecutor<T>
                 {
                     continue;
                 }
-
-                insertIntoNeeds = OptimizedSubFactory.GetEntityNeeds(planet, inserter.insertTarget);
             }
             else
             {
@@ -922,7 +1018,6 @@ internal sealed class InserterExecutor<T>
             inserterIdToOptimizedIndex.Add(inserterIndex, optimizedInserters.Count);
             int networkIndex = planet.powerSystem.consumerPool[inserter.pcId].networkId;
             inserterNetworkIdAndStates.Add(new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), networkIndex));
-            inserterConnectionNeeds.Add(insertIntoNeeds);
             optimizedPowerSystemInserterBuilder.AddInserter(ref inserter, networkIndex);
 
             InserterGrade inserterGrade;
@@ -1004,59 +1099,21 @@ internal sealed class InserterExecutor<T>
             optimizedInserterStages.Add(ToOptimizedInserterStage(inserter.stage));
             connectionBelts.Add(new ConnectionBelts(pickFromBelt, insertIntoBelt));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[inserter.entityId]);
-
-            if (pickFrom.EntityType == EntityType.Assembler)
-            {
-                ref readonly OptimizedAssembler assembler = ref subFactory._assemblerExecutor._optimizedAssemblers[pickFrom.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref subFactory._assemblerExecutor._assemblerRecipes[subFactory._assemblerExecutor._assemblerRecipeIndexes[pickFrom.Index]];
-                pickFromProducingPlants.Add(new PickFromProducingPlant(assemblerRecipe.Products, assembler.produced));
-            }
-            else if (pickFrom.EntityType == EntityType.ProducingLab)
-            {
-                ref readonly OptimizedProducingLab lab = ref subFactory._optimizedProducingLabs[pickFrom.Index];
-                ref readonly ProducingLabRecipe producingLabRecipe = ref subFactory._producingLabRecipes[lab.producingLabRecipeIndex];
-                pickFromProducingPlants.Add(new PickFromProducingPlant(producingLabRecipe.Products, lab.produced));
-            }
-            else
-            {
-                pickFromProducingPlants.Add(default);
-            }
-
-            if (insertInto.EntityType == EntityType.Assembler)
-            {
-                ref readonly OptimizedAssembler assembler = ref subFactory._assemblerExecutor._optimizedAssemblers[insertInto.Index];
-                ref readonly AssemblerRecipe assemblerRecipe = ref subFactory._assemblerExecutor._assemblerRecipes[subFactory._assemblerExecutor._assemblerRecipeIndexes[insertInto.Index]];
-                ref readonly AssemblerNeeds assemblerNeeds = ref subFactory._assemblerExecutor._assemblersNeeds[insertInto.Index];
-                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(assemblerRecipe.Requires, assemblerNeeds.served, assembler.incServed));
-            }
-            else if (insertInto.EntityType == EntityType.ProducingLab)
-            {
-                ref readonly OptimizedProducingLab lab = ref subFactory._optimizedProducingLabs[insertInto.Index];
-                ProducingLabRecipe producingLabRecipe = subFactory._producingLabRecipes[lab.producingLabRecipeIndex];
-                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(producingLabRecipe.Requires, lab.served, lab.incServed));
-            }
-            else if (insertInto.EntityType == EntityType.ResearchingLab)
-            {
-                ref readonly OptimizedResearchingLab lab = ref subFactory._optimizedResearchingLabs[insertInto.Index];
-                insertIntoConsumingPlants.Add(new InsertIntoConsumingPlant(null, lab.matrixServed, lab.matrixIncServed));
-            }
-            else
-            {
-                insertIntoConsumingPlants.Add(default);
-            }
         }
 
-        _inserterNetworkIdAndStates = inserterNetworkIdAndStates.ToArray();
-        _inserterConnections = inserterConnections.ToArray();
-        _inserterConnectionNeeds = inserterConnectionNeeds.ToArray();
+        int[] optimalInserterNeedsOrder = inserterConnections.Select((x, i) => (x, i))
+                                                             .OrderBy(x => _subFactoryNeeds.GetTypedObjectNeedsIndex(x.x.InsertInto))
+                                                             .Select(x => x.i)
+                                                             .ToArray();
+
+        _inserterNetworkIdAndStates = optimalInserterNeedsOrder.Select(x => inserterNetworkIdAndStates[x]).ToArray();
+        _inserterConnections = optimalInserterNeedsOrder.Select(x => inserterConnections[x]).ToArray();
         _inserterGrades = inserterGrades.ToArray();
-        _optimizedInserters = optimizedInserters.ToArray();
-        _optimizedInserterStages = optimizedInserterStages.ToArray();
-        _pickFromProducingPlants = pickFromProducingPlants.ToArray();
-        _connectionBelts = connectionBelts.ToArray();
-        _insertIntoConsumingPlants = insertIntoConsumingPlants.ToArray();
-        _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _optimizedInserters = optimalInserterNeedsOrder.Select(x => optimizedInserters[x]).ToArray();
+        _optimizedInserterStages = optimalInserterNeedsOrder.Select(x => optimizedInserterStages[x]).ToArray();
+        _connectionBelts = optimalInserterNeedsOrder.Select(x => connectionBelts[x]).ToArray();
+        _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex.ToDictionary(x => x.Key, x => optimalInserterNeedsOrder[x.Value]);
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(optimalInserterNeedsOrder);
     }
 
     private void Print(int inserterIndex)
@@ -1064,10 +1121,7 @@ internal sealed class InserterExecutor<T>
         WeaverFixes.Logger.LogMessage(_optimizedInserters[inserterIndex].ToString());
         WeaverFixes.Logger.LogMessage(_inserterNetworkIdAndStates[inserterIndex].ToString());
         WeaverFixes.Logger.LogMessage(_inserterConnections[inserterIndex].ToString());
-        WeaverFixes.Logger.LogMessage(_inserterConnectionNeeds[inserterIndex]?.ToString());
-        WeaverFixes.Logger.LogMessage(_pickFromProducingPlants[inserterIndex].ToString());
         WeaverFixes.Logger.LogMessage(_connectionBelts[inserterIndex].ToString());
-        WeaverFixes.Logger.LogMessage(_insertIntoConsumingPlants[inserterIndex].ToString());
     }
 
     private static OptimizedInserterStage ToOptimizedInserterStage(EInserterStage inserterStage) => inserterStage switch
