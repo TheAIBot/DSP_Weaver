@@ -212,10 +212,10 @@ internal struct OptimizedTank
             {
                 if (fluidId > 0 && fluidCount < fluidCapacity)
                 {
-                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt, fluidId, null);
+                    bool hasCargo = CargoPathMethods.TryPickItemAtRear(belt, fluidId, null, out OptimizedCargo optimizedCargo);
                     stack = optimizedCargo.Stack;
                     inc = optimizedCargo.Inc;
-                    if (optimizedCargo != default)
+                    if (hasCargo)
                     {
                         fluidCount += stack;
                         fluidInc += inc;
@@ -223,10 +223,10 @@ internal struct OptimizedTank
                 }
                 if (fluidId == 0)
                 {
-                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt, 0, ItemProto.fluids);
+                    bool hasCargo = CargoPathMethods.TryPickItemAtRear(belt, 0, ItemProto.fluids, out OptimizedCargo optimizedCargo);
                     stack = optimizedCargo.Stack;
                     inc = optimizedCargo.Inc;
-                    if (optimizedCargo != default)
+                    if (hasCargo)
                     {
                         fluidId = optimizedCargo.Item;
                         fluidCount += stack;
@@ -235,7 +235,7 @@ internal struct OptimizedTank
                 }
                 if (fluidCount >= fluidCapacity)
                 {
-                    OptimizedCargo optimizedCargo = CargoPathMethods.GetItemIdAtRear(belt);
+                    belt.TryGetCargoIdAtRear(out OptimizedCargo optimizedCargo);
                     if (optimizedCargo.Item == fluidId && nextTankIndex > NO_TANK)
                     {
                         OptimizedTank tankComponent = tankExecutor._optimizedTanks[nextTankIndex];
@@ -274,10 +274,10 @@ internal struct OptimizedTank
                         }
                         if (flag)
                         {
-                            OptimizedCargo someOtherCargo = CargoPathMethods.TryPickItemAtRear(belt, fluidId, null);
+                            bool hasCargo = CargoPathMethods.TryPickItemAtRear(belt, fluidId, null, out OptimizedCargo someOtherCargo);
                             stack = someOtherCargo.Stack;
                             inc = someOtherCargo.Inc;
-                            if (someOtherCargo != default)
+                            if (hasCargo)
                             {
                                 if (tankExecutor._optimizedTanks[tankComponent2.id].fluidCount == 0)
                                 {

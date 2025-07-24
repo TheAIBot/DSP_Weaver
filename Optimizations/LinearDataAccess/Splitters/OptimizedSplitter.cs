@@ -83,8 +83,7 @@ internal struct OptimizedSplitter
         {
             // SUPER HACK!!!!
             beltExecutor.TryOptimizedCargoPath(planet, input0, out us_tmp_inputPath);
-            us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-            if (us_tmp_inputCargo != default)
+            if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
             {
                 us_tmp_inputCargo0 = us_tmp_inputCargo;
                 us_tmp_inputPath0 = us_tmp_inputPath;
@@ -94,8 +93,7 @@ internal struct OptimizedSplitter
             {
                 // SUPER HACK!!!!
                 beltExecutor.TryOptimizedCargoPath(planet, input1, out us_tmp_inputPath);
-                us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-                if (us_tmp_inputCargo != default)
+                if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
                 {
                     if (us_tmp_inputPath0 == null)
                     {
@@ -114,8 +112,7 @@ internal struct OptimizedSplitter
                 {
                     // SUPER HACK!!!!
                     beltExecutor.TryOptimizedCargoPath(planet, input2, out us_tmp_inputPath);
-                    us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-                    if (us_tmp_inputCargo != default)
+                    if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
                     {
                         if (us_tmp_inputPath0 == null)
                         {
@@ -140,8 +137,7 @@ internal struct OptimizedSplitter
                     {
                         // SUPER HACK!!!!
                         beltExecutor.TryOptimizedCargoPath(planet, input3, out us_tmp_inputPath);
-                        us_tmp_inputCargo = us_tmp_inputPath!.GetCargoIdAtRear();
-                        if (us_tmp_inputCargo != default)
+                        if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
                         {
                             if (us_tmp_inputPath0 == null)
                             {
@@ -237,7 +233,7 @@ internal struct OptimizedSplitter
         IL_0514:
             if (us_tmp_outputPath0 != null)
             {
-                OptimizedCargo num2 = us_tmp_inputPath0.TryPickCargoAtEnd();
+                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num2, out _);
                 Assert.True(num2.Item >= 0);
                 us_tmp_outputPath0.InsertCargoAtHeadDirect(num2, num);
                 InputAlternate(us_tmp_inputIndex0);
@@ -245,7 +241,7 @@ internal struct OptimizedSplitter
             }
             else if (topId != 0 && (flag || outFilter == 0) && subFactory.InsertCargoIntoStorage(topId, us_tmp_inputCargo0))
             {
-                OptimizedCargo num3 = us_tmp_inputPath0.TryPickCargoAtEnd(out int cargoBufferIndex);
+                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num3, out int cargoBufferIndex);
                 Assert.True(num3.Item >= 0);
                 us_tmp_inputPath0.RemoveCargoAtIndexDirect(cargoBufferIndex);
                 InputAlternate(us_tmp_inputIndex0);

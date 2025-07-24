@@ -265,7 +265,8 @@ internal struct OptimizedGammaPowerGenerator
         {
             if (filter != 0)
             {
-                return belt.TryPickItem(offset - 2, 5, filter);
+                belt.TryPickItem(offset - 2, 5, filter, out OptimizedCargo cargo);
+                return cargo;
             }
             return belt.TryPickItem(offset - 2, 5);
         }

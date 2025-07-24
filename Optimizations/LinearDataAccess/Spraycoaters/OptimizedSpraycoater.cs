@@ -72,8 +72,7 @@ internal struct OptimizedSpraycoater
                 }
                 if (incItemId.ItemIndex != 0 && incItemId.ItemIndex == cargo.Item)
                 {
-                    OptimizedCargo someOtherCargo = incommingCargoPath.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId.ItemIndex);
-                    if (someOtherCargo != default)
+                    if (incommingCargoPath.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId.ItemIndex, out OptimizedCargo someOtherCargo))
                     {
                         int inc = someOtherCargo.Inc;
                         int stack = someOtherCargo.Stack;

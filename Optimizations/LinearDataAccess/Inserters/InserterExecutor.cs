@@ -152,20 +152,20 @@ internal record struct GroupNeeds(int GroupStartIndex, int GroupNeedsSize)
 internal static class CargoPathMethods
 {
     // Takes CargoPath instead of belt id
-    public static OptimizedCargo TryPickItemAtRear(OptimizedCargoPath cargoPath, int filter, int[]? needs)
+    public static bool TryPickItemAtRear(OptimizedCargoPath cargoPath, int filter, int[]? needs, out OptimizedCargo cargo)
     {
-        OptimizedCargo cargoAtRear = cargoPath.GetCargoIdAtRear();
-        if (cargoAtRear == default)
+        if (!cargoPath.TryGetCargoIdAtRear(out cargo))
         {
-            return default;
+            cargo = default;
+            return false;
         }
-        int item = cargoAtRear.Item;
+        int item = cargo.Item;
         if (filter != 0)
         {
             if (item == filter)
             {
                 cargoPath.TryRemoveItemAtRear();
-                return cargoAtRear;
+                return true;
             }
         }
         else
@@ -173,24 +173,20 @@ internal static class CargoPathMethods
             if (needs == null)
             {
                 cargoPath.TryRemoveItemAtRear();
-                return cargoAtRear;
+                return true;
             }
             for (int i = 0; i < needs.Length; i++)
             {
                 if (needs[i] == item)
                 {
                     cargoPath.TryRemoveItemAtRear();
-                    return cargoAtRear;
+                    return true;
                 }
             }
         }
-        return default;
-    }
 
-    // Takes CargoPath instead of belt id
-    public static OptimizedCargo GetItemIdAtRear(OptimizedCargoPath cargoPath)
-    {
-        return cargoPath.GetCargoIdAtRear();
+        cargo = default;
+        return false;
     }
 }
 
@@ -503,7 +499,7 @@ internal sealed class InserterExecutor<T>
             {
                 if (filter != 0)
                 {
-                    OptimizedCargo optimizedCargo = connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter);
+                    connectionBelts.PickFrom.TryPickItem(offset - 2, 5, filter, out OptimizedCargo optimizedCargo);
                     stack = optimizedCargo.Stack;
                     inc = optimizedCargo.Inc;
                     return optimizedCargo.Item;

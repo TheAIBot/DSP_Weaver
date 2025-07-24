@@ -192,15 +192,12 @@ internal sealed class BeltExecutor
         }
     }
 
-    internal static void SetCargoIndexInBuffer(byte[] buffer, int bufferIndex, uint cargoIndex)
+    internal static void SetCargoIndexInBuffer(byte[] buffer, int bufferIndex, OptimizedCargo optimizedCargo)
     {
-        buffer[bufferIndex + 0] = (byte)(cargoIndex % 128 + 1);
-        cargoIndex /= 128;
-        buffer[bufferIndex + 1] = (byte)(cargoIndex % 128 + 1);
-        cargoIndex /= 128;
-        buffer[bufferIndex + 2] = (byte)(cargoIndex % 128 + 1);
-        cargoIndex /= 128;
-        buffer[bufferIndex + 3] = (byte)(cargoIndex % 128 + 1);
+        buffer[bufferIndex + 0] = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
+        buffer[bufferIndex + 1] = (byte)((optimizedCargo.Item >> 7) + 1);
+        buffer[bufferIndex + 2] = (byte)(optimizedCargo.Stack + 1);
+        buffer[bufferIndex + 3] = (byte)(optimizedCargo.Inc + 1);
     }
 
     internal static void SetCargoIndexInBufferDefaultGameWay(byte[] buffer, int bufferIndex, int cargoIndex)
@@ -216,6 +213,8 @@ internal sealed class BeltExecutor
 
     internal static OptimizedCargo GetCargo(byte[] buffer, int index)
     {
-        return new OptimizedCargo(buffer[index] - 1 + (buffer[index + 1] - 1) * 128 + (buffer[index + 2] - 1) * (128 * 128) + (buffer[index + 3] - 1) * (128 * 128 * 128));
+        return new OptimizedCargo((short)(buffer[index] - 1 + ((buffer[index + 1] - 1) << 7)),
+                                  (byte)(buffer[index + 2] - 1),
+                                  (byte)(buffer[index + 3] - 1));
     }
 }

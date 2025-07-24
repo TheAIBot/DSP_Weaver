@@ -138,15 +138,14 @@ internal readonly struct OptimizedTurret
         }
         if (turret.itemId == 0)
         {
-            OptimizedCargo optimizedCargo = targetBelt.TryPickItem(targetBeltOffset - 2, 5, 0, ItemProto.turretNeeds[(uint)turret.ammoType]);
-            if (optimizedCargo != default)
+            if (targetBelt.TryPickItem(targetBeltOffset - 2, 5, 0, ItemProto.turretNeeds[(uint)turret.ammoType], out OptimizedCargo optimizedCargo))
             {
                 turret.SetNewItem(optimizedCargo.Item, optimizedCargo.Stack, optimizedCargo.Inc);
             }
         }
         else
         {
-            OptimizedCargo optimizedCargo = targetBelt.TryPickItem(targetBeltOffset - 2, 5, turret.itemId);
+            targetBelt.TryPickItem(targetBeltOffset - 2, 5, turret.itemId, out OptimizedCargo optimizedCargo);
             if (turret.itemId == optimizedCargo.Item)
             {
                 turret.itemCount += optimizedCargo.Stack;

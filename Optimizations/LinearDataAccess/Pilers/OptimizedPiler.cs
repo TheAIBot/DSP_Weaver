@@ -61,8 +61,7 @@ internal struct OptimizedPiler
             {
                 if (cacheItemId2 == 0)
                 {
-                    OptimizedCargo cargo = inputBelt.TryPickCargoAtEnd(out int cargoBufferIndex);
-                    if (cargo != default)
+                    if (inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo, out int cargoBufferIndex))
                     {
                         if (cacheItemId1 != 0)
                         {
@@ -81,8 +80,7 @@ internal struct OptimizedPiler
             }
             else if (cacheItemId1 == 0)
             {
-                OptimizedCargo cargo = inputBelt.TryPickCargoAtEnd(out int cargoBufferIndex);
-                if (cargo != default)
+                if (inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo, out int cargoBufferIndex))
                 {
                     cacheItemId1 = cargo.Item;
                     cacheCargoStack1 = cargo.Stack;
@@ -145,10 +143,10 @@ internal struct OptimizedPiler
         {
             if (cacheItemId1 == 0 && cacheItemId2 == 0)
             {
-                OptimizedCargo cargo = inputBelt.TryPickCargoAtEnd(out int cargoBufferIndex);
+                bool hasCargo = inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo, out int cargoBufferIndex);
                 if (flag2)
                 {
-                    if (cargo != default)
+                    if (hasCargo)
                     {
                         byte b2 = (byte)((float)(int)cargo.Stack / 2f + 0.5f);
                         byte b3 = (byte)((float)(int)cargo.Inc / (float)(int)cargo.Stack * (float)(int)b2 + 0.5f);
@@ -166,7 +164,7 @@ internal struct OptimizedPiler
                         inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                     }
                 }
-                else if (cargo != default)
+                else if (hasCargo)
                 {
                     cacheItemId2 = cargo.Item;
                     cacheCargoStack2 = cargo.Stack;

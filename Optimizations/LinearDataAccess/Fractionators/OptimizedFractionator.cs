@@ -164,8 +164,7 @@ internal struct OptimizedFractionator
             {
                 if (fluidId.ItemIndex > 0)
                 {
-                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt1, fluidId.ItemIndex, null);
-                    if (optimizedCargo != default)
+                    if (CargoPathMethods.TryPickItemAtRear(belt1, fluidId.ItemIndex, null, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
@@ -174,8 +173,7 @@ internal struct OptimizedFractionator
                 }
                 else
                 {
-                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt1, 0, RecipeProto.fractionatorNeeds);
-                    if (optimizedCargo != default)
+                    if (CargoPathMethods.TryPickItemAtRear(belt1, 0, RecipeProto.fractionatorNeeds, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
@@ -212,8 +210,7 @@ internal struct OptimizedFractionator
             {
                 if (fluidId.ItemIndex > 0)
                 {
-                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt2, fluidId.ItemIndex, null);
-                    if (optimizedCargo != default)
+                    if (CargoPathMethods.TryPickItemAtRear(belt2, fluidId.ItemIndex, null, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
@@ -222,8 +219,7 @@ internal struct OptimizedFractionator
                 }
                 else
                 {
-                    OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(belt2, 0, RecipeProto.fractionatorNeeds);
-                    if (optimizedCargo != default)
+                    if (CargoPathMethods.TryPickItemAtRear(belt2, 0, RecipeProto.fractionatorNeeds, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;

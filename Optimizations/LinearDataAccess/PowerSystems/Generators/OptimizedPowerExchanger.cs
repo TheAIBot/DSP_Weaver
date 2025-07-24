@@ -467,7 +467,7 @@ internal struct OptimizedPowerExchanger
     {
         if (emptyCount < 5)
         {
-            OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(beltId, emptyId.ItemIndex, null);
+            CargoPathMethods.TryPickItemAtRear(beltId, emptyId.ItemIndex, null, out OptimizedCargo optimizedCargo);
             if (emptyId.ItemIndex == optimizedCargo.Item)
             {
                 emptyCount += optimizedCargo.Stack;
@@ -477,7 +477,7 @@ internal struct OptimizedPowerExchanger
         }
         if (fullCount < 5)
         {
-            OptimizedCargo optimizedCargo = CargoPathMethods.TryPickItemAtRear(beltId, fullId.ItemIndex, null);
+            CargoPathMethods.TryPickItemAtRear(beltId, fullId.ItemIndex, null, out OptimizedCargo optimizedCargo);
             if (fullId.ItemIndex == optimizedCargo.Item)
             {
                 fullCount += optimizedCargo.Stack;
