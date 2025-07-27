@@ -184,7 +184,8 @@ internal struct OptimizedProducingLab
         int num14 = producingLabRecipe.TimeSpend > 5400000 ? 1 : 1 + speedOverride / 20000;
         int nextLabNeedsOffset = groupNeeds.GetObjectNeedsIndex(nextLabIndex);
         int nextLabServeOffset = groupNeeds.GroupNeedsSize * nextLabIndex;
-        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
+        int recipeRequireCountLength = producingLabRecipe.RequireCounts.Length;
+        for (int i = 0; i < recipeRequireCountLength; i++)
         {
             if (needs[nextLabNeedsOffset + i] == producingLabRecipe.Requires[i].ItemIndex && served[serveOffset + i] >= producingLabRecipe.RequireCounts[i] + num14)
             {

@@ -243,8 +243,6 @@ internal struct OptimizedResearchingLab
             GroupNeeds.SetIfInRange(lab.matrixIncServed, matrixIncServed, i, servedOffset + i);
         }
 
-        lab.matrixServed = matrixServed;
-        lab.matrixIncServed = matrixIncServed;
         lab.replicating = labPowerFields.replicating;
         lab.incUsed = incUsed;
         lab.hashBytes = hashBytes;
