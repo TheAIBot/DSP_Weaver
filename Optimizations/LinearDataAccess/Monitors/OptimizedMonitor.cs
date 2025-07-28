@@ -112,7 +112,7 @@ internal readonly struct OptimizedMonitor
                         {
                             num12 = ((num11 >= num13) ? num13 : num11);
                             cargo1.Stack += (byte)num12;
-                            targetBelt.SetCargoIndexInBuffer(cargoBufferIndex1, cargo1);
+                            targetBelt.SetCargoInBuffer(cargoBufferIndex1, cargo1);
                         }
                     }
                     else if (targetBelt.TryInsertItem(index, monitor.cargoFilter, (byte)num11, 0))
@@ -137,7 +137,7 @@ internal readonly struct OptimizedMonitor
                         else
                         {
                             cargo1.Stack -= (byte)num11;
-                            targetBelt.SetCargoIndexInBuffer(cargoBufferIndex1, cargo1);
+                            targetBelt.SetCargoInBuffer(cargoBufferIndex1, cargo1);
                             num14 = num11;
                         }
                         monitor.spawnItemAccumulator -= num14;

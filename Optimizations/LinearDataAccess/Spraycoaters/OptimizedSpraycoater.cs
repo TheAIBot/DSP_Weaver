@@ -112,7 +112,7 @@ internal struct OptimizedSpraycoater
                 {
                     sprayTime -= 10000;
                     cargo2.Inc = (byte)(num5 * incAbility);
-                    outgoingCargoPath.SetCargoIndexInBuffer(cargoBufferIndex, cargo2);
+                    outgoingCargoPath.SetCargoInBuffer(cargoBufferIndex, cargo2);
                     extraIncCount -= num5;
                     if (extraIncCount < 0)
                     {

@@ -125,7 +125,7 @@ internal sealed class BeltExecutor
                 {
                     Cargo oldCargo = oldCargoPool[num4];
                     OptimizedCargo optimizedCargo = new OptimizedCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
-                    OptimizedCargoPath.SetCargoIndexInBuffer(bufferCopy, num3 + 1, optimizedCargo);
+                    SetCargoInBuffer(bufferCopy, num3 + 1, optimizedCargo);
                 }
                 num3 += num2;
                 continue;
@@ -137,7 +137,7 @@ internal sealed class BeltExecutor
 
                 Cargo oldCargo = oldCargoPool[num5];
                 OptimizedCargo optimizedCargo = new OptimizedCargo(oldCargo.item, oldCargo.stack, oldCargo.inc);
-                OptimizedCargoPath.SetCargoIndexInBuffer(bufferCopy, num3 + 1, optimizedCargo);
+                SetCargoInBuffer(bufferCopy, num3 + 1, optimizedCargo);
                 num3 += num2;
                 continue;
             }
@@ -192,12 +192,19 @@ internal sealed class BeltExecutor
         }
     }
 
-    internal static void SetCargoIndexInBuffer(byte[] buffer, int bufferIndex, OptimizedCargo optimizedCargo)
+    internal static void SetCargoInBuffer(byte[] buffer, int bufferIndex, OptimizedCargo optimizedCargo)
     {
         buffer[bufferIndex + 0] = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
         buffer[bufferIndex + 1] = (byte)((optimizedCargo.Item >> 7) + 1);
         buffer[bufferIndex + 2] = (byte)(optimizedCargo.Stack + 1);
         buffer[bufferIndex + 3] = (byte)(optimizedCargo.Inc + 1);
+    }
+
+    internal static OptimizedCargo GetCargo(byte[] buffer, int index)
+    {
+        return new OptimizedCargo((short)(buffer[index] - 1 + ((buffer[index + 1] - 1) << 7)),
+                                  (byte)(buffer[index + 2] - 1),
+                                  (byte)(buffer[index + 3] - 1));
     }
 
     internal static void SetCargoIndexInBufferDefaultGameWay(byte[] buffer, int bufferIndex, int cargoIndex)
@@ -209,12 +216,5 @@ internal sealed class BeltExecutor
         buffer[bufferIndex + 2] = (byte)(cargoIndex % 100 + 1);
         cargoIndex /= 100;
         buffer[bufferIndex + 3] = (byte)(cargoIndex % 100 + 1);
-    }
-
-    internal static OptimizedCargo GetCargo(byte[] buffer, int index)
-    {
-        return new OptimizedCargo((short)(buffer[index] - 1 + ((buffer[index + 1] - 1) << 7)),
-                                  (byte)(buffer[index + 2] - 1),
-                                  (byte)(buffer[index + 3] - 1));
     }
 }

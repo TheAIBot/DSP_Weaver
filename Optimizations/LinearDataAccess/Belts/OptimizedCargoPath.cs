@@ -384,7 +384,7 @@ internal sealed class OptimizedCargoPath
                 num3 = ((num2 < 246) ? (num3 + (246 - buffer[num - 4])) : (num3 + (250 - num2)));
                 OptimizedCargo optimizedCargo = GetCargo(num3 + 1);
                 optimizedCargo = AddItemStackToCargo(optimizedCargo, itemId, maxStack, ref count, ref inc);
-                SetCargoIndexInBuffer(num3 + 1, optimizedCargo);
+                SetCargoInBuffer(num3 + 1, optimizedCargo);
             }
         }
         if (count == 0)
@@ -401,7 +401,7 @@ internal sealed class OptimizedCargoPath
                 num6 = ((num5 < 246) ? (num6 + (246 - buffer[num4 - 4])) : (num6 + (250 - num5)));
                 OptimizedCargo optimizedCargo = GetCargo(num6 + 1);
                 optimizedCargo = AddItemStackToCargo(optimizedCargo, itemId, maxStack, ref count, ref inc);
-                SetCargoIndexInBuffer(num6 + 1, optimizedCargo);
+                SetCargoInBuffer(num6 + 1, optimizedCargo);
             }
         }
         if (count == 0)
@@ -670,7 +670,7 @@ internal sealed class OptimizedCargoPath
         buffer[headIndex + 2] = 248;
         buffer[headIndex + 3] = 249;
         buffer[headIndex + 4] = 250;
-        SetCargoIndexInBuffer(headIndex + 5, optimizedCargo);
+        SetCargoInBuffer(headIndex + 5, optimizedCargo);
         buffer[headIndex + 9] = byte.MaxValue;
     }
 
@@ -682,7 +682,7 @@ internal sealed class OptimizedCargoPath
         buffer[num + 2] = 248;
         buffer[num + 3] = 249;
         buffer[num + 4] = 250;
-        SetCargoIndexInBuffer(num + 5, optimizedCargo);
+        SetCargoInBuffer(num + 5, optimizedCargo);
         buffer[num + 9] = byte.MaxValue;
     }
 
@@ -696,7 +696,7 @@ internal sealed class OptimizedCargoPath
         buffer[num2 + 2] = 248;
         buffer[num2 + 3] = 249;
         buffer[num2 + 4] = 250;
-        SetCargoIndexInBuffer(num2 + 5, optimizedCargo);
+        SetCargoInBuffer(num2 + 5, optimizedCargo);
         buffer[num2 + 9] = byte.MaxValue;
     }
 
@@ -712,7 +712,7 @@ internal sealed class OptimizedCargoPath
         buffer[2] = 248;
         buffer[3] = 249;
         buffer[4] = 250;
-        SetCargoIndexInBuffer(5, optimizedCargo);
+        SetCargoInBuffer(5, optimizedCargo);
         buffer[9] = byte.MaxValue;
         return true;
     }
@@ -735,7 +735,7 @@ internal sealed class OptimizedCargoPath
         buffer[num + 2] = 248;
         buffer[num + 3] = 249;
         buffer[num + 4] = 250;
-        SetCargoIndexInBuffer(num + 5, optimizedCargo);
+        SetCargoInBuffer(num + 5, optimizedCargo);
         buffer[num + 9] = byte.MaxValue;
         return true;
     }
@@ -754,7 +754,7 @@ internal sealed class OptimizedCargoPath
             {
                 cargo.Stack += stack;
                 cargo.Inc += inc;
-                SetCargoIndexInBuffer(cargoBufferIndex, cargo);
+                SetCargoInBuffer(cargoBufferIndex, cargo);
                 return true;
             }
             return false;
@@ -770,7 +770,7 @@ internal sealed class OptimizedCargoPath
         buffer[num + 2] = 248;
         buffer[num + 3] = 249;
         buffer[num + 4] = 250;
-        SetCargoIndexInBuffer(num + 5, optimizedCargo);
+        SetCargoInBuffer(num + 5, optimizedCargo);
         buffer[num + 9] = byte.MaxValue;
         return true;
     }
@@ -1447,14 +1447,14 @@ internal sealed class OptimizedCargoPath
         return false;
     }
 
-    internal void SetCargoIndexInBuffer(int bufferIndex, OptimizedCargo optimizedCargo)
+    internal void SetCargoInBuffer(int bufferIndex, OptimizedCargo optimizedCargo)
     {
-        SetCargoIndexInBuffer(buffer, bufferIndex, optimizedCargo);
+        SetCargoInBuffer(buffer, bufferIndex, optimizedCargo);
     }
 
-    internal static void SetCargoIndexInBuffer(byte[] buffer, int bufferIndex, OptimizedCargo optimizedCargo)
+    internal static void SetCargoInBuffer(byte[] buffer, int bufferIndex, OptimizedCargo optimizedCargo)
     {
-        BeltExecutor.SetCargoIndexInBuffer(buffer, bufferIndex, optimizedCargo);
+        BeltExecutor.SetCargoInBuffer(buffer, bufferIndex, optimizedCargo);
     }
 
     private OptimizedCargo GetCargo(int index)
