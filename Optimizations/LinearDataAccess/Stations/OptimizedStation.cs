@@ -106,11 +106,7 @@ internal readonly struct OptimizedStation
                     ref SlotData reference2 = ref stationComponent.slots[num10];
                     if (reference2.dir == IODir.Output)
                     {
-                        if (_cargoPaths[j] == null)
-                        {
-                            continue;
-                        }
-                        OptimizedCargoPath? cargoPath2 = _cargoPaths[j];
+                        OptimizedCargoPath? cargoPath2 = _cargoPaths[k];
                         if (cargoPath2 == null)
                         {
                             continue;
@@ -134,7 +130,7 @@ internal readonly struct OptimizedStation
                     }
                     else if (reference2.dir != IODir.Input)
                     {
-                        _cargoPaths[j] = null;
+                        _cargoPaths[k] = null;
                         reference2.beltId = 0;
                         reference2.counter = 0;
                     }
