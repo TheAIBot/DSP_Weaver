@@ -14,11 +14,11 @@ namespace Weaver.Optimizations.LinearDataAccess.Stations;
 internal readonly struct OptimizedStation
 {
     public readonly StationComponent stationComponent;
-    private readonly OptimizedCargoPath?[] _cargoPaths;
+    private readonly OptimizedCargoPath?[]? _cargoPaths;
     private readonly int? _optimizedMinerIndex;
 
     public OptimizedStation(StationComponent stationComponent,
-                            OptimizedCargoPath?[] cargoPaths,
+                            OptimizedCargoPath?[]? cargoPaths,
                             int? optimizedMinerIndex)
     {
         this.stationComponent = stationComponent;
@@ -28,6 +28,12 @@ internal readonly struct OptimizedStation
 
     public void UpdateOutputSlots(int maxPilerCount)
     {
+        OptimizedCargoPath?[]? cargoPaths = _cargoPaths;
+        if (cargoPaths == null)
+        {
+            return;
+        }
+
         lock (stationComponent.storage)
         {
             int num = ((stationComponent.pilerCount == 0) ? maxPilerCount : stationComponent.pilerCount);
@@ -38,6 +44,12 @@ internal readonly struct OptimizedStation
             {
                 for (int i = 0; i < num2; i++)
                 {
+                    OptimizedCargoPath? cargoPath = cargoPaths[i];
+                    if (cargoPath == null)
+                    {
+                        continue;
+                    }
+
                     ref SlotData reference = ref stationComponent.slots[i];
                     if (reference.dir == IODir.Output)
                     {
@@ -47,12 +59,7 @@ internal readonly struct OptimizedStation
                         }
                         else
                         {
-                            if (_cargoPaths[i] == null)
-                            {
-                                continue;
-                            }
-                            OptimizedCargoPath? cargoPath = _cargoPaths[i];
-                            if (cargoPath == null || cargoPath.buffer[9] != 0)
+                            if (cargoPath.buffer[9] != 0)
                             {
                                 continue;
                             }
@@ -91,7 +98,7 @@ internal readonly struct OptimizedStation
                     }
                     else if (reference.dir != IODir.Input)
                     {
-                        _cargoPaths[i] = null;
+                        cargoPaths[i] = null;
                         reference.beltId = 0;
                         reference.counter = 0;
                     }
@@ -102,15 +109,16 @@ internal readonly struct OptimizedStation
             {
                 for (int k = 0; k < num2; k++)
                 {
+                    OptimizedCargoPath? cargoPath2 = cargoPaths[k];
+                    if (cargoPath2 == null)
+                    {
+                        continue;
+                    }
+
                     int num10 = (stationComponent.outSlotOffset + k) % num2;
                     ref SlotData reference2 = ref stationComponent.slots[num10];
                     if (reference2.dir == IODir.Output)
                     {
-                        OptimizedCargoPath? cargoPath2 = _cargoPaths[k];
-                        if (cargoPath2 == null)
-                        {
-                            continue;
-                        }
                         int num11 = 0;
                         int num12 = 0;
                         if (num11 >= 0 && num11 < num3)
@@ -130,7 +138,7 @@ internal readonly struct OptimizedStation
                     }
                     else if (reference2.dir != IODir.Input)
                     {
-                        _cargoPaths[k] = null;
+                        cargoPaths[k] = null;
                         reference2.beltId = 0;
                         reference2.counter = 0;
                     }
@@ -145,6 +153,12 @@ internal readonly struct OptimizedStation
 
     public void UpdateInputSlots()
     {
+        OptimizedCargoPath?[]? cargoPaths = _cargoPaths;
+        if (cargoPaths == null)
+        {
+            return;
+        }
+
         lock (stationComponent.storage)
         {
             int num = stationComponent.slots.Length;
@@ -152,6 +166,12 @@ internal readonly struct OptimizedStation
             int num2 = stationComponent.needs[0] + stationComponent.needs[1] + stationComponent.needs[2] + stationComponent.needs[3] + stationComponent.needs[4] + stationComponent.needs[5];
             for (int i = 0; i < num; i++)
             {
+                OptimizedCargoPath? cargoPath = cargoPaths[i];
+                if (cargoPath == null)
+                {
+                    continue;
+                }
+
                 ref SlotData reference = ref stationComponent.slots[i];
                 if (reference.dir == IODir.Input)
                 {
@@ -161,15 +181,11 @@ internal readonly struct OptimizedStation
                     }
                     else
                     {
-                        if (num2 == 0 || _cargoPaths[i] == null)
+                        if (num2 == 0)
                         {
                             continue;
                         }
-                        OptimizedCargoPath? cargoPath = _cargoPaths[i];
-                        if (cargoPath == null)
-                        {
-                            continue;
-                        }
+
                         int needIdx = -1;
                         OptimizedCargo num3 = cargoPath.TryPickItemAtRear(stationComponent.needs, out needIdx);
                         if (needIdx >= 0)
@@ -182,7 +198,7 @@ internal readonly struct OptimizedStation
                 }
                 else if (reference.dir != IODir.Output)
                 {
-                    _cargoPaths[i] = null;
+                    cargoPaths[i] = null;
                     reference.beltId = 0;
                     reference.counter = 0;
                 }
@@ -273,7 +289,7 @@ internal readonly struct OptimizedStation
         return num;
     }
 
-    public void InputItem(OptimizedCargo optimizedCargo, int needIdx)
+    private void InputItem(OptimizedCargo optimizedCargo, int needIdx)
     {
         if (optimizedCargo.Item <= 0)
         {
