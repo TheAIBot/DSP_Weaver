@@ -140,14 +140,14 @@ internal sealed class AssemblerExecutor
         for (int assemblerIndex = 0; assemblerIndex < assemblerReplicatings.Length; assemblerIndex++)
         {
             bool replicating = assemblerReplicatings[assemblerIndex];
-            int extraPowerRatios = assemblerExtraPowerRatios[assemblerIndex];
+            int extraPowerRatio = assemblerExtraPowerRatios[assemblerIndex];
             UpdatePowerConsumptionPerPrototype(assemblerPowerConsumerTypeIndexes,
                                                powerConsumerTypes,
                                                prototypeIdIndexes,
                                                prototypeIdPowerConsumption,
                                                assemblerIndex,
                                                replicating,
-                                               extraPowerRatios);
+                                               extraPowerRatio);
         }
 
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
@@ -159,11 +159,11 @@ internal sealed class AssemblerExecutor
                                                            long[] prototypeIdPowerConsumption,
                                                            int assemblerIndex,
                                                            bool replicating,
-                                                           int extraPowerRatios)
+                                                           int extraPowerRatio)
     {
         int powerConsumerTypeIndex = assemblerPowerConsumerTypeIndexes[assemblerIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-        prototypeIdPowerConsumption[prototypeIdIndexes[assemblerIndex]] += GetPowerConsumption(powerConsumerType, replicating, extraPowerRatios);
+        prototypeIdPowerConsumption[prototypeIdIndexes[assemblerIndex]] += GetPowerConsumption(powerConsumerType, replicating, extraPowerRatio);
     }
 
     public void Save(PlanetFactory planet, SubFactoryNeeds subFactoryNeeds)

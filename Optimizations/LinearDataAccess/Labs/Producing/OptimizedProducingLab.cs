@@ -208,7 +208,7 @@ internal struct OptimizedProducingLab
         int num17 = 10 * ((speedOverride + 9999) / 10000) - 2;
         if (produced[producedOffset] < num17 && produced[nextLabProducedOffset] > 0)
         {
-            int num18 = num17 - produced[0] < produced[nextLabProducedOffset] ? num17 - produced[producedOffset] : produced[nextLabProducedOffset];
+            int num18 = num17 - produced[producedOffset] < produced[nextLabProducedOffset] ? num17 - produced[producedOffset] : produced[nextLabProducedOffset];
             produced[producedOffset] += (short)num18;
             produced[nextLabProducedOffset] -= (short)num18;
             movedItems = true;
