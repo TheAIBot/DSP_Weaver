@@ -1,3 +1,10 @@
+## 1.5.0
+* 10-20% DSP performance improvement compared to 1.4.2
+* Improved data access patterns.
+	* Flattened arrays used by assemblers and labs to improve sequential data access.
+	* Ordered sorter update order to improve sequential data access.
+	* Improve belts item data access by storing belt items directly in the belts data.
+
 ## 1.4.2
 * Fix fractionator consumption of fluid was added to production statistics instead of consumptions statistics.
 
