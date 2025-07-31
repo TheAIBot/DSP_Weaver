@@ -2,7 +2,7 @@
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct FractionatorPowerFields
 {
     public bool isWorking;

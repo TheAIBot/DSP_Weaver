@@ -4,7 +4,7 @@ using Weaver.Optimizations.LinearDataAccess.Inserters;
 
 namespace Weaver.Optimizations.LinearDataAccess.Tanks;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedTank
 {
     public const int NO_TANK = -1;

@@ -2,7 +2,7 @@
 
 namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal record struct FractionatorConfiguration(bool IsOutput0,
                                                  bool IsOutput1,
                                                  bool IsOutput2,

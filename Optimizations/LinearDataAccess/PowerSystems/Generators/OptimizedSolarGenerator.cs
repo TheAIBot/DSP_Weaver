@@ -2,7 +2,7 @@
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedSolarGenerator
 {
     private readonly long genEnergyPerTick;

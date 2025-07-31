@@ -3,7 +3,7 @@ using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Pilers;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedPiler
 {
     private readonly OptimizedCargoPath inputBelt;

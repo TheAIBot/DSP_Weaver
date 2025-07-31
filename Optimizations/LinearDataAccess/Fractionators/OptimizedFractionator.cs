@@ -8,7 +8,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Fractionators;
 
 internal record struct FractionatorRecipeProduct(int GameFluidId, OptimizedItemId Fluid, OptimizedItemId Product, float ProduceProbability);
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedFractionator
 {
     public readonly OptimizedCargoPath? belt0;

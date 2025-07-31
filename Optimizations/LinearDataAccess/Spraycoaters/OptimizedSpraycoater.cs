@@ -4,7 +4,7 @@ using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Spraycoaters;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedSpraycoater
 {
     public readonly int incommingBeltSegIndexPlusSegPivotOffset;

@@ -4,7 +4,7 @@ using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedResearchingLab
 {
     public const int NO_NEXT_LAB = -1;

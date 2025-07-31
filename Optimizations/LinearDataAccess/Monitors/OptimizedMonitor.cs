@@ -9,7 +9,7 @@ namespace Weaver.Optimizations.LinearDataAccess.Monitors;
 /// If i wan to optimize this further then i also have to deal with the <see cref="WarningSystem"/>
 /// which i currently don't want to do.
 /// </summary>
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal readonly struct OptimizedMonitor
 {
     private readonly OptimizedCargoPath targetBelt;

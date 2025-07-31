@@ -33,7 +33,7 @@ internal struct AssemblerTimingData
     }
 }
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedAssembler
 {
     public readonly bool forceAccMode;

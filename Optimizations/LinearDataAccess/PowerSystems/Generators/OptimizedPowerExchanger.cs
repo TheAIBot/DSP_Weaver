@@ -5,7 +5,7 @@ using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedPowerExchanger
 {
     private readonly float targetState;

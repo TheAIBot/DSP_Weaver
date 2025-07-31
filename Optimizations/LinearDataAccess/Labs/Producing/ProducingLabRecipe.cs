@@ -5,7 +5,7 @@ using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal readonly struct ProducingLabRecipe : IEqualityComparer<ProducingLabRecipe>
 {
     public readonly int RecipeId;

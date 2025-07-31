@@ -5,7 +5,7 @@ using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Assemblers;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
 {
     public readonly int RecipeId;

@@ -4,7 +4,7 @@ using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedInserter : IInserter<OptimizedInserter>
 {
     public byte grade { get; }

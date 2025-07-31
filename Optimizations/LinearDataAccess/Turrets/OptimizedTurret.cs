@@ -3,7 +3,7 @@ using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Turrets;
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential, Pack=1)]
 internal readonly struct OptimizedTurret
 {
     private readonly OptimizedCargoPath? targetBelt;
