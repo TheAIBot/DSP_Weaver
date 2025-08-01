@@ -6,6 +6,8 @@ internal interface IInserter<T>
     where T : struct, IInserter<T>
 {
     byte grade { get; }
+    int pickOffset { get; }
+    int insertOffset { get; }
 
     T Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
 

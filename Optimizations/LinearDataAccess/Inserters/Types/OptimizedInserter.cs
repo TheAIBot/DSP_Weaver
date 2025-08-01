@@ -9,9 +9,9 @@ namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 internal struct OptimizedInserter : IInserter<OptimizedInserter>
 {
     public byte grade { get; }
+    public int pickOffset { get; }
+    public int insertOffset { get; }
     private readonly bool careNeeds;
-    private readonly int pickOffset;
-    private readonly int insertOffset;
     private readonly int filter;
     private readonly int speed; // Perhaps a constant at 10.000? Need to validate
     private readonly int stt; // Probably not a constant but can probably be moved to inserterGrade. Need to validate
@@ -30,9 +30,9 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter>
         }
 
         this.grade = (byte)grade;
-        careNeeds = inserter.careNeeds;
         pickOffset = pickFromOffset;
         insertOffset = insertIntoOffset;
+        careNeeds = inserter.careNeeds;
         filter = inserter.filter;
         speed = inserter.speed;
         time = inserter.time;

@@ -9,9 +9,9 @@ namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
 {
     public byte grade { get; }
+    public int pickOffset { get; }
+    public int insertOffset { get; }
     private readonly bool careNeeds;
-    private readonly int pickOffset;
-    private readonly int insertOffset;
     private readonly int filter;
     private int itemId;
     private short itemCount;
@@ -27,9 +27,9 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         }
 
         this.grade = (byte)grade;
-        careNeeds = inserter.careNeeds;
         pickOffset = pickFromOffset;
         insertOffset = insertIntoOffset;
+        careNeeds = inserter.careNeeds;
         filter = inserter.filter;
         itemId = inserter.itemId;
         itemCount = inserter.itemCount;
