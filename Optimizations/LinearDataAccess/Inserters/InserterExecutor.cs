@@ -1099,10 +1099,19 @@ internal sealed class InserterExecutor<T>
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[inserter.entityId]);
         }
 
+        // Maps new index -> old index. This is used to reorder arrays.
         int[] optimalInserterNeedsOrder = inserterConnections.Select((x, i) => (x, i))
                                                              .OrderBy(x => _subFactoryNeeds.GetTypedObjectNeedsIndex(x.x.InsertInto))
                                                              .Select(x => x.i)
                                                              .ToArray();
+
+
+        // Maps old index -> new index. This is used to reorder dictionaries.
+        int[] oldIndexToNewIndex = new int[optimalInserterNeedsOrder.Length];
+        for (int i = 0; i < optimalInserterNeedsOrder.Length; i++)
+        {
+            oldIndexToNewIndex[optimalInserterNeedsOrder[i]] = i;
+        }
 
         _inserterNetworkIdAndStates = optimalInserterNeedsOrder.Select(x => inserterNetworkIdAndStates[x]).ToArray();
         _inserterConnections = optimalInserterNeedsOrder.Select(x => inserterConnections[x]).ToArray();
@@ -1110,7 +1119,7 @@ internal sealed class InserterExecutor<T>
         _optimizedInserters = optimalInserterNeedsOrder.Select(x => optimizedInserters[x]).ToArray();
         _optimizedInserterStages = optimalInserterNeedsOrder.Select(x => optimizedInserterStages[x]).ToArray();
         _connectionBelts = optimalInserterNeedsOrder.Select(x => connectionBelts[x]).ToArray();
-        _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex.ToDictionary(x => x.Key, x => optimalInserterNeedsOrder[x.Value]);
+        _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex.ToDictionary(x => x.Key, x => oldIndexToNewIndex[x.Value]);
         _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(optimalInserterNeedsOrder);
     }
 
