@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.LinearDataAccess.Inserters;
+using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 using static EjectorComponent;

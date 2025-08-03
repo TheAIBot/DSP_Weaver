@@ -1,5 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using Weaver.Optimizations.LinearDataAccess.Inserters;
+using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Labs.Researching;

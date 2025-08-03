@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.LinearDataAccess.Assemblers;
 using Weaver.Optimizations.LinearDataAccess.Belts;
@@ -9,145 +8,13 @@ using Weaver.Optimizations.LinearDataAccess.Ejectors;
 using Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 using Weaver.Optimizations.LinearDataAccess.Labs;
 using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
+using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems.Generators;
 using Weaver.Optimizations.LinearDataAccess.Silos;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters;
-
-internal interface IWholeNeedsBuilder
-{
-    List<short> GetNeedsFlat();
-    void CompletedGroup(EntityType entityType, GroupNeeds groupNeeds);
-}
-
-internal sealed class SubFactoryNeedsBuilder : IWholeNeedsBuilder
-{
-    private readonly List<short> _needsFlat = [];
-    private readonly GroupNeeds[] _groupNeeds = new GroupNeeds[ArrayExtensions.GetEnumValuesEnumerable<EntityType>().Max(x => (int)x) + 1];
-
-    public GroupNeedsBuilder CreateGroupNeedsBuilder(EntityType entityType)
-    {
-        return new GroupNeedsBuilder(this, entityType);
-    }
-
-    List<short> IWholeNeedsBuilder.GetNeedsFlat() => _needsFlat;
-
-    void IWholeNeedsBuilder.CompletedGroup(EntityType entityType, GroupNeeds groupNeeds)
-    {
-        _groupNeeds[(int)entityType] = groupNeeds;
-    }
-
-    public SubFactoryNeeds Build()
-    {
-        return new SubFactoryNeeds(_groupNeeds, _needsFlat.ToArray());
-    }
-}
-
-internal sealed class GroupNeedsBuilder
-{
-    private readonly IWholeNeedsBuilder _wholeNeedsBuilder;
-    private readonly EntityType _groupEntityType;
-    private readonly List<int[]> _allNeeds = [];
-    private int _maxNeedsSize = int.MinValue;
-
-    public GroupNeedsBuilder(IWholeNeedsBuilder wholeNeedsBuilder, EntityType groupEntityType)
-    {
-        _wholeNeedsBuilder = wholeNeedsBuilder;
-        _groupEntityType = groupEntityType;
-    }
-
-    public void AddNeeds(int[] needs, int needsSize)
-    {
-        _allNeeds.Add(needs);
-        _maxNeedsSize = Math.Max(_maxNeedsSize, needsSize);
-    }
-
-    public void Complete()
-    {
-        List<int[]> allNeeds = _allNeeds;
-        if (allNeeds.Count == 0)
-        {
-            return;
-        }
-
-        List<short> needsFlat = _wholeNeedsBuilder.GetNeedsFlat();
-        int groupStartIndex = needsFlat.Count;
-        int maxNeedsSize = _maxNeedsSize;
-
-        for (int i = 0; i < allNeeds.Count; i++)
-        {
-            for (int needsIndex = 0; needsIndex < maxNeedsSize; needsIndex++)
-            {
-
-                needsFlat.Add(GetOrDefault(allNeeds[i], needsIndex));
-            }
-        }
-
-        _wholeNeedsBuilder.CompletedGroup(_groupEntityType, new GroupNeeds(groupStartIndex, maxNeedsSize));
-    }
-
-    private static short GetOrDefault(int[] values, int index)
-    {
-        if (values.Length <= index)
-        {
-            return 0;
-        }
-
-        return (short)values[index];
-    }
-}
-
-internal readonly struct SubFactoryNeeds
-{
-    private readonly GroupNeeds[] _groupNeeds;
-    public readonly short[] Needs;
-
-    public SubFactoryNeeds(GroupNeeds[] groupNeeds, short[] needs)
-    {
-        _groupNeeds = groupNeeds;
-        Needs = needs;
-    }
-
-    public readonly GroupNeeds GetGroupNeeds(EntityType entityType)
-    {
-        return _groupNeeds[(int)entityType];
-    }
-
-    public readonly int GetTypedObjectNeedsIndex(TypedObjectIndex typedObjectIndex)
-    {
-        return _groupNeeds[(int)typedObjectIndex.EntityType].GetObjectNeedsIndex(typedObjectIndex.Index);
-    }
-}
-
-internal record struct GroupNeeds(int GroupStartIndex, int GroupNeedsSize)
-{
-    public int GetObjectNeedsIndex(int objectIndex)
-    {
-        return GroupStartIndex + objectIndex * GroupNeedsSize;
-    }
-
-    public static void SetIfInRange(int[] copyTo, short[] copyFrom, int copyToIndex, int copyFromIndex)
-    {
-        if (copyTo.Length <= copyToIndex)
-        {
-            return;
-        }
-
-        copyTo[copyToIndex] = copyFrom[copyFromIndex];
-    }
-
-    public static void SetIfInRange(int[] copyTo, int[] copyFrom, int copyToIndex, int copyFromIndex)
-    {
-        if (copyTo.Length <= copyToIndex)
-        {
-            return;
-        }
-
-        copyTo[copyToIndex] = copyFrom[copyFromIndex];
-    }
-}
 
 internal static class CargoPathMethods
 {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.LinearDataAccess.Inserters;
+using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
@@ -327,17 +327,23 @@ internal sealed class ProducingLabExecutor
             List<short> incServedFlat = [];
             List<short> producedFlat = [];
 
+            // Apparently some labs have a ridiculously high number of items inside it.
+            // I assume this to be a bug an clamp it to -5000, 5000 because i don't expect any
+            // lab recipe would need such a high buffer for anything.
+            const int minAllowedValue = -5000;
+            const int maxAllowedValue = 5000;
+
             for (int labIndex = 0; labIndex < optimizedLabs.Count; labIndex++)
             {
                 for (int servedIndex = 0; servedIndex < maxServedsSize; servedIndex++)
                 {
-                    servedFlat.Add(GetOrDefault(served[labIndex], servedIndex));
-                    incServedFlat.Add(GetOrDefault(incServed[labIndex], servedIndex));
+                    servedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(served[labIndex], servedIndex, minAllowedValue, maxAllowedValue));
+                    incServedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(incServed[labIndex], servedIndex, minAllowedValue, maxAllowedValue));
                 }
 
                 for (int producedIndex = 0; producedIndex < maxProducedSize; producedIndex++)
                 {
-                    producedFlat.Add(GetOrDefault(produced[labIndex], producedIndex));
+                    producedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(produced[labIndex], producedIndex, minAllowedValue, maxAllowedValue));
                 }
             }
 
@@ -362,15 +368,5 @@ internal sealed class ProducingLabExecutor
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, LabPowerFields producingLabPowerFields)
     {
         return powerConsumerType.GetRequiredEnergy(producingLabPowerFields.replicating, 1000 + producingLabPowerFields.extraPowerRatio);
-    }
-
-    private static short GetOrDefault(int[] values, int index)
-    {
-        if (values.Length <= index)
-        {
-            return 0;
-        }
-
-        return (short)values[index];
     }
 }

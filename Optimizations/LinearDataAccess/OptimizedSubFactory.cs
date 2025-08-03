@@ -12,6 +12,7 @@ using Weaver.Optimizations.LinearDataAccess.Labs.Producing;
 using Weaver.Optimizations.LinearDataAccess.Labs.Researching;
 using Weaver.Optimizations.LinearDataAccess.Miners;
 using Weaver.Optimizations.LinearDataAccess.Monitors;
+using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
 using Weaver.Optimizations.LinearDataAccess.Pilers;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Silos;

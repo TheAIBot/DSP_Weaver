@@ -1,4 +1,6 @@
-﻿namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
+﻿using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
+
+namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
 internal interface IInserter<T>
     where T : struct, IInserter<T>

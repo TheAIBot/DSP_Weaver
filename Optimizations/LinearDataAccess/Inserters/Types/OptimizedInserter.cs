@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
 
 namespace Weaver.Optimizations.LinearDataAccess.Inserters.Types;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedInserter : IInserter<OptimizedInserter>
 {
     public byte grade { get; }

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.LinearDataAccess.Inserters;
+using Weaver.Optimizations.LinearDataAccess.NeedsSystem;
 using Weaver.Optimizations.LinearDataAccess.PowerSystems;
 using Weaver.Optimizations.LinearDataAccess.Statistics;
 
@@ -303,17 +303,23 @@ internal sealed class AssemblerExecutor
             List<short> incServedFlat = [];
             List<short> producedFlat = [];
 
+            // Apparently some assemblers have a ridiculously high number of items inside it.
+            // I assume this to be a bug an clamp it to -5000, 5000 because i don't expect any
+            // assembler recipe would need such a high buffer for anything.
+            const int minAllowedValue = -5000;
+            const int maxAllowedValue = 5000;
+
             for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Count; assemblerIndex++)
             {
                 for (int servedIndex = 0; servedIndex < maxServedsSize; servedIndex++)
                 {
-                    servedFlat.Add(GetOrDefault(served[assemblerIndex], servedIndex));
-                    incServedFlat.Add(GetOrDefault(incServed[assemblerIndex], servedIndex));
+                    servedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(served[assemblerIndex], servedIndex, minAllowedValue, maxAllowedValue));
+                    incServedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(incServed[assemblerIndex], servedIndex, minAllowedValue, maxAllowedValue));
                 }
 
                 for (int producedIndex = 0; producedIndex < maxProducedSize; producedIndex++)
                 {
-                    producedFlat.Add(GetOrDefault(produced[assemblerIndex], producedIndex));
+                    producedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(produced[assemblerIndex], producedIndex, minAllowedValue, maxAllowedValue));
                 }
             }
 
@@ -339,15 +345,5 @@ internal sealed class AssemblerExecutor
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, bool assemblerReplicating, int assemblerExtraPowerRatio)
     {
         return powerConsumerType.GetRequiredEnergy(assemblerReplicating, 1000 + assemblerExtraPowerRatio);
-    }
-
-    private static short GetOrDefault(int[] values, int index)
-    {
-        if (values.Length <= index)
-        {
-            return 0;
-        }
-
-        return (short)values[index];
     }
 }
