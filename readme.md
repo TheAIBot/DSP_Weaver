@@ -16,6 +16,7 @@ Known incompatible mods:
 * GenesisBook
 * Multfuntion mod
 * More Mega Structures
+* VeinityProject
 
 # Known issues
 None. You can [report bugs here.](https://github.com/TheAIBot/DSP_Weaver/issues)
@@ -30,7 +31,7 @@ Whenever a research completes, the mod will reoptimize all planets one at a time
 # Could DSP developers implement these optimizations?
 
 ## Spray coaters and statistics
-Parallelizing spray coaters is relatively straightforward and provides a significant performance improvement in most saves. Same goes for the statistics optimizations this mod does.
+Parallelizing spray coaters is relatively straightforward and provides a significant performance improvement in most saves.
 
 ## Data layout
 The general implementation of DSP is quite well thought out. The use of structs of entities makes the code already quite optimized.
