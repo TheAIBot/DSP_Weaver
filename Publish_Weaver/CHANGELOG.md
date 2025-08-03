@@ -4,7 +4,7 @@
 	* Flattened arrays used by assemblers and labs to improve sequential data access.
 	* Ordered sorter update order to improve sequential data access.
 	* Improve belts item data access by storing belt items directly in the belts data.
-* Fix moving fuel between power generators by daisy chaining them with sorters did not work. 
+* Fixed using sorters to move fuel between power generators did not work.
 
 ## 1.4.2
 * Fix fractionator consumption of fluid was added to production statistics instead of consumptions statistics.
