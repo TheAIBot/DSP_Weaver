@@ -3,7 +3,7 @@ using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Pilers;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedPiler
 {
     private readonly OptimizedCargoPath inputBelt;
@@ -61,7 +61,7 @@ internal struct OptimizedPiler
             {
                 if (cacheItemId2 == 0)
                 {
-                    if (inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo, out int cargoBufferIndex))
+                    if (inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo))
                     {
                         if (cacheItemId1 != 0)
                         {
@@ -74,18 +74,16 @@ internal struct OptimizedPiler
                         cacheCargoInc1 = cargo.Inc;
                         cacheCdTick = (byte)(PilerComponent.cacheCdTickArray[slowlyBeltSpeed - 1] + 1);
                         timeSpend -= 10000;
-                        inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                     }
                 }
             }
             else if (cacheItemId1 == 0)
             {
-                if (inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo, out int cargoBufferIndex))
+                if (inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo))
                 {
                     cacheItemId1 = cargo.Item;
                     cacheCargoStack1 = cargo.Stack;
                     cacheCargoInc1 = cargo.Inc;
-                    inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                 }
             }
             int num3 = outputBelt.TestBlankAtHead();
@@ -143,7 +141,7 @@ internal struct OptimizedPiler
         {
             if (cacheItemId1 == 0 && cacheItemId2 == 0)
             {
-                bool hasCargo = inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo, out int cargoBufferIndex);
+                bool hasCargo = inputBelt.TryPickCargoAtEnd(out OptimizedCargo cargo);
                 if (flag2)
                 {
                     if (hasCargo)
@@ -161,7 +159,6 @@ internal struct OptimizedPiler
                             cacheCdTick = (byte)(PilerComponent.cacheCdTickArray[slowlyBeltSpeed - 1] * 2 + 1);
                             timeSpend -= 10000;
                         }
-                        inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                     }
                 }
                 else if (hasCargo)
@@ -169,7 +166,6 @@ internal struct OptimizedPiler
                     cacheItemId2 = cargo.Item;
                     cacheCargoStack2 = cargo.Stack;
                     cacheCargoInc2 = cargo.Inc;
-                    inputBelt.RemoveCargoAtIndexDirect(cargoBufferIndex);
                 }
             }
             int num7 = outputBelt.TestBlankAtHead();

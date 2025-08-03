@@ -3,7 +3,7 @@ using Weaver.Optimizations.LinearDataAccess.Belts;
 
 namespace Weaver.Optimizations.LinearDataAccess.Splitters;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedSplitter
 {
     private readonly int beltA;
@@ -233,7 +233,7 @@ internal struct OptimizedSplitter
         IL_0514:
             if (us_tmp_outputPath0 != null)
             {
-                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num2, out _);
+                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num2);
                 Assert.True(num2.Item >= 0);
                 us_tmp_outputPath0.InsertCargoAtHeadDirect(num2, num);
                 InputAlternate(us_tmp_inputIndex0);
@@ -241,9 +241,8 @@ internal struct OptimizedSplitter
             }
             else if (topId != 0 && (flag || outFilter == 0) && subFactory.InsertCargoIntoStorage(topId, us_tmp_inputCargo0))
             {
-                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num3, out int cargoBufferIndex);
+                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num3);
                 Assert.True(num3.Item >= 0);
-                us_tmp_inputPath0.RemoveCargoAtIndexDirect(cargoBufferIndex);
                 InputAlternate(us_tmp_inputIndex0);
             }
             us_tmp_inputPath0 = us_tmp_inputPath1;

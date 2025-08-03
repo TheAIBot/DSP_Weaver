@@ -848,16 +848,6 @@ internal sealed class OptimizedCargoPath
         return false;
     }
 
-    public void RemoveCargoAtIndexDirect(int index)
-    {
-        Array.Clear(buffer, index - 4, 10);
-        int num = index + 5 + 1;
-        if (updateLen < num)
-        {
-            updateLen = num;
-        }
-    }
-
     public OptimizedCargo TryPickItem(int index, int length)
     {
         if (index < 0)
@@ -1215,7 +1205,7 @@ internal sealed class OptimizedCargoPath
         return default;
     }
 
-    public bool TryPickCargoAtEnd(out OptimizedCargo cargo, out int cargoBufferIndex)
+    public bool TryPickCargoAtEnd(out OptimizedCargo cargo)
     {
         int num = bufferLength - 5 - 1;
         if (buffer[num] == 250)
@@ -1228,12 +1218,10 @@ internal sealed class OptimizedCargoPath
                 updateLen = num2;
             }
             cargo = optimizedCargo;
-            cargoBufferIndex = num + 1;
             return true;
         }
 
         cargo = default;
-        cargoBufferIndex = -1;
         return false;
     }
 
