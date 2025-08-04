@@ -2,7 +2,7 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
-using Weaver.Optimizations.LinearDataAccess;
+using Weaver.Optimizations;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver;
@@ -34,34 +34,6 @@ public class WeaverFixes : BaseUnityPlugin
         harmony.PatchAll(typeof(KillStatisticsPatches));
         harmony.PatchAll(typeof(TrafficStatisticsPatches));
         //harmony.PatchAll(typeof(CustomChartsPatches));
-
-
-
-        // These are for benchmarking the code
-        //harmony.PatchAll(typeof(GameHistoryDataBenchmarkPatches));
-        //harmony.PatchAll(typeof(GameStatDataBenchmarkPatches));
-        //harmony.PatchAll(typeof(PlayerPackageUtilityBenchmarkPatches));
-
-        //harmony.PatchAll(typeof(ProductionStatisticsBenchmarkPatches));
-        //harmony.PatchAll(typeof(KillStatisticsBenchmarkPatches));
-        //harmony.PatchAll(typeof(TrafficStatisticsBenchmarkPatches));
-        //harmony.PatchAll(typeof(CustomChartsBenchmarkPatches));
-
-
-        // Optimizing the codes usage of object pools
-        //harmony.PatchAll(typeof(ShrinkPools));
-
-        //harmony.PatchAll(typeof(WorkerThreadExecutorBenchmarkPatches));
-        //harmony.PatchAll(typeof(MultithreadSystemBenchmarkDisplayPatches));
-
-        //InserterThreadLoadBalance.EnableOptimization(harmony);
-        //InserterMultithreadingOptimization.EnableOptimization(harmony);
-
-        // Causes various issues such as
-        // * Incorrect production statistics
-        // * Incorrect power statistics
-        // * Assembler DivideByZeroException
-        //LinearInserterDataAccessOptimization.EnableOptimization(harmony);
 
 
         OptimizedStarCluster.EnableOptimization(harmony);
