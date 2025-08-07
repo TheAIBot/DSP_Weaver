@@ -7,6 +7,8 @@ internal sealed class GasPlanetWideStationExecutor
 {
     private OptimizedStation[] _optimizedStations = null!;
 
+    public int Count => _optimizedStations.Length;
+
     public void StationGameTick(PlanetFactory planet, long time, ref MiningFlags miningFlags)
     {
         int num2 = (int)(time % 60);

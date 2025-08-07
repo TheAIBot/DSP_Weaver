@@ -9,6 +9,8 @@ internal sealed class SplitterExecutor
 {
     private OptimizedSplitter[] _optimizedSplitters = null!;
 
+    public int Count => _optimizedSplitters.Length;
+
     public void GameTick(PlanetFactory planet, OptimizedSubFactory subFactory, BeltExecutor beltExecutor)
     {
         CargoTraffic cargoTraffic = planet.cargoTraffic;

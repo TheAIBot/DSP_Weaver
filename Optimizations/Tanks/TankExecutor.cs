@@ -10,6 +10,8 @@ internal sealed class TankExecutor
     public OptimizedTank[] _optimizedTanks = null!;
     private Dictionary<int, int> _tankIdToOptimizedTankIndex = null!;
 
+    public int Count => _optimizedTanks.Length;
+
     public void GameTick()
     {
         OptimizedTank[] optimizedTanks = _optimizedTanks;

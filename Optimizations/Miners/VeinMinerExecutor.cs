@@ -15,6 +15,8 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
+    public int Count => _optimizedMiners.Length;
+
     public int GetOptimizedMinerIndexFromMinerId(int minerId)
     {
         return _minerIdToOptimizedIndex[minerId];

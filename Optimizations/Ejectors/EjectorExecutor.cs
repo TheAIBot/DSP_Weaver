@@ -19,6 +19,8 @@ internal sealed class EjectorExecutor
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
     public const int SoleEjectorNeedsIndex = 0;
 
+    public int Count => _ejectorIndexes.Length;
+
     public int GetOptimizedEjectorIndex(int ejectorId)
     {
         return _ejectorIdToOptimizedEjectorIndex[ejectorId];

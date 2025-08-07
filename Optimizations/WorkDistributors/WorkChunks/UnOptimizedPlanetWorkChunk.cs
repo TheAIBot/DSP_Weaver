@@ -1,5 +1,4 @@
 ﻿using System;
-using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
 
@@ -30,27 +29,33 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         return workChunks;
     }
 
-    public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         bool isActive = localPlanet == _planet.planet;
-        workerThreadExecutor.curThreadIdx = _workIndex;
-        workerThreadExecutor.usedThreadCnt = _maxWorkCount;
         if (_workType == WorkType.BeforePower)
         {
-            workerTimings.StartTimer();
-            workerThreadExecutor.beforePowerLocalPlanet = localPlanet;
-            workerThreadExecutor.beforePowerFactories = [_planet];
-            workerThreadExecutor.beforePowerFactoryCnt = 1;
-            workerThreadExecutor.beforePowerTime = time;
-            workerThreadExecutor.BeforePowerPartExecute();
-            workerTimings.RecordTime(WorkType.BeforePower);
+            DeepProfiler.BeginSample(DPEntry.PowerSystem, workerThread.threadIndex);
+            {
+                DeepProfiler.BeginSample(DPEntry.PowerGamma, workerThread.threadIndex);
+                _planet.powerSystem?.RequestDysonSpherePower();
+                DeepProfiler.EndSample(DPEntry.PowerGamma, workerThread.threadIndex);
+
+                DeepProfiler.BeginSample(DPEntry.PowerConsumer, workerThread.threadIndex);
+                _planet.factorySystem?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 4);
+                _planet.cargoTraffic?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 4);
+                _planet.transport?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 2);
+                _planet.defenseSystem?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 2);
+                _planet.digitalSystem?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 2);
+                DeepProfiler.EndSample(DPEntry.PowerConsumer, workerThread.threadIndex);
+            }
+            DeepProfiler.EndSample(DPEntry.PowerSystem, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Power && _planet.powerSystem != null)
         {
-            workerTimings.StartTimer();
+            DeepProfiler.BeginSample(DPEntry.PowerSystem, workerThread.threadIndex);
             _planet.powerSystem.multithreadPlayerPos = playerPosition;
-            _planet.powerSystem.GameTick(time, isActive, isMultithreadMode: true);
-            workerTimings.RecordTime(WorkType.Power);
+            _planet.powerSystem?.GameTick(time, isActive, multithreaded: true, workerThread.threadIndex);
+            DeepProfiler.EndSample(DPEntry.PowerSystem, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Construction && _planet.constructionSystem != null)
         {
@@ -72,12 +77,12 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.LabResearchMode)
         {
-            workerTimings.StartTimer();
+            DeepProfiler.BeginMajorSample(DPEntry.Lab, workerThread.threadIndex);
             lock (singleThreadedCodeLock)
             {
                 _planet.factorySystem!.GameTickLabResearchMode(time, isActive);
             }
-            workerTimings.RecordTime(WorkType.LabResearchMode);
+            DeepProfiler.EndMajorSample(DPEntry.Lab, workerThread.threadIndex);
         }
         else if (_workType == WorkType.LabOutput2NextData)
         {
@@ -102,9 +107,9 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.InputFromBelt && _planet.transport != null)
         {
-            workerTimings.StartTimer();
+            DeepProfiler.BeginSample(DPEntry.Station, workerThread.threadIndex);
             _planet.transport.GameTick_InputFromBelt(time);
-            workerTimings.RecordTime(WorkType.InputFromBelt);
+            DeepProfiler.EndSample(DPEntry.Station, workerThread.threadIndex);
         }
         else if (_workType == WorkType.InserterData)
         {
@@ -118,9 +123,13 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.Storage && _planet.factoryStorage != null)
         {
-            workerTimings.StartTimer();
-            _planet.factoryStorage.GameTick(time, isActive);
-            workerTimings.RecordTime(WorkType.Storage);
+            DeepProfiler.BeginSample(DPEntry.Storage, workerThread.threadIndex);
+            _planet.factoryStorage.GameTickStorage(time, isActive);
+            DeepProfiler.EndSample(DPEntry.Storage, workerThread.threadIndex);
+
+            DeepProfiler.BeginSample(DPEntry.FluidTank, workerThread.threadIndex);
+            _planet.factoryStorage.GameTickTank();
+            DeepProfiler.EndSample(DPEntry.FluidTank, workerThread.threadIndex);
         }
         else if (_workType == WorkType.CargoPathsData)
         {
@@ -154,19 +163,19 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.OutputToBelt && _planet.transport != null)
         {
-            workerTimings.StartTimer();
+            DeepProfiler.BeginSample(DPEntry.Station, workerThread.threadIndex);
             int stationPilerLevel = GameMain.history.stationPilerLevel;
             _planet.transport.GameTick_OutputToBelt(stationPilerLevel, time);
-            workerTimings.RecordTime(WorkType.OutputToBelt);
+            DeepProfiler.EndSample(DPEntry.Station, workerThread.threadIndex);
         }
         else if (_workType == WorkType.SandboxMode && _planet.transport != null)
         {
-            workerTimings.StartTimer();
+            DeepProfiler.BeginSample(DPEntry.Station, workerThread.threadIndex);
             lock (singleThreadedCodeLock)
             {
-                _planet.transport.GameTick_SandboxMode();
+                _planet.transport.GameTick_SandboxMode(workerThread.threadIndex);
             }
-            workerTimings.RecordTime(WorkType.SandboxMode);
+            DeepProfiler.EndSample(DPEntry.Station, workerThread.threadIndex);
         }
         else if (_workType == WorkType.PresentCargoPathsData)
         {
@@ -180,9 +189,9 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.Digital && _planet.digitalSystem != null)
         {
-            workerTimings.StartTimer();
+            DeepProfiler.BeginSample(DPEntry.DigitalSystem, workerThread.threadIndex);
             _planet.digitalSystem.GameTick(isActive);
-            workerTimings.RecordTime(WorkType.Digital);
+            DeepProfiler.EndSample(DPEntry.DigitalSystem, workerThread.threadIndex);
         }
     }
 

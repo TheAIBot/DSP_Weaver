@@ -108,7 +108,7 @@ internal sealed class InserterExecutor<T>
     private readonly int[] _siloIndexes;
     private readonly int[] _ejectorIndexes;
 
-    public int InserterCount => _optimizedInserters.Length;
+    public int Count => _optimizedInserters.Length;
 
     public InserterExecutor(NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates,
                             NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,

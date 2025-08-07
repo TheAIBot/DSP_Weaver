@@ -1,5 +1,4 @@
 ﻿using System;
-using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
 
@@ -13,19 +12,11 @@ internal sealed class PostSubFactoryStep : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        workerTimings.StartTimer();
-        _optimizedPlanet.TransportGameTick(time, playerPosition);
-        workerTimings.RecordTime(WorkType.TransportData);
-
-        workerTimings.StartTimer();
-        _optimizedPlanet.DigitalSystemStep();
-        workerTimings.RecordTime(WorkType.Digital);
-
-        //workerTimings.StartTimer();
-        _optimizedPlanet.AggregateSubFactoryDataStep(time);
-        //workerTimings.RecordTime(WorkType.Statistics);
+        _optimizedPlanet.TransportGameTick(workerThread, time, playerPosition);
+        _optimizedPlanet.DigitalSystemStep(workerThread);
+        _optimizedPlanet.AggregateSubFactoryDataStep(workerThread, time);
     }
 
     public void TieToWorkStep(WorkStep workStep)

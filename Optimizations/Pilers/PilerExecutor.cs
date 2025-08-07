@@ -14,6 +14,8 @@ internal sealed class PilerExecutor
     private Dictionary<int, int> _pilerIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
+    public int Count => _optimizedPilers.Length;
+
     public void GameTick(PlanetFactory planet,
                          int[] pilerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
