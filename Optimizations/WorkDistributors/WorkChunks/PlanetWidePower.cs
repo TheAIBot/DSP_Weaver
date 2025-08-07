@@ -1,5 +1,4 @@
 ﻿using System;
-using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
 
@@ -13,7 +12,7 @@ internal sealed class PlanetWidePower : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(WorkerTimings workerTimings, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         workerTimings.StartTimer();
         _optimizedPlanet.BeforePowerStep(time);

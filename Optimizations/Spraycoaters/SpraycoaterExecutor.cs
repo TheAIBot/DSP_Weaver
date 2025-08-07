@@ -18,7 +18,7 @@ internal sealed class SpraycoaterExecutor
     public Dictionary<int, int> _spraycoaterIdToOptimizedSpraycoaterIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
-    public int SpraycoaterCount => _optimizedSpraycoaters.Length;
+    public int Count => _optimizedSpraycoaters.Length;
 
     public void GameTick(int[] spraycoaterPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,

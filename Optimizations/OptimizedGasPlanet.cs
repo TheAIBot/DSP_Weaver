@@ -54,18 +54,29 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         Status = OptimizedPlanetStatus.Stopped;
     }
 
-    public void TransportGameTick(long time, UnityEngine.Vector3 playerPos)
+    public void TransportGameTick(WorkerThread workerThread, long time, UnityEngine.Vector3 playerPos)
     {
         var miningFlags = new MiningFlags();
         _planetWideStationExecutor.StationGameTick(_planet, time, ref miningFlags);
 
+        if (_planetWideStationExecutor.Count > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Transport, workerThread.threadIndex, _planet.planetId);
+            DeepProfiler.BeginMajorSample(DPEntry.Station, workerThread.threadIndex);
+            _planetWideStationExecutor.StationGameTick(_planet, time, ref miningFlags);
+            DeepProfiler.EndMajorSample(DPEntry.Station, _planetWideStationExecutor.Count);
+            DeepProfiler.EndSample();
+        }
+
         _planet._miningFlag |= miningFlags.MiningFlag;
         _planet._veinMiningFlag |= miningFlags.VeinMiningFlag;
 
+        DeepProfiler.BeginSample(DPEntry.Statistics, workerThread.threadIndex);
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
         _optimizedPlanetWideProductionStatistics.UpdateStatistics(time, productRegister, consumeRegister);
+        DeepProfiler.BeginSample(DPEntry.Statistics, workerThread.threadIndex);
     }
 
     public WorkStep[] GetMultithreadedWork(int maxParallelism)

@@ -14,6 +14,8 @@ internal sealed class OilMinerExecutor
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
+    public int Count => _optimizedMiners.Length;
+
     public void GameTick(PlanetFactory planet,
                          int[] oilMinerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,

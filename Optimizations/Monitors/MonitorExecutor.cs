@@ -13,6 +13,8 @@ internal sealed class MonitorExecutor
     private OptimizedMonitor[] _optimizedMonitors = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
+    public int Count => _optimizedMonitors.Length;
+
     public void GameTick(PlanetFactory planet,
                          int[] monitorPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,

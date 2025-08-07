@@ -14,6 +14,8 @@ internal sealed class BeltExecutor
 
     public Dictionary<CargoPath, OptimizedCargoPath> CargoPathToOptimizedCargoPath => _cargoPathToOptimizedCargoPath;
 
+    public int Count => _optimizedCargoPaths.Length;
+
     public bool TryOptimizedCargoPath(PlanetFactory planet, int beltId, [NotNullWhen(true)] out OptimizedCargoPath? belt)
     {
         if (beltId <= 0)

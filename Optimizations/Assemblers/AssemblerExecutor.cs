@@ -26,7 +26,7 @@ internal sealed class AssemblerExecutor
     public short[] _produced = null!;
 
 
-    public int AssemblerCount => _optimizedAssemblers.Length;
+    public int Count => _optimizedAssemblers.Length;
 
     public void GameTick(PlanetFactory planet,
                          int[] assemblerPowerConsumerTypeIndexes,

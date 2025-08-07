@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.Statistics;
@@ -25,7 +24,7 @@ internal sealed class ResearchingLabExecutor
     public int[] _matrixServed = null!;
     public int[] _matrixIncServed = null!;
 
-    public int ResearchingLabCount => _optimizedLabs.Length;
+    public int Count => _optimizedLabs.Length;
 
     public ResearchingLabExecutor(StarClusterResearchManager starClusterResearchManager)
     {

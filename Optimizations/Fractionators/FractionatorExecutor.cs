@@ -17,7 +17,7 @@ internal sealed class FractionatorExecutor
     public Dictionary<int, int> _fractionatorIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
-    public int FractionatorCount => _optimizedFractionators.Length;
+    public int Count => _optimizedFractionators.Length;
 
     public void GameTick(PlanetFactory planet,
                          int[] fractionatorPowerConsumerTypeIndexes,

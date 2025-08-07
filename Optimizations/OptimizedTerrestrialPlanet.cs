@@ -159,9 +159,9 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
     public void BeforePowerStep(long time)
     {
-        _planet.transport.GameTickBeforePower(time, false);
-        _planet.defenseSystem.GameTickBeforePower(time, false);
-        _planet.digitalSystem.GameTickBeforePower(time, false);
+        _planet.transport.GameTickBeforePower(time);
+        _planet.defenseSystem.GameTickBeforePower(time);
+        _planet.digitalSystem.GameTickBeforePower(time);
     }
 
     public void PowerStep(long time)
@@ -169,10 +169,17 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _optimizedPowerSystem.GameTick(_planet, time);
     }
 
-    public void TransportGameTick(long time, UnityEngine.Vector3 playerPos)
+    public void TransportGameTick(WorkerThread workerThread, long time, UnityEngine.Vector3 playerPos)
     {
         PlanetTransport transport = _planet.transport;
-        DispenserGameTick_SandboxMode(transport);
+        if (transport.dispenserCount == 0)
+        {
+            return;
+        }
+
+        DeepProfiler.BeginSample(DPEntry.Transport, workerThread.threadIndex, _planet.planetId);
+        DeepProfiler.BeginSample(DPEntry.Dispensor, workerThread.threadIndex);
+        DispenserGameTick_SandboxMode(workerThread, transport);
         GameHistoryData history = GameMain.history;
         float[] networkServes = transport.powerSystem.networkServes;
         PowerConsumerComponent[] consumerPool = transport.powerSystem.consumerPool;
@@ -197,14 +204,17 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
                 transport.dispenserPool[k].InternalTick(transport.factory, transport.factory.entityPool, transport.dispenserPool, playerPos, time, power2, history.logisticCourierSpeedModified, history.logisticCourierCarries, num5);
             }
         }
+        DeepProfiler.BeginSample(DPEntry.Dispensor, workerThread.threadIndex);
+        DeepProfiler.EndSample(DPEntry.Transport, workerThread.threadIndex);
     }
 
-    private static void DispenserGameTick_SandboxMode(PlanetTransport transport)
+    private static void DispenserGameTick_SandboxMode(WorkerThread workerThread, PlanetTransport transport)
     {
         if (!GameMain.sandboxToolsEnabled)
         {
             return;
         }
+
         for (int j = 1; j < transport.dispenserCursor; j++)
         {
             if (transport.dispenserPool[j] != null && transport.dispenserPool[j].id == j)
@@ -214,17 +224,21 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
     }
 
-    public void DigitalSystemStep()
+    public void DigitalSystemStep(WorkerThread workerThread)
     {
+        DeepProfiler.BeginMajorSample(DPEntry.DigitalSystem, workerThread.threadIndex);
         _planet.digitalSystem.GameTick(false);
+        DeepProfiler.EndMajorSample(DPEntry.DigitalSystem);
     }
 
-    public void AggregateSubFactoryDataStep(long time)
+    public void AggregateSubFactoryDataStep(WorkerThread workerThread, long time)
     {
+        DeepProfiler.BeginSample(DPEntry.Statistics, workerThread.threadIndex);
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
         _optimizedPlanetWideProductionStatistics.UpdateStatistics(time, productRegister, consumeRegister);
+        DeepProfiler.BeginSample(DPEntry.Statistics, workerThread.threadIndex);
     }
 
     private void DefenseGameTick(DefenseSystem defenseSystem, long tick)

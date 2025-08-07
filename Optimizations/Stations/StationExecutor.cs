@@ -11,6 +11,8 @@ internal sealed class StationExecutor
     private OptimizedStation[] _optimizedStations = null!;
     private int[] _networkIds = null!;
 
+    public int Count => _optimizedStations.Length;
+
     public void InputFromBelt()
     {
         OptimizedStation[] optimizedStations = _optimizedStations;

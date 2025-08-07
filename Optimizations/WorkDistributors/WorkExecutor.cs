@@ -6,23 +6,21 @@ namespace Weaver.Optimizations.WorkDistributors;
 internal sealed class WorkExecutor
 {
     private readonly StarClusterWorkManager _starClusterWorkManager;
-    private readonly WorkerThreadExecutor _workerThreadExecutor;
+    private readonly WorkerThread _workerThread;
     private readonly object _singleThreadedCodeLock;
     private readonly WorkerTimings _workerTimings;
 
 
-    public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThreadExecutor workerThreadExecutor, object singleThreadedCodeLock)
+    public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThread workerThread, object singleThreadedCodeLock)
     {
         _starClusterWorkManager = starClusterWorkManager;
-        _workerThreadExecutor = workerThreadExecutor;
+        _workerThread = workerThread;
         _singleThreadedCodeLock = singleThreadedCodeLock;
         _workerTimings = new WorkerTimings();
     }
 
     public void Execute(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        int originalWorkerThreadIndex = _workerThreadExecutor.curThreadIdx;
-        int originalWorkerUsedThreadCount = _workerThreadExecutor.usedThreadCnt;
         try
         {
             PlanetWorkManager? planetWorkManager = null;
@@ -50,7 +48,7 @@ internal sealed class WorkExecutor
                     workChunk = planetWorkPlan.Value.WorkChunk;
                 }
 
-                workChunk.Execute(_workerTimings, _workerThreadExecutor, _singleThreadedCodeLock, localPlanet, time, playerPosition);
+                workChunk.Execute(_workerTimings, _workerThread, _singleThreadedCodeLock, localPlanet, time, playerPosition);
 
                 planetWorkManager!.CompleteWork(workChunk);
             }
@@ -60,11 +58,6 @@ internal sealed class WorkExecutor
             WeaverFixes.Logger.LogError(e.Message);
             WeaverFixes.Logger.LogError(e.StackTrace);
             throw;
-        }
-        finally
-        {
-            _workerThreadExecutor.curThreadIdx = originalWorkerThreadIndex;
-            _workerThreadExecutor.usedThreadCnt = originalWorkerUsedThreadCount;
         }
     }
 

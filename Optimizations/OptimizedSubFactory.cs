@@ -22,7 +22,6 @@ using Weaver.Optimizations.Stations;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.Tanks;
 using Weaver.Optimizations.Turrets;
-using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations;
 
@@ -336,7 +335,7 @@ internal sealed class OptimizedSubFactory
         _splitterExecutor.Initialize(_planet, subFactoryGraph);
     }
 
-    public void GameTick(WorkerTimings workerTimings, long time, SubFactoryPowerConsumption powerSystem)
+    public void GameTick(WorkerThread workerThread, long time, SubFactoryPowerConsumption powerSystem)
     {
         var miningFlags = new MiningFlags();
         long[] networkPowerConsumptions = powerSystem.NetworksPowerConsumption;
@@ -345,65 +344,130 @@ internal sealed class OptimizedSubFactory
         int[] productRegister = _optimizedProductionStatistics.ProductRegister;
         int[] consumeRegister = _optimizedProductionStatistics.ConsumeRegister;
 
-        workerTimings.StartTimer();
-        _beltVeinMinerExecutor.GameTick(_planet, powerSystem.BeltVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags);
-        _stationVeinMinerExecutor.GameTick(_planet, powerSystem.StationVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags);
-        _oilMinerExecutor.GameTick(_planet, powerSystem.OilMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister);
-        _waterMinerExecutor.GameTick(_planet, powerSystem.WaterMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister);
-        _assemblerExecutor.GameTick(_planet, powerSystem.AssemblerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister, _subFactoryNeeds);
-        _fractionatorExecutor.GameTick(_planet, powerSystem.FractionatorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister);
-        _ejectorExecutor.GameTick(_planet, time, powerSystem.EjectorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
-        _siloExecutor.GameTick(_planet, powerSystem.SiloPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
-        _producingLabExecutor.GameTickLabProduceMode(_planet, powerSystem.ProducingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister, _subFactoryNeeds);
-        _producingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
-        workerTimings.RecordTime(WorkType.Assembler);
+        int minerCount = _beltVeinMinerExecutor.Count + _stationVeinMinerExecutor.Count + _oilMinerExecutor.Count + _waterMinerExecutor.Count;
+        if (minerCount > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Miner, workerThread.threadIndex);
+            _beltVeinMinerExecutor.GameTick(_planet, powerSystem.BeltVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags);
+            _stationVeinMinerExecutor.GameTick(_planet, powerSystem.StationVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags);
+            _oilMinerExecutor.GameTick(_planet, powerSystem.OilMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister);
+            _waterMinerExecutor.GameTick(_planet, powerSystem.WaterMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister);
+            DeepProfiler.EndSample(workerThread.threadIndex, minerCount);
+        }
 
-        workerTimings.StartTimer();
-        _researchingLabExecutor.GameTickLabResearchMode(_planet, powerSystem.ResearchingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
-        _researchingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
-        workerTimings.RecordTime(WorkType.LabResearchMode);
+        if (_assemblerExecutor.Count > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Assembler, workerThread.threadIndex);
+            _assemblerExecutor.GameTick(_planet, powerSystem.AssemblerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister, _subFactoryNeeds);
+            DeepProfiler.EndSample(workerThread.threadIndex, _assemblerExecutor.Count);
+        }
 
-        workerTimings.StartTimer();
-        _stationExecutor.StationGameTick(_planet, time, _stationVeinMinerExecutor, ref miningFlags);
-        workerTimings.RecordTime(WorkType.TransportData);
+        if (_fractionatorExecutor.Count > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Fractionator, workerThread.threadIndex);
+            _fractionatorExecutor.GameTick(_planet, powerSystem.FractionatorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister);
+            DeepProfiler.EndSample(workerThread.threadIndex, _fractionatorExecutor.Count);
+        }
 
-        workerTimings.StartTimer();
-        _stationExecutor.InputFromBelt();
-        workerTimings.RecordTime(WorkType.InputFromBelt);
+        if (_ejectorExecutor.Count > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Ejector, workerThread.threadIndex);
+            _ejectorExecutor.GameTick(_planet, time, powerSystem.EjectorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
+            DeepProfiler.EndSample(workerThread.threadIndex, _ejectorExecutor.Count);
+        }
 
-        workerTimings.StartTimer();
-        _optimizedBiInserterExecutor.GameTickInserters(_planet, powerSystem.InserterBiPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
-        _optimizedInserterExecutor.GameTickInserters(_planet, powerSystem.InserterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
-        workerTimings.RecordTime(WorkType.InserterData);
+        if (_siloExecutor.Count > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Ejector, workerThread.threadIndex);
+            _siloExecutor.GameTick(_planet, powerSystem.SiloPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
+            DeepProfiler.EndSample(workerThread.threadIndex, _siloExecutor.Count);
+        }
 
-        workerTimings.StartTimer();
-        // Storage has no logic on planets the player isn't on which is why it is omitted
-        _tankExecutor.GameTick();
-        workerTimings.RecordTime(WorkType.Storage);
+        int labCount = _producingLabExecutor.Count + _researchingLabExecutor.Count;
+        if (labCount > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Lab, workerThread.threadIndex);
+            _producingLabExecutor.GameTickLabProduceMode(_planet, powerSystem.ProducingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister, _subFactoryNeeds);
+            _producingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
+            _researchingLabExecutor.GameTickLabResearchMode(_planet, powerSystem.ResearchingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
+            _researchingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
+            DeepProfiler.EndMajorSample(DPEntry.Lab, labCount);
+        }
 
-        workerTimings.StartTimer();
-        _beltExecutor.GameTick();
-        workerTimings.RecordTime(WorkType.CargoPathsData);
+        if (_stationExecutor.Count > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Transport, workerThread.threadIndex, _planet.planetId);
+            DeepProfiler.BeginMajorSample(DPEntry.Station, workerThread.threadIndex);
+            _stationExecutor.StationGameTick(_planet, time, _stationVeinMinerExecutor, ref miningFlags);
+            DeepProfiler.EndMajorSample(DPEntry.Station, _stationExecutor.Count);
+            DeepProfiler.EndSample();
+        }
 
-        workerTimings.StartTimer();
-        _splitterExecutor.GameTick(_planet, this, _beltExecutor);
-        workerTimings.RecordTime(WorkType.Splitter);
+        if (_stationExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Station, workerThread.threadIndex);
+            _stationExecutor.InputFromBelt();
+            DeepProfiler.EndMajorSample(DPEntry.Station, _stationExecutor.Count);
+        }
 
-        workerTimings.StartTimer();
-        _monitorExecutor.GameTick(_planet, powerSystem.MonitorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
-        workerTimings.RecordTime(WorkType.Monitor);
+        int inserterCount = _optimizedBiInserterExecutor.Count + _optimizedInserterExecutor.Count;
+        if (inserterCount > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Inserter, workerThread.threadIndex);
+            _optimizedBiInserterExecutor.GameTickInserters(_planet, powerSystem.InserterBiPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
+            _optimizedInserterExecutor.GameTickInserters(_planet, powerSystem.InserterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
+            DeepProfiler.EndMajorSample(DPEntry.Inserter, inserterCount);
+        }
 
-        workerTimings.StartTimer();
-        _spraycoaterExecutor.GameTick(powerSystem.SpraycoaterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister);
-        workerTimings.RecordTime(WorkType.Spraycoater);
+        if (_tankExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Storage, workerThread.threadIndex);
+            // Storage has no logic on planets the player isn't on which is why it is omitted
+            _tankExecutor.GameTick();
+            DeepProfiler.EndMajorSample(DPEntry.Storage, _tankExecutor.Count);
+        }
 
-        workerTimings.StartTimer();
-        _pilerExecutor.GameTick(_planet, powerSystem.PilerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
-        workerTimings.RecordTime(WorkType.Piler);
+        if (_beltExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Belt, workerThread.threadIndex);
+            _beltExecutor.GameTick();
+            DeepProfiler.EndMajorSample(DPEntry.Belt, _beltExecutor.Count);
+        }
 
-        workerTimings.StartTimer();
-        _stationExecutor.OutputToBelt();
-        workerTimings.RecordTime(WorkType.OutputToBelt);
+        if (_splitterExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Splitter, workerThread.threadIndex);
+            _splitterExecutor.GameTick(_planet, this, _beltExecutor);
+            DeepProfiler.EndMajorSample(DPEntry.Splitter, _splitterExecutor.Count);
+        }
+
+        if (_monitorExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Monitor, workerThread.threadIndex);
+            _monitorExecutor.GameTick(_planet, powerSystem.MonitorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
+            DeepProfiler.EndMajorSample(DPEntry.Monitor, _monitorExecutor.Count);
+        }
+
+        if (_spraycoaterExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Spraycoater, workerThread.threadIndex);
+            _spraycoaterExecutor.GameTick(powerSystem.SpraycoaterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister);
+            DeepProfiler.EndMajorSample(DPEntry.Spraycoater, _spraycoaterExecutor.Count);
+        }
+
+        if (_pilerExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Piler, workerThread.threadIndex);
+            _pilerExecutor.GameTick(_planet, powerSystem.PilerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
+            DeepProfiler.EndMajorSample(DPEntry.Piler, _pilerExecutor.Count);
+        }
+
+        if (_stationExecutor.Count > 0)
+        {
+            DeepProfiler.BeginMajorSample(DPEntry.Station, workerThread.threadIndex);
+            _stationExecutor.OutputToBelt();
+            DeepProfiler.EndMajorSample(DPEntry.Station, _stationExecutor.Count);
+        }
 
         _optimizedPlanet.AddMiningFlags(miningFlags);
 

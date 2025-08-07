@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.Statistics;
@@ -26,7 +25,7 @@ internal sealed class ProducingLabExecutor
     public short[] _incServed = null!;
     public short[] _produced = null!;
 
-    public int ProducingLabCount => _optimizedLabs.Length;
+    public int Count => _optimizedLabs.Length;
 
     public void GameTickLabProduceMode(PlanetFactory planet,
                                        int[] producingLabPowerConsumerIndexes,

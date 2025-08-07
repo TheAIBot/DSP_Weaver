@@ -17,6 +17,8 @@ internal sealed class SiloExecutor
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
     public const int SoleSiloNeedsIndex = 0;
 
+    public int Count => _siloIndexes.Length;
+
     public int GetOptimizedSiloIndex(int siloId)
     {
         return _siloIdToOptimizedSiloIndex[siloId];
