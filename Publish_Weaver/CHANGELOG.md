@@ -1,3 +1,7 @@
+## 2.0.0
+* !!! Update deep profiler for power: exchangers and other generators
+* !!! Look into if there is any sync turret stuff that needs to before doing parallel turret update
+
 ## 1.5.1
 * Fix sorter taking from storage to assembler would ignore assembler item limit and put items into assembler forever.
 * Fix advanced mining machine belts input/output would not work when the player left the planet.

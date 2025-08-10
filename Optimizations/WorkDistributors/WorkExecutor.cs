@@ -8,7 +8,6 @@ internal sealed class WorkExecutor
     private readonly StarClusterWorkManager _starClusterWorkManager;
     private readonly WorkerThread _workerThread;
     private readonly object _singleThreadedCodeLock;
-    private readonly WorkerTimings _workerTimings;
 
 
     public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThread workerThread, object singleThreadedCodeLock)
@@ -16,7 +15,6 @@ internal sealed class WorkExecutor
         _starClusterWorkManager = starClusterWorkManager;
         _workerThread = workerThread;
         _singleThreadedCodeLock = singleThreadedCodeLock;
-        _workerTimings = new WorkerTimings();
     }
 
     public void Execute(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
@@ -48,7 +46,7 @@ internal sealed class WorkExecutor
                     workChunk = planetWorkPlan.Value.WorkChunk;
                 }
 
-                workChunk.Execute(_workerTimings, _workerThread, _singleThreadedCodeLock, localPlanet, time, playerPosition);
+                workChunk.Execute(_workerThread, _singleThreadedCodeLock, localPlanet, time, playerPosition);
 
                 planetWorkManager!.CompleteWork(workChunk);
             }
@@ -59,12 +57,5 @@ internal sealed class WorkExecutor
             WeaverFixes.Logger.LogError(e.StackTrace);
             throw;
         }
-    }
-
-    public double[] GetWorkTypeTimings() => _workerTimings.WorkTypeTimings;
-
-    public void Reset()
-    {
-        _workerTimings.Reset();
     }
 }

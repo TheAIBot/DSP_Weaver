@@ -3,7 +3,7 @@ using Weaver.Optimizations.Belts;
 
 namespace Weaver.Optimizations.Turrets;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal readonly struct OptimizedTurret
 {
     private readonly OptimizedCargoPath? targetBelt;
@@ -17,7 +17,7 @@ internal readonly struct OptimizedTurret
         this.turretIndex = turretIndex;
     }
 
-    public void InternalUpdate(ref TurretComponent turret, long time, float power, PlanetFactory factory, SkillSystem skillSystem, PrefabDesc pdesc)
+    public void InternalUpdate(ref TurretComponent turret, long time, float power, PlanetFactory factory, SkillSystem skillSystem, PrefabDesc pdesc, bool multithreaded)
     {
         if (turret.type == ETurretType.Laser)
         {
@@ -27,7 +27,7 @@ internal readonly struct OptimizedTurret
         BeltUpdate(ref turret);
         if (turret.projectileId > 0 && (!turret.isLockingTarget || turret.supernovaCharging))
         {
-            turret.StopContinuousSkill(skillSystem);
+            turret.StopContinuousSkill(skillSystem, multithreaded);
         }
         if (turret.supernovaTick > 0)
         {
@@ -85,7 +85,7 @@ internal readonly struct OptimizedTurret
         }
         if (power < 0.1f)
         {
-            turret.StopContinuousSkill(skillSystem);
+            turret.StopContinuousSkill(skillSystem, multithreaded);
             turret.isAiming = false;
             turret.isLockingTarget = false;
             turret.CancelSupernova();

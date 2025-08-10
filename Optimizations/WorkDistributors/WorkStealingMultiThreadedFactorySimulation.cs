@@ -8,7 +8,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 {
     private readonly HighStopwatch _stopWatch = new();
     private readonly object _singleThreadedCodeLock = new();
-    private readonly PerformanceMonitorUpdater _performanceMonitorUpdater = PerformanceMonitorUpdater.Create();
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private readonly DysonSphereManager _dysonSphereManager;
     private StarClusterWorkManager? _starClusterWorkManager;
@@ -28,30 +27,26 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     /// <param name="planetsToUpdate"></param>
     public void Simulate(PlanetFactory?[] planetsToUpdate)
     {
-        MultithreadSystem multithreadSystem = GameMain.multithreadSystem;
+        int targetThreadCount = GameMain.logic.threadController.wantedThreadCount;
         if (_starClusterWorkManager == null)
         {
             _starClusterWorkManager = new StarClusterWorkManager();
         }
-        if (_workExecutors == null || _workExecutors.Length != multithreadSystem.usedThreadCnt)
+        if (_workExecutors == null || _workExecutors.Length != targetThreadCount)
         {
-            _workExecutors = new WorkExecutor[multithreadSystem.usedThreadCnt];
+            _workExecutors = new WorkExecutor[targetThreadCount];
             for (int i = 0; i < _workExecutors.Length; i++)
             {
-                _workExecutors[i] = new WorkExecutor(_starClusterWorkManager, multithreadSystem.workerThreadExecutors[i], _singleThreadedCodeLock);
+                _workExecutors[i] = new WorkExecutor(_starClusterWorkManager, GameMain.logic.threadController.threadManager.workerThreads[i], _singleThreadedCodeLock);
             }
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, planetsToUpdate, multithreadSystem.usedThreadCnt);
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, planetsToUpdate, targetThreadCount);
         _starClusterWorkManager.Reset();
-        for (int i = 0; i < _workExecutors.Length; i++)
-        {
-            _workExecutors[i].Reset();
-        }
 
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = GameMain.multithreadSystem.usedThreadCnt,
+            MaxDegreeOfParallelism = targetThreadCount,
         };
 
         _stopWatch.Begin();
@@ -67,8 +62,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         _dysonSphereManager.UIThreadCreateDysonSpheres();
 
         double totalTime = _stopWatch.duration;
-
-        _performanceMonitorUpdater.UpdateTimings(totalTime, _workExecutors);
     }
 
     public void Clear()
@@ -79,13 +72,12 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
     public void PrintWorkStatistics()
     {
-        MultithreadSystem multithreadSystem = GameMain.multithreadSystem;
         if (_starClusterWorkManager == null)
         {
             _starClusterWorkManager = new StarClusterWorkManager();
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, GameMain.data.factories, multithreadSystem.usedThreadCnt);
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, GameMain.data.factories, GameMain.logic.threadController.wantedThreadCount);
         StarClusterWorkStatistics starClusterWorkStatistics = _starClusterWorkManager.GetStartClusterStatistics();
 
         WeaverFixes.Logger.LogInfo($"Planet Count: {starClusterWorkStatistics.PlanetWorkStatistics.Length:N0}");

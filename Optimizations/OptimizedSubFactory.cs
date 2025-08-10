@@ -387,10 +387,16 @@ internal sealed class OptimizedSubFactory
         if (labCount > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Lab, workerThread.threadIndex);
-            _producingLabExecutor.GameTickLabProduceMode(_planet, powerSystem.ProducingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister, _subFactoryNeeds);
-            _producingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
-            _researchingLabExecutor.GameTickLabResearchMode(_planet, powerSystem.ResearchingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
-            _researchingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
+            if (_producingLabExecutor.Count > 0)
+            {
+                _producingLabExecutor.GameTickLabProduceMode(_planet, powerSystem.ProducingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister, _subFactoryNeeds);
+                _producingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
+            }
+            if (_researchingLabExecutor.Count > 0)
+            {
+                _researchingLabExecutor.GameTickLabResearchMode(_planet, powerSystem.ResearchingLabPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
+                _researchingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
+            }
             DeepProfiler.EndMajorSample(DPEntry.Lab, labCount);
         }
 

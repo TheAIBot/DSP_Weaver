@@ -14,9 +14,7 @@ internal sealed class PlanetWideDigitalSystem : IWorkChunk
 
     public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        workerTimings.StartTimer();
-        _optimizedPlanet.DigitalSystemStep();
-        workerTimings.RecordTime(WorkType.Digital);
+        _optimizedPlanet.DigitalSystemStep(workerThread);
     }
 
     public void TieToWorkStep(WorkStep workStep)
