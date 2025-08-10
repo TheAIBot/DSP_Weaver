@@ -254,26 +254,31 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         CombatUpgradeData combatUpgradeData = default;
         history.GetCombatUpgradeData(ref combatUpgradeData);
         defenseSystem.UpdateMatchSpaceEnemies();
-        EAggressiveLevel aggressiveLevel = combatSettings.aggressiveLevel;
-        int cursor = defenseSystem.beacons.cursor;
-        BeaconComponent[] buffer = defenseSystem.beacons.buffer;
-        for (int i = 1; i < cursor; i++)
+        if (defenseSystem.beacons.count > 0)
         {
-            ref BeaconComponent reference = ref buffer[i];
-            if (reference.id == i)
+            DeepProfiler.BeginSample(DPEntry.Beacon, -1, defenseSystem.factory.planetId);
+            EAggressiveLevel aggressiveLevel = combatSettings.aggressiveLevel;
+            int cursor = defenseSystem.beacons.cursor;
+            BeaconComponent[] buffer = defenseSystem.beacons.buffer;
+            for (int i = 1; i < cursor; i++)
             {
-                float power = networkServes[nodePool[reference.pnId].networkId];
-                PrefabDesc pdesc = PlanetFactory.PrefabDescByModelIndex[entityPool[reference.entityId].modelIndex];
-                reference.GameTick(defenseSystem.factory, pdesc, aggressiveLevel, power, tick);
-                if (reference.DeterminActiveEnemyUnits(isSpace: false, tick))
+                ref BeaconComponent reference = ref buffer[i];
+                if (reference.id == i)
                 {
-                    reference.ActiveEnemyUnits_Ground(defenseSystem.factory, pdesc);
-                }
-                if (reference.DeterminActiveEnemyUnits(isSpace: true, tick))
-                {
-                    reference.ActiveEnemyUnits_Space(defenseSystem.factory, pdesc);
+                    float power = networkServes[nodePool[reference.pnId].networkId];
+                    PrefabDesc pdesc = PlanetFactory.PrefabDescByModelIndex[entityPool[reference.entityId].modelIndex];
+                    reference.GameTick(defenseSystem.factory, pdesc, aggressiveLevel, power, tick);
+                    if (reference.DeterminActiveEnemyUnits(isSpace: false, tick))
+                    {
+                        reference.ActiveEnemyUnits_Ground(defenseSystem.factory, pdesc);
+                    }
+                    if (reference.DeterminActiveEnemyUnits(isSpace: true, tick))
+                    {
+                        reference.ActiveEnemyUnits_Space(defenseSystem.factory, pdesc);
+                    }
                 }
             }
+            DeepProfiler.EndSample(-1, -2L);
         }
         bool flag2 = false;
         for (int num3 = defenseSystem.localGlobalTargetCursor - 1; num3 >= 0; num3--)

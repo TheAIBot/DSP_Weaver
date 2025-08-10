@@ -9,16 +9,9 @@ public class CustomChartsPatches
     [HarmonyPatch(typeof(CustomCharts), nameof(CustomCharts.GameTick))]
     private static bool GameTick_Parallelize(CustomCharts __instance)
     {
-        // Only enable parallelization if multithreading is enabled.
-        // Not sure why one would disable it but hey lets just support it!
-        if (!GameMain.multithreadSystem.multithreadSystemEnable)
-        {
-            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
-        }
-
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = GameMain.multithreadSystem.usedThreadCnt,
+            MaxDegreeOfParallelism = GameMain.logic.threadController.wantedThreadCount
         };
 
         StatPlan[] buffer = __instance.statPlans.buffer;

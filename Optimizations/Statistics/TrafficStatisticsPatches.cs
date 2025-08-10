@@ -156,15 +156,6 @@ public sealed class TrafficStatisticsPatches
     [HarmonyPatch(typeof(TrafficStatistics), nameof(TrafficStatistics.GameTick))]
     private static bool GameTick_Parallelize(TrafficStatistics __instance, long time)
     {
-        //Logger.LogMessage("Did the thing! 3");
-
-        // Only enable parallelization if multithreading is enabled.
-        // Not sure why one would disable it but hey lets just support it!
-        if (!GameMain.multithreadSystem.multithreadSystemEnable)
-        {
-            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
-        }
-
         if (!IsTimeToUpdateStatistics(time))
         {
             return HarmonyConstants.SKIP_ORIGINAL_METHOD;
@@ -194,7 +185,7 @@ public sealed class TrafficStatisticsPatches
 
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = GameMain.multithreadSystem.usedThreadCnt,
+            MaxDegreeOfParallelism = GameMain.logic.threadController.wantedThreadCount
         };
 
         Parallel.For(0, __instance.starTrafficPool.Length + __instance.factoryTrafficPool.Length, parallelOptions, i =>
