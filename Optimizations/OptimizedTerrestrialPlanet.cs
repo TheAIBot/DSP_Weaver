@@ -463,6 +463,8 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         assemblerWorkCount = Math.Min(assemblerWorkCount, maxParallelism);
         if (assemblerWorkCount > 0)
         {
+            // For now this is not multithreaded
+            assemblerWorkCount = 1;
             work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.Assembler, assemblerWorkCount)));
         }
 
@@ -475,6 +477,8 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         labOutput2NextWorkCount = Math.Min(labOutput2NextWorkCount, maxParallelism);
         if (labOutput2NextWorkCount > 0)
         {
+            // For now this is not multithreaded
+            labOutput2NextWorkCount = 1;
             work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.LabOutput2NextData, labOutput2NextWorkCount)));
         }
 
@@ -506,6 +510,8 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         cargoPathsWorkCount = Math.Min(cargoPathsWorkCount, maxParallelism);
         if (cargoPathsWorkCount > 0)
         {
+            // For now this is not multithreaded
+            cargoPathsWorkCount = 1;
             work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.CargoPathsData, cargoPathsWorkCount)));
         }
 

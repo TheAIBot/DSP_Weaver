@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection.Emit;
 using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.WorkDistributors;
@@ -131,8 +130,8 @@ internal static class OptimizedStarCluster
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
-    public static void GameData_GameTick()
+    [HarmonyPatch(typeof(GameData), nameof(GameLogic.LogicFrame))]
+    public static void GameLogic_LogicFrame()
     {
         if (_clearOptimizedPlanetsOnNextTick)
         {
@@ -214,6 +213,8 @@ internal static class OptimizedStarCluster
             int randomPlanet = random.Next(0, planets.Length);
             _planetsToReOptimize.Enqueue(planets[randomPlanet]);
         }
+
+        ExecuteSimulation(GameMain.data.factories);
     }
 
     [HarmonyPostfix]
@@ -245,116 +246,6 @@ internal static class OptimizedStarCluster
     public static void PlanetFactory_UpgradeEntityWithComponents(PlanetFactory __instance)
     {
         DeOptimizeDueToNonPlayerAction(__instance);
-    }
-
-    [HarmonyTranspiler, HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.GameTickLabResearchMode))]
-    static IEnumerable<CodeInstruction> DeferResearchUnlockToStarClusterResearchManager(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-    {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        CodeMatch[] startOfResearchCompletedBlockToMove = [
-            new CodeMatch(OpCodes.Ldloc_1),
-            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(GameHistoryData), nameof(GameHistoryData.techStates))),
-            new CodeMatch(OpCodes.Ldarg_0),
-            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(FactorySystem), nameof(FactorySystem.researchTechId))),
-            new CodeMatch(OpCodes.Ldloc_S),
-            new CodeMatch(OpCodes.Callvirt, AccessTools.PropertySetter(typeof(Dictionary<int, TechState>), "Item"))
-        ];
-
-        CodeMatch[] endOfResearchCompletedBlockToMove = [
-            new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(GameHistoryData), nameof(GameHistoryData.NotifyTechUnlock)))
-        ];
-
-        CodeInstruction[] queueResearchCompleted = [
-            // No idea why i need to add it but it gets deleted for some reason
-            new CodeInstruction(OpCodes.Callvirt, AccessTools.PropertySetter(typeof(Dictionary<int, TechState>), "Item")),
-
-            // _starClusterResearchManager.AddResearchedTech(researchTechId, curLevel, ts, techProto)
-            new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(OptimizedStarCluster), nameof(_starClusterResearchManager))),
-            new CodeInstruction(OpCodes.Ldarg_0),
-            new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(FactorySystem), nameof(FactorySystem.researchTechId))),
-            new CodeInstruction(OpCodes.Ldloc_S, 29), // curLevel
-            new CodeInstruction(OpCodes.Ldloc_S, 13), // ts
-            new CodeInstruction(OpCodes.Ldloc_S, 12), // techProto
-            new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(StarClusterResearchManager), nameof(StarClusterResearchManager.AddResearchedTech)))
-        ];
-
-        codeMatcher.ReplaceCode(startOfResearchCompletedBlockToMove, false, endOfResearchCompletedBlockToMove, false, queueResearchCompleted);
-        codeMatcher.ReplaceCode(startOfResearchCompletedBlockToMove, false, endOfResearchCompletedBlockToMove, false, queueResearchCompleted);
-
-        return codeMatcher.InstructionEnumeration();
-    }
-
-    [HarmonyTranspiler, HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
-    static IEnumerable<CodeInstruction> ReplaceMultithreadedSimulationLogic(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-    {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        // GameMain.multithreadSystem.multithreadSystemEnable
-        CodeMatch[] multithreadedIfCondition = [
-            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(MultithreadSystem), nameof(MultithreadSystem.multithreadSystemEnable)))
-        ];
-
-        // PerformanceMonitor.BeginSample(ECpuWorkEntry.PowerSystem);
-        CodeMatch[] beginSamplePowerPerformanceMonitor = [
-            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.PowerSystem),
-            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.BeginSample)))
-        ];
-
-        // PerformanceMonitor.EndSample(ECpuWorkEntry.Digital);
-        CodeMatch[] endSampleDigitalPerformanceMonitor = [
-            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Digital),
-            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.EndSample)))
-        ];
-
-        CodeInstruction[] optimizedMultithreading;
-        if (BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(ModDependencies.SampleAndHoldSimId, out var _))
-        {
-            optimizedMultithreading = [
-                new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(AccessTools.TypeByName("SampleAndHoldSim.GameData_Patch"), "workFactories")),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteSimulation)))
-            ];
-        }
-        else
-        {
-            optimizedMultithreading = [
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(GameData), nameof(GameData.factories))),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteSimulation)))
-            ];
-        }
-
-        codeMatcher.MatchForward(true, multithreadedIfCondition)
-                   .ThrowIfNotMatch($"Failed to find {nameof(multithreadedIfCondition)}");
-        codeMatcher.ReplaceCode(beginSamplePowerPerformanceMonitor, true, endSampleDigitalPerformanceMonitor, true, optimizedMultithreading);
-
-        return codeMatcher.InstructionEnumeration();
-    }
-
-    [HarmonyTranspiler, HarmonyPatch(typeof(GameData), nameof(GameData.GameTick))]
-    static IEnumerable<CodeInstruction> ReplaceDefenseSystemLogic(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-    {
-        var codeMatcher = new CodeMatcher(instructions, generator);
-
-        // PerformanceMonitor.BeginSample(ECpuWorkEntry.Defense);
-        CodeMatch[] beginSamplePerformanceMonitor = [
-            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Defense),
-            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.BeginSample)))
-        ];
-
-        // PerformanceMonitor.EndSample(ECpuWorkEntry.Defense);
-        CodeMatch[] endSamplePerformanceMonitor = [
-            new CodeMatch(OpCodes.Ldc_I4_S, (sbyte)ECpuWorkEntry.Defense),
-            new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(PerformanceMonitor), nameof(PerformanceMonitor.EndSample)))
-        ];
-
-        CodeInstruction[] parallelDefense = [
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(OptimizedStarCluster), nameof(ExecuteParallelDefense)))
-            ];
-
-        codeMatcher.ReplaceCode(beginSamplePerformanceMonitor, true, endSamplePerformanceMonitor, true, parallelDefense);
-
-        return codeMatcher.InstructionEnumeration();
     }
 
     [HarmonyPrefix]
@@ -491,28 +382,28 @@ internal static class OptimizedStarCluster
         _workStealingMultiThreadedFactorySimulation.Simulate(planets);
     }
 
-    private static void ExecuteParallelDefense()
-    {
-        PerformanceMonitor.BeginSample(ECpuWorkEntry.Defense);
-        long time = GameMain.gameTick;
+    //private static void ExecuteParallelDefense()
+    //{
+    //    PerformanceMonitor.BeginSample(ECpuWorkEntry.Defense);
+    //    long time = GameMain.gameTick;
 
-        // Can only parallelize on a solar system level due to enemies in space.
-        // Need to to defer all UI notifications to UI thread.
-        //Parallel.ForEach(_planetToOptimizedPlanet.Values, x => x.GameTickDefense(time));
+    //    // Can only parallelize on a solar system level due to enemies in space.
+    //    // Need to to defer all UI notifications to UI thread.
+    //    //Parallel.ForEach(_planetToOptimizedPlanet.Values, x => x.GameTickDefense(time));
 
 
-        foreach (IOptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
-        {
-            if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
-            {
-                continue;
-            }
+    //    foreach (IOptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
+    //    {
+    //        if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
+    //        {
+    //            continue;
+    //        }
 
-            terrestrialPlanet.GameTickDefense(time);
-            terrestrialPlanet.DefenseGameTickUIThread(time);
-        }
-        PerformanceMonitor.EndSample(ECpuWorkEntry.Defense);
-    }
+    //        terrestrialPlanet.GameTickDefense(time);
+    //        terrestrialPlanet.DefenseGameTickUIThread(time);
+    //    }
+    //    PerformanceMonitor.EndSample(ECpuWorkEntry.Defense);
+    //}
 
     private static void DeOptimizeDueToNonPlayerAction(PlanetFactory planet)
     {

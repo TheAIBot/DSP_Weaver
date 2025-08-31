@@ -1,6 +1,9 @@
 ## 2.0.0
 * !!! Update deep profiler for power: exchangers and other generators
 * !!! Look into if there is any sync turret stuff that needs to before doing parallel turret update
+* !!! Need to figure out when dyson spheres are added
+    * !!! _dysonSphereManager.AddDysonDysonSphere(planet);
+* !!! Handle all single threaded stuff
 
 ## 1.5.0
 * 10-20% DSP performance improvement compared to 1.4.2

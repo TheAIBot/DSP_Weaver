@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using UnityEngine;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.PowerSystems;
@@ -30,41 +31,28 @@ internal sealed class OptimizedPowerSystem
 
     public void RequestDysonSpherePower(PlanetFactory planet)
     {
-        PowerSystem powerSystem = planet.powerSystem;
-        powerSystem.dysonSphere = powerSystem.factory.gameData.dysonSpheres[powerSystem.planet.star.index];
-        float eta = 1f - GameMain.history.solarEnergyLossRate;
-        float increase = powerSystem.dysonSphere != null ? (float)(powerSystem.dysonSphere.grossRadius / (powerSystem.planet.sunDistance * 40000.0)) : 0f;
-        UnityEngine.Vector3 normalized = powerSystem.planet.runtimeLocalSunDirection.normalized;
+        {
+            DysonSphere dysonSphere = planet.dysonSphere;
+            float eta = 1f - GameMain.history.solarEnergyLossRate;
+            float increase = ((dysonSphere != null) ? ((float)((double)dysonSphere.grossRadius / ((double)planet.planet.sunDistance * 40000.0))) : 0f);
+            Vector3 normalized = planet.planet.runtimeLocalSunDirection.normalized;
 
-        long energySum = 0L;
-        bool flag = false;
-        OptimizedPowerNetwork[] optimizedPowerNetworks = _optimizedPowerNetworks;
-        for (int i = 0; i < optimizedPowerNetworks.Length; i++)
-        {
-            (long powerNetworkEnergySum, bool flag1) = optimizedPowerNetworks[i].RequestDysonSpherePower(powerSystem, eta, increase, normalized);
-            energySum += powerNetworkEnergySum;
-            flag |= flag1;
+            long energySum = 0L;
+            OptimizedPowerNetwork[] optimizedPowerNetworks = _optimizedPowerNetworks;
+            for (int i = 0; i < optimizedPowerNetworks.Length; i++)
+            {
+                (long powerNetworkEnergySum, bool _) = optimizedPowerNetworks[i].RequestDysonSpherePower(planet.powerSystem, eta, increase, normalized);
+                energySum += powerNetworkEnergySum;
+            }
+
+            if (dysonSphere != null)
+            {
+                Interlocked.Add(ref dysonSphere.energyReqCurrentTick, energySum);
+            }
         }
 
-        if (powerSystem.dysonSphere == null && flag)
-        {
-            if ((uint)planet.planet.star.index >= planet.gameData.galaxy.starCount)
-            {
-                // Nothing according to code in CheckOrCreateDysonSphere
-            }
-            else if (planet.gameData.dysonSpheres[planet.planet.star.index] != null)
-            {
-                // Nothing according to code in CheckOrCreateDysonSphere
-            }
-            else
-            {
-                _dysonSphereManager.AddDysonDysonSphere(planet);
-            }
-        }
-        if (powerSystem.dysonSphere != null && energySum > 0)
-        {
-            Interlocked.Add(ref powerSystem.dysonSphere.energyReqCurrentTick, energySum);
-        }
+        // Need to figure out when dyson spheres are added
+        //_dysonSphereManager.AddDysonDysonSphere(planet);
     }
 
     public void BeforePower(PlanetFactory planet, OptimizedSubFactory subFactory)

@@ -40,7 +40,7 @@ internal sealed class GammaPowerGeneratorExecutor
             return 0;
         }
 
-        float response = planet.powerSystem.dysonSphere != null ? planet.powerSystem.dysonSphere.energyRespCoef : 0f;
+        float response = planet.dysonSphere?.energyRespCoef ?? 0f;
         long energySum = 0;
         OptimizedGammaPowerGenerator[] optimizedGammaPowerGenerators = _optimizedGammaPowerGenerators;
         for (int i = 0; i < optimizedGammaPowerGenerators.Length; i++)

@@ -54,7 +54,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             DeepProfiler.BeginSample(DPEntry.PowerSystem, workerThread.threadIndex);
             _planet.powerSystem.multithreadPlayerPos = playerPosition;
-            _planet.powerSystem?.GameTick(time, isActive, multithreaded: true, workerThread.threadIndex);
+            _planet.powerSystem.GameTick(time, isActive, multithreaded: true, workerThread.threadIndex);
             DeepProfiler.EndSample(DPEntry.PowerSystem, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Construction && _planet.constructionSystem != null)
@@ -67,13 +67,17 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.Assembler)
         {
-            workerTimings.StartTimer();
-            workerThreadExecutor.assemblerLocalPlanet = localPlanet;
-            workerThreadExecutor.assemblerFactories = [_planet];
-            workerThreadExecutor.assemblerFactoryCnt = 1;
-            workerThreadExecutor.assemblerTime = time;
-            workerThreadExecutor.AssemblerPartExecute();
-            workerTimings.RecordTime(WorkType.Assembler);
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Assembler} work on a null planet.");
+            }
+
+            DeepProfiler.BeginSample(DPEntry.Assembler, workerThread.threadIndex);
+            _planet.factorySystem.GameTick(time, isActive);
+            DeepProfiler.EndSample(DPEntry.Assembler, workerThread.threadIndex);
+            DeepProfiler.BeginSample(DPEntry.Lab, workerThread.threadIndex);
+            _planet.factorySystem.GameTickLabProduceMode(time, isActive);
+            DeepProfiler.EndSample(DPEntry.Lab, workerThread.threadIndex);
         }
         else if (_workType == WorkType.LabResearchMode)
         {
@@ -86,24 +90,20 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.LabOutput2NextData)
         {
-            workerTimings.StartTimer();
-            workerThreadExecutor.labOutput2NextLocalPlanet = localPlanet;
-            workerThreadExecutor.labOutput2NextFactories = [_planet];
-            workerThreadExecutor.labOutput2NextFactoryCnt = 1;
-            workerThreadExecutor.labOutput2NextTime = time;
-            workerThreadExecutor.LabOutput2NextPartExecute();
-            workerTimings.RecordTime(WorkType.LabResearchMode);
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.LabOutput2NextData} work on a null planet.");
+            }
+
+            DeepProfiler.BeginSample(DPEntry.Lab, workerThread.threadIndex);
+            _planet.factorySystem.GameTickLabOutputToNext(time, isActive);
+            DeepProfiler.EndSample(DPEntry.Lab, workerThread.threadIndex);
         }
         else if (_workType == WorkType.TransportData && _planet.transport != null)
         {
-            workerTimings.StartTimer();
-            _planet.transport.multithreadPlayerPos = playerPosition;
-            workerThreadExecutor.transportLocalPlanet = localPlanet;
-            workerThreadExecutor.transportFactories = [_planet];
-            workerThreadExecutor.transportFactoryCnt = 1;
-            workerThreadExecutor.transportTime = time;
-            workerThreadExecutor.TransportPartExecute();
-            workerTimings.RecordTime(WorkType.TransportData);
+            DeepProfiler.BeginSample(DPEntry.Transport, workerThread.threadIndex);
+            _planet.transport.GameTick(time, isActive, multithreaded: false, -1);
+            DeepProfiler.EndSample(DPEntry.Transport, workerThread.threadIndex); ;
         }
         else if (_workType == WorkType.InputFromBelt && _planet.transport != null)
         {
@@ -113,13 +113,14 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.InserterData)
         {
-            workerTimings.StartTimer();
-            workerThreadExecutor.inserterLocalPlanet = localPlanet;
-            workerThreadExecutor.inserterFactories = [_planet];
-            workerThreadExecutor.inserterFactoryCnt = 1;
-            workerThreadExecutor.inserterTime = time;
-            workerThreadExecutor.InserterPartExecute();
-            workerTimings.RecordTime(WorkType.InserterData);
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.InserterData} work on a null planet.");
+            }
+
+            DeepProfiler.BeginSample(DPEntry.Inserter, workerThread.threadIndex);
+            _planet.factorySystem.GameTickInserters(time, isActive);
+            DeepProfiler.EndSample(DPEntry.Inserter, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Storage && _planet.factoryStorage != null)
         {
@@ -133,33 +134,33 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.CargoPathsData)
         {
-            workerTimings.StartTimer();
-            workerThreadExecutor.cargoPathsLocalPlanet = localPlanet;
-            workerThreadExecutor.cargoPathsFactories = [_planet];
-            workerThreadExecutor.cargoPathsFactoryCnt = 1;
-            workerThreadExecutor.cargoPathsTime = time;
-            workerThreadExecutor.CargoPathsPartExecute();
-            workerTimings.RecordTime(WorkType.CargoPathsData);
+            DeepProfiler.BeginSample(DPEntry.Belt, workerThread.threadIndex);
+            _planet.cargoTraffic.CargoPathsGameTickSync();
+            DeepProfiler.EndSample(DPEntry.Belt, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Splitter && _planet.cargoTraffic != null)
         {
-            // Game itself takes care of recording time
+            DeepProfiler.BeginSample(DPEntry.Splitter, workerThread.threadIndex);
             _planet.cargoTraffic.SplitterGameTick(time);
+            DeepProfiler.EndSample(DPEntry.Splitter, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Monitor && _planet.cargoTraffic != null)
         {
-            // Game itself takes care of recording time
+            DeepProfiler.BeginSample(DPEntry.Monitor, workerThread.threadIndex);
             _planet.cargoTraffic.MonitorGameTick();
+            DeepProfiler.EndSample(DPEntry.Monitor, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Spraycoater && _planet.cargoTraffic != null)
         {
-            // Game itself takes care of recording time
+            DeepProfiler.BeginSample(DPEntry.Spraycoater, workerThread.threadIndex);
             _planet.cargoTraffic.SpraycoaterGameTick();
+            DeepProfiler.EndSample(DPEntry.Spraycoater, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Piler && _planet.cargoTraffic != null)
         {
-            // Game itself takes care of recording time
+            DeepProfiler.BeginSample(DPEntry.Piler, workerThread.threadIndex);
             _planet.cargoTraffic.PilerGameTick();
+            DeepProfiler.EndSample(DPEntry.Piler, workerThread.threadIndex);
         }
         else if (_workType == WorkType.OutputToBelt && _planet.transport != null)
         {
@@ -177,15 +178,11 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             }
             DeepProfiler.EndSample(DPEntry.Station, workerThread.threadIndex);
         }
-        else if (_workType == WorkType.PresentCargoPathsData)
+        else if (_workType == WorkType.PresentCargoPathsData && _planet.cargoTraffic != null)
         {
-            workerTimings.StartTimer();
-            workerThreadExecutor.presentCargoPathsLocalPlanet = localPlanet;
-            workerThreadExecutor.presentCargoPathsFactories = [_planet];
-            workerThreadExecutor.presentCargoPathsFactoryCnt = 1;
-            workerThreadExecutor.presentCargoPathsTime = time;
-            workerThreadExecutor.PresentCargoPathsPartExecute();
-            workerTimings.RecordTime(WorkType.PresentCargoPathsData);
+            DeepProfiler.BeginSample(DPEntry.CargoPresent, workerThread.threadIndex);
+            _planet.cargoTraffic.PresentCargoPathsSync();
+            DeepProfiler.EndSample(DPEntry.CargoPresent, workerThread.threadIndex);
         }
         else if (_workType == WorkType.Digital && _planet.digitalSystem != null)
         {
