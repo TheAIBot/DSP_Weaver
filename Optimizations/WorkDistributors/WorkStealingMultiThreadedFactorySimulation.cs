@@ -105,7 +105,17 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             planet.constructionSystem.ExcuteDeferredTargetChange();
         }
 
-        for (int i = 0; i < planetsToUpdate.Length; i++)
+        //for (int i = 0; i < planetsToUpdate.Length; i++)
+        //{
+        //    PlanetFactory? planet = planetsToUpdate[i];
+        //    if (planet?.factorySystem == null)
+        //    {
+        //        continue;
+        //    }
+
+        //    planet.factorySystem.CheckBeforeGameTick();
+        //}
+    }
         {
             PlanetFactory? planet = planetsToUpdate[i];
             if (planet?.factorySystem == null)

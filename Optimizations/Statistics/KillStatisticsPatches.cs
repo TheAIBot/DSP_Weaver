@@ -103,13 +103,6 @@ internal static class KillStatisticsPatches
     [HarmonyPatch(typeof(KillStatistics), nameof(KillStatistics.GameTick))]
     private static bool GameTick_Parallelize(KillStatistics __instance, long time)
     {
-        // Only enable parallelization if multithreading is enabled.
-        // Not sure why one would disable it but hey lets just support it!
-        if (!GameMain.multithreadSystem.multithreadSystemEnable)
-        {
-            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
-        }
-
         bool?[]? isStarUpdated = _isStarUpdated;
         if (isStarUpdated == null)
         {
@@ -134,7 +127,7 @@ internal static class KillStatisticsPatches
 
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = GameMain.multithreadSystem.usedThreadCnt,
+            MaxDegreeOfParallelism = GameMain.logic.threadController.wantedThreadCount,
         };
 
         Parallel.For(0, __instance.starKillStatPool.Length + __instance.factoryKillStatPool.Length, parallelOptions, i =>
@@ -150,13 +143,6 @@ internal static class KillStatisticsPatches
         });
         __instance.mechaKillStat?.GameTick(time);
 
-        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(KillStatistics), nameof(KillStatistics.AfterTick))]
-    private static bool AfterTick_Parallelize()
-    {
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
