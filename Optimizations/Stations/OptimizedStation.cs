@@ -109,13 +109,13 @@ internal readonly struct OptimizedStation
             {
                 for (int k = 0; k < num2; k++)
                 {
-                    OptimizedCargoPath? cargoPath2 = cargoPaths[k];
+                    int num10 = (stationComponent.outSlotOffset + k) % num2;
+                    OptimizedCargoPath? cargoPath2 = cargoPaths[num10];
                     if (cargoPath2 == null)
                     {
                         continue;
                     }
 
-                    int num10 = (stationComponent.outSlotOffset + k) % num2;
                     ref SlotData reference2 = ref stationComponent.slots[num10];
                     if (reference2.dir == IODir.Output)
                     {
