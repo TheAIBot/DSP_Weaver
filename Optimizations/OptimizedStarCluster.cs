@@ -131,7 +131,7 @@ internal static class OptimizedStarCluster
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GameData), nameof(GameLogic.LogicFrame))]
-    public static void GameLogic_LogicFrame()
+    public static void GameLogic_LogicFrame(GameLogic __instance)
     {
         if (_clearOptimizedPlanetsOnNextTick)
         {
@@ -214,7 +214,7 @@ internal static class OptimizedStarCluster
             _planetsToReOptimize.Enqueue(planets[randomPlanet]);
         }
 
-        ExecuteSimulation(GameMain.data.factories);
+        ExecuteSimulation(__instance, GameMain.data.factories);
     }
 
     [HarmonyPostfix]
@@ -377,9 +377,9 @@ internal static class OptimizedStarCluster
         }
     }
 
-    private static void ExecuteSimulation(PlanetFactory?[] planets)
+    private static void ExecuteSimulation(GameLogic gameLogic, PlanetFactory?[] planets)
     {
-        _workStealingMultiThreadedFactorySimulation.Simulate(planets);
+        _workStealingMultiThreadedFactorySimulation.Simulate(gameLogic, planets);
     }
 
     //private static void ExecuteParallelDefense()
