@@ -1,3 +1,6 @@
+## 1.5.1
+* Fix sorter taking from storage to assembler would ignore assembler item limit and put items into assembler forever.
+
 ## 1.5.0
 * 10-20% DSP performance improvement compared to 1.4.2
 * Improved data access patterns.

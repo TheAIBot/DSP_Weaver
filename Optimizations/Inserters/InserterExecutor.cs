@@ -13,6 +13,7 @@ using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.PowerSystems.Generators;
 using Weaver.Optimizations.Silos;
 using Weaver.Optimizations.Statistics;
+using Weaver.Optimizations.Storages;
 
 namespace Weaver.Optimizations.Inserters;
 
@@ -457,7 +458,7 @@ internal sealed class InserterExecutor<T>
             StorageComponent storageComponent2 = storageComponent;
             if (storageComponent != null)
             {
-                int[] needs = planet.entityNeeds[storageComponent.entityId];
+                short[] needs = _subFactoryNeeds.Needs;
                 storageComponent = storageComponent.topStorage;
                 while (storageComponent != null)
                 {
@@ -466,7 +467,7 @@ internal sealed class InserterExecutor<T>
                         int itemId = filter;
                         int count = 1;
                         bool flag;
-                        if (needs == null)
+                        if (groupNeeds.GroupNeedsSize == 0)
                         {
                             storageComponent.TakeTailItems(ref itemId, ref count, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
                             inc = (byte)inc2;
@@ -474,7 +475,8 @@ internal sealed class InserterExecutor<T>
                         }
                         else
                         {
-                            bool flag2 = storageComponent.TakeTailItems(ref itemId, ref count, needs, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                            int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+                            bool flag2 = OptimizedStorage.TakeTailItems(storageComponent, ref itemId, ref count, needs, needsOffset, groupNeeds.GroupNeedsSize, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
                             inc = (byte)inc2;
                             flag = count == 1 || flag2;
                         }
