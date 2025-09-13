@@ -130,8 +130,8 @@ internal static class OptimizedStarCluster
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(GameLogic), nameof(GameLogic.LogicFrame))]
-    public static bool GameLogic_LogicFrame(GameLogic __instance)
+    [HarmonyPatch(typeof(GameThreadController), nameof(GameThreadController.LogicFrame))]
+    public static bool GameThreadController_LogicFrame(GameThreadController __instance)
     {
         if (_clearOptimizedPlanetsOnNextTick)
         {
@@ -214,7 +214,14 @@ internal static class OptimizedStarCluster
             _planetsToReOptimize.Enqueue(planets[randomPlanet]);
         }
 
-        ExecuteSimulation(__instance, GameMain.data.factories);
+
+        DeepProfiler.BeginSample(DPEntry.Scheduling, -1, 2L);
+        __instance.EnsureThreadCount();
+        __instance.threadManager.samplePerformanceCounters = DeepProfiler.watchEnabled;
+        DeepProfiler.EndSample();
+
+        //DeepProfiler.watchEnabled = true;
+        ExecuteSimulation(__instance.gameLogic, GameMain.data.factories);
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
