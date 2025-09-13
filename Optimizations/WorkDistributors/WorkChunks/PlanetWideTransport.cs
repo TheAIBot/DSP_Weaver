@@ -12,9 +12,9 @@ internal sealed class PlanetWideTransport : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        _optimizedPlanet.TransportGameTick(workerThread, time, playerPosition);
+        _optimizedPlanet.TransportGameTick(workerIndex, time, playerPosition);
     }
 
     public void TieToWorkStep(WorkStep workStep)

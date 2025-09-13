@@ -130,8 +130,8 @@ internal static class OptimizedStarCluster
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(GameData), nameof(GameLogic.LogicFrame))]
-    public static void GameLogic_LogicFrame(GameLogic __instance)
+    [HarmonyPatch(typeof(GameLogic), nameof(GameLogic.LogicFrame))]
+    public static bool GameLogic_LogicFrame(GameLogic __instance)
     {
         if (_clearOptimizedPlanetsOnNextTick)
         {
@@ -200,7 +200,7 @@ internal static class OptimizedStarCluster
             IOptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planetToReOptimize];
             if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
             {
-                return;
+                return HarmonyConstants.SKIP_ORIGINAL_METHOD;
             }
 
             WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
@@ -215,6 +215,7 @@ internal static class OptimizedStarCluster
         }
 
         ExecuteSimulation(__instance, GameMain.data.factories);
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
     [HarmonyPostfix]

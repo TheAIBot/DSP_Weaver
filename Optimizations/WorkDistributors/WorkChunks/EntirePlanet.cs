@@ -17,11 +17,11 @@ internal sealed class EntirePlanet : IWorkChunk
         _postSubFactoryStep = new PostSubFactoryStep(optimizedPlanet);
     }
 
-    public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        _planetWidePower.Execute(workerThread, singleThreadedCodeLock, localPlanet, time, playerPosition);
-        _subFactory.Execute(workerThread, singleThreadedCodeLock, localPlanet, time, playerPosition);
-        _postSubFactoryStep.Execute(workerThread, singleThreadedCodeLock, localPlanet, time, playerPosition);
+        _planetWidePower.Execute(workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+        _subFactory.Execute(workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+        _postSubFactoryStep.Execute(workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
     }
 
     public void TieToWorkStep(WorkStep workStep)

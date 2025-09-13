@@ -15,9 +15,9 @@ internal sealed class SubFactoryGameTick : IWorkChunk
         _subFactoryPowerConsumption = subFactoryPowerConsumption;
     }
 
-    public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        _subFactory.GameTick(workerThread, time, _subFactoryPowerConsumption);
+        _subFactory.GameTick(workerIndex, time, _subFactoryPowerConsumption);
     }
 
     public void TieToWorkStep(WorkStep workStep)
