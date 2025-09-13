@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using System.Threading.Tasks;
+using System.Threading;
 using Weaver.Optimizations.Labs;
 
 namespace Weaver.Optimizations.WorkDistributors;
@@ -11,7 +11,15 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private readonly DysonSphereManager _dysonSphereManager;
     private StarClusterWorkManager? _starClusterWorkManager;
-    private WorkExecutor[]? _workExecutors;
+    //private WorkExecutor[]? _workExecutors;
+    private Thread[]? _threads;
+    private ManualResetEvent[]? _workerDone;
+    private ManualResetEvent[]? _doWork;
+    private bool _done = false;
+
+    private PlanetData? _localPlanet;
+    private long _time;
+    private UnityEngine.Vector3 _playerPosition;
 
     public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager,
                                                       DysonSphereManager dysonSphereManager)
@@ -32,32 +40,77 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         {
             _starClusterWorkManager = new StarClusterWorkManager();
         }
-        if (_workExecutors == null || _workExecutors.Length != targetThreadCount)
+        if (_threads == null || _threads.Length != targetThreadCount)
         {
-            _workExecutors = new WorkExecutor[targetThreadCount];
-            for (int i = 0; i < _workExecutors.Length; i++)
+            ClearThreads();
+            _threads = new Thread[targetThreadCount];
+            _doWork = new ManualResetEvent[targetThreadCount];
+            _workerDone = new ManualResetEvent[targetThreadCount];
+            for (int i = 0; i < _threads.Length; i++)
             {
-                _workExecutors[i] = new WorkExecutor(_starClusterWorkManager, i, _singleThreadedCodeLock);
+                var workExecutor = new WorkExecutor(_starClusterWorkManager, i, _singleThreadedCodeLock);
+
+                var workerDone = new ManualResetEvent(false);
+                _workerDone[i] = workerDone;
+
+                var dooooWork = new ManualResetEvent(false);
+                _doWork[i] = dooooWork;
+
+                var thread = new Thread(() =>
+                {
+                    try
+                    {
+                        while (true)
+                        {
+                            dooooWork.WaitOne();
+                            dooooWork.Reset();
+                            if (_done)
+                            {
+                                break;
+                            }
+                            workExecutor.Execute(_localPlanet, _time, _playerPosition);
+                            workerDone.Set();
+                        }
+                    }
+                    catch (System.Exception e)
+                    {
+                        WeaverFixes.Logger.LogError(e.Message);
+                        WeaverFixes.Logger.LogError(e.StackTrace);
+                    }
+
+                });
+                thread.Start();
+                _threads[i] = thread;
             }
         }
 
         _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, planetsToUpdate, targetThreadCount);
         _starClusterWorkManager.Reset();
 
-        var parallelOptions = new ParallelOptions
-        {
-            MaxDegreeOfParallelism = targetThreadCount,
-        };
+        //var parallelOptions = new ParallelOptions
+        //{
+        //    MaxDegreeOfParallelism = targetThreadCount,
+        //};
 
         _stopWatch.Begin();
 
         ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate);
 
-        PlanetData? localPlanet = GameMain.localPlanet;
-        long time = GameMain.gameTick;
-        UnityEngine.Vector3 playerPosition = GameMain.mainPlayer.position;
+        _localPlanet = GameMain.localPlanet;
+        _time = GameMain.gameTick;
+        _playerPosition = GameMain.mainPlayer.position;
 
-        Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(localPlanet, time, playerPosition));
+        for (int i = 0; i < _doWork.Length; i++)
+        {
+            _doWork[i].Set();
+        }
+        for (int i = 0; i < _workerDone.Length; i++)
+        {
+            _workerDone[i].WaitOne();
+            _workerDone[i].Reset();
+        }
+
+        //Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(localPlanet, time, playerPosition));
         _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
         _dysonSphereManager.UIThreadCreateDysonSpheres();
 
@@ -69,7 +122,32 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     public void Clear()
     {
         _starClusterWorkManager = null;
-        _workExecutors = null;
+        if (_threads != null)
+        {
+            ClearThreads();
+        }
+    }
+
+    private void ClearThreads()
+    {
+        if (_threads == null)
+        {
+            return;
+        }
+
+        _done = true;
+        for (int i = 0; i < _threads.Length; i++)
+        {
+            _doWork[i].Set();
+            _threads[i].Join();
+            _doWork[i].Dispose();
+            _workerDone[i].Dispose();
+        }
+        _done = false;
+
+        _doWork = null;
+        _threads = null;
+        _workerDone = null;
     }
 
     public void PrintWorkStatistics()
