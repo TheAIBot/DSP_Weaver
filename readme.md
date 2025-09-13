@@ -76,6 +76,8 @@ To efficiently execute these steps for all planets, Weaver implements a work ste
 
 Workers will prioritize executing work for a specific planet, unless the planet has no work immediately available. In that case the worker will attempt to find available work on other planets. Only if it can't find any immediately available work in any planet, will the worker have to wait for other workers to complete their work. A worker will attempt to reserve work in the next step before it waits. If it can't reserve work then it will find another planet to try and reserve work in. This ensures 10 threads aren't waiting in a planet where the next step only consists of 2 work chunks.
 
+![MultiThreadingComparison](./Multithreading_comparison.png)
+
 ## Power system
 Weaver calculates the energy consumption of an entity right after updating the entity. Although the same work is being done, the work is cheaper due to the entities power data already being in cache. This effectively eliminates the performance impact the power system previously had in the game. 
 Additionally, wind power generators are now calculated in constant time. This is possible because all wind generators generate the same amount of power. Counting the number of wind generators and multiplying that by a planets wind strength is all that is needed to calculate their power generation. 
