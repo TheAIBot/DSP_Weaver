@@ -6,14 +6,14 @@ namespace Weaver.Optimizations.WorkDistributors;
 internal sealed class WorkExecutor
 {
     private readonly StarClusterWorkManager _starClusterWorkManager;
-    private readonly WorkerThread _workerThread;
+    private readonly int _workerIndex;
     private readonly object _singleThreadedCodeLock;
 
 
-    public WorkExecutor(StarClusterWorkManager starClusterWorkManager, WorkerThread workerThread, object singleThreadedCodeLock)
+    public WorkExecutor(StarClusterWorkManager starClusterWorkManager, int workerIndex, object singleThreadedCodeLock)
     {
         _starClusterWorkManager = starClusterWorkManager;
-        _workerThread = workerThread;
+        _workerIndex = workerIndex;
         _singleThreadedCodeLock = singleThreadedCodeLock;
     }
 
@@ -46,7 +46,7 @@ internal sealed class WorkExecutor
                     workChunk = planetWorkPlan.Value.WorkChunk;
                 }
 
-                workChunk.Execute(_workerThread, _singleThreadedCodeLock, localPlanet, time, playerPosition);
+                workChunk.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
 
                 planetWorkManager!.CompleteWork(workChunk);
             }

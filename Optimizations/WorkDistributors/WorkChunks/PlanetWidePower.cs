@@ -12,15 +12,15 @@ internal sealed class PlanetWidePower : IWorkChunk
         _optimizedPlanet = optimizedPlanet;
     }
 
-    public void Execute(WorkerThread workerThread, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        DeepProfiler.BeginSample(DPEntry.PowerConsumer, workerThread.threadIndex);
+        DeepProfiler.BeginSample(DPEntry.PowerConsumer, workerIndex);
         _optimizedPlanet.BeforePowerStep(time);
-        DeepProfiler.EndSample(DPEntry.PowerConsumer, workerThread.threadIndex);
+        DeepProfiler.EndSample(DPEntry.PowerConsumer, workerIndex);
 
-        DeepProfiler.BeginSample(DPEntry.PowerSystem, workerThread.threadIndex);
+        DeepProfiler.BeginSample(DPEntry.PowerSystem, workerIndex);
         _optimizedPlanet.PowerStep(time);
-        DeepProfiler.EndSample(DPEntry.PowerSystem, workerThread.threadIndex);
+        DeepProfiler.EndSample(DPEntry.PowerSystem, workerIndex);
     }
 
     public void TieToWorkStep(WorkStep workStep)

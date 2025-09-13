@@ -54,29 +54,29 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         Status = OptimizedPlanetStatus.Stopped;
     }
 
-    public void TransportGameTick(WorkerThread workerThread, long time, UnityEngine.Vector3 playerPos)
+    public void TransportGameTick(int workerIndex, long time, UnityEngine.Vector3 playerPos)
     {
         var miningFlags = new MiningFlags();
         _planetWideStationExecutor.StationGameTick(_planet, time, ref miningFlags);
 
         if (_planetWideStationExecutor.Count > 0)
         {
-            DeepProfiler.BeginSample(DPEntry.Transport, workerThread.threadIndex, _planet.planetId);
-            DeepProfiler.BeginMajorSample(DPEntry.Station, workerThread.threadIndex);
+            DeepProfiler.BeginSample(DPEntry.Transport, workerIndex, _planet.planetId);
+            DeepProfiler.BeginMajorSample(DPEntry.Station, workerIndex);
             _planetWideStationExecutor.StationGameTick(_planet, time, ref miningFlags);
-            DeepProfiler.EndMajorSample(DPEntry.Station, _planetWideStationExecutor.Count);
-            DeepProfiler.EndSample();
+            DeepProfiler.EndMajorSample(DPEntry.Station, workerIndex);
+            DeepProfiler.EndSample(DPEntry.Transport, workerIndex);
         }
 
         _planet._miningFlag |= miningFlags.MiningFlag;
         _planet._veinMiningFlag |= miningFlags.VeinMiningFlag;
 
-        DeepProfiler.BeginSample(DPEntry.Statistics, workerThread.threadIndex);
+        DeepProfiler.BeginSample(DPEntry.Statistics, workerIndex);
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
         int[] productRegister = obj.productRegister;
         int[] consumeRegister = obj.consumeRegister;
         _optimizedPlanetWideProductionStatistics.UpdateStatistics(time, productRegister, consumeRegister);
-        DeepProfiler.BeginSample(DPEntry.Statistics, workerThread.threadIndex);
+        DeepProfiler.EndSample(DPEntry.Statistics, workerIndex);
     }
 
     public WorkStep[] GetMultithreadedWork(int maxParallelism)
