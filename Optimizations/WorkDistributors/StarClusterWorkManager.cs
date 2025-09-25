@@ -1,19 +1,21 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.WorkDistributors;
 
-internal sealed class StarClusterWorkManager
+internal sealed class StarClusterWorkManager : IDisposable
 {
-    private readonly List<PlanetWorkManager> _planetWorkManagers = [];
     private readonly Dictionary<PlanetFactory, PlanetWorkManager> _planetToWorkManagers = [];
-    private int _planetsWithWorkScheduledCount;
-    private int _planetsNotCompletedCount;
+    private readonly List<SolarSystemWorkManager> _solarSystemWorkManagers = [];
+    private readonly Dictionary<StarData, SolarSystemWorkManager> _starToWorkManagers = [];
+    private readonly List<IWorkNode> _solarSystemWorkNodes = [];
+    private RootWorkNode? _rootWorkNode;
 
     public int Parallelism { get; private set; } = -1;
 
-    public void UpdateListOfPlanets(PlanetFactory?[] allPlanets, PlanetFactory?[] planetsToUpdate, int parallelism)
+    public void UpdateListOfPlanets(PlanetFactory?[] allPlanets, int parallelism)
     {
         Parallelism = parallelism;
 
@@ -30,138 +32,82 @@ internal sealed class StarClusterWorkManager
             }
 
             IOptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(planet);
-            _planetToWorkManagers.Add(planet, new PlanetWorkManager(planet, optimizedPlanet));
+            PlanetWorkManager planetWorkManager = new PlanetWorkManager(optimizedPlanet);
+            _planetToWorkManagers.Add(planet, planetWorkManager);
+
+            if (!_starToWorkManagers.TryGetValue(planet.planet.star, out SolarSystemWorkManager? solarSystemWorkManager))
+            {
+                solarSystemWorkManager = new SolarSystemWorkManager();
+                _solarSystemWorkManagers.Add(solarSystemWorkManager);
+                _starToWorkManagers.Add(planet.planet.star, solarSystemWorkManager);
+            }
+
+            solarSystemWorkManager.AddPlanet(planetWorkManager);
         }
 
-        _planetWorkManagers.Clear();
-        foreach (PlanetFactory? planet in planetsToUpdate)
+        for (int i = 0; i < _solarSystemWorkManagers.Count; i++)
         {
-            if (planet == null)
+            if (_solarSystemWorkManagers[i].UpdateSolarSystemWork(parallelism))
             {
-                continue;
+                _rootWorkNode?.Dispose();
+                _rootWorkNode = null;
+            }
+        }
+
+        if (_rootWorkNode == null)
+        {
+            _solarSystemWorkNodes.Clear();
+            for (int i = 0; i < _solarSystemWorkManagers.Count; i++)
+            {
+                if (_solarSystemWorkManagers[i].TryGetSolarSystemWork(out IWorkNode? solarSystemWorkNode))
+                {
+                    _solarSystemWorkNodes.Add(solarSystemWorkNode);
+                }
             }
 
-            PlanetWorkManager workManager = _planetToWorkManagers[planet];
-            if (!workManager.UpdatePlanetWork(parallelism))
+            if (_solarSystemWorkNodes.Count == 0)
             {
-                continue;
+                _rootWorkNode = new RootWorkNode(new WorkNode([]));
+                return;
             }
 
-            _planetWorkManagers.Add(workManager);
+            _rootWorkNode = new RootWorkNode(new WorkNode([_solarSystemWorkNodes.ToArray()]));
         }
     }
 
-    public PlanetWorkPlan? TryGetWork()
+    public RootWorkNode GetRootWorkNode()
     {
-        int planetsNotCompletedCount = _planetsNotCompletedCount;
-        while (_planetsWithWorkScheduledCount < planetsNotCompletedCount)
+        if (_rootWorkNode == null)
         {
-            int planetIndex = Interlocked.Increment(ref _planetsWithWorkScheduledCount) - 1;
-            if (planetIndex >= planetsNotCompletedCount)
-            {
-                break;
-            }
-
-            PlanetWorkPlan? planetWorkPlan = TryGetWork(planetIndex);
-            if (planetWorkPlan != null)
-            {
-                return planetWorkPlan;
-            }
+            throw new InvalidOperationException();
         }
 
-        for (int i = 0; i < planetsNotCompletedCount; i++)
-        {
-            if (_planetWorkManagers[i] == null)
-            {
-                continue;
-            }
-
-            PlanetWorkPlan? planetWorkPlan = TryGetWork(i);
-            if (planetWorkPlan != null)
-            {
-                return planetWorkPlan;
-            }
-        }
-
-        for (int i = 0; i < planetsNotCompletedCount; i++)
-        {
-            PlanetWorkPlan? planetWorkPlan = TryWaitForWork(i);
-            if (planetWorkPlan != null)
-            {
-                return planetWorkPlan;
-            }
-        }
-
-        return null;
+        return _rootWorkNode;
     }
 
     public void Reset()
     {
-        for (int i = 0; i < _planetWorkManagers.Count; i++)
+        if (_rootWorkNode == null)
         {
-            _planetWorkManagers[i].Reset();
+            throw new InvalidOperationException();
         }
 
-        _planetsWithWorkScheduledCount = 0;
-        _planetsNotCompletedCount = _planetWorkManagers.Count;
+        _rootWorkNode.Reset();
     }
 
-    public StarClusterWorkStatistics GetStartClusterStatistics()
+    public StarClusterWorkStatistics GetStarClusterStatistics()
     {
         List<PlanetWorkStatistics> planetWorkStatistics = [];
-        foreach (var planetWorkManager in _planetWorkManagers)
+        foreach (var solarSystemWorkManager in _solarSystemWorkManagers)
         {
-            PlanetWorkStatistics? planetWorkStatistic = planetWorkManager.GetPlanetWorkStatistics();
-            if (planetWorkStatistic == null)
-            {
-                continue;
-            }
-
-            planetWorkStatistics.Add(planetWorkStatistic.Value);
+            planetWorkStatistics.AddRange(solarSystemWorkManager.GetPlanetWorkStatistics());
         }
 
         return new StarClusterWorkStatistics(planetWorkStatistics.ToArray());
     }
 
-    private PlanetWorkPlan? TryGetWork(int planetIndex)
+    public void Dispose()
     {
-        PlanetWorkManager planetWorkManager = _planetWorkManagers[planetIndex];
-        if (planetWorkManager == null)
-        {
-            return null;
-        }
 
-        IWorkChunk? workChunk = planetWorkManager.TryGetWork(out bool canScheduleMoreWork);
-        if (!canScheduleMoreWork)
-        {
-            int lastPlanetNotCompletedIndex = Interlocked.Decrement(ref _planetsNotCompletedCount);
-            if (lastPlanetNotCompletedIndex > 0)
-            {
-                _planetWorkManagers[planetIndex] = _planetWorkManagers[lastPlanetNotCompletedIndex];
-            }
-        }
-        if (workChunk == null)
-        {
-            return null;
-        }
-
-        return new PlanetWorkPlan(planetWorkManager, workChunk);
-    }
-
-    private PlanetWorkPlan? TryWaitForWork(int planetIndex)
-    {
-        PlanetWorkManager planetWorkManager = _planetWorkManagers[planetIndex];
-        if (planetWorkManager == null)
-        {
-            return null;
-        }
-
-        IWorkChunk? workChunk = planetWorkManager.TryWaitForWork();
-        if (workChunk == null)
-        {
-            return null;
-        }
-
-        return new PlanetWorkPlan(planetWorkManager, workChunk);
     }
 }

@@ -8,7 +8,6 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
     private readonly WorkType _workType;
     private readonly int _workIndex;
     private readonly int _maxWorkCount;
-    private WorkStep? _workStep;
 
     private UnOptimizedPlanetWorkChunk(PlanetFactory planet, WorkType workType, int workIndex, int maxWorkCount)
     {
@@ -190,30 +189,5 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             _planet.digitalSystem.GameTick(isActive);
             DeepProfiler.EndSample(DPEntry.DigitalSystem, workerIndex);
         }
-    }
-
-    public void TieToWorkStep(WorkStep workStep)
-    {
-        _workStep = workStep;
-    }
-
-    public bool Complete()
-    {
-        if (_workStep == null)
-        {
-            throw new InvalidOperationException("No work step was assigned.");
-        }
-
-        return _workStep.CompleteWorkChunk();
-    }
-
-    public void CompleteStep()
-    {
-        if (_workStep == null)
-        {
-            throw new InvalidOperationException("No work step was assigned.");
-        }
-
-        _workStep.CompleteStep();
     }
 }

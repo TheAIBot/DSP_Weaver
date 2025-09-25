@@ -13,7 +13,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
     private GasPlanetWideStationExecutor _planetWideStationExecutor = null!;
     private OptimizedPlanetWideProductionStatistics _optimizedPlanetWideProductionStatistics = null!;
 
-    private WorkStep[]? _workSteps;
+    private IWorkNode? _workNodes;
     private int _workStepsParallelism;
 
     public OptimizedGasPlanet(PlanetFactory planet)
@@ -43,13 +43,13 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         _optimizedPlanetWideProductionStatistics = planetWideProductionRegisterBuilder.Build();
 
         Status = OptimizedPlanetStatus.Running;
-        _workSteps = null;
+        _workNodes = null;
         _workStepsParallelism = -1;
     }
 
     public void Save()
     {
-        _workSteps = null;
+        _workNodes = null;
         _workStepsParallelism = -1;
         Status = OptimizedPlanetStatus.Stopped;
     }
@@ -79,39 +79,39 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         DeepProfiler.EndSample(DPEntry.Statistics, workerIndex);
     }
 
-    public WorkStep[] GetMultithreadedWork(int maxParallelism)
+    public IWorkNode GetMultithreadedWork(int maxParallelism)
     {
-        if (_workSteps == null || _workStepsParallelism != maxParallelism)
+        if (_workNodes == null || _workStepsParallelism != maxParallelism)
         {
-            _workSteps = CreateMultithreadedWork(maxParallelism);
+            _workNodes = CreateMultithreadedWork(maxParallelism);
             _workStepsParallelism = maxParallelism;
         }
 
-        return _workSteps;
+        return _workNodes;
     }
 
-    private WorkStep[] CreateMultithreadedWork(int maxParallelism)
+    private IWorkNode CreateMultithreadedWork(int maxParallelism)
     {
         if (Status == OptimizedPlanetStatus.Stopped)
         {
             return CreateParallelWorkForNonRunningOptimizedPlanet(maxParallelism);
         }
 
-        List<WorkStep> workSteps = [];
-        workSteps.Add(new WorkStep([new PlanetWideTransport(this)]));
-        return workSteps.ToArray();
-    }
-
-    private WorkStep[] CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
-    {
-        List<WorkStep> work = [];
-
-        int stationCount = _planet.transport.stationCursor;
-        if (stationCount > 0)
+        if (_planetWideStationExecutor.Count > 0)
         {
-            work.Add(new WorkStep(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.TransportData, 1)));
+            return new WorkLeaf([new PlanetWideTransport(this)]);
         }
 
-        return work.ToArray();
+        return new NoWorkNode();
+    }
+
+    private IWorkNode CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
+    {
+        if (_planet.transport.stationCursor > 0)
+        {
+            return new WorkLeaf(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.TransportData, 1));
+        }
+
+        return new NoWorkNode();
     }
 }

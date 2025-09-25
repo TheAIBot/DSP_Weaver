@@ -1,116 +1,137 @@
-﻿using System.Linq;
-using System.Threading;
-using Weaver.Optimizations.WorkDistributors.WorkChunks;
+﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace Weaver.Optimizations.WorkDistributors;
 
+internal sealed class SolarSystemWorkManager
+{
+    private readonly List<PlanetWorkManager> _planetWorkManager = [];
+    private readonly List<IWorkNode> _planetWorkNodes = [];
+    private IWorkNode? _workNodes = null;
+
+    public void AddPlanet(PlanetWorkManager planetWorkManager)
+    {
+        _planetWorkManager.Add(planetWorkManager);
+    }
+
+    public bool UpdateSolarSystemWork(int parallelism)
+    {
+        for (int i = 0; i < _planetWorkManager.Count; i++)
+        {
+            if (_planetWorkManager[i].UpdatePlanetWork(parallelism))
+            {
+                _workNodes?.Dispose();
+                _workNodes = null;
+            }
+        }
+
+        if (_workNodes == null)
+        {
+            _planetWorkNodes.Clear();
+            for (int i = 0; i < _planetWorkManager.Count; i++)
+            {
+                if (_planetWorkManager[i].TryGetPlanetWork(out IWorkNode? planetWorkNode))
+                {
+                    _planetWorkNodes.Add(planetWorkNode);
+                }
+            }
+
+            if (_planetWorkNodes.Count == 0)
+            {
+                _workNodes = new NoWorkNode();
+                return true;
+            }
+
+            _workNodes = new WorkNode([_planetWorkNodes.ToArray()]);
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryGetSolarSystemWork([NotNullWhen(true)] out IWorkNode? solarSystemWorkNode)
+    {
+        if (_workNodes == null)
+        {
+            solarSystemWorkNode = null;
+            return false;
+        }
+
+        if (_workNodes is NoWorkNode)
+        {
+            solarSystemWorkNode = null;
+            return false;
+        }
+
+        solarSystemWorkNode = _workNodes;
+        return true;
+    }
+
+    public IEnumerable<PlanetWorkStatistics> GetPlanetWorkStatistics()
+    {
+        foreach (var planetWorkManager in _planetWorkManager)
+        {
+            PlanetWorkStatistics? planetStatistics = planetWorkManager.GetPlanetWorkStatistics();
+            if (planetStatistics == null)
+            {
+                continue;
+            }
+
+            yield return planetStatistics.Value;
+        }
+    }
+}
+
 internal sealed class PlanetWorkManager
 {
-    private WorkStep[] _workSteps = null!;
-    private int _currentWorkStepIndex;
+    private readonly IOptimizedPlanet _optimizedPlanet;
+    private IWorkNode? _workNode = null;
 
-    public PlanetFactory Planet { get; }
-    public IOptimizedPlanet OptimizedPlanet { get; }
-
-    public PlanetWorkManager(PlanetFactory planet, IOptimizedPlanet optimizedPlanet)
+    public PlanetWorkManager(IOptimizedPlanet optimizedPlanet)
     {
-        Planet = planet;
-        OptimizedPlanet = optimizedPlanet;
+        _optimizedPlanet = optimizedPlanet;
     }
 
     public bool UpdatePlanetWork(int parallelism)
     {
-        WorkStep[] updatedWorkSteps = OptimizedPlanet.GetMultithreadedWork(parallelism);
-        if (_workSteps != updatedWorkSteps && _workSteps != null)
+        IWorkNode updatedWorkNode = _optimizedPlanet.GetMultithreadedWork(parallelism);
+        if (_workNode != updatedWorkNode)
         {
-            for (int i = 0; i < _workSteps.Length; i++)
-            {
-                _workSteps[i].Dispose();
-            }
+            _workNode?.Dispose();
+            _workNode = updatedWorkNode;
+            return true;
         }
 
-        if (updatedWorkSteps.Length == 0)
+        return false;
+    }
+
+    public bool TryGetPlanetWork([NotNullWhen(true)] out IWorkNode? planetWorkNode)
+    {
+        if (_workNode == null)
         {
+            planetWorkNode = null;
             return false;
         }
 
-        _workSteps = updatedWorkSteps;
+        if (_workNode is NoWorkNode)
+        {
+            planetWorkNode = null;
+            return false;
+        }
+
+        planetWorkNode = _workNode;
         return true;
-    }
-
-    public IWorkChunk? TryGetWork(out bool canScheduleMoreWork)
-    {
-        int currentWorkTrackerIndex = _currentWorkStepIndex;
-        if (currentWorkTrackerIndex == _workSteps.Length)
-        {
-            canScheduleMoreWork = false;
-            return null;
-        }
-
-        WorkStep workStep = _workSteps[currentWorkTrackerIndex];
-        IWorkChunk? workChunk = workStep.TryGetWork(out bool canNoLongerProvideWork);
-        if (currentWorkTrackerIndex == _workSteps.Length - 1 && canNoLongerProvideWork)
-        {
-            canScheduleMoreWork = false;
-            return workChunk;
-        }
-
-        canScheduleMoreWork = true;
-        return workChunk;
-    }
-
-    public IWorkChunk? TryWaitForWork()
-    {
-        int currentWorkStepIndex = _currentWorkStepIndex;
-        if (currentWorkStepIndex == _workSteps.Length)
-        {
-            return null;
-        }
-
-        int nextWorkStepIndex = currentWorkStepIndex + 1;
-        if (nextWorkStepIndex >= _workSteps.Length)
-        {
-            return null;
-        }
-
-        WorkStep currentWorkStep = _workSteps[currentWorkStepIndex];
-        WorkStep nextWorkStep = _workSteps[nextWorkStepIndex];
-        IWorkChunk? workChunk = nextWorkStep.TryGetWork(out _);
-        if (workChunk == null)
-        {
-            return workChunk;
-        }
-
-        currentWorkStep.WaitForCompletion();
-        return workChunk;
-    }
-
-    public void CompleteWork(IWorkChunk workChunk)
-    {
-        if (workChunk.Complete())
-        {
-            Interlocked.Increment(ref _currentWorkStepIndex);
-            workChunk.CompleteStep();
-        }
     }
 
     public PlanetWorkStatistics? GetPlanetWorkStatistics()
     {
-        if (_workSteps == null)
+        if (_workNode == null)
         {
             return null;
         }
 
-        int totalWorkChunks = _workSteps.Sum(x => x.WorkChunkCount);
-        return new PlanetWorkStatistics(_workSteps.Length, totalWorkChunks);
-    }
-
-    public void Reset()
-    {
-        for (int i = 0; i < _workSteps.Length; i++)
-        {
-            _workSteps[i].Reset();
-        }
-        _currentWorkStepIndex = 0;
+        int totalWorkChunks = _workNode.GetWorkChunkCount();
+        return new PlanetWorkStatistics(-1, totalWorkChunks);
     }
 }

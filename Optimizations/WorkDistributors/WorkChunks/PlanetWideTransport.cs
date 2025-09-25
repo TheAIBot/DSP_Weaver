@@ -5,7 +5,6 @@ namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
 internal sealed class PlanetWideTransport : IWorkChunk
 {
     private readonly IOptimizedPlanet _optimizedPlanet;
-    private WorkStep? _workStep;
 
     public PlanetWideTransport(IOptimizedPlanet optimizedPlanet)
     {
@@ -15,30 +14,5 @@ internal sealed class PlanetWideTransport : IWorkChunk
     public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         _optimizedPlanet.TransportGameTick(workerIndex, time, playerPosition);
-    }
-
-    public void TieToWorkStep(WorkStep workStep)
-    {
-        _workStep = workStep;
-    }
-
-    public bool Complete()
-    {
-        if (_workStep == null)
-        {
-            throw new InvalidOperationException("No work step was assigned.");
-        }
-
-        return _workStep.CompleteWorkChunk();
-    }
-
-    public void CompleteStep()
-    {
-        if (_workStep == null)
-        {
-            throw new InvalidOperationException("No work step was assigned.");
-        }
-
-        _workStep.CompleteStep();
     }
 }

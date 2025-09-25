@@ -21,35 +21,8 @@ internal sealed class WorkExecutor
     {
         try
         {
-            PlanetWorkManager? planetWorkManager = null;
-            while (true)
-            {
-                IWorkChunk? workChunk = null;
-                if (planetWorkManager != null)
-                {
-                    workChunk = planetWorkManager.TryGetWork(out var _);
-                    if (workChunk == null)
-                    {
-                        planetWorkManager = null;
-                    }
-                }
-
-                if (workChunk == null)
-                {
-                    PlanetWorkPlan? planetWorkPlan = _starClusterWorkManager.TryGetWork();
-                    if (planetWorkPlan == null)
-                    {
-                        break;
-                    }
-
-                    planetWorkManager = planetWorkPlan.Value.PlanetWorkManager;
-                    workChunk = planetWorkPlan.Value.WorkChunk;
-                }
-
-                workChunk.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
-
-                planetWorkManager!.CompleteWork(workChunk);
-            }
+            RootWorkNode rootWorkNode = _starClusterWorkManager.GetRootWorkNode();
+            rootWorkNode.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
         }
         catch (Exception e)
         {

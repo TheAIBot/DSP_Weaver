@@ -8,7 +8,6 @@ internal sealed class EntirePlanet : IWorkChunk
     private readonly PlanetWidePower _planetWidePower;
     private readonly SubFactoryGameTick _subFactory;
     private readonly PostSubFactoryStep _postSubFactoryStep;
-    private WorkStep? _workStep;
 
     public EntirePlanet(OptimizedTerrestrialPlanet optimizedPlanet, OptimizedSubFactory subFactory, SubFactoryPowerConsumption subFactoryPowerConsumption)
     {
@@ -22,30 +21,5 @@ internal sealed class EntirePlanet : IWorkChunk
         _planetWidePower.Execute(workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
         _subFactory.Execute(workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
         _postSubFactoryStep.Execute(workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
-    }
-
-    public void TieToWorkStep(WorkStep workStep)
-    {
-        _workStep = workStep;
-    }
-
-    public bool Complete()
-    {
-        if (_workStep == null)
-        {
-            throw new InvalidOperationException("No work step was assigned.");
-        }
-
-        return _workStep.CompleteWorkChunk();
-    }
-
-    public void CompleteStep()
-    {
-        if (_workStep == null)
-        {
-            throw new InvalidOperationException("No work step was assigned.");
-        }
-
-        _workStep.CompleteStep();
     }
 }

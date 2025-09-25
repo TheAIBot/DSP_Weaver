@@ -9,5 +9,5 @@ internal interface IOptimizedPlanet
     void Save();
     void Initialize();
     void TransportGameTick(int workerIndex, long time, UnityEngine.Vector3 playerPos);
-    WorkStep[] GetMultithreadedWork(int maxParallelism);
+    IWorkNode GetMultithreadedWork(int maxParallelism);
 }

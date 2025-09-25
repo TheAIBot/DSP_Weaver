@@ -84,7 +84,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             }
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, planetsToUpdate, targetThreadCount);
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, targetThreadCount);
         _starClusterWorkManager.Reset();
 
         //var parallelOptions = new ParallelOptions
@@ -121,6 +121,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
     public void Clear()
     {
+        _starClusterWorkManager?.Dispose();
         _starClusterWorkManager = null;
         if (_threads != null)
         {
@@ -157,8 +158,8 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             _starClusterWorkManager = new StarClusterWorkManager();
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, GameMain.data.factories, GameMain.logic.threadController.wantedThreadCount);
-        StarClusterWorkStatistics starClusterWorkStatistics = _starClusterWorkManager.GetStartClusterStatistics();
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, GameMain.logic.threadController.wantedThreadCount);
+        StarClusterWorkStatistics starClusterWorkStatistics = _starClusterWorkManager.GetStarClusterStatistics();
 
         WeaverFixes.Logger.LogInfo($"Planet Count: {starClusterWorkStatistics.PlanetWorkStatistics.Length:N0}");
         WeaverFixes.Logger.LogInfo($"Total work steps: {starClusterWorkStatistics.PlanetWorkStatistics.Sum(x => x.WorkStepsCount):N0}");
