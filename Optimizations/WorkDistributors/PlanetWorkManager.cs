@@ -43,6 +43,7 @@ internal sealed class SolarSystemWorkManager
                 return true;
             }
 
+            WeaverFixes.Logger.LogMessage($"solar system size: {_planetWorkNodes.Count}");
             _workNodes = new WorkNode([_planetWorkNodes.ToArray()]);
             return true;
         }
@@ -127,6 +128,11 @@ internal sealed class PlanetWorkManager
     public PlanetWorkStatistics? GetPlanetWorkStatistics()
     {
         if (_workNode == null)
+        {
+            return null;
+        }
+
+        if (_workNode is NoWorkNode)
         {
             return null;
         }

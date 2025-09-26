@@ -71,6 +71,7 @@ internal sealed class StarClusterWorkManager : IDisposable
                 return;
             }
 
+            WeaverFixes.Logger.LogMessage($"Star cluster size: {_solarSystemWorkNodes.Count}");
             _rootWorkNode = new RootWorkNode(new WorkNode([_solarSystemWorkNodes.ToArray()]));
         }
     }
@@ -104,6 +105,16 @@ internal sealed class StarClusterWorkManager : IDisposable
         }
 
         return new StarClusterWorkStatistics(planetWorkStatistics.ToArray());
+    }
+
+    public IEnumerable<IWorkChunk> GetAllWorkChunks()
+    {
+        if (_rootWorkNode == null)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _rootWorkNode.GetAllWorkChunks();
     }
 
     public void Dispose()

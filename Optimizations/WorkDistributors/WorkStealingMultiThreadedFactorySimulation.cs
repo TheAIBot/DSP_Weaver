@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Weaver.Optimizations.Labs;
 
@@ -168,6 +169,13 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         foreach (PlanetWorkStatistics planetWorkStatistics in starClusterWorkStatistics.PlanetWorkStatistics)
         {
             WeaverFixes.Logger.LogInfo($"\t{planetWorkStatistics}");
+        }
+
+        WeaverFixes.Logger.LogInfo("");
+        WeaverFixes.Logger.LogInfo("Work chunk types:");
+        foreach ((string workName, int count) in _starClusterWorkManager.GetAllWorkChunks().GroupBy(x => x.GetType().Name).Select(x => (x.Key, x.Count())))
+        {
+            WeaverFixes.Logger.LogInfo($"\t{workName}: {count:10,10}");
         }
     }
 

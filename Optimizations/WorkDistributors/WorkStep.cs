@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using UnityEngine;
@@ -10,7 +12,7 @@ internal interface IWorkNode : IDisposable
 {
     bool IsLeaf { get; }
     (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition);
-
+    IEnumerable<IWorkChunk> GetAllWorkChunks();
     void Reset();
     int GetWorkChunkCount();
     void DeepDispose();
@@ -54,6 +56,11 @@ internal sealed class RootWorkNode : IDisposable
                 }
             }
         }
+    }
+    
+    public IEnumerable<IWorkChunk> GetAllWorkChunks()
+    {
+        return _workNode.GetAllWorkChunks();
     }
 
     public void Reset()
@@ -199,6 +206,11 @@ internal sealed class WorkNode : IWorkNode
         return (false, hasDoneAnyWork);
     }
 
+    public IEnumerable<IWorkChunk> GetAllWorkChunks()
+    {
+        return _preservedWorkNodes.SelectMany(x => x.Where(y => y is not NoWorkNode).SelectMany(y => y.GetAllWorkChunks()));
+    }
+
     public void Reset()
     {
         for (int i = 0; i < _preservedWorkNodes.Length; i++)
@@ -267,6 +279,11 @@ internal sealed class WorkLeaf : IWorkNode
         return (totalCompletedCount == _workNodes.Length, true);
     }
 
+    public IEnumerable<IWorkChunk> GetAllWorkChunks()
+    {
+        return _workNodes;
+    }
+
     public void Reset()
     {
         _completedCount = 0;
@@ -296,5 +313,6 @@ internal sealed class NoWorkNode : IWorkNode
     public void Reset() => throw new NotImplementedException();
 
     public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, Vector3 playerPosition) => throw new NotImplementedException();
+    public IEnumerable<IWorkChunk> GetAllWorkChunks() => throw new NotImplementedException();
     public void DeepDispose() => throw new NotImplementedException();
 }
