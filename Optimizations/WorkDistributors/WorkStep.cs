@@ -108,98 +108,90 @@ internal sealed class WorkNode : IWorkNode
     public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         bool hasDoneAnyWork = false;
-        // Work though work steps
-        while (_workStepIndex < _actualWorkNodes.Length)
+        int workStepIndex = _workStepIndex;
+        if (workStepIndex == _actualWorkNodes.Length)
         {
-            bool completedWorkStep = false;
-            int workStepIndex = _workStepIndex;
-            if (workStepIndex == _actualWorkNodes.Length)
+            return (false, false);
+        }
+        int startWorkStepIndex = _scheduledWorkIndex[workStepIndex];
+        int workNodeCount = _actualWorkNodes[workStepIndex].Length;
+        if (startWorkStepIndex < workNodeCount)
+        {
+            startWorkStepIndex = Interlocked.Increment(ref _scheduledWorkIndex[workStepIndex]) - 1;
+            if (startWorkStepIndex >= workNodeCount)
             {
-                break;
+                startWorkStepIndex = 0;
             }
-            int startWorkStepIndex = _scheduledWorkIndex[workStepIndex];
-            int workNodeCount = _actualWorkNodes[workStepIndex].Length;
-            if (startWorkStepIndex < workNodeCount)
-            {
-                startWorkStepIndex = Interlocked.Increment(ref _scheduledWorkIndex[workStepIndex]) - 1;
-                if (startWorkStepIndex >= workNodeCount)
-                {
-                    startWorkStepIndex = 0;
-                }
-            }
+        }
+        else
+        {
+            startWorkStepIndex = 0;
+        }
 
-            if (waitForWork)
+        if (waitForWork)
+        {
+            int nextWorkStepIndex = workStepIndex + 1;
+            if (nextWorkStepIndex < _actualWorkNodes.Length &&
+                _actualWorkNodes[nextWorkStepIndex][0]?.IsLeaf == true && // While this does not garuantee that all nodes are leafs then this is good enough for now... probably
+                _scheduledWorkIndex[nextWorkStepIndex] <= _actualWorkNodes[nextWorkStepIndex].Length)
             {
-                int nextWorkStepIndex = workStepIndex + 1;
-                if (nextWorkStepIndex < _actualWorkNodes.Length &&
-                    _actualWorkNodes[nextWorkStepIndex][0]?.IsLeaf == true && // While this does not garuantee that all nodes are leafs then this is good enough for now... probably
-                    _scheduledWorkIndex[nextWorkStepIndex] < _actualWorkNodes[nextWorkStepIndex].Length)
+                int scheduleFutureWork = Interlocked.Increment(ref _scheduledWorkIndex[nextWorkStepIndex]) - 1;
+                int nextWorkNodeCount = _actualWorkNodes[nextWorkStepIndex].Length;
+                if (scheduleFutureWork < nextWorkNodeCount)
                 {
-                    int scheduleFutureWork = Interlocked.Increment(ref _scheduledWorkIndex[nextWorkStepIndex]) - 1;
-                    int nextWorkNodeCount = _actualWorkNodes[nextWorkStepIndex].Length;
-                    if (scheduleFutureWork < nextWorkNodeCount)
+                    IWorkNode? workNode = _actualWorkNodes[nextWorkStepIndex][scheduleFutureWork];
+                    if (workNode != null)
                     {
-                        IWorkNode? workNode = _actualWorkNodes[nextWorkStepIndex][scheduleFutureWork];
-                        if (workNode != null)
+                        _workNodeBarriers[workStepIndex].WaitOne();
+                        (bool isNodeComplete, bool hasDoneWorkInChildNode) = workNode.TryDoWork(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+                        hasDoneAnyWork |= hasDoneWorkInChildNode;
+                        if (isNodeComplete)
                         {
-                            _workNodeBarriers[workStepIndex].WaitOne();
-                            (bool isNodeComplete, bool hasDoneWorkInChildNode) = workNode.TryDoWork(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
-                            hasDoneAnyWork |= hasDoneWorkInChildNode;
-                            if (isNodeComplete)
+                            _actualWorkNodes[nextWorkStepIndex][scheduleFutureWork] = null;
+
+                            int totalCompletedWorkIndex = Interlocked.Increment(ref _completedWorkIndex[nextWorkStepIndex]);
+                            if (totalCompletedWorkIndex == nextWorkNodeCount)
                             {
-                                _actualWorkNodes[nextWorkStepIndex][scheduleFutureWork] = null;
-
-                                int totalCompletedWorkIndex = Interlocked.Increment(ref _completedWorkIndex[nextWorkStepIndex]);
-                                if (totalCompletedWorkIndex == nextWorkNodeCount)
+                                int nextWorkStep = Interlocked.Increment(ref _workStepIndex);
+                                _workNodeBarriers[nextWorkStepIndex].Set();
+                                if (_actualWorkNodes.Length == nextWorkStep)
                                 {
-                                    int nextWorkStep = Interlocked.Increment(ref _workStepIndex);
-                                    _workNodeBarriers[nextWorkStepIndex].Set();
-                                    if (_actualWorkNodes.Length == nextWorkStep)
-                                    {
-                                        return (true, hasDoneAnyWork);
-                                    }
+                                    return (true, hasDoneAnyWork);
                                 }
-
-                                // break out to attempt to do work without waiting for it first
-                                break;
                             }
-                        }
 
+                            return (false, hasDoneAnyWork);
+                        }
                     }
+
                 }
             }
+        }
 
-            for (int i = startWorkStepIndex; i < workNodeCount; i++)
+        for (int i = startWorkStepIndex; i < workNodeCount; i++)
+        {
+            IWorkNode? workNode = _actualWorkNodes[workStepIndex][i];
+            if (workNode == null)
             {
-                IWorkNode? workNode = _actualWorkNodes[workStepIndex][i];
-                if (workNode == null)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                (bool isNodeComplete, bool hasDoneWorkInChildNode) = workNode.TryDoWork(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
-                hasDoneAnyWork |= hasDoneWorkInChildNode;
-                if (isNodeComplete)
-                {
-                    _actualWorkNodes[workStepIndex][i] = null;
+            (bool isNodeComplete, bool hasDoneWorkInChildNode) = workNode.TryDoWork(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+            hasDoneAnyWork |= hasDoneWorkInChildNode;
+            if (isNodeComplete)
+            {
+                _actualWorkNodes[workStepIndex][i] = null;
 
-                    int totalCompletedWorkIndex = Interlocked.Increment(ref _completedWorkIndex[workStepIndex]);
-                    if (totalCompletedWorkIndex == workNodeCount)
+                int totalCompletedWorkIndex = Interlocked.Increment(ref _completedWorkIndex[workStepIndex]);
+                if (totalCompletedWorkIndex == workNodeCount)
+                {
+                    int nextWorkStep = Interlocked.Increment(ref _workStepIndex);
+                    _workNodeBarriers[workStepIndex].Set();
+                    if (_actualWorkNodes.Length == nextWorkStep)
                     {
-                        completedWorkStep = true;
-                        int nextWorkStep = Interlocked.Increment(ref _workStepIndex);
-                        _workNodeBarriers[workStepIndex].Set();
-                        if (_actualWorkNodes.Length == nextWorkStep)
-                        {
-                            return (true, hasDoneAnyWork);
-                        }
+                        return (true, hasDoneAnyWork);
                     }
                 }
-            }
-
-            if (!completedWorkStep)
-            {
-                break;
             }
         }
 
