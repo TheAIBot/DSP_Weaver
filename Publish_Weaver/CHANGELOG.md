@@ -1,10 +1,7 @@
 ## 2.0.0
 * !!! Update deep profiler for power: exchangers and other generators
 * !!! Look into if there is any sync turret stuff that needs to before doing parallel turret update
-* !!! Need to figure out when dyson spheres are added
-    * !!! _dysonSphereManager.AddDysonDysonSphere(planet);
 * !!! Handle all single threaded stuff
-* !!! Replace DysonSphereBeforeGameTick with a transpiler that uses thread local variables to a pass workerIndex to DeepProfiler calls
 
 ## 1.5.1
 * Fix sorter taking from storage to assembler would ignore assembler item limit and put items into assembler forever.

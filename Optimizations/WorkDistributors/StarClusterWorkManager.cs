@@ -76,9 +76,10 @@ internal sealed class StarClusterWorkManager : IDisposable
                 solarSystemWorkManager = new SolarSystemWorkManager();
                 _solarSystemWorkManagers.Add(solarSystemWorkManager);
                 _starToWorkManagers.Add(dysonSphere.starData, solarSystemWorkManager);
-                _assignedSpheres.Add(dysonSphere);
+
             }
 
+            _assignedSpheres.Add(dysonSphere);
             solarSystemWorkManager.AddDysonSphere(dysonSphere);
             _rootWorkNode?.Dispose();
             _rootWorkNode = null;
