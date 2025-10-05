@@ -9,6 +9,8 @@ internal sealed class WorkExecutor
     private readonly int _workerIndex;
     private readonly object _singleThreadedCodeLock;
 
+    public int WorkerIndex => _workerIndex;
+
 
     public WorkExecutor(StarClusterWorkManager starClusterWorkManager, int workerIndex, object singleThreadedCodeLock)
     {

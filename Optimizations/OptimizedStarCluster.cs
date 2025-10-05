@@ -373,6 +373,27 @@ internal static class OptimizedStarCluster
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(DeepProfiler), nameof(DeepProfiler.BeginSample))]
+    public static void DeepProfiler_BeginSample(DPEntry entry, ref int thread, long detail)
+    {
+        UpdateThreadIndexIfRequired(ref thread);
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(DeepProfiler), nameof(DeepProfiler.EndSample), [typeof(int), typeof(long)])]
+    public static void DeepProfiler_EndSampleNonTyped(ref int thread, long detail)
+    {
+        UpdateThreadIndexIfRequired(ref thread);
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(DeepProfiler), nameof(DeepProfiler.EndSample), [typeof(DPEntry), typeof(int)])]
+    public static void DeepProfiler_EndSampleTyped(DPEntry entry, ref int thread)
+    {
+        UpdateThreadIndexIfRequired(ref thread);
+    }
+
     public static void ReOptimizeAllPlanets()
     {
         lock (_planetsToReOptimize)
@@ -422,5 +443,23 @@ internal static class OptimizedStarCluster
             optimizedPlanet.Save();
         }
         optimizedPlanet.OptimizeDelayInTicks = 200;
+    }
+
+    private static void UpdateThreadIndexIfRequired(ref int thread)
+    {
+        const int mainThreadIndex = -1;
+        if (thread != mainThreadIndex)
+        {
+            return;
+        }
+
+        int? newThreadIndex = ThreadLocalData.ThreadIndex.Value;
+        if (!newThreadIndex.HasValue)
+        {
+            return;
+            //throw new InvalidOperationException("Thread index from thread local storage was null.");
+        }
+
+        thread = newThreadIndex.Value;
     }
 }

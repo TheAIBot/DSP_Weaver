@@ -6,6 +6,11 @@ using Weaver.Optimizations.Labs;
 
 namespace Weaver.Optimizations.WorkDistributors;
 
+internal static class ThreadLocalData
+{
+    public static ThreadLocal<int?> ThreadIndex { get; } = new();
+}
+
 internal sealed class WorkStealingMultiThreadedFactorySimulation
 {
     private readonly HighStopwatch _stopWatch = new();
@@ -45,6 +50,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         if (_threads == null || _threads.Length != targetThreadCount)
         {
             ClearThreads();
+            ThreadLocalData.ThreadIndex.Value = -1; // For main thread which also does work. Will otherwise crash when value does not exist.
             _threads = new Thread[targetThreadCount];
             _doWork = new ManualResetEvent[targetThreadCount];
             _workerDone = new ManualResetEvent[targetThreadCount];
@@ -62,6 +68,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
                 {
                     try
                     {
+                        ThreadLocalData.ThreadIndex.Value = workExecutor.WorkerIndex;
                         while (!_done)
                         {
                             dooooWork.WaitOne();
