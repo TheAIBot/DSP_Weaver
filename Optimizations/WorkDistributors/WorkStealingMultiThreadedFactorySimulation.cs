@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Weaver.Optimizations.Labs;
 
 namespace Weaver.Optimizations.WorkDistributors;
@@ -61,7 +62,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
                 {
                     try
                     {
-                        while (true)
+                        while (!_done)
                         {
                             dooooWork.WaitOne();
                             dooooWork.Reset();
@@ -85,21 +86,16 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             }
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, targetThreadCount);
+        _starClusterWorkManager.UpdateListOfPlanets(gameLogic, GameMain.data.factories, GameMain.data.dysonSpheres, targetThreadCount);
         _starClusterWorkManager.Reset();
 
-        //var parallelOptions = new ParallelOptions
-        //{
-        //    MaxDegreeOfParallelism = targetThreadCount,
-        //};
-
         _stopWatch.Begin();
-
-        ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate);
 
         _localPlanet = GameMain.localPlanet;
         _time = GameMain.gameTick;
         _playerPosition = GameMain.mainPlayer.position;
+
+        ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
 
         for (int i = 0; i < _doWork.Length; i++)
         {
@@ -115,7 +111,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
         _dysonSphereManager.UIThreadCreateDysonSpheres();
 
-        ExecutePostFactorySingleThreadedSteps(gameLogic, planetsToUpdate);
+        ExecutePostFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
 
         double totalTime = _stopWatch.duration;
     }
@@ -159,7 +155,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             _starClusterWorkManager = new StarClusterWorkManager();
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.data.factories, GameMain.logic.threadController.wantedThreadCount);
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.logic, GameMain.data.factories, GameMain.data.dysonSpheres, GameMain.logic.threadController.wantedThreadCount);
         StarClusterWorkStatistics starClusterWorkStatistics = _starClusterWorkManager.GetStarClusterStatistics();
 
         WeaverFixes.Logger.LogInfo($"Planet Count: {starClusterWorkStatistics.PlanetWorkStatistics.Length:N0}");
@@ -179,7 +175,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         }
     }
 
-    private static void ExecutePreFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate)
+    private static void ExecutePreFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int threadCount)
     {
         // 151
         gameLogic.UniverseGameTick();
@@ -207,7 +203,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         gameLogic.GalacticDigitalGameTick();
 
         // 801
-        gameLogic.DysonSphereBeforeGameTick();
+        //gameLogic.DysonSphereBeforeGameTick();
 
         // 1001
         gameLogic.OnFactoryBeginProfiler();
@@ -216,30 +212,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         // 1100
         // Incomplete?????
         gameLogic.FactoryBeforeGameTick();
-
-        //for (int i = 0; i < planetsToUpdate.Length; i++)
-        //{
-        //    PlanetFactory? planet = planetsToUpdate[i];
-        //    if (planet?.constructionSystem == null)
-        //    {
-        //        continue;
-        //    }
-
-        //    bool isActive = planet.planet == GameMain.localPlanet;
-        //    planet.constructionSystem.GameTick(GameMain.gameTick, isActive);
-        //    planet.constructionSystem.ExcuteDeferredTargetChange();
-        //}
-
-        //for (int i = 0; i < planetsToUpdate.Length; i++)
-        //{
-        //    PlanetFactory? planet = planetsToUpdate[i];
-        //    if (planet?.factorySystem == null)
-        //    {
-        //        continue;
-        //    }
-
-        //    planet.factorySystem.CheckBeforeGameTick();
-        //}
 
         // 1201
         DeepProfiler.BeginSample(DPEntry.PowerSystem);
@@ -253,7 +225,13 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         DeepProfiler.EndSample(DPEntry.PowerSystem);
 
         // 1250
-        gameLogic.EnemyGroundPrepare();
+        //gameLogic.EnemyGroundPrepare();
+        if (gameLogic.isCombatMode)
+        {
+            DeepProfiler.BeginSample(DPEntry.DFGSystem, -1, 99L);
+            gameLogic.data.localLoadedPlanetFactory?.LocalizeEnemies();
+            DeepProfiler.EndSample(DPEntry.DFGSystem);
+        }
 
         // 1301
         // Nothing
@@ -262,14 +240,20 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         // Nothing
 
         // 1350
-        // Parallelize here EnemyGroundCombatGameTick_Parallel
+        if (gameLogic.isCombatMode)
+        {
+            DeepProfiler.BeginSample(DPEntry.DFGSystem);
+            gameLogic.data.localLoadedPlanetFactory?.LocalizeEnemies();
+            DeepProfiler.EndSample(DPEntry.DFGSystem);
+        }
+
+
+        // 1400
+        //gameLogic.FactoryConstructionSystemGameTick();
     }
 
-    private static void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate)
+    private static void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int threadCount)
     {
-        // 1400
-        // Do or is that 1100?
-
         // 1601
         // Nothing
 
@@ -326,6 +310,14 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         // 3151
         // Parallelize here DefenseSystemTurretGameTick_Parallel
+        var parallelOptions = new ParallelOptions()
+        {
+            MaxDegreeOfParallelism = threadCount
+        };
+        Parallel.For(0, planetsToUpdate.Length, parallelOptions, i =>
+        {
+            planetsToUpdate[i]?.defenseSystem.GameTick_Turret(time);
+        });
         gameLogic.OnFactoryEndProfiler();
 
         // 3201
@@ -336,12 +328,14 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         // 3320
         // Parallelize here DysonSwarmGameTick_Parallel
+        gameLogic.DysonSwarmGameTick();
 
         // 3321
         gameLogic.DysonSwarmGameTickPost();
 
         // 3351
         // Parallelize here DysonSphereRocketGameTick_Parallel
+        gameLogic.DysonSphereRocketGameTick();
 
         // 3401
         gameLogic.SpaceSectorGameTick();
@@ -367,6 +361,12 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         // 4001
         // Parallelize here StatisticsGameTick_Parallel
+        DeepProfiler.BeginSample(DPEntry.Statistics);
+        if (!DSPGame.IsMenuDemo)
+        {
+            GameMain.data.statistics.GameTickStats(time);
+        }
+        DeepProfiler.EndSample(DPEntry.Statistics);
 
         // 4100
         gameLogic.WarningSystemGameTick();

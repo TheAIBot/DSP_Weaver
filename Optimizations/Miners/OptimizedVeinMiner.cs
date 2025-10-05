@@ -134,7 +134,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
                                         {
                                             factory.RemoveVeinWithComponents(num);
                                             factory.RecalculateVeinGroup(groupIndex);
-                                            factory.NotifyVeinExhausted(veinType, pos);
+                                            factory.NotifyVeinExhausted(veinType, groupIndex, pos);
                                         }
                                     }
                                     else

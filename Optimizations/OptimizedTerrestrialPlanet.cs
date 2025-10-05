@@ -127,17 +127,14 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     {
         if (Status == OptimizedPlanetStatus.Stopped)
         {
-            WeaverFixes.Logger.LogMessage("Default threading logic");
             return CreateParallelWorkForNonRunningOptimizedPlanet(maxParallelism);
         }
 
         if (_subFactories.Length == 0)
         {
-            WeaverFixes.Logger.LogMessage("No threading logic");
             return new NoWorkNode();
         }
 
-        WeaverFixes.Logger.LogMessage("Optimized threading logic");
         if (_subFactories.Length == 1)
         {
             OptimizedSubFactory subFactory = _subFactories[0];

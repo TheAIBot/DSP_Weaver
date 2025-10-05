@@ -67,7 +67,7 @@ internal struct OptimizedOilMiner
                     {
                         lock (veinPool)
                         {
-                            factory.NotifyVeinExhausted((int)oilVein.type, oilVein.pos);
+                            factory.NotifyVeinExhausted((int)oilVein.type, oilVein.groupIndex, oilVein.pos);
                         }
                     }
                 }

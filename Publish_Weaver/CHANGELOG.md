@@ -4,6 +4,7 @@
 * !!! Need to figure out when dyson spheres are added
     * !!! _dysonSphereManager.AddDysonDysonSphere(planet);
 * !!! Handle all single threaded stuff
+* !!! Replace DysonSphereBeforeGameTick with a transpiler that uses thread local variables to a pass workerIndex to DeepProfiler calls
 
 ## 1.5.1
 * Fix sorter taking from storage to assembler would ignore assembler item limit and put items into assembler forever.

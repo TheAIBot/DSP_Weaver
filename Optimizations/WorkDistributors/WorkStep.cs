@@ -298,7 +298,7 @@ internal sealed class NoWorkNode : IWorkNode
 {
     public bool IsLeaf => throw new NotImplementedException();
 
-    public void Dispose() => throw new NotImplementedException();
+
 
     public int GetWorkChunkCount() => throw new NotImplementedException();
 
@@ -306,5 +306,7 @@ internal sealed class NoWorkNode : IWorkNode
 
     public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, Vector3 playerPosition) => throw new NotImplementedException();
     public IEnumerable<IWorkChunk> GetAllWorkChunks() => throw new NotImplementedException();
-    public void DeepDispose() => throw new NotImplementedException();
+    public void DeepDispose() { }
+
+    public void Dispose() { }
 }

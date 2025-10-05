@@ -7,6 +7,7 @@ namespace Weaver.Optimizations.WorkDistributors;
 
 internal sealed class StarClusterWorkManager : IDisposable
 {
+    private readonly HashSet<DysonSphere> _assignedSpheres = [];
     private readonly Dictionary<PlanetFactory, PlanetWorkManager> _planetToWorkManagers = [];
     private readonly List<SolarSystemWorkManager> _solarSystemWorkManagers = [];
     private readonly Dictionary<StarData, SolarSystemWorkManager> _starToWorkManagers = [];
@@ -15,12 +16,13 @@ internal sealed class StarClusterWorkManager : IDisposable
 
     public int Parallelism { get; private set; } = -1;
 
-    public void UpdateListOfPlanets(PlanetFactory?[] allPlanets, int parallelism)
+    public void UpdateListOfPlanets(GameLogic gameLogic, PlanetFactory?[] allPlanets, DysonSphere[] dysonSpheres, int parallelism)
     {
         Parallelism = parallelism;
 
-        foreach (PlanetFactory? planet in allPlanets)
+        for (int i = 0; i < allPlanets.Length; i++)
         {
+            PlanetFactory? planet = allPlanets[i];
             if (planet == null)
             {
                 continue;
@@ -32,7 +34,7 @@ internal sealed class StarClusterWorkManager : IDisposable
             }
 
             IOptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(planet);
-            PlanetWorkManager planetWorkManager = new PlanetWorkManager(optimizedPlanet);
+            PlanetWorkManager planetWorkManager = new PlanetWorkManager(gameLogic, planet, optimizedPlanet);
             _planetToWorkManagers.Add(planet, planetWorkManager);
 
             if (!_starToWorkManagers.TryGetValue(planet.planet.star, out SolarSystemWorkManager? solarSystemWorkManager))
@@ -43,6 +45,8 @@ internal sealed class StarClusterWorkManager : IDisposable
             }
 
             solarSystemWorkManager.AddPlanet(planetWorkManager);
+            _rootWorkNode?.Dispose();
+            _rootWorkNode = null;
         }
 
         for (int i = 0; i < _solarSystemWorkManagers.Count; i++)
@@ -52,6 +56,32 @@ internal sealed class StarClusterWorkManager : IDisposable
                 _rootWorkNode?.Dispose();
                 _rootWorkNode = null;
             }
+        }
+
+        for (int i = 0; i < dysonSpheres.Length; i++)
+        {
+            DysonSphere? dysonSphere = dysonSpheres[i];
+            if (dysonSphere == null)
+            {
+                continue;
+            }
+
+            if (!_assignedSpheres.Add(dysonSphere))
+            {
+                continue;
+            }
+
+            if (!_starToWorkManagers.TryGetValue(dysonSphere.starData, out SolarSystemWorkManager? solarSystemWorkManager))
+            {
+                solarSystemWorkManager = new SolarSystemWorkManager();
+                _solarSystemWorkManagers.Add(solarSystemWorkManager);
+                _starToWorkManagers.Add(dysonSphere.starData, solarSystemWorkManager);
+                _assignedSpheres.Add(dysonSphere);
+            }
+
+            solarSystemWorkManager.AddDysonSphere(dysonSphere);
+            _rootWorkNode?.Dispose();
+            _rootWorkNode = null;
         }
 
         if (_rootWorkNode == null)
