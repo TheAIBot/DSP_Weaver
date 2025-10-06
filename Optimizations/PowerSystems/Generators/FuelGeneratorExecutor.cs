@@ -16,6 +16,8 @@ internal sealed class FuelGeneratorExecutor
     public Dictionary<int, OptimizedFuelGeneratorLocation> FuelGeneratorIdToOptimizedFuelGeneratorLocation => _fuelGeneratorIdToOptimizedFuelGeneratorLocation;
     public IEnumerable<OptimizedFuelGenerator[]> GeneratorSegments => _generatorIDWithOptimizedFuelGenerators.Select(x => x.OptimizedFuelGenerators);
 
+    public int GeneratorCount => _generatorIDWithOptimizedFuelGenerators.Sum(x => x.OptimizedFuelGenerators.Length);
+
     public long EnergyCap(long[] currentGeneratorCapacities)
     {
         if (_generatorIDWithOptimizedFuelGenerators.Length == 0)

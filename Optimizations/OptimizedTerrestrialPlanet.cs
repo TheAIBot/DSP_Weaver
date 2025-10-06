@@ -164,9 +164,9 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _planet.digitalSystem.GameTickBeforePower(time);
     }
 
-    public void PowerStep(long time)
+    public void PowerStep(long time, int workerIndex)
     {
-        _optimizedPowerSystem.GameTick(_planet, time);
+        _optimizedPowerSystem.GameTick(_planet, time, workerIndex);
     }
 
     public void TransportGameTick(int workerIndex, long time, UnityEngine.Vector3 playerPos)

@@ -21,13 +21,14 @@ internal sealed class PowerExchangerExecutor
     public long TotalGenerationCapacityCurrentTick { get; private set; }
     public long TotalConsumptionCapacityCurrentTick { get; private set; }
 
-    public (long inputEnergySum, long outputEnergySum) InputOutputUpdate(long[] currentGeneratorCapacities)
+    public (long inputEnergySum, long outputEnergySum) InputOutputUpdate(long[] currentGeneratorCapacities, int workerIndex)
     {
         if (_optimizedPowerExchangers.Length == 0)
         {
             return (0, 0);
         }
 
+        DeepProfiler.BeginSample(DPEntry.PowerExchanger, workerIndex, _optimizedPowerExchangers.Length);
         long inputEnergySum = 0;
         long outputEnergySum = 0;
         OptimizedPowerExchanger[] optimizedPowerExchangers = _optimizedPowerExchangers;
@@ -56,57 +57,69 @@ internal sealed class PowerExchangerExecutor
 
         currentGeneratorCapacities[_subId] += outputEnergySum;
 
+        DeepProfiler.EndSample(DPEntry.PowerExchanger, workerIndex);
         return (inputEnergySum, outputEnergySum);
     }
 
-    public void UpdateInput(int[] productRegister, int[] consumeRegister, double num40, ref long num32, ref long num23, ref long num4)
+    public void UpdateInput(int[] productRegister, int[] consumeRegister, double num40, ref long num32, ref long num23, ref long num4, int workerIndex)
     {
         ConsumerCount = 0;
+
         long energySum = 0;
         OptimizedPowerExchanger[] optimizedPowerExchangers = _optimizedPowerExchangers;
-        for (int i = 0; i < optimizedPowerExchangers.Length; i++)
+        if (optimizedPowerExchangers.Length > 0)
         {
-            ref OptimizedPowerExchanger powerExchanger = ref optimizedPowerExchangers[i];
-            if (powerExchanger.state >= 1f && num40 >= 0.0)
+            DeepProfiler.BeginSample(DPEntry.PowerExchanger, workerIndex, optimizedPowerExchangers.Length);
+            for (int i = 0; i < optimizedPowerExchangers.Length; i++)
             {
-                long num42 = (long)(num40 * powerExchanger.capsCurrentTick + 0.99999);
-                long remaining = num32 < num42 ? num32 : num42;
-                energySum += powerExchanger.InputUpdate(remaining, productRegister, consumeRegister);
-                ConsumerCount++;
+                ref OptimizedPowerExchanger powerExchanger = ref optimizedPowerExchangers[i];
+                if (powerExchanger.state >= 1f && num40 >= 0.0)
+                {
+                    long num42 = (long)(num40 * powerExchanger.capsCurrentTick + 0.99999);
+                    long remaining = num32 < num42 ? num32 : num42;
+                    energySum += powerExchanger.InputUpdate(remaining, productRegister, consumeRegister);
+                    ConsumerCount++;
+                }
+                else
+                {
+                    powerExchanger.currEnergyPerTick = 0L;
+                }
             }
-            else
-            {
-                powerExchanger.currEnergyPerTick = 0L;
-            }
-        }
+            DeepProfiler.EndSample(DPEntry.PowerExchanger, workerIndex);
 
-        num32 -= energySum;
-        num23 += energySum;
-        num4 += energySum;
+            num32 -= energySum;
+            num23 += energySum;
+            num4 += energySum;
+        }
 
         TotalConsumptionCapacityCurrentTick = energySum;
     }
 
-    public void UpdateOutput(int[] productRegister, int[] consumeRegister, double num45, ref long num44, ref long num24, ref long num3)
+    public void UpdateOutput(int[] productRegister, int[] consumeRegister, double num45, ref long num44, ref long num24, ref long num3, int workerIndex)
     {
         GeneratorCount = 0;
         long energySum = 0;
         OptimizedPowerExchanger[] optimizedPowerExchangers = _optimizedPowerExchangers;
-        for (int num46 = 0; num46 < optimizedPowerExchangers.Length; num46++)
+        if (optimizedPowerExchangers.Length > 0)
         {
-            ref OptimizedPowerExchanger powerExchanger = ref optimizedPowerExchangers[num46];
-            if (powerExchanger.state <= -1f)
+            DeepProfiler.BeginSample(DPEntry.PowerExchanger, workerIndex, optimizedPowerExchangers.Length);
+            for (int num46 = 0; num46 < optimizedPowerExchangers.Length; num46++)
             {
-                long num47 = (long)(num45 * powerExchanger.capsCurrentTick + 0.99999);
-                long energyPay = num44 < num47 ? num44 : num47;
-                energySum += powerExchanger.OutputUpdate(energyPay, productRegister, consumeRegister);
-                GeneratorCount++;
+                ref OptimizedPowerExchanger powerExchanger = ref optimizedPowerExchangers[num46];
+                if (powerExchanger.state <= -1f)
+                {
+                    long num47 = (long)(num45 * powerExchanger.capsCurrentTick + 0.99999);
+                    long energyPay = num44 < num47 ? num44 : num47;
+                    energySum += powerExchanger.OutputUpdate(energyPay, productRegister, consumeRegister);
+                    GeneratorCount++;
+                }
             }
-        }
+            DeepProfiler.EndSample(DPEntry.PowerExchanger, workerIndex);
 
-        num24 += energySum;
-        num3 += energySum;
-        num44 -= energySum;
+            num24 += energySum;
+            num3 += energySum;
+            num44 -= energySum;
+        }
 
         TotalGenerationCapacityCurrentTick = energySum;
     }

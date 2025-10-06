@@ -29,30 +29,32 @@ internal sealed class OptimizedPowerSystem
         return _subFactoryToPowerConsumption[subFactory];
     }
 
-    public void RequestDysonSpherePower(PlanetFactory planet)
+    public void RequestDysonSpherePower(PlanetFactory planet, int workerIndex)
     {
+        OptimizedPowerNetwork[] optimizedPowerNetworks = _optimizedPowerNetworks;
+        if (optimizedPowerNetworks.Length == 0)
         {
-            DysonSphere dysonSphere = planet.dysonSphere;
-            float eta = 1f - GameMain.history.solarEnergyLossRate;
-            float increase = ((dysonSphere != null) ? ((float)((double)dysonSphere.grossRadius / ((double)planet.planet.sunDistance * 40000.0))) : 0f);
-            Vector3 normalized = planet.planet.runtimeLocalSunDirection.normalized;
-
-            long energySum = 0L;
-            OptimizedPowerNetwork[] optimizedPowerNetworks = _optimizedPowerNetworks;
-            for (int i = 0; i < optimizedPowerNetworks.Length; i++)
-            {
-                (long powerNetworkEnergySum, bool _) = optimizedPowerNetworks[i].RequestDysonSpherePower(planet.powerSystem, eta, increase, normalized);
-                energySum += powerNetworkEnergySum;
-            }
-
-            if (dysonSphere != null)
-            {
-                Interlocked.Add(ref dysonSphere.energyReqCurrentTick, energySum);
-            }
+            return;
         }
 
-        // Need to figure out when dyson spheres are added
-        //_dysonSphereManager.AddDysonDysonSphere(planet);
+        DeepProfiler.BeginSample(DPEntry.PowerGamma, workerIndex);
+        DysonSphere? dysonSphere = planet.dysonSphere;
+        float eta = 1f - GameMain.history.solarEnergyLossRate;
+        float increase = ((dysonSphere != null) ? ((float)((double)dysonSphere.grossRadius / ((double)planet.planet.sunDistance * 40000.0))) : 0f);
+        Vector3 normalized = planet.planet.runtimeLocalSunDirection.normalized;
+
+        long energySum = 0L;
+        for (int i = 0; i < optimizedPowerNetworks.Length; i++)
+        {
+            (long powerNetworkEnergySum, bool _) = optimizedPowerNetworks[i].RequestDysonSpherePower(planet.powerSystem, eta, increase, normalized);
+            energySum += powerNetworkEnergySum;
+        }
+
+        if (dysonSphere != null)
+        {
+            Interlocked.Add(ref dysonSphere.energyReqCurrentTick, energySum);
+        }
+        DeepProfiler.EndSample(DPEntry.PowerGamma, workerIndex);
     }
 
     public void BeforePower(PlanetFactory planet, OptimizedSubFactory subFactory)
@@ -76,9 +78,9 @@ internal sealed class OptimizedPowerSystem
         // Could not be bothered to change the digital system. It runs planet wide as well.
     }
 
-    public void GameTick(PlanetFactory planet, long time)
+    public void GameTick(PlanetFactory planet, long time, int workerIndex)
     {
-        RequestDysonSpherePower(planet);
+        RequestDysonSpherePower(planet, workerIndex);
 
         foreach (var subFactory in _subFactoryToPowerConsumption.Keys)
         {
@@ -94,6 +96,7 @@ internal sealed class OptimizedPowerSystem
         long num3 = 0L;
         long num4 = 0L;
         long num5 = 0L;
+        long num7 = 0L;
         PlanetData planetData = powerSystem.factory.planet;
         float windStrength = planetData.windStrength;
         float luminosity = planetData.luminosity;
@@ -133,11 +136,13 @@ internal sealed class OptimizedPowerSystem
                                                ref num3,
                                                ref num4,
                                                ref num5,
+                                               ref num7,
                                                windStrength,
                                                luminosity,
                                                normalized,
                                                flag2,
-                                               _subFactoryToPowerConsumption.Values);
+                                               _subFactoryToPowerConsumption.Values,
+                                               workerIndex);
         }
         lock (factoryProductionStat)
         {
@@ -146,6 +151,7 @@ internal sealed class OptimizedPowerSystem
             factoryProductionStat.powerDisRegister = num3;
             factoryProductionStat.powerChaRegister = num4;
             factoryProductionStat.energyConsumption += num5;
+            factoryProductionStat.powerExpRegister = num7;
         }
     }
 

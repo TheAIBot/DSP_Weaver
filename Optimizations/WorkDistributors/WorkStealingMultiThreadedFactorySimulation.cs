@@ -18,7 +18,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private readonly DysonSphereManager _dysonSphereManager;
     private StarClusterWorkManager? _starClusterWorkManager;
-    //private WorkExecutor[]? _workExecutors;
     private Thread[]? _threads;
     private ManualResetEvent[]? _workerDone;
     private ManualResetEvent[]? _doWork;
@@ -68,7 +67,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
                 {
                     try
                     {
-                        ThreadLocalData.ThreadIndex.Value = workExecutor.WorkerIndex;
+
                         while (!_done)
                         {
                             dooooWork.WaitOne();
@@ -77,6 +76,8 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
                             {
                                 break;
                             }
+
+                            ThreadLocalData.ThreadIndex.Value = workExecutor.WorkerIndex;
                             workExecutor.Execute(_localPlanet, _time, _playerPosition);
                             workerDone.Set();
                         }

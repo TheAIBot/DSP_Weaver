@@ -53,22 +53,30 @@ internal sealed class OptimizedPowerNetwork
                          ref long num3,
                          ref long num4,
                          ref long num5,
+                         ref long num7,
                          float windStrength,
                          float luminosity,
                          UnityEngine.Vector3 normalized,
                          bool flag2,
-                         Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption>.ValueCollection subFactoryToPowerConsumption)
+                         Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption>.ValueCollection subFactoryToPowerConsumption,
+                         int workerIndex)
     {
         PowerSystem powerSystem = planet.powerSystem;
         PowerNetwork powerNetwork = _powerNetwork;
         int[] consumers = _networkNonOptimizedPowerConsumerIndexes;
         long totalEnergyDemand = 0L;
-        for (int j = 0; j < consumers.Length; j++)
+        if (consumers.Length > 0)
         {
-            long requiredEnergy = powerSystem.consumerPool[consumers[j]].requiredEnergy;
-            totalEnergyDemand += requiredEnergy;
-            num2 += requiredEnergy;
+            DeepProfiler.BeginSample(DPEntry.PowerConsumer, workerIndex);
+            for (int j = 0; j < consumers.Length; j++)
+            {
+                long requiredEnergy = powerSystem.consumerPool[consumers[j]].requiredEnergy;
+                totalEnergyDemand += requiredEnergy;
+                num2 += requiredEnergy;
+            }
+            DeepProfiler.EndSample(DPEntry.PowerConsumer, workerIndex);
         }
+
         totalEnergyDemand += _totalPowerNodeEnergyConsumption;
         num2 += _totalPowerNodeEnergyConsumption;
         foreach (SubFactoryPowerConsumption subFactoryNetworkPowerConsumptionPrepared in subFactoryToPowerConsumption)
@@ -79,34 +87,44 @@ internal sealed class OptimizedPowerNetwork
 
         long num23 = 0L;
         long num24 = 0L;
-        (long inputEnergySum, long outputEnergySum) = _powerExchangerExecutor.InputOutputUpdate(powerSystem.currentGeneratorCapacities);
+        (long inputEnergySum, long outputEnergySum) = _powerExchangerExecutor.InputOutputUpdate(powerSystem.currentGeneratorCapacities, workerIndex);
         long num27 = inputEnergySum;
         long num26 = outputEnergySum;
 
         long totalEnergyProduction = outputEnergySum;
-        long windEnergyCapacity = _windExecutor.EnergyCap(windStrength, powerSystem.currentGeneratorCapacities);
-        totalEnergyProduction += windEnergyCapacity;
-        long solarEnergyCapacity = _solarExecutor.EnergyCap(luminosity, normalized, flag2, powerSystem.currentGeneratorCapacities);
-        totalEnergyProduction += solarEnergyCapacity;
-        long gammaEnergyCapacity = _gammaPowerGeneratorExecutor.EnergyCap(planet, powerSystem.currentGeneratorCapacities);
-        totalEnergyProduction += gammaEnergyCapacity;
-        long geothermalEnergyCapacity = _geothermalGeneratorExecutor.EnergyCap(powerSystem.currentGeneratorCapacities);
-        totalEnergyProduction += geothermalEnergyCapacity;
-        long fuelEnergyCapacity = _fuelGeneratorExecutor.EnergyCap(powerSystem.currentGeneratorCapacities);
-        totalEnergyProduction += fuelEnergyCapacity;
+        int generatorCount = _windExecutor.GeneratorCount
+                           + _solarExecutor.GeneratorCount
+                           + _gammaPowerGeneratorExecutor.GeneratorCount
+                           + _geothermalGeneratorExecutor.GeneratorCount
+                           + _fuelGeneratorExecutor.GeneratorCount;
+        if (generatorCount > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.PowerGenerator, workerIndex);
+            long windEnergyCapacity = _windExecutor.EnergyCap(windStrength, powerSystem.currentGeneratorCapacities);
+            totalEnergyProduction += windEnergyCapacity;
+            long solarEnergyCapacity = _solarExecutor.EnergyCap(luminosity, normalized, flag2, powerSystem.currentGeneratorCapacities);
+            totalEnergyProduction += solarEnergyCapacity;
+            long gammaEnergyCapacity = _gammaPowerGeneratorExecutor.EnergyCap(planet, powerSystem.currentGeneratorCapacities);
+            totalEnergyProduction += gammaEnergyCapacity;
+            long geothermalEnergyCapacity = _geothermalGeneratorExecutor.EnergyCap(powerSystem.currentGeneratorCapacities);
+            totalEnergyProduction += geothermalEnergyCapacity;
+            long fuelEnergyCapacity = _fuelGeneratorExecutor.EnergyCap(powerSystem.currentGeneratorCapacities);
+            totalEnergyProduction += fuelEnergyCapacity;
+            DeepProfiler.EndSample(DPEntry.PowerGenerator, workerIndex);
+        }
+
 
         num += totalEnergyProduction - num26;
         long totalEnergyOverProduction = totalEnergyProduction - totalEnergyDemand;
-        long num33 = 0L;
         if (totalEnergyOverProduction > 0 && powerNetwork.exportDemandRatio > 0.0)
         {
             if (powerNetwork.exportDemandRatio > 1.0)
             {
                 powerNetwork.exportDemandRatio = 1.0;
             }
-            num33 = (long)(totalEnergyOverProduction * powerNetwork.exportDemandRatio + 0.5);
-            totalEnergyOverProduction -= num33;
-            totalEnergyDemand += num33;
+            num7 = (long)(totalEnergyOverProduction * powerNetwork.exportDemandRatio + 0.5);
+            totalEnergyOverProduction -= num7;
+            totalEnergyDemand += num7;
         }
         powerNetwork.exportDemandRatio = 0.0;
         powerNetwork.energyStored = 0L;
@@ -114,69 +132,74 @@ internal sealed class OptimizedPowerNetwork
         int count4 = accumulators.Count;
         long num34 = 0L;
         long num35 = 0L;
-        if (totalEnergyOverProduction >= 0)
+        if (count4 > 0)
         {
-            for (int m = 0; m < count4; m++)
+            DeepProfiler.BeginSample(DPEntry.PowerAccumulator, workerIndex, count4);
+            if (totalEnergyOverProduction >= 0)
             {
-                int num36 = accumulators[m];
-                powerSystem.accPool[num36].curPower = 0L;
-                long num37 = powerSystem.accPool[num36].InputCap();
-                if (num37 > 0)
+                for (int m = 0; m < count4; m++)
                 {
-                    num37 = num37 < totalEnergyOverProduction ? num37 : totalEnergyOverProduction;
-                    powerSystem.accPool[num36].curEnergy += num37;
-                    powerSystem.accPool[num36].curPower = num37;
-                    totalEnergyOverProduction -= num37;
-                    num34 += num37;
-                    num4 += num37;
+                    int num36 = accumulators[m];
+                    powerSystem.accPool[num36].curPower = 0L;
+                    long num37 = powerSystem.accPool[num36].InputCap();
+                    if (num37 > 0)
+                    {
+                        num37 = num37 < totalEnergyOverProduction ? num37 : totalEnergyOverProduction;
+                        powerSystem.accPool[num36].curEnergy += num37;
+                        powerSystem.accPool[num36].curPower = num37;
+                        totalEnergyOverProduction -= num37;
+                        num34 += num37;
+                        num4 += num37;
+                    }
+                    powerNetwork.energyStored += powerSystem.accPool[num36].curEnergy;
                 }
-                powerNetwork.energyStored += powerSystem.accPool[num36].curEnergy;
             }
-        }
-        else
-        {
-            long num38 = -totalEnergyOverProduction;
-            for (int n = 0; n < count4; n++)
+            else
             {
-                int num36 = accumulators[n];
-                powerSystem.accPool[num36].curPower = 0L;
-                long num39 = powerSystem.accPool[num36].OutputCap();
-                if (num39 > 0)
+                long num38 = -totalEnergyOverProduction;
+                for (int n = 0; n < count4; n++)
                 {
-                    num39 = num39 < num38 ? num39 : num38;
-                    powerSystem.accPool[num36].curEnergy -= num39;
-                    powerSystem.accPool[num36].curPower = -num39;
-                    num38 -= num39;
-                    num35 += num39;
-                    num3 += num39;
+                    int num36 = accumulators[n];
+                    powerSystem.accPool[num36].curPower = 0L;
+                    long num39 = powerSystem.accPool[num36].OutputCap();
+                    if (num39 > 0)
+                    {
+                        num39 = num39 < num38 ? num39 : num38;
+                        powerSystem.accPool[num36].curEnergy -= num39;
+                        powerSystem.accPool[num36].curPower = -num39;
+                        num38 -= num39;
+                        num35 += num39;
+                        num3 += num39;
+                    }
+                    powerNetwork.energyStored += powerSystem.accPool[num36].curEnergy;
                 }
-                powerNetwork.energyStored += powerSystem.accPool[num36].curEnergy;
             }
+            DeepProfiler.EndSample(DPEntry.PowerAccumulator, workerIndex);
         }
         double num40 = totalEnergyOverProduction < num27 ? totalEnergyOverProduction / (double)num27 : 1.0;
-        _powerExchangerExecutor.UpdateInput(productRegister, consumeRegister, num40, ref totalEnergyOverProduction, ref num23, ref num4);
+        _powerExchangerExecutor.UpdateInput(productRegister, consumeRegister, num40, ref totalEnergyOverProduction, ref num23, ref num4, workerIndex);
 
         long num44 = totalEnergyProduction < totalEnergyDemand + num23 ? totalEnergyProduction + num34 + num23 : totalEnergyDemand + num34 + num23;
         double num45 = num44 < num26 ? num44 / (double)num26 : 1.0;
-        _powerExchangerExecutor.UpdateOutput(productRegister, consumeRegister, num45, ref num44, ref num24, ref num3);
+        _powerExchangerExecutor.UpdateOutput(productRegister, consumeRegister, num45, ref num44, ref num24, ref num3, workerIndex);
 
         powerNetwork.energyCapacity = totalEnergyProduction - num26;
-        powerNetwork.energyRequired = totalEnergyDemand - num33;
-        powerNetwork.energyExport = num33;
+        powerNetwork.energyRequired = totalEnergyDemand - num7;
+        powerNetwork.energyExport = num7;
         powerNetwork.energyServed = totalEnergyProduction + num35 < totalEnergyDemand ? totalEnergyProduction + num35 : totalEnergyDemand;
         powerNetwork.energyAccumulated = num34 - num35;
         powerNetwork.energyExchanged = num23 - num24;
         powerNetwork.energyExchangedInputTotal = num23;
         powerNetwork.energyExchangedOutputTotal = num24;
-        if (num33 > 0)
+        if (num7 > 0)
         {
             PlanetATField planetATField = powerSystem.factory.planetATField;
-            planetATField.energy += num33;
-            planetATField.atFieldRechargeCurrent = num33 * 60;
+            planetATField.energy += num7;
+            planetATField.atFieldRechargeCurrent = num7 * 60;
         }
         totalEnergyProduction += num35;
         totalEnergyDemand += num34;
-        num5 += totalEnergyProduction >= totalEnergyDemand ? num2 + num33 : totalEnergyProduction;
+        num5 += totalEnergyProduction >= totalEnergyDemand ? num2 + num7 : totalEnergyProduction;
         long num49 = num24 - totalEnergyDemand > 0 ? num24 - totalEnergyDemand : 0;
         double num50 = totalEnergyProduction >= totalEnergyDemand ? 1.0 : totalEnergyProduction / (double)totalEnergyDemand;
         totalEnergyDemand += num23 - num49;
@@ -191,9 +214,15 @@ internal sealed class OptimizedPowerNetwork
         powerSystem.networkServes[_networkIndex] = num52;
         powerSystem.networkGenerates[_networkIndex] = num53;
 
-        _gammaPowerGeneratorExecutor.GameTick(time, productRegister, consumeRegister);
-        _geothermalGeneratorExecutor.GameTick();
-        _fuelGeneratorExecutor.GameTick(ref num44, num51, consumeRegister);
+        generatorCount = _gammaPowerGeneratorExecutor.GeneratorCount + _geothermalGeneratorExecutor.GeneratorCount + _fuelGeneratorExecutor.GeneratorCount;
+        if (generatorCount > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.PowerGenerator, workerIndex);
+            _gammaPowerGeneratorExecutor.GameTick(time, productRegister, consumeRegister);
+            _geothermalGeneratorExecutor.GameTick();
+            _fuelGeneratorExecutor.GameTick(ref num44, num51, consumeRegister);
+            DeepProfiler.EndSample(DPEntry.PowerGenerator, workerIndex);
+        }
     }
 
     public void RefreshPowerGenerationCapacites(ProductionStatistics statistics, PlanetFactory planet)

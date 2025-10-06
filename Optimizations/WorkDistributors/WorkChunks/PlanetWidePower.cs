@@ -19,7 +19,7 @@ internal sealed class PlanetWidePower : IWorkChunk
         DeepProfiler.EndSample(DPEntry.PowerConsumer, workerIndex);
 
         DeepProfiler.BeginSample(DPEntry.PowerSystem, workerIndex);
-        _optimizedPlanet.PowerStep(time);
+        _optimizedPlanet.PowerStep(time, workerIndex);
         DeepProfiler.EndSample(DPEntry.PowerSystem, workerIndex);
     }
 }
