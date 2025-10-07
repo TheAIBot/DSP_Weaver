@@ -8,7 +8,8 @@ internal sealed class PlanetWorkManager
 {
     private readonly IOptimizedPlanet _optimizedPlanet;
     private readonly IWorkNode _prePlanetFactoryWork;
-    private IWorkNode? _workNode = null;
+    private IWorkNode? _factoryWorkNode = null;
+    private IWorkNode? _planetWorkNode = null;
 
     public PlanetWorkManager(GameLogic gameLogic, PlanetFactory planet, IOptimizedPlanet optimizedPlanet)
     {
@@ -18,17 +19,19 @@ internal sealed class PlanetWorkManager
 
     public bool UpdatePlanetWork(int parallelism)
     {
-        IWorkNode updatedWorkNode = _optimizedPlanet.GetMultithreadedWork(parallelism);
-        if (_workNode != updatedWorkNode)
+        IWorkNode updatedFactoryWorkNode = _optimizedPlanet.GetMultithreadedWork(parallelism);
+        if (_factoryWorkNode != updatedFactoryWorkNode)
         {
-            _workNode?.Dispose();
-            if (updatedWorkNode is NoWorkNode)
+            _factoryWorkNode?.Dispose();
+            _planetWorkNode?.Dispose();
+            _factoryWorkNode = updatedFactoryWorkNode;
+            if (updatedFactoryWorkNode is NoWorkNode)
             {
-                _workNode = updatedWorkNode;
+                _planetWorkNode = _prePlanetFactoryWork;
             }
             else
             {
-                _workNode = new WorkNode([[_prePlanetFactoryWork], [updatedWorkNode]]);
+                _planetWorkNode = new WorkNode([[_prePlanetFactoryWork], [_factoryWorkNode]]);
             }
 
             return true;
@@ -39,35 +42,35 @@ internal sealed class PlanetWorkManager
 
     public bool TryGetPlanetWork([NotNullWhen(true)] out IWorkNode? planetWorkNode)
     {
-        if (_workNode == null)
+        if (_planetWorkNode == null)
         {
             planetWorkNode = null;
             return false;
         }
 
-        if (_workNode is NoWorkNode)
+        if (_planetWorkNode is NoWorkNode)
         {
             planetWorkNode = null;
             return false;
         }
 
-        planetWorkNode = _workNode;
+        planetWorkNode = _planetWorkNode;
         return true;
     }
 
     public PlanetWorkStatistics? GetPlanetWorkStatistics()
     {
-        if (_workNode == null)
+        if (_planetWorkNode == null)
         {
             return null;
         }
 
-        if (_workNode is NoWorkNode)
+        if (_planetWorkNode is NoWorkNode)
         {
             return null;
         }
 
-        int totalWorkChunks = _workNode.GetWorkChunkCount();
+        int totalWorkChunks = _planetWorkNode.GetWorkChunkCount();
         return new PlanetWorkStatistics(-1, totalWorkChunks);
     }
 }
