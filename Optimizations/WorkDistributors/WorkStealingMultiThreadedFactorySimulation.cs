@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.CodeDom;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,10 +24,17 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     private ManualResetEvent[]? _workerDone;
     private ManualResetEvent[]? _doWork;
     private bool _done = false;
+    private WorkTaskType _workTaskType;
 
     private PlanetData? _localPlanet;
     private long _time;
     private UnityEngine.Vector3 _playerPosition;
+
+    private enum WorkTaskType
+    {
+        FactorySimulation,
+        DefenseSystemTurret
+    }
 
     public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager,
                                                       DysonSphereManager dysonSphereManager)
@@ -78,7 +87,18 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
                             }
 
                             ThreadLocalData.ThreadIndex.Value = workExecutor.WorkerIndex;
-                            workExecutor.Execute(_localPlanet, _time, _playerPosition);
+                            switch (_workTaskType)
+                            {
+                                case WorkTaskType.FactorySimulation:
+                                    workExecutor.ExecuteFactorySimulation(_localPlanet, _time, _playerPosition);
+                                    break;
+                                case WorkTaskType.DefenseSystemTurret:
+                                    workExecutor.ExecuteDefenseSystemTurret(_localPlanet, _time, _playerPosition);
+                                    break;
+                                default:
+                                    throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
+                            }
+
                             workerDone.Set();
                         }
                     }
@@ -105,6 +125,19 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
 
+        ExecuteParallel(WorkTaskType.FactorySimulation);
+
+        _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
+        _dysonSphereManager.UIThreadCreateDysonSpheres();
+
+        ExecutePostFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
+
+        double totalTime = _stopWatch.duration;
+    }
+
+    private void ExecuteParallel(WorkTaskType workTaskType)
+    {
+        _workTaskType = workTaskType;
         for (int i = 0; i < _doWork.Length; i++)
         {
             _doWork[i].Set();
@@ -114,14 +147,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             _workerDone[i].WaitOne();
             _workerDone[i].Reset();
         }
-
-        //Parallel.ForEach(_workExecutors, parallelOptions, workExecutor => workExecutor.Execute(localPlanet, time, playerPosition));
-        _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
-        _dysonSphereManager.UIThreadCreateDysonSpheres();
-
-        ExecutePostFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
-
-        double totalTime = _stopWatch.duration;
     }
 
     public void Clear()
@@ -260,7 +285,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         //gameLogic.FactoryConstructionSystemGameTick();
     }
 
-    private static void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int threadCount)
+    private void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int threadCount)
     {
         // 1601
         // Nothing
@@ -318,14 +343,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         // 3151
         // Parallelize here DefenseSystemTurretGameTick_Parallel
-        var parallelOptions = new ParallelOptions()
-        {
-            MaxDegreeOfParallelism = threadCount
-        };
-        Parallel.For(0, planetsToUpdate.Length, parallelOptions, i =>
-        {
-            planetsToUpdate[i]?.defenseSystem.GameTick_Turret(time);
-        });
+        ExecuteParallel(WorkTaskType.DefenseSystemTurret);
         gameLogic.OnFactoryEndProfiler();
 
         // 3201

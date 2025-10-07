@@ -12,7 +12,8 @@ internal sealed class StarClusterWorkManager : IDisposable
     private readonly List<SolarSystemWorkManager> _solarSystemWorkManagers = [];
     private readonly Dictionary<StarData, SolarSystemWorkManager> _starToWorkManagers = [];
     private readonly List<IWorkNode> _solarSystemWorkNodes = [];
-    private RootWorkNode? _rootWorkNode;
+    private RootWorkNode? _factorySimulationRootWorkNode;
+    private RootWorkNode? _defenseSystemTurretRootWorkNode;
 
     public int Parallelism { get; private set; } = -1;
 
@@ -45,16 +46,18 @@ internal sealed class StarClusterWorkManager : IDisposable
             }
 
             solarSystemWorkManager.AddPlanet(planetWorkManager);
-            _rootWorkNode?.Dispose();
-            _rootWorkNode = null;
+            _factorySimulationRootWorkNode?.Dispose();
+            _factorySimulationRootWorkNode = null;
+            _defenseSystemTurretRootWorkNode?.Dispose();
+            _defenseSystemTurretRootWorkNode = null;
         }
 
         for (int i = 0; i < _solarSystemWorkManagers.Count; i++)
         {
             if (_solarSystemWorkManagers[i].UpdateSolarSystemWork(parallelism))
             {
-                _rootWorkNode?.Dispose();
-                _rootWorkNode = null;
+                _factorySimulationRootWorkNode?.Dispose();
+                _factorySimulationRootWorkNode = null;
             }
         }
 
@@ -81,11 +84,11 @@ internal sealed class StarClusterWorkManager : IDisposable
 
             _assignedSpheres.Add(dysonSphere);
             solarSystemWorkManager.AddDysonSphere(dysonSphere);
-            _rootWorkNode?.Dispose();
-            _rootWorkNode = null;
+            _factorySimulationRootWorkNode?.Dispose();
+            _factorySimulationRootWorkNode = null;
         }
 
-        if (_rootWorkNode == null)
+        if (_factorySimulationRootWorkNode == null)
         {
             _solarSystemWorkNodes.Clear();
             for (int i = 0; i < _solarSystemWorkManagers.Count; i++)
@@ -98,33 +101,66 @@ internal sealed class StarClusterWorkManager : IDisposable
 
             if (_solarSystemWorkNodes.Count == 0)
             {
-                _rootWorkNode = new RootWorkNode(new WorkNode([]));
-                return;
+                _factorySimulationRootWorkNode = new RootWorkNode(new WorkNode([]));
+            }
+            else
+            {
+                WeaverFixes.Logger.LogMessage($"Star cluster size: {_solarSystemWorkNodes.Count}");
+                _factorySimulationRootWorkNode = new RootWorkNode(new WorkNode([_solarSystemWorkNodes.ToArray()]));
+            }
+        }
+
+        if (_defenseSystemTurretRootWorkNode == null)
+        {
+            List<DefenseSystemTurret> _defenseSystemTurretWork = [];
+            for (int i = 0; i < allPlanets.Length; i++)
+            {
+                PlanetFactory? planet = allPlanets[i];
+                if (planet == null)
+                {
+                    continue;
+                }
+
+                _defenseSystemTurretWork.Add(new DefenseSystemTurret(planet.defenseSystem));
             }
 
-            WeaverFixes.Logger.LogMessage($"Star cluster size: {_solarSystemWorkNodes.Count}");
-            _rootWorkNode = new RootWorkNode(new WorkNode([_solarSystemWorkNodes.ToArray()]));
+            _defenseSystemTurretRootWorkNode = new RootWorkNode(new WorkLeaf(_defenseSystemTurretWork.ToArray()));
         }
     }
 
-    public RootWorkNode GetRootWorkNode()
+    public RootWorkNode GetFactorySimulationRootWorkNode()
     {
-        if (_rootWorkNode == null)
+        if (_factorySimulationRootWorkNode == null)
         {
             throw new InvalidOperationException();
         }
 
-        return _rootWorkNode;
+        return _factorySimulationRootWorkNode;
+    }
+
+    public RootWorkNode GetDefenseSystemTurretRootWorkNode()
+    {
+        if (_defenseSystemTurretRootWorkNode == null)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _defenseSystemTurretRootWorkNode;
     }
 
     public void Reset()
     {
-        if (_rootWorkNode == null)
+        if (_factorySimulationRootWorkNode == null)
         {
             throw new InvalidOperationException();
         }
+        _factorySimulationRootWorkNode.Reset();
 
-        _rootWorkNode.Reset();
+        if (_defenseSystemTurretRootWorkNode == null)
+        {
+            throw new InvalidOperationException();
+        }
+        _defenseSystemTurretRootWorkNode.Reset();
     }
 
     public StarClusterWorkStatistics GetStarClusterStatistics()
@@ -140,12 +176,12 @@ internal sealed class StarClusterWorkManager : IDisposable
 
     public IEnumerable<IWorkChunk> GetAllWorkChunks()
     {
-        if (_rootWorkNode == null)
+        if (_factorySimulationRootWorkNode == null)
         {
             throw new InvalidOperationException();
         }
 
-        return _rootWorkNode.GetAllWorkChunks();
+        return _factorySimulationRootWorkNode.GetAllWorkChunks();
     }
 
     public void Dispose()

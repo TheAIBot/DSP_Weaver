@@ -19,11 +19,26 @@ internal sealed class WorkExecutor
         _singleThreadedCodeLock = singleThreadedCodeLock;
     }
 
-    public void Execute(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public void ExecuteFactorySimulation(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         try
         {
-            RootWorkNode rootWorkNode = _starClusterWorkManager.GetRootWorkNode();
+            RootWorkNode rootWorkNode = _starClusterWorkManager.GetFactorySimulationRootWorkNode();
+            rootWorkNode.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
+        }
+        catch (Exception e)
+        {
+            WeaverFixes.Logger.LogError(e.Message);
+            WeaverFixes.Logger.LogError(e.StackTrace);
+            throw;
+        }
+    }
+
+    public void ExecuteDefenseSystemTurret(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    {
+        try
+        {
+            RootWorkNode rootWorkNode = _starClusterWorkManager.GetDefenseSystemTurretRootWorkNode();
             rootWorkNode.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
         }
         catch (Exception e)

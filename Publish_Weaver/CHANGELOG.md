@@ -8,7 +8,7 @@
 	* Added dark fog update to Weavers multithreading.
 	* Added dyson sphere power generation update to Weavers multithreading.
 	* Added construction system update to Weavers multithreading.
-* !!! Defence is using Parallel.For which does not correctly handle DeepProfiler threads
+* Optimized dyson sphere power production calculation.
 * !!! Look into if there is any sync turret stuff that needs to before doing parallel turret update
 * !!! Handle all single threaded stuff
 
