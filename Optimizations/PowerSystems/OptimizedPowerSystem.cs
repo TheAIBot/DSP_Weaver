@@ -80,8 +80,6 @@ internal sealed class OptimizedPowerSystem
 
     public void GameTick(PlanetFactory planet, long time, int workerIndex)
     {
-        RequestDysonSpherePower(planet, workerIndex);
-
         foreach (var subFactory in _subFactoryToPowerConsumption.Keys)
         {
             BeforePower(planet, subFactory);

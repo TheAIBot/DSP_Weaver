@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.WorkDistributors;
 
@@ -8,7 +9,9 @@ internal sealed class SolarSystemWorkManager
 {
     private readonly List<PlanetWorkManager> _planetWorkManager = [];
     private readonly List<IWorkNode> _planetWorkNodes = [];
+    private readonly List<IWorkChunk> _planetRayReceiverEnergyRequests = [];
     private IWorkNode? _dysonWorkNode = null;
+    private IWorkNode? _planetRayReceiverEnergyRequestsWorkNode = null;
     private IWorkNode? _solarSystemWorkNode = null;
 
     public void AddPlanet(PlanetWorkManager planetWorkManager)
@@ -45,11 +48,17 @@ internal sealed class SolarSystemWorkManager
         if (_solarSystemWorkNode == null)
         {
             _planetWorkNodes.Clear();
+            _planetRayReceiverEnergyRequests.Clear();
             for (int i = 0; i < _planetWorkManager.Count; i++)
             {
                 if (_planetWorkManager[i].TryGetPlanetWork(out IWorkNode? planetWorkNode))
                 {
                     _planetWorkNodes.Add(planetWorkNode);
+
+                    if (_planetWorkManager[i].OptimizedPlanet is OptimizedTerrestrialPlanet terrestrialPlanet)
+                    {
+                        _planetRayReceiverEnergyRequests.Add(new DysonSpherePowerRequest(terrestrialPlanet));
+                    }
                 }
             }
         }
@@ -60,6 +69,13 @@ internal sealed class SolarSystemWorkManager
             if (_dysonWorkNode != null)
             {
                 solarSystemWork.Add([_dysonWorkNode]);
+            }
+
+            if (_planetRayReceiverEnergyRequests.Count > 0)
+            {
+                _planetRayReceiverEnergyRequestsWorkNode?.Dispose();
+                _planetRayReceiverEnergyRequestsWorkNode = new WorkLeaf(_planetRayReceiverEnergyRequests.ToArray());
+                solarSystemWork.Add([_planetRayReceiverEnergyRequestsWorkNode]);
             }
 
             if (_planetWorkNodes.Count > 0)

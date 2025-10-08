@@ -35,10 +35,6 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             DeepProfiler.BeginSample(DPEntry.PowerSystem, workerIndex);
             {
-                DeepProfiler.BeginSample(DPEntry.PowerGamma, workerIndex);
-                _planet.powerSystem?.RequestDysonSpherePower();
-                DeepProfiler.EndSample(DPEntry.PowerGamma, workerIndex);
-
                 DeepProfiler.BeginSample(DPEntry.PowerConsumer, workerIndex);
                 _planet.factorySystem?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 4);
                 _planet.cargoTraffic?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 4);

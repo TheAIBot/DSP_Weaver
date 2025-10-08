@@ -11,6 +11,8 @@ internal sealed class PlanetWorkManager
     private IWorkNode? _factoryWorkNode = null;
     private IWorkNode? _planetWorkNode = null;
 
+    public IOptimizedPlanet OptimizedPlanet => _optimizedPlanet;
+
     public PlanetWorkManager(GameLogic gameLogic, PlanetFactory planet, IOptimizedPlanet optimizedPlanet)
     {
         _optimizedPlanet = optimizedPlanet;

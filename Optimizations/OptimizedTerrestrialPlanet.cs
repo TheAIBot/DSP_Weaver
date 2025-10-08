@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using UnityEngine;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Labs;
@@ -155,6 +157,18 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         workSteps.Add([new WorkLeaf([new PostSubFactoryStep(this)])]);
 
         return new WorkNode(workSteps.ToArray());
+    }
+
+    public void RequestDysonSpherePower(int workerIndex)
+    {
+        if (Status == OptimizedPlanetStatus.Running)
+        {
+            _optimizedPowerSystem.RequestDysonSpherePower(_planet, workerIndex);
+        }
+        else
+        {
+            UnoptimizedRequestDysonSpherePower();
+        }
     }
 
     public void BeforePowerStep(long time)
@@ -566,5 +580,27 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
 
         return new WorkNode(work.ToArray());
+    }
+
+
+    // Should replace with a transpiler. Difference is the Interlocked.Add at the bottom
+    private void UnoptimizedRequestDysonSpherePower()
+    {
+        DysonSphere dysonSphere = _planet.dysonSphere;
+        float eta = 1f - GameMain.history.solarEnergyLossRate;
+        float increase = ((dysonSphere != null) ? ((float)((double)dysonSphere.grossRadius / ((double)_planet.planet.sunDistance * 40000.0))) : 0f);
+        Vector3 normalized = _planet.planet.runtimeLocalSunDirection.normalized;
+        long num = 0L;
+        for (int i = 1; i < _planet.powerSystem.genCursor; i++)
+        {
+            if (_planet.powerSystem.genPool[i].gamma)
+            {
+                num += _planet.powerSystem.genPool[i].EnergyCap_Gamma_Req(normalized.x, normalized.y, normalized.z, increase, eta);
+            }
+        }
+        if (dysonSphere != null)
+        {
+            Interlocked.Add(ref dysonSphere.energyReqCurrentTick, num);
+        }
     }
 }

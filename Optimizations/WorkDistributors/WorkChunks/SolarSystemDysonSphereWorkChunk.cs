@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
-using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
-namespace Weaver.Optimizations.WorkDistributors;
+namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
 
 internal sealed class SolarSystemDysonSphereWorkChunk : IWorkChunk
 {

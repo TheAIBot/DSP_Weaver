@@ -543,6 +543,10 @@ internal sealed class OptimizedDysonSphere
             return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
         }
 
+        // Ray receivers add how much energy they would like to use to this value before planets calculate power usage.
+        // Then when planets start simulating they figure out how much energy they can actually use compared to how much
+        // is available. That's why this needs to be reset every tick even though nothing else needs to be updated.
+        __instance.energyReqCurrentTick = 0;
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
