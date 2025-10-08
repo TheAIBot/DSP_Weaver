@@ -47,6 +47,8 @@ internal static class OptimizedStarCluster
     public static IOptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
     public static bool TryGetOptimizedPlanet(FactoryProductionStat productionStatistics, [NotNullWhen(true)] out IOptimizedPlanet? optimizedPlanet) => _planetProductionStatisticsToOptimizedPlanet.TryGetValue(productionStatistics, out optimizedPlanet);
 
+    public static IEnumerable<IOptimizedPlanet> GetAllOptimizedPlanets() => _planetToOptimizedPlanet.Values;
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GameMain), nameof(GameMain.End))]
     public static void End()

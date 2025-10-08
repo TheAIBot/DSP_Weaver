@@ -103,9 +103,11 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     public void GameTickDefense(long time)
     {
         bool isActive = GameMain.localPlanet == _planet.planet;
+        _planet.spaceHashSystemDynamic.GameTick();
         if (Status == OptimizedPlanetStatus.Running)
         {
             DefenseGameTick(_planet.defenseSystem, time);
+            DefenseGameTickUIThread(time);
         }
         else
         {
@@ -342,8 +344,9 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
     }
 
-    public void DefenseGameTickUIThread(long tick)
+    private void DefenseGameTickUIThread(long tick)
     {
+        DeepProfiler.BeginSample(DPEntry.BattleBase, -1, _planet.planetId);
         DefenseSystem defenseSystem = _planet.defenseSystem;
         FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[defenseSystem.factory.index];
         int[] productRegister = obj.productRegister;
@@ -371,6 +374,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
                 }
             }
         }
+        DeepProfiler.EndSample(DPEntry.BattleBase);
     }
 
     public void AddMiningFlags(MiningFlags miningFlags)

@@ -339,7 +339,17 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         gameLogic.CombatGroundSystemGameTick();
 
         // 3100
-        gameLogic.DefenseGroundSystemGameTick();
+        DeepProfiler.BeginSample(DPEntry.GroundDefenseSystem);
+        foreach (var optimizedPlanet in OptimizedStarCluster.GetAllOptimizedPlanets())
+        {
+            if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
+            {
+                continue;
+            }
+
+            terrestrialPlanet.GameTickDefense(time);
+        }
+        DeepProfiler.EndSample(DPEntry.GroundDefenseSystem);
 
         // 3151
         // Parallelize here DefenseSystemTurretGameTick_Parallel

@@ -30,7 +30,7 @@ internal sealed class TurretExecutor
 
             float num4 = networkServes[consumerPool[reference2.pcId].networkId];
             PrefabDesc prefabDesc = PlanetFactory.PrefabDescByModelIndex[entityPool[reference2.entityId].modelIndex];
-            turret.InternalUpdate(ref reference2, tick, num4, defenseSystem.factory, skillSystem, prefabDesc, false);
+            turret.InternalUpdate(ref reference2, tick, num4, defenseSystem.factory, skillSystem, prefabDesc, true);
             reference2.Aim(defenseSystem.factory, enemyPool, prefabDesc, num4);
             reference2.Shoot(defenseSystem.factory, enemyPool, prefabDesc, consumeRegister, num4, tick, ref combatUpgradeData);
             if (reference2.supernovaTick < 0)
