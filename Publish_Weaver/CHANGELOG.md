@@ -1,16 +1,11 @@
 ## 2.0.0
 * Updated to DSP version 0.10.33.26943.
+* 0-20% DSP performance improvement compared to 1.5.0
 * Replaced DSP multithreading with Weavers existing multithreading implementation.
-	* Temporarily made dyson swarm update sequential.
-	* Temporarily made dyson rocket update sequential.
-	* Temporarily made power consumtion, for local planet only, update sequential.
-	* !!! Few more were made sequential. Look at work creator to figure out what.
-	* Added dark fog update to Weavers multithreading.
-	* Added dyson sphere power generation update to Weavers multithreading.
-	* Added construction system update to Weavers multithreading.
+	* Temporarily made dyson swarm and dyson rocket update sequential.
+	* Temporarily reduced parallelism of power consumtion, power generation, assembler, sorter, for local planet only, to one thread per planet.
+	* Added dark fog, dyson sphere power generation, construction system, defense turret to weavers mulithreading.
 * Optimized dyson sphere power production calculation.
-* !!! Look into if there is any sync turret stuff that needs to before doing parallel turret update
-* !!! Handle all single threaded stuff
 
 ## 1.5.1
 * Fix sorter taking from storage to assembler would ignore assembler item limit and put items into assembler forever.

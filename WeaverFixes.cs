@@ -1,7 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using UnityEngine;
+//using UnityEngine;
 using Weaver.Optimizations;
 using Weaver.Optimizations.Statistics;
 
@@ -11,16 +11,10 @@ internal static class ModInfo
 {
     public const string Guid = "Weaver";
     public const string Name = "Weaver";
-    public const string Version = "1.5.1";
-}
-
-internal static class ModDependencies
-{
-    public const string SampleAndHoldSimId = "starfi5h.plugin.SampleAndHoldSim";
+    public const string Version = "2.0.0";
 }
 
 [BepInPlugin(ModInfo.Guid, ModInfo.Name, ModInfo.Version)]
-[BepInDependency(ModDependencies.SampleAndHoldSimId, BepInDependency.DependencyFlags.SoftDependency)]
 public class WeaverFixes : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(ModInfo.Name);
@@ -43,78 +37,78 @@ public class WeaverFixes : BaseUnityPlugin
         //GameStatistics.MemoryStatistics.EnableGameStatistics(harmony);
     }
 
-    private static bool _isOptimizeLocalPlanetKeyDown = false;
-    private static bool _viewBeltsOnLocalOptimizedPlanet = false;
-    private static bool _viewEntityIdsOnLocalPlanet = false;
+    //private static bool _isOptimizeLocalPlanetKeyDown = false;
+    //private static bool _viewBeltsOnLocalOptimizedPlanet = false;
+    //private static bool _viewEntityIdsOnLocalPlanet = false;
 
-    public void Update()
-    {
-        if (!_enableDebugOptions)
-        {
-            return;
-        }
+    //public void Update()
+    //{
+    //    if (!_enableDebugOptions)
+    //    {
+    //        return;
+    //    }
 
-        if (Input.GetKeyDown(KeyCode.V) && !_isOptimizeLocalPlanetKeyDown)
-        {
-            OptimizedStarCluster.ForceOptimizeLocalPlanet = !OptimizedStarCluster.ForceOptimizeLocalPlanet;
-            _isOptimizeLocalPlanetKeyDown = true;
-        }
-        else
-        {
-            _isOptimizeLocalPlanetKeyDown = false;
-        }
+    //    if (Input.GetKeyDown(KeyCode.V) && !_isOptimizeLocalPlanetKeyDown)
+    //    {
+    //        OptimizedStarCluster.ForceOptimizeLocalPlanet = !OptimizedStarCluster.ForceOptimizeLocalPlanet;
+    //        _isOptimizeLocalPlanetKeyDown = true;
+    //    }
+    //    else
+    //    {
+    //        _isOptimizeLocalPlanetKeyDown = false;
+    //    }
 
-        if (Input.GetKeyDown(KeyCode.B) && !_viewBeltsOnLocalOptimizedPlanet)
-        {
-            OptimizedTerrestrialPlanet.ViewBeltsOnLocalOptimizedPlanet = !OptimizedTerrestrialPlanet.ViewBeltsOnLocalOptimizedPlanet;
-            _viewBeltsOnLocalOptimizedPlanet = true;
-        }
-        else
-        {
-            _viewBeltsOnLocalOptimizedPlanet = false;
-        }
+    //    if (Input.GetKeyDown(KeyCode.B) && !_viewBeltsOnLocalOptimizedPlanet)
+    //    {
+    //        OptimizedTerrestrialPlanet.ViewBeltsOnLocalOptimizedPlanet = !OptimizedTerrestrialPlanet.ViewBeltsOnLocalOptimizedPlanet;
+    //        _viewBeltsOnLocalOptimizedPlanet = true;
+    //    }
+    //    else
+    //    {
+    //        _viewBeltsOnLocalOptimizedPlanet = false;
+    //    }
 
-        if (Input.GetKeyDown(KeyCode.F10) && !_viewEntityIdsOnLocalPlanet)
-        {
-            _viewEntityIdsOnLocalPlanet = true;
-        }
-        else
-        {
-            _viewEntityIdsOnLocalPlanet = false;
-        }
-    }
+    //    if (Input.GetKeyDown(KeyCode.F10) && !_viewEntityIdsOnLocalPlanet)
+    //    {
+    //        _viewEntityIdsOnLocalPlanet = true;
+    //    }
+    //    else
+    //    {
+    //        _viewEntityIdsOnLocalPlanet = false;
+    //    }
+    //}
 
-    // from TestConstructSystem
-    private void OnGUI()
-    {
-        if (!_enableDebugOptions)
-        {
-            return;
-        }
+    //// from TestConstructSystem
+    //private void OnGUI()
+    //{
+    //    if (!_enableDebugOptions)
+    //    {
+    //        return;
+    //    }
 
-        GameData data = GameMain.data;
-        if (data == null)
-        {
-            return;
-        }
-        PlanetFactory? planetFactory = ((data.localPlanet == null) ? null : data.localPlanet.factory);
-        if (planetFactory == null)
-        {
-            return;
-        }
-        if (_viewEntityIdsOnLocalPlanet)
-        {
-            EntityData[] entityPool = planetFactory.entityPool;
-            int entityCursor = planetFactory.entityCursor;
-            for (int i = 1; i < entityCursor; i++)
-            {
-                if (entityPool[i].id == i)
-                {
-                    Vector3 vector = Camera.main.WorldToScreenPoint(entityPool[i].pos);
-                    vector.y = (float)Screen.height - vector.y;
-                    GUI.Label(new Rect(vector.x, vector.y - 50f, 270f, 450f), i.ToString());
-                }
-            }
-        }
-    }
+    //    GameData data = GameMain.data;
+    //    if (data == null)
+    //    {
+    //        return;
+    //    }
+    //    PlanetFactory? planetFactory = ((data.localPlanet == null) ? null : data.localPlanet.factory);
+    //    if (planetFactory == null)
+    //    {
+    //        return;
+    //    }
+    //    if (_viewEntityIdsOnLocalPlanet)
+    //    {
+    //        EntityData[] entityPool = planetFactory.entityPool;
+    //        int entityCursor = planetFactory.entityCursor;
+    //        for (int i = 1; i < entityCursor; i++)
+    //        {
+    //            if (entityPool[i].id == i)
+    //            {
+    //                Vector3 vector = Camera.main.WorldToScreenPoint(entityPool[i].pos);
+    //                vector.y = (float)Screen.height - vector.y;
+    //                GUI.Label(new Rect(vector.x, vector.y - 50f, 270f, 450f), i.ToString());
+    //            }
+    //        }
+    //    }
+    //}
 }
