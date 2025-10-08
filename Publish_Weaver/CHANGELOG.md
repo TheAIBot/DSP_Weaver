@@ -1,6 +1,6 @@
 ## 2.0.0
 * Updated to DSP version 0.10.33.26943.
-* 0-20% DSP performance improvement compared to 1.5.0
+* 0-10% DSP performance improvement compared to 1.5.1
 * Replaced DSP multithreading with Weavers existing multithreading implementation.
 	* Temporarily made dyson swarm and dyson rocket update sequential.
 	* Temporarily reduced parallelism of power consumtion, power generation, assembler, sorter, for local planet only, to one thread per planet.
