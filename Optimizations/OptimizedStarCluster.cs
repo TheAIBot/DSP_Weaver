@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection.Emit;
 using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.WorkDistributors;
@@ -21,6 +22,7 @@ internal static class OptimizedStarCluster
     private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager, _dysonSphereManager);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
     private static bool _firstUpdate = true;
+    private static bool _programShutdown = false;
 
     private static readonly Random random = new Random();
     private static bool _debugEnableHeavyReOptimization = false;
@@ -80,6 +82,15 @@ internal static class OptimizedStarCluster
         _dysonSphereStatisticsManager.FindAllDysonSphereProductRegisters();
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(DSPGame), nameof(DSPGame.ExitProgram))]
+    private static void DSPGame_ExitProgram()
+    {
+        WeaverFixes.Logger.LogInfo("Stopping simulation threads.");
+        _workStealingMultiThreadedFactorySimulation.Clear();
+        _programShutdown = true;
+    }
+
     private static void PrepareOptimizedStarClusterForGame()
     {
         _clearOptimizedPlanetsOnNextTick = false;
@@ -137,6 +148,11 @@ internal static class OptimizedStarCluster
     [HarmonyPatch(typeof(GameThreadController), nameof(GameThreadController.LogicFrame))]
     public static bool GameThreadController_LogicFrame(GameThreadController __instance)
     {
+        if (_programShutdown)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
         if (_clearOptimizedPlanetsOnNextTick)
         {
             PrepareOptimizedStarClusterForGame();
@@ -260,17 +276,42 @@ internal static class OptimizedStarCluster
         DeOptimizeDueToNonPlayerAction(__instance);
     }
 
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(PowerSystem), nameof(PowerSystem.RequestDysonSpherePower))]
-    public static bool PowerSystem_RequestDysonSpherePower(PowerSystem __instance)
+    [HarmonyTranspiler, HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.GameTickLabResearchMode))]
+    static IEnumerable<CodeInstruction> DeferResearchUnlockToStarClusterResearchManager(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
     {
-        IOptimizedPlanet optimizedPlanet = GetOptimizedPlanet(__instance.factory);
-        if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
-        {
-            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
-        }
+        var codeMatcher = new CodeMatcher(instructions, generator);
 
-        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        CodeMatch[] startOfResearchCompletedBlockToMove = [
+            new CodeMatch(OpCodes.Ldloc_1),
+            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(GameHistoryData), nameof(GameHistoryData.techStates))),
+            new CodeMatch(OpCodes.Ldarg_0),
+            new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(FactorySystem), nameof(FactorySystem.researchTechId))),
+            new CodeMatch(OpCodes.Ldloc_S),
+            new CodeMatch(OpCodes.Callvirt, AccessTools.PropertySetter(typeof(Dictionary<int, TechState>), "Item"))
+        ];
+
+        CodeMatch[] endOfResearchCompletedBlockToMove = [
+            new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(GameHistoryData), nameof(GameHistoryData.NotifyTechUnlock)))
+        ];
+
+        CodeInstruction[] queueResearchCompleted = [
+            // No idea why i need to add it but it gets deleted for some reason
+            new CodeInstruction(OpCodes.Callvirt, AccessTools.PropertySetter(typeof(Dictionary<int, TechState>), "Item")),
+
+            // _starClusterResearchManager.AddResearchedTech(researchTechId, curLevel, ts, techProto)
+            new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(OptimizedStarCluster), nameof(_starClusterResearchManager))),
+            new CodeInstruction(OpCodes.Ldarg_0),
+            new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(FactorySystem), nameof(FactorySystem.researchTechId))),
+            new CodeInstruction(OpCodes.Ldloc_S, 29), // curLevel
+            new CodeInstruction(OpCodes.Ldloc_S, 13), // ts
+            new CodeInstruction(OpCodes.Ldloc_S, 12), // techProto
+            new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(StarClusterResearchManager), nameof(StarClusterResearchManager.AddResearchedTech)))
+        ];
+
+        codeMatcher.ReplaceCode(startOfResearchCompletedBlockToMove, false, endOfResearchCompletedBlockToMove, false, queueResearchCompleted);
+        codeMatcher.ReplaceCode(startOfResearchCompletedBlockToMove, false, endOfResearchCompletedBlockToMove, false, queueResearchCompleted);
+
+        return codeMatcher.InstructionEnumeration();
     }
 
     [HarmonyPrefix]
@@ -415,29 +456,6 @@ internal static class OptimizedStarCluster
         _workStealingMultiThreadedFactorySimulation.Simulate(gameLogic, planets);
     }
 
-    //private static void ExecuteParallelDefense()
-    //{
-    //    PerformanceMonitor.BeginSample(ECpuWorkEntry.Defense);
-    //    long time = GameMain.gameTick;
-
-    //    // Can only parallelize on a solar system level due to enemies in space.
-    //    // Need to to defer all UI notifications to UI thread.
-    //    //Parallel.ForEach(_planetToOptimizedPlanet.Values, x => x.GameTickDefense(time));
-
-
-    //    foreach (IOptimizedPlanet optimizedPlanet in _planetToOptimizedPlanet.Values)
-    //    {
-    //        if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
-    //        {
-    //            continue;
-    //        }
-
-    //        terrestrialPlanet.GameTickDefense(time);
-    //        terrestrialPlanet.DefenseGameTickUIThread(time);
-    //    }
-    //    PerformanceMonitor.EndSample(ECpuWorkEntry.Defense);
-    //}
-
     private static void DeOptimizeDueToNonPlayerAction(PlanetFactory planet)
     {
         IOptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planet];
@@ -465,180 +483,5 @@ internal static class OptimizedStarCluster
         }
 
         thread = newThreadIndex.Value;
-    }
-}
-
-internal sealed class OptimizedDysonSphere
-{
-    private static readonly Dictionary<DysonSphere, OptimizedDysonSphere> _dysonSphereToOptimizedDysonSphere = [];
-    private static readonly Dictionary<DysonSwarm, OptimizedDysonSphere> _dysonSwarmToOptimizedDysonSphere = [];
-    private readonly DysonSphere _dysonSphere;
-    private bool _needToRecalculatePower;
-
-    public OptimizedDysonSphere(DysonSphere dysonSphere)
-    {
-        _dysonSphere = dysonSphere;
-        _needToRecalculatePower = true;
-    }
-
-    public static void Reset()
-    {
-        _dysonSphereToOptimizedDysonSphere.Clear();
-        _dysonSwarmToOptimizedDysonSphere.Clear();
-        if (GameMain.data.dysonSpheres == null)
-        {
-            return;
-        }
-
-        foreach (DysonSphere? dysonSphere in GameMain.data.dysonSpheres)
-        {
-            if (dysonSphere == null)
-            {
-                continue;
-            }
-
-            var optimizedDysonSphere = new OptimizedDysonSphere(dysonSphere);
-            _dysonSphereToOptimizedDysonSphere.Add(dysonSphere, optimizedDysonSphere);
-
-            if (dysonSphere.swarm == null)
-            {
-                continue;
-            }
-
-            _dysonSwarmToOptimizedDysonSphere.Add(dysonSphere.swarm, optimizedDysonSphere);
-        }
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.Init))]
-    public static void DysonSphere_Init(DysonSphere __instance)
-    {
-        var optimizedDysonSphere = new OptimizedDysonSphere(__instance);
-        _dysonSphereToOptimizedDysonSphere.Add(__instance, optimizedDysonSphere);
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSwarm), nameof(DysonSwarm.Init))]
-    public static void DysonSwarm_Init(DysonSwarm __instance)
-    {
-        OptimizedDysonSphere optimizedDysonSphere = GetOptimizedDysonSphere(__instance.dysonSphere);
-        _dysonSwarmToOptimizedDysonSphere.Add(__instance, optimizedDysonSphere);
-    }
-
-    public static OptimizedDysonSphere GetOptimizedDysonSphere(DysonSphere dysonSphere)
-    {
-        return _dysonSphereToOptimizedDysonSphere[dysonSphere];
-    }
-
-    public static OptimizedDysonSphere GetOptimizedDysonSphere(DysonSwarm dysonSwarm)
-    {
-        return _dysonSwarmToOptimizedDysonSphere[dysonSwarm];
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.BeforeGameTick))]
-    public static bool DysonSphere_BeforeGameTick(DysonSphere __instance)
-    {
-        OptimizedDysonSphere optimizedDysonSphere = GetOptimizedDysonSphere(__instance);
-        if (optimizedDysonSphere.ShouldRecalculatePower())
-        {
-            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
-        }
-
-        // Ray receivers add how much energy they would like to use to this value before planets calculate power usage.
-        // Then when planets start simulating they figure out how much energy they can actually use compared to how much
-        // is available. That's why this needs to be reset every tick even though nothing else needs to be updated.
-        __instance.energyReqCurrentTick = 0;
-        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-    }
-
-    internal void MarkNeedToRecalculatePower()
-    {
-        // Avoid writing to the same value from multiple threads when it has already been updated
-        if (_needToRecalculatePower)
-        {
-            return;
-        }
-
-        _needToRecalculatePower = true;
-    }
-
-    internal bool ShouldRecalculatePower()
-    {
-        bool value = _needToRecalculatePower;
-        _needToRecalculatePower = false;
-        return value;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.RemoveLayer), [typeof(DysonSphereLayer)])]
-    public static void DysonSphere_RemoveLayerDysonSphereLayer(DysonSphere __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.RemoveLayer), [typeof(int)])]
-    public static void DysonSphere_RemoveLayerId(DysonSphere __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.ConstructSp))]
-    public static void DysonSphere_ConstructSp(DysonSphere __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    // Not entire sure what this does so lets just invalidate when it is called, just to be sure
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.AddDysonNodeRData))]
-    public static void DysonSphere_AddDysonNodeRData(DysonSphere __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    // Not entire sure what this does so lets just invalidate when it is called, just to be sure
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.RemoveDysonNodeRData))]
-    public static void DysonSphere_RemoveDysonNodeRData(DysonSphere __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.AutoConstruct))]
-    public static void DysonSphere_AutoConstruct(DysonSphere __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSwarm), nameof(DysonSwarm.AddSolarSail))]
-    public static void DysonSwarm_AddSolarSail(DysonSwarm __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSwarm), nameof(DysonSwarm.RemoveSolarSail))]
-    public static void DysonSwarm_RemoveSolarSail(DysonSwarm __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSwarm), nameof(DysonSwarm.AutoConstruct))]
-    public static void DysonSwarm_AutoConstruct(DysonSwarm __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(DysonSwarm), nameof(DysonSwarm.RemoveSailsByOrbit))]
-    public static void DysonSwarm_RemoveSailsByOrbit(DysonSwarm __instance)
-    {
-        GetOptimizedDysonSphere(__instance).MarkNeedToRecalculatePower();
     }
 }
