@@ -4,9 +4,12 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection.Emit;
+using UnityEngine;
+using UnityEngine.Rendering;
 using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.WorkDistributors;
+using static UIControlPanelStationTransportRemoteMap;
 
 namespace Weaver.Optimizations;
 
@@ -24,7 +27,7 @@ internal static class OptimizedStarCluster
     private static bool _firstUpdate = true;
     private static bool _programShutdown = false;
 
-    private static readonly Random random = new Random();
+    private static readonly System.Random random = new System.Random();
     private static bool _debugEnableHeavyReOptimization = false;
     private static bool _enableStatistics = false;
 
@@ -483,5 +486,68 @@ internal static class OptimizedStarCluster
         }
 
         thread = newThreadIndex.Value;
+    }
+}
+
+internal sealed class OptimizedLogisticShipRenderer
+{
+    private static int? _simplifiedShipMeshVertexCount;
+
+    public static void EnableOptimization(Harmony harmony)
+    {
+        harmony.PatchAll(typeof(OptimizedLogisticShipRenderer));
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(LogisticShipRenderer), nameof(LogisticShipRenderer.Draw))]
+    public static bool LogisticShipRenderer_Draw(LogisticShipRenderer __instance)
+    {
+        if (_simplifiedShipMeshVertexCount == null)
+        {
+            _simplifiedShipMeshVertexCount = __instance.shipMesh.GetSubMesh(1).vertexCount;
+        }
+
+        if (__instance.shipCount > 0)
+        {
+            for (int i = 0; i < __instance.shipMats.Length; i++)
+            {
+                __instance.argArr[i * 5] = __instance.shipMesh.GetIndexCount(i);
+                __instance.argArr[1 + i * 5] = (uint)__instance.shipCount;
+                __instance.argArr[2 + i * 5] = __instance.shipMesh.GetIndexStart(i);
+                __instance.argArr[3 + i * 5] = __instance.shipMesh.GetBaseVertex(i);
+                __instance.argArr[4 + i * 5] = 0u;
+            }
+            __instance.argBuffer.SetData(__instance.argArr);
+
+            // First sub mesh is the ship model.
+            // Second sub mesh is the ship light which is visible from far away.
+            // To improve performance, the first mesh should not be displayed if it is too
+            // far away to even be visible.
+            const int subMeshStartIndex = 1;
+            for (int j = subMeshStartIndex; j < __instance.shipMats.Length; j++)
+            {
+                __instance.shipMats[j].SetBuffer("_ShipBuffer", __instance.shipsBuffer);
+                Graphics.DrawMeshInstancedIndirect(__instance.shipMesh, j, __instance.shipMats[j], new Bounds(Vector3.zero, new Vector3(200000f, 200000f, 200000f)), __instance.argBuffer, j * 5 * 4, null, (j == 0) ? ShadowCastingMode.On : ShadowCastingMode.Off, j == 0);
+            }
+            GpuAnalysis(__instance);
+        }
+
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    private static void GpuAnalysis(LogisticShipRenderer __instance)
+    {
+        if (PerformanceMonitor.GpuProfilerOn)
+        {
+            if (_simplifiedShipMeshVertexCount == null)
+            {
+                throw new InvalidOperationException($"{nameof(_simplifiedShipMeshVertexCount)} was never set.");
+            }
+
+            int num = __instance.shipCount;
+            int vertexCount = _simplifiedShipMeshVertexCount.Value;
+            PerformanceMonitor.RecordGpuWork(EGpuWorkEntry.LogisticShip, num, num * vertexCount);
+        }
     }
 }
