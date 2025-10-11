@@ -42,7 +42,8 @@ internal sealed class PrePlanetFactorySteps : IWorkChunk
             DeepProfiler.EndSample(DPEntry.DFGSystem, workerIndex);
         }
 
-        if (_planet.constructionSystem != null)
+        // Local planet updates compute buffer so it is done on the main thread instead
+        if (_planet.constructionSystem != null && _planet.planet != localPlanet)
         {
             DeepProfiler.BeginSample(DPEntry.Construction, workerIndex);
             bool isActive = _planet == localPlanet?.factory;

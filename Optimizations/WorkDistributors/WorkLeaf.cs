@@ -18,6 +18,11 @@ internal sealed class WorkLeaf : IWorkNode
 
     public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
+        if (_scheduledCount >= _workNodes.Length)
+        {
+            return (false, false);
+        }
+
         int scheduledCount = Interlocked.Increment(ref _scheduledCount) - 1;
         if (scheduledCount >= _workNodes.Length)
         {
@@ -52,3 +57,55 @@ internal sealed class WorkLeaf : IWorkNode
     {
     }
 }
+
+internal sealed class SingleWorkLeaf : IWorkNode
+{
+    private readonly IWorkChunk _workNode;
+    private int _scheduledCount;
+
+    public bool IsLeaf => true;
+
+    public SingleWorkLeaf(IWorkChunk workNode)
+    {
+        _workNode = workNode;
+    }
+
+    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    {
+        if (_scheduledCount > 0)
+        {
+            return (false, false);
+        }
+
+        int scheduledCount = Interlocked.Increment(ref _scheduledCount) - 1;
+        if (scheduledCount >= 1)
+        {
+            return (false, false);
+        }
+
+        _workNode.Execute(workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+
+        return (true, true);
+    }
+
+    public IEnumerable<IWorkChunk> GetAllWorkChunks()
+    {
+        yield return _workNode;
+    }
+
+    public void Reset()
+    {
+        _scheduledCount = 0;
+    }
+
+    public int GetWorkChunkCount() => 1;
+
+    public void DeepDispose()
+    {
+    }
+
+    public void Dispose()
+    {
+    }
+}
+

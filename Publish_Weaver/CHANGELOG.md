@@ -1,3 +1,6 @@
+## 2.0.1
+* Fix crash when player attempted to build with personal drones.
+
 ## 2.0.0
 * Updated to DSP version 0.10.33.26943.
 * 0-10% DSP performance improvement compared to 1.5.1

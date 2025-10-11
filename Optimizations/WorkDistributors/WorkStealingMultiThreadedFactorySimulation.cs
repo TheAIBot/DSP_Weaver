@@ -123,7 +123,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         _time = GameMain.gameTick;
         _playerPosition = GameMain.mainPlayer.position;
 
-        ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
+        ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _localPlanet, _time, targetThreadCount);
 
         ExecuteParallel(WorkTaskType.FactorySimulation);
 
@@ -208,7 +208,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         }
     }
 
-    private static void ExecutePreFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int threadCount)
+    private static void ExecutePreFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, PlanetData localPlanet, long time, int threadCount)
     {
         // 151
         gameLogic.UniverseGameTick();
@@ -283,6 +283,15 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         // 1400
         //gameLogic.FactoryConstructionSystemGameTick();
+        // construction contains updates to compute buffer so it has to be done here for the local planet
+        if (localPlanet != null)
+        {
+            DeepProfiler.BeginSample(DPEntry.Construction);
+            PlanetFactory planetFactory = localPlanet.factory;
+            planetFactory.constructionSystem.GameTick(time, true);
+            planetFactory.constructionSystem.ExcuteDeferredTargetChange();
+            DeepProfiler.EndSample(DPEntry.Construction);
+        }
     }
 
     private void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int threadCount)
