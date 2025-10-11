@@ -114,8 +114,10 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             }
         }
 
+        DeepProfiler.BeginSample(DPEntry.Scheduling);
         _starClusterWorkManager.UpdateListOfPlanets(gameLogic, GameMain.data.factories, GameMain.data.dysonSpheres, targetThreadCount);
         _starClusterWorkManager.Reset();
+        DeepProfiler.EndSample(DPEntry.Scheduling);
 
         _stopWatch.Begin();
 
