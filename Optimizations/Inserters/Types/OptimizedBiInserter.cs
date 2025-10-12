@@ -1,20 +1,59 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
-using Weaver.Optimizations.Inserters;
 using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Inserters.Types;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
+[StructLayout(LayoutKind.Auto)]
+internal readonly struct BiInserterGrade : IInserterGrade<BiInserterGrade>
 {
-    public byte grade { get; }
+    public readonly byte StackInput;
+    public readonly byte StackOutput;
+    public readonly bool CareNeeds;
+    public readonly short Filter;
+
+    public BiInserterGrade(byte stackInput, byte stackOutput, bool careNeeds, int filter)
+    {
+        if (filter < 0 || filter > short.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(filter), $"{nameof(filter)} was not within the bounds of a short. Value: {filter}");
+        }
+
+        StackInput = stackInput;
+        StackOutput = stackOutput;
+        CareNeeds = careNeeds;
+        Filter = (short)filter;
+    }
+
+    public readonly BiInserterGrade Create(ref InserterComponent inserter)
+    {
+        byte b = (byte)GameMain.history.inserterStackCountObsolete;
+        byte b2 = (byte)GameMain.history.inserterStackInput;
+        byte stackOutput = (byte)GameMain.history.inserterStackOutput;
+
+        if (inserter.grade == 3)
+        {
+            return new BiInserterGrade(b, 1, inserter.careNeeds, inserter.filter);
+        }
+        else if (inserter.grade == 4)
+        {
+            return new BiInserterGrade(b2, stackOutput, inserter.careNeeds, inserter.filter);
+        }
+        else
+        {
+            return new BiInserterGrade(1, 1, inserter.careNeeds, inserter.filter);
+        }
+    }
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterGrade>
+{
+    public short grade { get; }
     public int pickOffset { get; }
     public int insertOffset { get; }
-    private readonly bool careNeeds;
-    private readonly int filter;
-    private int itemId;
+    private short itemId;
     private short itemCount;
     private short itemInc;
     private int stackCount;
@@ -22,17 +61,20 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
 
     public OptimizedBiInserter(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
     {
-        if (grade < 0 || grade > byte.MaxValue)
+        if (grade < 0 || grade > short.MaxValue)
         {
-            throw new ArgumentOutOfRangeException(nameof(grade), $"{nameof(grade)} was not within the bounds of a byte. Value: {grade}");
+            throw new ArgumentOutOfRangeException(nameof(grade), $"{nameof(grade)} was not within the bounds of a short. Value: {grade}");
         }
 
-        this.grade = (byte)grade;
+        if (inserter.itemId < 0 || inserter.itemId > short.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(inserter.itemId), $"{nameof(inserter.itemId)} was not within the bounds of a short. Value: {inserter.itemId}");
+        }
+
+        this.grade = (short)grade;
         pickOffset = pickFromOffset;
         insertOffset = insertIntoOffset;
-        careNeeds = inserter.careNeeds;
-        filter = inserter.filter;
-        itemId = inserter.itemId;
+        itemId = (short)inserter.itemId;
         itemCount = inserter.itemCount;
         itemInc = inserter.itemInc;
         stackCount = inserter.stackCount;
@@ -98,11 +140,11 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
     }
 
     public void Update(PlanetFactory planet,
-                       InserterExecutor<OptimizedBiInserter> inserterExecutor,
+                       InserterExecutor<OptimizedBiInserter, BiInserterGrade> inserterExecutor,
                        float power,
                        int inserterIndex,
                        ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
-                       InserterGrade inserterGrade,
+                       ref readonly BiInserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        InserterConnections[] insertersConnections,
                        ref readonly SubFactoryNeeds subFactoryNeeds)
@@ -121,7 +163,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             byte inc;
             if (itemId == 0)
             {
-                if (careNeeds)
+                if (inserterGrade.CareNeeds)
                 {
                     if (idleTick-- < 1)
                     {
@@ -131,15 +173,15 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                                             out InserterConnections inserterConnections,
                                             out GroupNeeds groupNeeds))
                         {
-                            int num2 = inserterExecutor.PickFrom(planet,
-                                                                 ref inserterNetworkIdAndState,
-                                                                 inserterIndex,
-                                                                 pickOffset,
-                                                                 filter,
-                                                                 inserterConnections,
-                                                                 groupNeeds,
-                                                                 out stack,
-                                                                 out inc);
+                            short num2 = inserterExecutor.PickFrom(planet,
+                                                                   ref inserterNetworkIdAndState,
+                                                                   inserterIndex,
+                                                                   pickOffset,
+                                                                   inserterGrade.Filter,
+                                                                   inserterConnections,
+                                                                   groupNeeds,
+                                                                   out stack,
+                                                                   out inc);
                             if (num2 > 0)
                             {
                                 itemId = num2;
@@ -167,15 +209,15 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 else
                 {
                     InserterConnections inserterConnections = insertersConnections[inserterIndex];
-                    int num2 = inserterExecutor.PickFrom(planet,
-                                                         ref inserterNetworkIdAndState,
-                                                         inserterIndex,
-                                                         pickOffset,
-                                                         filter,
-                                                         inserterConnections,
-                                                         default,
-                                                         out stack,
-                                                         out inc);
+                    short num2 = inserterExecutor.PickFrom(planet,
+                                                           ref inserterNetworkIdAndState,
+                                                           inserterIndex,
+                                                           pickOffset,
+                                                           inserterGrade.Filter,
+                                                           inserterConnections,
+                                                           default,
+                                                           out stack,
+                                                           out inc);
                     if (num2 > 0)
                     {
                         itemId = num2;
@@ -196,9 +238,9 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
                 {
                     continue;
                 }
-                if (filter == 0 || filter == itemId)
+                if (inserterGrade.Filter == 0 || inserterGrade.Filter == itemId)
                 {
-                    if (careNeeds)
+                    if (inserterGrade.CareNeeds)
                     {
                         if (idleTick-- < 1)
                         {
@@ -321,7 +363,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
             }
 
             GroupNeeds groupNeeds = default;
-            if (careNeeds)
+            if (inserterGrade.CareNeeds)
             {
 
                 if (IsNeedsEmpty(in subFactoryNeeds,
@@ -394,10 +436,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter>
         return $"""
             Bi Inserter
             \t{nameof(grade)}: {grade:N0}
-            \t{nameof(careNeeds)}: {careNeeds}
             \t{nameof(pickOffset)}: {pickOffset:N0}
             \t{nameof(insertOffset)}: {insertOffset:N0}
-            \t{nameof(filter)}: {filter:N0}
             \t{nameof(itemId)}: {itemId:N0}
             \t{nameof(itemCount)}: {itemCount:N0}
             \t{nameof(itemInc)}: {itemInc:N0}

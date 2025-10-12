@@ -33,8 +33,8 @@ internal sealed class OptimizedSubFactory
     private OptimizedProductionStatistics _optimizedProductionStatistics;
     private SubFactoryNeeds _subFactoryNeeds;
 
-    public InserterExecutor<OptimizedBiInserter> _optimizedBiInserterExecutor = null!;
-    public InserterExecutor<OptimizedInserter> _optimizedInserterExecutor = null!;
+    public InserterExecutor<OptimizedBiInserter, BiInserterGrade> _optimizedBiInserterExecutor = null!;
+    public InserterExecutor<OptimizedInserter, InserterGrade> _optimizedInserterExecutor = null!;
 
     public AssemblerExecutor _assemblerExecutor = null!;
 
@@ -141,52 +141,52 @@ internal sealed class OptimizedSubFactory
                                      OptimizedItemId[]?[]? fuelNeeds,
                                      SubFactoryNeeds subFactoryNeeds)
     {
-        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter>(_assemblerExecutor._assemblerNetworkIdAndStates,
-                                                                                 _producingLabNetworkIdAndStates,
-                                                                                 _researchingLabNetworkIdAndStates,
-                                                                                 subFactoryPowerSystemBuilder.FuelGeneratorSegments,
-                                                                                 fuelNeeds,
-                                                                                 subFactoryNeeds,
-                                                                                 _assemblerExecutor._producedSize,
-                                                                                 _assemblerExecutor._served,
-                                                                                 _assemblerExecutor._incServed,
-                                                                                 _assemblerExecutor._produced,
-                                                                                 _assemblerExecutor._assemblerRecipeIndexes,
-                                                                                 _assemblerExecutor._assemblerRecipes,
-                                                                                 _producingLabExecutor._producedSize,
-                                                                                 _producingLabExecutor._served,
-                                                                                 _producingLabExecutor._incServed,
-                                                                                 _producingLabExecutor._produced,
-                                                                                 _producingLabExecutor._labRecipeIndexes,
-                                                                                 _producingLabExecutor._producingLabRecipes,
-                                                                                 _researchingLabExecutor._matrixServed,
-                                                                                 _researchingLabExecutor._matrixIncServed,
-                                                                                 _siloExecutor._siloIndexes,
-                                                                                 _ejectorExecutor._ejectorIndexes);
+        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter, BiInserterGrade>(_assemblerExecutor._assemblerNetworkIdAndStates,
+                                                                                                  _producingLabNetworkIdAndStates,
+                                                                                                  _researchingLabNetworkIdAndStates,
+                                                                                                  subFactoryPowerSystemBuilder.FuelGeneratorSegments,
+                                                                                                  fuelNeeds,
+                                                                                                  subFactoryNeeds,
+                                                                                                  _assemblerExecutor._producedSize,
+                                                                                                  _assemblerExecutor._served,
+                                                                                                  _assemblerExecutor._incServed,
+                                                                                                  _assemblerExecutor._produced,
+                                                                                                  _assemblerExecutor._assemblerRecipeIndexes,
+                                                                                                  _assemblerExecutor._assemblerRecipes,
+                                                                                                  _producingLabExecutor._producedSize,
+                                                                                                  _producingLabExecutor._served,
+                                                                                                  _producingLabExecutor._incServed,
+                                                                                                  _producingLabExecutor._produced,
+                                                                                                  _producingLabExecutor._labRecipeIndexes,
+                                                                                                  _producingLabExecutor._producingLabRecipes,
+                                                                                                  _researchingLabExecutor._matrixServed,
+                                                                                                  _researchingLabExecutor._matrixIncServed,
+                                                                                                  _siloExecutor._siloIndexes,
+                                                                                                  _ejectorExecutor._ejectorIndexes);
         _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, subFactoryPowerSystemBuilder.CreateBiInserterBuilder(), beltExecutor);
 
-        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter>(_assemblerExecutor._assemblerNetworkIdAndStates,
-                                                                             _producingLabNetworkIdAndStates,
-                                                                             _researchingLabNetworkIdAndStates,
-                                                                             subFactoryPowerSystemBuilder.FuelGeneratorSegments,
-                                                                             fuelNeeds,
-                                                                             subFactoryNeeds,
-                                                                             _assemblerExecutor._producedSize,
-                                                                             _assemblerExecutor._served,
-                                                                             _assemblerExecutor._incServed,
-                                                                             _assemblerExecutor._produced,
-                                                                             _assemblerExecutor._assemblerRecipeIndexes,
-                                                                             _assemblerExecutor._assemblerRecipes,
-                                                                             _producingLabExecutor._producedSize,
-                                                                             _producingLabExecutor._served,
-                                                                             _producingLabExecutor._incServed,
-                                                                             _producingLabExecutor._produced,
-                                                                             _producingLabExecutor._labRecipeIndexes,
-                                                                             _producingLabExecutor._producingLabRecipes,
-                                                                             _researchingLabExecutor._matrixServed,
-                                                                             _researchingLabExecutor._matrixIncServed,
-                                                                             _siloExecutor._siloIndexes,
-                                                                             _ejectorExecutor._ejectorIndexes);
+        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter, InserterGrade>(_assemblerExecutor._assemblerNetworkIdAndStates,
+                                                                                            _producingLabNetworkIdAndStates,
+                                                                                            _researchingLabNetworkIdAndStates,
+                                                                                            subFactoryPowerSystemBuilder.FuelGeneratorSegments,
+                                                                                            fuelNeeds,
+                                                                                            subFactoryNeeds,
+                                                                                            _assemblerExecutor._producedSize,
+                                                                                            _assemblerExecutor._served,
+                                                                                            _assemblerExecutor._incServed,
+                                                                                            _assemblerExecutor._produced,
+                                                                                            _assemblerExecutor._assemblerRecipeIndexes,
+                                                                                            _assemblerExecutor._assemblerRecipes,
+                                                                                            _producingLabExecutor._producedSize,
+                                                                                            _producingLabExecutor._served,
+                                                                                            _producingLabExecutor._incServed,
+                                                                                            _producingLabExecutor._produced,
+                                                                                            _producingLabExecutor._labRecipeIndexes,
+                                                                                            _producingLabExecutor._producingLabRecipes,
+                                                                                            _researchingLabExecutor._matrixServed,
+                                                                                            _researchingLabExecutor._matrixIncServed,
+                                                                                            _siloExecutor._siloIndexes,
+                                                                                            _ejectorExecutor._ejectorIndexes);
         _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, subFactoryPowerSystemBuilder.CreateInserterBuilder(), beltExecutor);
     }
 

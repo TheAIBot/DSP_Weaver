@@ -70,12 +70,13 @@ internal record struct ConnectionBelts(OptimizedCargoPath? PickFrom, OptimizedCa
     }
 }
 
-internal sealed class InserterExecutor<T>
-    where T : struct, IInserter<T>
+internal sealed class InserterExecutor<TInserter, TInserterGrade>
+    where TInserter : struct, IInserter<TInserter, TInserterGrade>
+    where TInserterGrade : struct, IInserterGrade<TInserterGrade>
 {
-    private T[] _optimizedInserters = null!;
+    private TInserter[] _optimizedInserters = null!;
     private OptimizedInserterStage[] _optimizedInserterStages = null!;
-    private InserterGrade[] _inserterGrades = null!;
+    private TInserterGrade[] _inserterGrades = null!;
     public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates = null!;
     public InserterConnections[] _inserterConnections = null!;
     public ConnectionBelts[] _connectionBelts = null!;
@@ -167,8 +168,8 @@ internal sealed class InserterExecutor<T>
         float[] networkServes = powerSystem.networkServes;
         OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
         NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = _inserterNetworkIdAndStates;
-        T[] optimizedInserters = _optimizedInserters;
-        InserterGrade[] inserterGrades = _inserterGrades;
+        TInserter[] optimizedInserters = _optimizedInserters;
+        TInserterGrade[] inserterGrades = _inserterGrades;
 
         for (int inserterIndex = 0; inserterIndex < inserterNetworkIdAndStates.Length; inserterIndex++)
         {
@@ -200,14 +201,14 @@ internal sealed class InserterExecutor<T>
             }
 
             float power2 = networkServes[networkIdAndState.Index];
-            ref T optimizedInserter = ref optimizedInserters[inserterIndex];
-            InserterGrade inserterGrade = inserterGrades[optimizedInserter.grade];
+            ref TInserter optimizedInserter = ref optimizedInserters[inserterIndex];
+            ref readonly TInserterGrade inserterGrade = ref inserterGrades[optimizedInserter.grade];
             optimizedInserter.Update(planet,
                                      this,
                                      power2,
                                      inserterIndex,
                                      ref networkIdAndState,
-                                     inserterGrade,
+                                     in inserterGrade,
                                      ref optimizedInserterStage,
                                      _inserterConnections,
                                      in _subFactoryNeeds);
@@ -340,15 +341,15 @@ internal sealed class InserterExecutor<T>
         return false;
     }
 
-    public int PickFrom(PlanetFactory planet,
-                        ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
-                        int inserterIndex,
-                        int offset,
-                        int filter,
-                        InserterConnections inserterConnections,
-                        GroupNeeds groupNeeds,
-                        out byte stack,
-                        out byte inc)
+    public short PickFrom(PlanetFactory planet,
+                          ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                          int inserterIndex,
+                          int offset,
+                          int filter,
+                          InserterConnections inserterConnections,
+                          GroupNeeds groupNeeds,
+                          out byte stack,
+                          out byte inc)
     {
         stack = 1;
         inc = 0;
@@ -432,7 +433,7 @@ internal sealed class InserterExecutor<T>
             if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && needs[needsOffset + EjectorExecutor.SoleEjectorNeedsIndex] == bulletId)
             {
                 ejector.TakeOneBulletUnsafe(out inc);
-                return bulletId;
+                return (short)bulletId;
             }
             return 0;
         }
@@ -447,7 +448,7 @@ internal sealed class InserterExecutor<T>
             if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && needs[needsOffset + SiloExecutor.SoleSiloNeedsIndex] == bulletId2)
             {
                 silo.TakeOneBulletUnsafe(out inc);
-                return bulletId2;
+                return (short)bulletId2;
             }
             return 0;
         }
@@ -483,7 +484,7 @@ internal sealed class InserterExecutor<T>
                         if (count == 1)
                         {
                             storageComponent.lastEmptyItem = -1;
-                            return itemId;
+                            return (short)itemId;
                         }
                         if (!flag)
                         {
@@ -536,14 +537,14 @@ internal sealed class InserterExecutor<T>
         }
         else if (typedObjectIndex.EntityType == EntityType.FuelPowerGenerator)
         {
-            ref readonly T inserter = ref _optimizedInserters[inserterIndex];
+            ref readonly TInserter inserter = ref _optimizedInserters[inserterIndex];
             ref OptimizedFuelGenerator insertIntoFuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[inserter.insertOffset][inserterConnections.InsertInto.Index];
             if (insertIntoFuelGenerator.fuelCount <= 8)
             {
                 ref OptimizedFuelGenerator pickFromFuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[offset][objectIndex];
                 int result = pickFromFuelGenerator.PickFuelFrom(filter, out int inc2).ItemIndex;
                 inc = (byte)inc2;
-                return result;
+                return (short)result;
             }
             return 0;
         }
@@ -551,16 +552,16 @@ internal sealed class InserterExecutor<T>
         return 0;
     }
 
-    public int InsertInto(PlanetFactory planet,
-                          ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
-                          int inserterIndex,
-                          InserterConnections inserterConnections,
-                          GroupNeeds groupNeeds,
-                          int offset,
-                          int itemId,
-                          byte itemCount,
-                          byte itemInc,
-                          out byte remainInc)
+    public short InsertInto(PlanetFactory planet,
+                            ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                            int inserterIndex,
+                            InserterConnections inserterConnections,
+                            GroupNeeds groupNeeds,
+                            int offset,
+                            int itemId,
+                            byte itemCount,
+                            byte itemInc,
+                            out byte remainInc)
     {
         remainInc = itemInc;
         TypedObjectIndex typedObjectIndex = inserterConnections.InsertInto;
@@ -737,7 +738,7 @@ internal sealed class InserterExecutor<T>
                     }
                     if (num4 != 0 || storageComponent.nextStorage == null)
                     {
-                        return num4;
+                        return (short)num4;
                     }
                 }
                 storageComponent = storageComponent.nextStorage;
@@ -799,7 +800,7 @@ internal sealed class InserterExecutor<T>
     public void Save(PlanetFactory planet)
     {
         InserterComponent[] inserters = planet.factorySystem.inserterPool;
-        T[] optimizedInserters = _optimizedInserters;
+        TInserter[] optimizedInserters = _optimizedInserters;
         OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
         for (int i = 1; i < planet.factorySystem.inserterCursor; i++)
         {
@@ -821,9 +822,9 @@ internal sealed class InserterExecutor<T>
     {
         List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates = [];
         List<InserterConnections> inserterConnections = [];
-        List<InserterGrade> inserterGrades = [];
-        Dictionary<InserterGrade, int> inserterGradeToIndex = [];
-        List<T> optimizedInserters = [];
+        List<TInserterGrade> inserterGrades = [];
+        Dictionary<TInserterGrade, int> inserterGradeToIndex = [];
+        List<TInserter> optimizedInserters = [];
         List<OptimizedInserterStage> optimizedInserterStages = [];
         List<ConnectionBelts> connectionBelts = [];
         Dictionary<int, int> inserterIdToOptimizedIndex = [];
@@ -907,30 +908,7 @@ internal sealed class InserterExecutor<T>
             inserterNetworkIdAndStates.Add(new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), networkIndex));
             optimizedPowerSystemInserterBuilder.AddInserter(ref inserter, networkIndex);
 
-            InserterGrade inserterGrade;
-
-            // Need to check when i need to update this again.
-            // Probably bi direction is related to some research.
-            // Probably the same for stack output.
-            byte b = (byte)GameMain.history.inserterStackCountObsolete;
-            byte b2 = (byte)GameMain.history.inserterStackInput;
-            byte stackOutput = (byte)GameMain.history.inserterStackOutput;
-            bool inserterBidirectional = GameMain.history.inserterBidirectional;
-            int delay = b > 1 ? 110000 : 0;
-            int delay2 = b2 > 1 ? 40000 : 0;
-
-            if (inserter.grade == 3)
-            {
-                inserterGrade = new InserterGrade(delay, b, 1, false);
-            }
-            else if (inserter.grade == 4)
-            {
-                inserterGrade = new InserterGrade(delay2, b2, stackOutput, inserterBidirectional);
-            }
-            else
-            {
-                inserterGrade = new InserterGrade(0, 1, 1, false);
-            }
+            TInserterGrade inserterGrade = default(TInserterGrade).Create(ref inserter);
 
             if (!inserterGradeToIndex.TryGetValue(inserterGrade, out int inserterGradeIndex))
             {
@@ -976,7 +954,7 @@ internal sealed class InserterExecutor<T>
             }
 
             inserterConnections.Add(new InserterConnections(pickFrom, insertInto));
-            optimizedInserters.Add(default(T).Create(in inserter, pickFromOffset, insertIntoOffset, inserterGradeIndex));
+            optimizedInserters.Add(default(TInserter).Create(in inserter, pickFromOffset, insertIntoOffset, inserterGradeIndex));
             optimizedInserterStages.Add(ToOptimizedInserterStage(inserter.stage));
             connectionBelts.Add(new ConnectionBelts(pickFromBelt, insertIntoBelt));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[inserter.entityId]);
@@ -994,6 +972,11 @@ internal sealed class InserterExecutor<T>
         for (int i = 0; i < optimalInserterNeedsOrder.Length; i++)
         {
             oldIndexToNewIndex[optimalInserterNeedsOrder[i]] = i;
+        }
+
+        if (inserterGrades.Count > 0)
+        {
+            WeaverFixes.Logger.LogMessage($"Inserter grade count: {inserterGrades.Count}");
         }
 
         _inserterNetworkIdAndStates = optimalInserterNeedsOrder.Select(x => inserterNetworkIdAndStates[x]).ToArray();

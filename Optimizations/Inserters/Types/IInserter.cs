@@ -3,21 +3,22 @@ using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Inserters.Types;
 
-internal interface IInserter<T>
-    where T : struct, IInserter<T>
+internal interface IInserter<TInserter, TInserterGrade>
+    where TInserter : struct, IInserter<TInserter, TInserterGrade>
+    where TInserterGrade : struct, IInserterGrade<TInserterGrade>
 {
-    byte grade { get; }
+    short grade { get; }
     int pickOffset { get; }
     int insertOffset { get; }
 
-    T Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
+    TInserter Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
 
     void Update(PlanetFactory planet,
-                InserterExecutor<T> inserterExecutor,
+                InserterExecutor<TInserter, TInserterGrade> inserterExecutor,
                 float power,
                 int inserterIndex,
                 ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
-                InserterGrade inserterGrade,
+                ref readonly TInserterGrade inserterGrade,
                 ref OptimizedInserterStage stage,
                 InserterConnections[] insertersConnections,
                 ref readonly SubFactoryNeeds subFactoryNeeds);
