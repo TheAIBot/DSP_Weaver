@@ -219,6 +219,12 @@ internal sealed class EjectorExecutor
 
         needs[needsOffset + SoleEjectorNeedsIndex] = (short)(ejector.bulletCount < 20 ? ejector.bulletId : 0);
         ejector.targetState = ETargetState.None;
+        // No point in updating anything else if the ejector can't shoot anyway
+        if (ejector.bulletCount == 0)
+        {
+            return 0u;
+        }
+
         if (!ejector.autoOrbit)
         {
             ejector.runtimeOrbitId = ejector.orbitId;
