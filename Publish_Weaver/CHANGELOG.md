@@ -1,3 +1,7 @@
+## 2.0.2
+* Fix Weavers parallel simulation could deadlock itself.
+* Fix Weaver did not support running on a single thread.
+
 ## 2.0.1
 * Fix crash when player attempted to build with personal drones.
 
