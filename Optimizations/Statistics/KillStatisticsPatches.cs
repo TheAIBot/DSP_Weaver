@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations.Statistics;
 
@@ -127,7 +128,7 @@ internal static class KillStatisticsPatches
 
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = GameMain.logic.threadController.wantedThreadCount,
+            MaxDegreeOfParallelism = WeaverThreadHelper.GetParallelism(),
         };
 
         Parallel.For(0, __instance.starKillStatPool.Length + __instance.factoryKillStatPool.Length, parallelOptions, i =>

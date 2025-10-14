@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
@@ -12,7 +13,11 @@ internal sealed class WorkLeaf : IWorkNode
 
     public bool IsLeaf => true;
 
-    public WorkLeaf(IWorkChunk[] workNodes) {  
+    public WorkLeaf(IWorkChunk[] workNodes) {
+        if (workNodes.Length == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(workNodes), workNodes, "There was 0 work chunks in the array of work.");
+        }
         _workNodes = workNodes; 
     }
 

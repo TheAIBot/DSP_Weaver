@@ -101,7 +101,7 @@ internal sealed class StarClusterWorkManager : IDisposable
 
             if (_solarSystemWorkNodes.Count == 0)
             {
-                _factorySimulationRootWorkNode = new RootWorkNode(new WorkNode([]));
+                _factorySimulationRootWorkNode = new RootWorkNode(new DummyWorkDoneImmediatelyNode());
             }
             else
             {

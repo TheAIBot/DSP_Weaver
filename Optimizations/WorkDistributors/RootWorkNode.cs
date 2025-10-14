@@ -22,6 +22,7 @@ internal sealed class RootWorkNode : IDisposable
             if (isNodeComplete)
             {
                 _isWorkDone = true;
+                //WeaverFixes.Logger.LogMessage("Done with root work");
                 break;
             }
 
@@ -31,6 +32,7 @@ internal sealed class RootWorkNode : IDisposable
                 if (isNodeComplete)
                 {
                     _isWorkDone = true;
+                    //WeaverFixes.Logger.LogMessage("Done with root work");
                     break;
                 }
 
@@ -38,6 +40,7 @@ internal sealed class RootWorkNode : IDisposable
                 {
                     // If we couldn't wait for any work then there must no longer be enough work for all the threads.
                     // It is an assumption that parallelism will not increase in the future which is why we break out here.
+                    //WeaverFixes.Logger.LogMessage("Thread failed to find more work in work tree");
                     break;
                 }
             }

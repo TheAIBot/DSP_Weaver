@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations.Statistics;
 
@@ -185,7 +186,7 @@ public sealed class TrafficStatisticsPatches
 
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = GameMain.logic.threadController.wantedThreadCount
+            MaxDegreeOfParallelism = WeaverThreadHelper.GetParallelism()
         };
 
         Parallel.For(0, __instance.starTrafficPool.Length + __instance.factoryTrafficPool.Length, parallelOptions, i =>

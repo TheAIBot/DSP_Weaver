@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using System.Threading.Tasks;
+using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations.Statistics;
 
@@ -11,7 +12,7 @@ public class CustomChartsPatches
     {
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = GameMain.logic.threadController.wantedThreadCount
+            MaxDegreeOfParallelism = WeaverThreadHelper.GetParallelism()
         };
 
         StatPlan[] buffer = __instance.statPlans.buffer;

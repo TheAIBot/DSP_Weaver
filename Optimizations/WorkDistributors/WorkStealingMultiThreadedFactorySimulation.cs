@@ -13,6 +13,11 @@ internal static class ThreadLocalData
     public static ThreadLocal<int?> ThreadIndex { get; } = new();
 }
 
+internal static class WeaverThreadHelper
+{
+    public static int GetParallelism() => Math.Max(1, GameMain.logic.threadController.wantedThreadCount);
+}
+
 internal sealed class WorkStealingMultiThreadedFactorySimulation
 {
     private readonly HighStopwatch _stopWatch = new();
@@ -50,91 +55,109 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     /// <param name="planetsToUpdate"></param>
     public void Simulate(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate)
     {
-        int targetThreadCount = GameMain.logic.threadController.wantedThreadCount;
-        if (_starClusterWorkManager == null)
+        try
         {
-            _starClusterWorkManager = new StarClusterWorkManager();
-        }
-        if (_threads == null || _threads.Length != targetThreadCount)
-        {
-            ClearThreads();
-            ThreadLocalData.ThreadIndex.Value = -1; // For main thread which also does work. Will otherwise crash when value does not exist.
-            _threads = new Thread[targetThreadCount];
-            _doWork = new ManualResetEvent[targetThreadCount];
-            _workerDone = new ManualResetEvent[targetThreadCount];
-            for (int i = 0; i < _threads.Length; i++)
+            int targetThreadCount = WeaverThreadHelper.GetParallelism();
+            if (_starClusterWorkManager == null)
             {
-                var workExecutor = new WorkExecutor(_starClusterWorkManager, i, _singleThreadedCodeLock);
-
-                var workerDone = new ManualResetEvent(false);
-                _workerDone[i] = workerDone;
-
-                var dooooWork = new ManualResetEvent(false);
-                _doWork[i] = dooooWork;
-
-                var thread = new Thread(() =>
+                _starClusterWorkManager = new StarClusterWorkManager();
+            }
+            if (_threads == null || _threads.Length != targetThreadCount)
+            {
+                ClearThreads();
+                ThreadLocalData.ThreadIndex.Value = -1; // For main thread which also does work. Will otherwise crash when value does not exist.
+                _threads = new Thread[targetThreadCount];
+                _doWork = new ManualResetEvent[targetThreadCount];
+                _workerDone = new ManualResetEvent[targetThreadCount];
+                for (int i = 0; i < _threads.Length; i++)
                 {
-                    try
+                    var workExecutor = new WorkExecutor(_starClusterWorkManager, i, _singleThreadedCodeLock);
+
+                    var workerDone = new ManualResetEvent(false);
+                    _workerDone[i] = workerDone;
+
+                    var dooooWork = new ManualResetEvent(false);
+                    _doWork[i] = dooooWork;
+
+                    var thread = new Thread(() =>
                     {
-
-                        while (!_done)
+                        try
                         {
-                            dooooWork.WaitOne();
-                            dooooWork.Reset();
-                            if (_done)
+                            while (!_done)
                             {
-                                break;
-                            }
-
-                            ThreadLocalData.ThreadIndex.Value = workExecutor.WorkerIndex;
-                            switch (_workTaskType)
-                            {
-                                case WorkTaskType.FactorySimulation:
-                                    workExecutor.ExecuteFactorySimulation(_localPlanet, _time, _playerPosition);
+                                dooooWork.WaitOne();
+                                dooooWork.Reset();
+                                if (_done)
+                                {
                                     break;
-                                case WorkTaskType.DefenseSystemTurret:
-                                    workExecutor.ExecuteDefenseSystemTurret(_localPlanet, _time, _playerPosition);
-                                    break;
-                                default:
-                                    throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
-                            }
+                                }
 
+                                ThreadLocalData.ThreadIndex.Value = workExecutor.WorkerIndex;
+                                switch (_workTaskType)
+                                {
+                                    case WorkTaskType.FactorySimulation:
+                                        workExecutor.ExecuteFactorySimulation(_localPlanet, _time, _playerPosition);
+                                        break;
+                                    case WorkTaskType.DefenseSystemTurret:
+                                        workExecutor.ExecuteDefenseSystemTurret(_localPlanet, _time, _playerPosition);
+                                        break;
+                                    default:
+                                        throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
+                                }
+
+                                workerDone.Set();
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            WeaverFixes.Logger.LogError(e.Message);
+                            WeaverFixes.Logger.LogError(e.StackTrace);
                             workerDone.Set();
                         }
-                    }
-                    catch (System.Exception e)
-                    {
-                        WeaverFixes.Logger.LogError(e.Message);
-                        WeaverFixes.Logger.LogError(e.StackTrace);
-                    }
 
-                });
-                thread.Start();
-                _threads[i] = thread;
+                    });
+                    thread.Start();
+                    _threads[i] = thread;
+                }
             }
+
+            //WeaverFixes.Logger.LogMessage("Before scheduling");
+            DeepProfiler.BeginSample(DPEntry.Scheduling);
+            _starClusterWorkManager.UpdateListOfPlanets(gameLogic, GameMain.data.factories, GameMain.data.dysonSpheres, targetThreadCount);
+            _starClusterWorkManager.Reset();
+            DeepProfiler.EndSample(DPEntry.Scheduling);
+            //WeaverFixes.Logger.LogMessage("After scheduling");
+
+            _stopWatch.Begin();
+
+            _localPlanet = GameMain.localPlanet;
+            _time = GameMain.gameTick;
+            _playerPosition = GameMain.mainPlayer.position;
+
+            //WeaverFixes.Logger.LogMessage("Before pre single threaded steps");
+            ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _localPlanet, _time, targetThreadCount);
+            //WeaverFixes.Logger.LogMessage("After pre single threaded steps");
+
+            //WeaverFixes.Logger.LogMessage("Before parallel simulation");
+            ExecuteParallel(WorkTaskType.FactorySimulation);
+            //WeaverFixes.Logger.LogMessage("After parallel simulation");
+
+            //WeaverFixes.Logger.LogMessage("Before ui thread stuff");
+            _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
+            _dysonSphereManager.UIThreadCreateDysonSpheres();
+            //WeaverFixes.Logger.LogMessage("After ui thread stuff");
+
+            //WeaverFixes.Logger.LogMessage("Before post single threaded steps");
+            ExecutePostFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
+            //WeaverFixes.Logger.LogMessage("After post single threaded steps");
+
+            double totalTime = _stopWatch.duration;
         }
-
-        DeepProfiler.BeginSample(DPEntry.Scheduling);
-        _starClusterWorkManager.UpdateListOfPlanets(gameLogic, GameMain.data.factories, GameMain.data.dysonSpheres, targetThreadCount);
-        _starClusterWorkManager.Reset();
-        DeepProfiler.EndSample(DPEntry.Scheduling);
-
-        _stopWatch.Begin();
-
-        _localPlanet = GameMain.localPlanet;
-        _time = GameMain.gameTick;
-        _playerPosition = GameMain.mainPlayer.position;
-
-        ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _localPlanet, _time, targetThreadCount);
-
-        ExecuteParallel(WorkTaskType.FactorySimulation);
-
-        _starClusterResearchManager.UIThreadUnlockResearchedTechnologies(GameMain.history);
-        _dysonSphereManager.UIThreadCreateDysonSpheres();
-
-        ExecutePostFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _time, targetThreadCount);
-
-        double totalTime = _stopWatch.duration;
+        catch (System.Exception e)
+        {
+            WeaverFixes.Logger.LogError(e.Message);
+            WeaverFixes.Logger.LogError(e.StackTrace);
+        }
     }
 
     private void ExecuteParallel(WorkTaskType workTaskType)
@@ -190,7 +213,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             _starClusterWorkManager = new StarClusterWorkManager();
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.logic, GameMain.data.factories, GameMain.data.dysonSpheres, GameMain.logic.threadController.wantedThreadCount);
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.logic, GameMain.data.factories, GameMain.data.dysonSpheres, WeaverThreadHelper.GetParallelism());
         StarClusterWorkStatistics starClusterWorkStatistics = _starClusterWorkManager.GetStarClusterStatistics();
 
         WeaverFixes.Logger.LogInfo($"Planet Count: {starClusterWorkStatistics.PlanetWorkStatistics.Length:N0}");
