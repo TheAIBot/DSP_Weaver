@@ -1,3 +1,7 @@
+## 2.0.3
+* 0-10% DSP performance improvement compared to 2.0.2
+* Fix Weavers parallel simulation could deadlock itself.
+
 ## 2.0.2
 * Fix Weavers parallel simulation could deadlock itself.
 * Fix Weaver did not support running on a single thread.
