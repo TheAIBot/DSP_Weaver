@@ -36,7 +36,7 @@ internal sealed class WorkNode : IWorkNode
         _workStepIndex = 0;
     }
 
-    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         bool hasDoneAnyWork = false;
         int workStepIndex;
@@ -49,7 +49,7 @@ internal sealed class WorkNode : IWorkNode
             }
             int startWorkStepIndex = _scheduledWorkIndex[workStepIndex];
             int workNodeCount = _actualWorkNodes[workStepIndex].Length;
-            if (startWorkStepIndex < workNodeCount)
+            if (startWorkStepIndex < workNodeCount && !searchAllWork)
             {
                 startWorkStepIndex = Interlocked.Increment(ref _scheduledWorkIndex[workStepIndex]) - 1;
                 if (startWorkStepIndex >= workNodeCount)
@@ -64,7 +64,7 @@ internal sealed class WorkNode : IWorkNode
 
             if (waitForWork)
             {
-                (bool isNodeComplete, bool didAnyWork) = TryFindWorkToWaitFor(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, workStepIndex);
+                (bool isNodeComplete, bool didAnyWork) = TryFindWorkToWaitFor(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, workStepIndex);
                 if (didAnyWork)
                 {
                     return (isNodeComplete, didAnyWork);
@@ -80,7 +80,7 @@ internal sealed class WorkNode : IWorkNode
                     continue;
                 }
 
-                (bool isNodeComplete, bool didAnyWork) = TryDoWorkInNode(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, workStepIndex, i, workNodeCount, workNode);
+                (bool isNodeComplete, bool didAnyWork) = TryDoWorkInNode(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, workStepIndex, i, workNode);
                 if (isNodeComplete)
                 {
                     return (true, true);
@@ -93,8 +93,18 @@ internal sealed class WorkNode : IWorkNode
         return (false, hasDoneAnyWork);
     }
 
-    private (bool isNodeComplete, bool didAnyWork) TryFindWorkToWaitFor(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition, int workStepIndex)
+    private (bool isNodeComplete, bool didAnyWork) TryFindWorkToWaitFor(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition, int workStepIndex)
     {
+        // Can only wait for work in next work step if all work in current work step has been scheduled.
+        // This is to ensure that there is another thread that will unblock this thread once the entire
+        // current work step is over.
+        if (_scheduledWorkIndex[workStepIndex] < _actualWorkNodes[workStepIndex].Length)
+        {
+            return (false, false);
+        }
+
+        // All work in current work step has been completed. Now check if there is any valid work to
+        // do in next work step.
         int nextWorkStepIndex = workStepIndex + 1;
         if (nextWorkStepIndex >= _actualWorkNodes.Length)
         {
@@ -127,21 +137,21 @@ internal sealed class WorkNode : IWorkNode
 
         //WeaverFixes.Logger.LogMessage("Thread waiting for ongoing work to complete.");
         _workNodeBarriers[workStepIndex].WaitOne();
-        return TryDoWorkInNode(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, nextWorkStepIndex, scheduleFutureWork, nextWorkNodeCount, workNode);
+        return TryDoWorkInNode(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, nextWorkStepIndex, scheduleFutureWork, workNode);
     }
 
     private (bool isNodeComplete, bool didAnyWork) TryDoWorkInNode(bool waitForWork, 
+                                                                   bool searchAllWork,
                                                                    int workerIndex, 
                                                                    object singleThreadedCodeLock, 
                                                                    PlanetData localPlanet, 
                                                                    long time, 
                                                                    UnityEngine.Vector3 playerPosition, 
                                                                    int workStepIndex, 
-                                                                   int nodeIndex, 
-                                                                   int nextWorkNodeCount, 
+                                                                   int nodeIndex,  
                                                                    IWorkNode workNode)
     {
-        (bool isNodeComplete, bool hasDoneWorkInChildNode) = workNode.TryDoWork(waitForWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+        (bool isNodeComplete, bool hasDoneWorkInChildNode) = workNode.TryDoWork(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
         if (!isNodeComplete)
         {
             return (false, hasDoneWorkInChildNode);
@@ -150,7 +160,7 @@ internal sealed class WorkNode : IWorkNode
         _actualWorkNodes[workStepIndex][nodeIndex] = null;
 
         int totalCompletedWorkIndex = Interlocked.Increment(ref _completedWorkIndex[workStepIndex]);
-        if (totalCompletedWorkIndex != nextWorkNodeCount)
+        if (totalCompletedWorkIndex != _actualWorkNodes[workStepIndex].Length)
         {
             return (false, true);
         }

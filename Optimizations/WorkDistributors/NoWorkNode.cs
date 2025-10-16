@@ -13,7 +13,7 @@ internal sealed class NoWorkNode : IWorkNode
 
     public void Reset() => throw new NotImplementedException();
 
-    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, Vector3 playerPosition) => throw new NotImplementedException();
+    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, Vector3 playerPosition) => throw new NotImplementedException();
     public IEnumerable<IWorkChunk> GetAllWorkChunks() => throw new NotImplementedException();
     public void DeepDispose() { }
 
@@ -28,7 +28,7 @@ internal sealed class DummyWorkDoneImmediatelyNode : IWorkNode
 
     public void Reset(){ }
 
-    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, Vector3 playerPosition) => (true, true);
+    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, Vector3 playerPosition) => (true, true);
     public IEnumerable<IWorkChunk> GetAllWorkChunks() => [];
     public void DeepDispose() { }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,31 +16,152 @@ internal static class ThreadLocalData
 
 internal static class WeaverThreadHelper
 {
+    private static int _value = 0;
+
     public static int GetParallelism() => Math.Max(1, GameMain.logic.threadController.wantedThreadCount);
+    
+    // For testing purposes on deadlocks happening more often under different thread counts
+    //public static int GetParallelism() => Math.Max(1, _value++ % 32);//Math.Max(1, GameMain.logic.threadController.wantedThreadCount);
 }
 
-internal sealed class WorkStealingMultiThreadedFactorySimulation
+internal sealed class WeaverThread : IDisposable
+{
+    private readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation;
+    private readonly ManualResetEvent _doWork;
+    private readonly ManualResetEvent _workerDone;
+    private readonly Thread _thread;
+    private WorkExecutor? _workExecutor = null;
+    private WorkTaskType _workTaskType;
+    private bool _isWorking = true;
+
+    [MemberNotNullWhen(true, nameof(_workExecutor))]
+    public bool IsInitialized => _workExecutor != null;
+
+    public static WeaverThread CreateThread(WorkStealingMultiThreadedFactorySimulation workStealingMultiThreadedFactorySimulation)
+    {
+        var thread = new Thread(static obj =>
+        {
+            try
+            {
+                ((WeaverThread)obj).DoWork();
+            }
+            catch (Exception e)
+            {
+                WeaverFixes.Logger.LogError(e.Message);
+                WeaverFixes.Logger.LogError(e.StackTrace);
+            }
+        });
+
+        var weaverThread = new WeaverThread(workStealingMultiThreadedFactorySimulation, thread);
+        thread.Start(weaverThread);
+
+        return weaverThread;
+    }
+
+    private WeaverThread(WorkStealingMultiThreadedFactorySimulation workStealingMultiThreadedFactorySimulation, Thread thread)
+    {
+        _workStealingMultiThreadedFactorySimulation = workStealingMultiThreadedFactorySimulation;
+        _doWork = new ManualResetEvent(false);
+        _workerDone = new ManualResetEvent(false);
+        _thread = thread;
+    }
+
+    public void StartWork(WorkTaskType workTaskType)
+    {
+        _workTaskType = workTaskType;
+        _doWork.Set();
+    }
+
+    public void WaitForCompletion()
+    {
+        _workerDone.WaitOne();
+        _workerDone.Reset();
+    }
+
+    public void DoWork()
+    {
+        try
+        {
+            while (_isWorking)
+            {
+                _doWork.WaitOne();
+                _doWork.Reset();
+                if (!_isWorking)
+                {
+                    break;
+                }
+
+                if (!IsInitialized)
+                {
+                    throw new InvalidOperationException("Weaver thread was not initialized with work.");
+                }
+
+                ThreadLocalData.ThreadIndex.Value = _workExecutor.WorkerIndex;
+                switch (_workTaskType)
+                {
+                    case WorkTaskType.FactorySimulation:
+                        _workExecutor.ExecuteFactorySimulation(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
+                        break;
+                    case WorkTaskType.DefenseSystemTurret:
+                        _workExecutor.ExecuteDefenseSystemTurret(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
+                }
+
+                _workerDone.Set();
+            }
+        }
+        catch (Exception e)
+        {
+            WeaverFixes.Logger.LogError(e.Message);
+            WeaverFixes.Logger.LogError(e.StackTrace);
+            _workerDone.Set();
+        }
+    }
+
+    public void SetWorkExecutor(WorkExecutor workExecutor)
+    {
+        _workExecutor = workExecutor;
+    }
+
+    public void ClearWorkExecutor()
+    {
+        _workExecutor = null;
+    }
+
+    public void Dispose()
+    {
+        _isWorking = false;
+        _doWork.Set();
+        _thread.Join();
+
+        _doWork.Dispose();
+        _workerDone.Dispose();
+    }
+}
+
+internal enum WorkTaskType
+{
+    FactorySimulation,
+    DefenseSystemTurret
+}
+
+internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
 {
     private readonly HighStopwatch _stopWatch = new();
     private readonly object _singleThreadedCodeLock = new();
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private readonly DysonSphereManager _dysonSphereManager;
     private StarClusterWorkManager? _starClusterWorkManager;
-    private Thread[]? _threads;
-    private ManualResetEvent[]? _workerDone;
-    private ManualResetEvent[]? _doWork;
-    private bool _done = false;
-    private WorkTaskType _workTaskType;
+    private WeaverThread[]? _threads;
 
-    private PlanetData? _localPlanet;
-    private long _time;
-    private UnityEngine.Vector3 _playerPosition;
 
-    private enum WorkTaskType
-    {
-        FactorySimulation,
-        DefenseSystemTurret
-    }
+    public PlanetData? _localPlanet;
+    public long _time;
+    public UnityEngine.Vector3 _playerPosition;
+
+
 
     public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager,
                                                       DysonSphereManager dysonSphereManager)
@@ -62,62 +184,38 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             {
                 _starClusterWorkManager = new StarClusterWorkManager();
             }
+
             if (_threads == null || _threads.Length != targetThreadCount)
             {
-                ClearThreads();
+                //WeaverFixes.Logger.LogMessage("Change thread count");
                 ThreadLocalData.ThreadIndex.Value = -1; // For main thread which also does work. Will otherwise crash when value does not exist.
-                _threads = new Thread[targetThreadCount];
-                _doWork = new ManualResetEvent[targetThreadCount];
-                _workerDone = new ManualResetEvent[targetThreadCount];
+                if (_threads == null)
+                {
+                    _threads = new WeaverThread[targetThreadCount];
+                }
+                else if (_threads.Length < targetThreadCount)
+                {
+                    Array.Resize(ref _threads, targetThreadCount);
+                }
+
+                //WeaverFixes.Logger.LogMessage($"Updated thread count to: {_threads.Length}");
                 for (int i = 0; i < _threads.Length; i++)
                 {
                     var workExecutor = new WorkExecutor(_starClusterWorkManager, i, _singleThreadedCodeLock);
-
-                    var workerDone = new ManualResetEvent(false);
-                    _workerDone[i] = workerDone;
-
-                    var dooooWork = new ManualResetEvent(false);
-                    _doWork[i] = dooooWork;
-
-                    var thread = new Thread(() =>
+                    if (_threads[i] == null)
                     {
-                        try
-                        {
-                            while (!_done)
-                            {
-                                dooooWork.WaitOne();
-                                dooooWork.Reset();
-                                if (_done)
-                                {
-                                    break;
-                                }
+                        _threads[i] = WeaverThread.CreateThread(this);
+                    }
+                }
+            }
 
-                                ThreadLocalData.ThreadIndex.Value = workExecutor.WorkerIndex;
-                                switch (_workTaskType)
-                                {
-                                    case WorkTaskType.FactorySimulation:
-                                        workExecutor.ExecuteFactorySimulation(_localPlanet, _time, _playerPosition);
-                                        break;
-                                    case WorkTaskType.DefenseSystemTurret:
-                                        workExecutor.ExecuteDefenseSystemTurret(_localPlanet, _time, _playerPosition);
-                                        break;
-                                    default:
-                                        throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
-                                }
-
-                                workerDone.Set();
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            WeaverFixes.Logger.LogError(e.Message);
-                            WeaverFixes.Logger.LogError(e.StackTrace);
-                            workerDone.Set();
-                        }
-
-                    });
-                    thread.Start();
-                    _threads[i] = thread;
+            // This ensures threads are updated with new work whenever a new save is loaded
+            for (int i = 0; i < _threads.Length; i++)
+            {
+                if (!_threads[i].IsInitialized)
+                {
+                    var workExecutor = new WorkExecutor(_starClusterWorkManager, i, _singleThreadedCodeLock);
+                    _threads[i].SetWorkExecutor(workExecutor);
                 }
             }
 
@@ -139,7 +237,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
             //WeaverFixes.Logger.LogMessage("After pre single threaded steps");
 
             //WeaverFixes.Logger.LogMessage("Before parallel simulation");
-            ExecuteParallel(WorkTaskType.FactorySimulation);
+            ExecuteParallel(targetThreadCount, WorkTaskType.FactorySimulation);
             //WeaverFixes.Logger.LogMessage("After parallel simulation");
 
             //WeaverFixes.Logger.LogMessage("Before ui thread stuff");
@@ -153,24 +251,22 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
             double totalTime = _stopWatch.duration;
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             WeaverFixes.Logger.LogError(e.Message);
             WeaverFixes.Logger.LogError(e.StackTrace);
         }
     }
 
-    private void ExecuteParallel(WorkTaskType workTaskType)
+    private void ExecuteParallel(int targetThreadCount, WorkTaskType workTaskType)
     {
-        _workTaskType = workTaskType;
-        for (int i = 0; i < _doWork.Length; i++)
+        for (int i = 0; i < targetThreadCount; i++)
         {
-            _doWork[i].Set();
+            _threads[i].StartWork(workTaskType);
         }
-        for (int i = 0; i < _workerDone.Length; i++)
+        for (int i = 0; i < targetThreadCount; i++)
         {
-            _workerDone[i].WaitOne();
-            _workerDone[i].Reset();
+            _threads[i].WaitForCompletion();
         }
     }
 
@@ -178,32 +274,26 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
     {
         _starClusterWorkManager?.Dispose();
         _starClusterWorkManager = null;
+
         if (_threads != null)
         {
-            ClearThreads();
+            for (int i = 0; i < _threads.Length; i++)
+            {
+                _threads[i]?.ClearWorkExecutor();
+            }
         }
     }
 
-    private void ClearThreads()
+    public void Dispose()
     {
-        if (_threads == null)
+        Clear();
+        if (_threads != null)
         {
-            return;
+            for (int i = 0; i < _threads.Length; i++)
+            {
+                _threads[i]?.Dispose();
+            }
         }
-
-        _done = true;
-        for (int i = 0; i < _threads.Length; i++)
-        {
-            _doWork[i].Set();
-            _threads[i].Join();
-            _doWork[i].Dispose();
-            _workerDone[i].Dispose();
-        }
-        _done = false;
-
-        _doWork = null;
-        _threads = null;
-        _workerDone = null;
     }
 
     public void PrintWorkStatistics()
@@ -233,7 +323,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         }
     }
 
-    private static void ExecutePreFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, PlanetData localPlanet, long time, int threadCount)
+    private static void ExecutePreFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, PlanetData localPlanet, long time, int targetThreadCount)
     {
         // 151
         gameLogic.UniverseGameTick();
@@ -319,7 +409,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
         }
     }
 
-    private void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int threadCount)
+    private void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int targetThreadCount)
     {
         // 1601
         // Nothing
@@ -387,7 +477,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation
 
         // 3151
         // Parallelize here DefenseSystemTurretGameTick_Parallel
-        ExecuteParallel(WorkTaskType.DefenseSystemTurret);
+        ExecuteParallel(targetThreadCount, WorkTaskType.DefenseSystemTurret);
         gameLogic.OnFactoryEndProfiler();
 
         // 3201

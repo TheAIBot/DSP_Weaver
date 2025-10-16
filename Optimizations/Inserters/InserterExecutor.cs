@@ -974,10 +974,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             oldIndexToNewIndex[optimalInserterNeedsOrder[i]] = i;
         }
 
-        if (inserterGrades.Count > 0)
-        {
-            WeaverFixes.Logger.LogMessage($"Inserter grade count: {inserterGrades.Count}");
-        }
+        //if (inserterGrades.Count > 0)
+        //{
+        //    WeaverFixes.Logger.LogMessage($"Inserter grade count: {inserterGrades.Count}");
+        //}
 
         _inserterNetworkIdAndStates = optimalInserterNeedsOrder.Select(x => inserterNetworkIdAndStates[x]).ToArray();
         _inserterConnections = optimalInserterNeedsOrder.Select(x => inserterConnections[x]).ToArray();

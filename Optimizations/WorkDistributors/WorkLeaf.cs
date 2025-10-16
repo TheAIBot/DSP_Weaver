@@ -21,7 +21,7 @@ internal sealed class WorkLeaf : IWorkNode
         _workNodes = workNodes; 
     }
 
-    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         if (_scheduledCount >= _workNodes.Length)
         {
@@ -75,7 +75,7 @@ internal sealed class SingleWorkLeaf : IWorkNode
         _workNode = workNode;
     }
 
-    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         if (_scheduledCount > 0)
         {

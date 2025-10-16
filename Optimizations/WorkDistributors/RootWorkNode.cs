@@ -16,23 +16,36 @@ internal sealed class RootWorkNode : IDisposable
 
     public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
+        if (_isWorkDone)
+        {
+            return;
+        }
+
+        (bool isNodeComplete, _) = _workNode.TryDoWork(false, false, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+        if (isNodeComplete)
+        {
+            _isWorkDone = true;
+            //WeaverFixes.Logger.LogMessage($"Done with root work: {workerIndex}");
+            return;
+        }
+
         while (!_isWorkDone)
         {
-            (bool isNodeComplete, bool didAnyWork) = _workNode.TryDoWork(false, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+            (isNodeComplete, bool didAnyWork) = _workNode.TryDoWork(false, true, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
             if (isNodeComplete)
             {
                 _isWorkDone = true;
-                //WeaverFixes.Logger.LogMessage("Done with root work");
+                //WeaverFixes.Logger.LogMessage($"Done with root work: {workerIndex}");
                 break;
             }
 
             if (!didAnyWork)
             {
-                (isNodeComplete, didAnyWork) = _workNode.TryDoWork(true, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
+                (isNodeComplete, didAnyWork) = _workNode.TryDoWork(true, true, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);
                 if (isNodeComplete)
                 {
                     _isWorkDone = true;
-                    //WeaverFixes.Logger.LogMessage("Done with root work");
+                    //WeaverFixes.Logger.LogMessage($"Done with root work: {workerIndex}");
                     break;
                 }
 
@@ -40,7 +53,7 @@ internal sealed class RootWorkNode : IDisposable
                 {
                     // If we couldn't wait for any work then there must no longer be enough work for all the threads.
                     // It is an assumption that parallelism will not increase in the future which is why we break out here.
-                    //WeaverFixes.Logger.LogMessage("Thread failed to find more work in work tree");
+                    //WeaverFixes.Logger.LogMessage($"Failed to find more work in work tree: {workerIndex}");
                     break;
                 }
             }

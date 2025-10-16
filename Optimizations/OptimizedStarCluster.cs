@@ -87,7 +87,7 @@ internal static class OptimizedStarCluster
     private static void DSPGame_ExitProgram()
     {
         WeaverFixes.Logger.LogInfo("Stopping simulation threads.");
-        _workStealingMultiThreadedFactorySimulation.Clear();
+        _workStealingMultiThreadedFactorySimulation.Dispose();
         _programShutdown = true;
     }
 
