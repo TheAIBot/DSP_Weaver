@@ -601,7 +601,7 @@ internal sealed class OptimizedSubFactory
             {
                 if (!useBan || storageComponent.lastFullItem != cargo.Item)
                 {
-                    if (AddWholeCargo(storageComponent, cargo, useBan))
+                    if (AddCargo(storageComponent, cargo, useBan))
                     {
                         return true;
                     }
@@ -663,7 +663,7 @@ internal sealed class OptimizedSubFactory
         return num - count;
     }
 
-    private static bool AddWholeCargo(StorageComponent storage, OptimizedCargo cargo, bool useBan = false)
+    private static bool AddCargo(StorageComponent storage, OptimizedCargo cargo, bool useBan = false)
     {
         if (cargo.Item <= 0 || cargo.Stack == 0 || cargo.Item >= 12000)
         {
@@ -689,9 +689,11 @@ internal sealed class OptimizedSubFactory
                 return false;
             }
         }
-        bool flag2 = false;
-        int num = 0;
-        int num2 = useBan ? storage.size - storage.bans : storage.size;
+		bool result = false;
+		bool flag2 = false;
+		int num = 0;
+		int num2 = (useBan ? (storage.size - storage.bans) : storage.size);
+		ref byte stack = ref cargo.Stack;
         for (int i = 0; i < num2; i++)
         {
             if (storage.grids[i].itemId == 0)
@@ -717,13 +719,17 @@ internal sealed class OptimizedSubFactory
                     num = storage.grids[i].stackSize;
                 }
                 int num3 = num - storage.grids[i].count;
-                if (cargo.Stack <= num3)
+                if (stack <= num3)
                 {
-                    storage.grids[i].count += cargo.Stack;
+                    storage.grids[i].count += stack;
                     storage.grids[i].inc += cargo.Inc;
+                    result = true;
                     flag2 = true;
                     break;
                 }
+                storage.grids[i].count = num;
+                storage.grids[i].inc += split_inc(ref stack, ref cargo.Inc, (byte)num3);
+                flag2 = true;
             }
         }
         if (flag2)
@@ -732,7 +738,25 @@ internal sealed class OptimizedSubFactory
             storage.lastEmptyItem = -1;
             storage.NotifyStorageChange();
         }
-        return flag2;
+        return result;
+    }
+
+    // Temporary here until DSP library has been updated.
+    // Method from StorageComponent.split_inc
+    private static int split_inc(ref byte n, ref byte m, byte p)
+    {
+        if (n <= 0)
+        {
+            n = (m = 0);
+            return 0;
+        }
+        int num = m / n;
+        int num2 = m - num * n;
+        n -= p;
+        num2 -= n;
+        num = ((num2 > 0) ? (num * p + num2) : (num * p));
+        m -= (byte)num;
+        return num;
     }
 
     private static void RefreshPowerConsumptionDemands(ProductionStatistics statistics, PrototypePowerConsumptions prototypePowerConsumptions)
