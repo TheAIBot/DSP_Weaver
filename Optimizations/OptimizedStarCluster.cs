@@ -263,8 +263,8 @@ internal static class OptimizedStarCluster
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(PlanetFactory), nameof(PlanetFactory.RemoveEntityWithComponents))]
-    public static void PlanetFactory_RemoveEntityWithComponents(PlanetFactory __instance)
+    [HarmonyPatch(typeof(PlanetFactory), nameof(PlanetFactory.KillEntityFinally))]
+    public static void PlanetFactory_KillEntityFinally(PlanetFactory __instance)
     {
         DeOptimizeDueToNonPlayerAction(__instance);
     }

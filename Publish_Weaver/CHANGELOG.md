@@ -1,3 +1,7 @@
+## 2.0.4
+* Updated to DSP version 0.10.33.27005.
+* Fix going to a planet with a recently destroyed assembler could cause the game to crash.
+
 ## 2.0.3
 * 0-10% DSP performance improvement compared to 2.0.2
 * Fix Weavers parallel simulation could deadlock itself.
