@@ -285,13 +285,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                     {
                         int num3 = itemCount;
                         int num4 = itemInc;
-                        ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
-                        if (connectionBelts.InsertIntoIndex == OptimizedCargoPath.NO_BELT_INDEX)
-                        {
-                            throw new InvalidOperationException($"{nameof(connectionBelts.InsertIntoIndex)} was null.");
-                        }
-
-                        optimizedCargoPaths[connectionBelts.InsertIntoIndex].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
+                        optimizedCargoPaths[num2.Index].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
                         itemCount = (short)num3;
                         itemInc = (short)num4;
                         stackCount = itemCount > 0 ? (itemCount - 1) / 4 + 1 : 0;

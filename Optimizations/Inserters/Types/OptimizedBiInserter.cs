@@ -343,13 +343,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             {
                 int num5 = itemCount;
                 int num6 = itemInc;
-                ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
-                if (connectionBelts.InsertIntoIndex == OptimizedCargoPath.NO_BELT_INDEX)
-                {
-                    throw new InvalidOperationException($"{nameof(connectionBelts.InsertIntoIndex)} was null.");
-                }
-
-                optimizedCargoPaths[connectionBelts.InsertIntoIndex].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
+                optimizedCargoPaths[num4.Index].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
                 if (num5 < itemCount)
                 {
                     num3 = itemId;
