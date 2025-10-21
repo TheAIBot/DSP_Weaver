@@ -728,7 +728,7 @@ internal sealed class OptimizedSubFactory
                     break;
                 }
                 storage.grids[i].count = num;
-                storage.grids[i].inc += split_inc(ref stack, ref cargo.Inc, (byte)num3);
+                storage.grids[i].inc += storage.split_inc(ref stack, ref cargo.Inc, (byte)num3);
                 flag2 = true;
             }
         }
@@ -739,24 +739,6 @@ internal sealed class OptimizedSubFactory
             storage.NotifyStorageChange();
         }
         return result;
-    }
-
-    // Temporary here until DSP library has been updated.
-    // Method from StorageComponent.split_inc
-    private static int split_inc(ref byte n, ref byte m, byte p)
-    {
-        if (n <= 0)
-        {
-            n = (m = 0);
-            return 0;
-        }
-        int num = m / n;
-        int num2 = m - num * n;
-        n -= p;
-        num2 -= n;
-        num = ((num2 > 0) ? (num * p + num2) : (num * p));
-        m -= (byte)num;
-        return num;
     }
 
     private static void RefreshPowerConsumptionDemands(ProductionStatistics statistics, PrototypePowerConsumptions prototypePowerConsumptions)

@@ -22,7 +22,7 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
-    <PackageReference Include="DysonSphereProgram.GameLibs" Version="0.10.33.26943-r.0" />
+    <PackageReference Include="DysonSphereProgram.GameLibs" Version="0.10.33.27005-r.0" />
     <PackageReference Include="UnityEngine.Modules" Version="2022.3.53" IncludeAssets="compile" />
   </ItemGroup>
   
