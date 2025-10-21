@@ -2,3 +2,6 @@
 
 # IDE0059: Unnecessary assignment of a value
 dotnet_diagnostic.IDE0059.severity = error
+
+# CA1805: Do not initialize unnecessarily
+dotnet_diagnostic.CA1805.severity = none
