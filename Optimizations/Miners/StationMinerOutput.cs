@@ -12,7 +12,7 @@ internal readonly struct StationMinerOutput : IMinerOutput<StationMinerOutput>
         _outputStation = outputStation;
     }
 
-    public readonly int InsertInto(int itemId, byte itemCount)
+    public readonly int InsertInto(int itemId, byte itemCount, OptimizedCargoPath[] optimizedCargoPaths)
     {
         return 0;
     }

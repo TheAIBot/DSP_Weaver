@@ -24,7 +24,8 @@ internal sealed class FractionatorExecutor
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
-                         int[] consumeRegister)
+                         int[] consumeRegister,
+                         OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (_fractionatorRecipeProducts == null)
         {
@@ -51,7 +52,8 @@ internal sealed class FractionatorExecutor
                                         ref fractionatorPowerFields,
                                         fractionatorRecipeProducts,
                                         productRegister,
-                                        consumeRegister);
+                                        consumeRegister,
+                                        optimizedCargoPaths);
 
             UpdatePower(fractionatorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, fractionatorIndex, networkIndex, in fractionatorPowerFields);
         }
@@ -176,9 +178,9 @@ internal sealed class FractionatorExecutor
                 fractionatorConfigurations.Add(configuration);
             }
 
-            beltExecutor.TryOptimizedCargoPath(planet, fractionator.belt0, out OptimizedCargoPath? belt0);
-            beltExecutor.TryOptimizedCargoPath(planet, fractionator.belt1, out OptimizedCargoPath? belt1);
-            beltExecutor.TryOptimizedCargoPath(planet, fractionator.belt2, out OptimizedCargoPath? belt2);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt0, out int belt0Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt1, out int belt1Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt2, out int belt2Index);
 
             OptimizedItemId fluidId = default;
             if (fractionator.fluidId > 0)
@@ -195,9 +197,9 @@ internal sealed class FractionatorExecutor
             fractionatorIdToOptimizedIndex.Add(fractionator.id, optimizedFractionators.Count);
             int networkIndex = planet.powerSystem.consumerPool[fractionator.pcId].networkId;
             fractionatorNetworkId.Add(networkIndex);
-            optimizedFractionators.Add(new OptimizedFractionator(belt0,
-                                                                 belt1,
-                                                                 belt2,
+            optimizedFractionators.Add(new OptimizedFractionator(belt0Index,
+                                                                 belt1Index,
+                                                                 belt2Index,
                                                                  fractionatorConfigurationIndex,
                                                                  fluidId,
                                                                  productId,

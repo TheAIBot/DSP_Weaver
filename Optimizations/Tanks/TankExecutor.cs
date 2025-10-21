@@ -12,14 +12,14 @@ internal sealed class TankExecutor
 
     public int Count => _optimizedTanks.Length;
 
-    public void GameTick()
+    public void GameTick(OptimizedCargoPath[] optimizedCargoPaths)
     {
         OptimizedTank[] optimizedTanks = _optimizedTanks;
 
         for (int i = 0; i < optimizedTanks.Length; i++)
         {
             ref OptimizedTank tank = ref optimizedTanks[i];
-            tank.GameTick(this);
+            tank.GameTick(this, optimizedCargoPaths);
             tank.TickOutput(this);
             if (tank.fluidCount == 0)
             {
@@ -63,19 +63,19 @@ internal sealed class TankExecutor
                 continue;
             }
 
-            beltExecutor.TryOptimizedCargoPath(planet, tank.belt0, out OptimizedCargoPath? optimizedBelt0);
-            beltExecutor.TryOptimizedCargoPath(planet, tank.belt1, out OptimizedCargoPath? optimizedBelt1);
-            beltExecutor.TryOptimizedCargoPath(planet, tank.belt2, out OptimizedCargoPath? optimizedBelt2);
-            beltExecutor.TryOptimizedCargoPath(planet, tank.belt3, out OptimizedCargoPath? optimizedBelt3);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt0, out int optimizedBelt0Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt1, out int optimizedBelt1Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt2, out int optimizedBelt2Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt3, out int optimizedBelt3Index);
 
             int optimizedTankIndex = optimizedTanks.Count;
             tankIdToOptimizedTankIndex.Add(tank.id, optimizedTankIndex);
             optimizedTanks.Add(new OptimizedTank(in tank,
                                                  optimizedTankIndex,
-                                                 optimizedBelt0,
-                                                 optimizedBelt1,
-                                                 optimizedBelt2,
-                                                 optimizedBelt3));
+                                                 optimizedBelt0Index,
+                                                 optimizedBelt1Index,
+                                                 optimizedBelt2Index,
+                                                 optimizedBelt3Index));
         }
 
         for (int i = 0; i < tankIndexes.Length; i++)

@@ -11,17 +11,13 @@ internal record struct FractionatorRecipeProduct(int GameFluidId, OptimizedItemI
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedFractionator
 {
-    public readonly OptimizedCargoPath? belt0;
-    public readonly OptimizedCargoPath? belt1;
-    public readonly OptimizedCargoPath? belt2;
+    public readonly int belt0Index;
+    public readonly int belt1Index;
+    public readonly int belt2Index;
     public readonly int configurationIndex;
     public OptimizedItemId fluidId;
     public OptimizedItemId productId;
     public float produceProb;
-
-
-
-
     public int productOutputCount;
     public int fluidOutputCount;
     public int fluidOutputInc;
@@ -32,17 +28,17 @@ internal struct OptimizedFractionator
     public int productOutputTotal;
     public uint seed;
 
-    public OptimizedFractionator(OptimizedCargoPath? belt0,
-                                 OptimizedCargoPath? belt1,
-                                 OptimizedCargoPath? belt2,
+    public OptimizedFractionator(int belt0Index,
+                                 int belt1Index,
+                                 int belt2Index,
                                  int configurationIndex,
                                  OptimizedItemId fluidId,
                                  OptimizedItemId productId,
                                  ref readonly FractionatorComponent fractionator)
     {
-        this.belt0 = belt0;
-        this.belt1 = belt1;
-        this.belt2 = belt2;
+        this.belt0Index = belt0Index;
+        this.belt1Index = belt1Index;
+        this.belt2Index = belt2Index;
         this.configurationIndex = configurationIndex;
         this.fluidId = fluidId;
         this.productId = productId;
@@ -78,7 +74,8 @@ internal struct OptimizedFractionator
                                ref FractionatorPowerFields fractionatorPowerFields,
                                FractionatorRecipeProduct[] fractionatorRecipeProducts,
                                int[] productRegister,
-                               int[] consumeRegister)
+                               int[] consumeRegister,
+                               OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
         {
@@ -137,8 +134,9 @@ internal struct OptimizedFractionator
         {
             fractionSuccess = false;
         }
-        if (belt1 != null)
+        if (belt1Index != OptimizedCargoPath.NO_BELT_INDEX)
         {
+            ref OptimizedCargoPath belt1 = ref optimizedCargoPaths[belt1Index];
             if (configuration.IsOutput1)
             {
                 if (fluidOutputCount > 0)
@@ -164,7 +162,7 @@ internal struct OptimizedFractionator
             {
                 if (fluidId.ItemIndex > 0)
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt1, fluidId.ItemIndex, null, out OptimizedCargo optimizedCargo))
+                    if (CargoPathMethods.TryPickItemAtRear(ref belt1, fluidId.ItemIndex, null, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
@@ -173,7 +171,7 @@ internal struct OptimizedFractionator
                 }
                 else
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt1, 0, RecipeProto.fractionatorNeeds, out OptimizedCargo optimizedCargo))
+                    if (CargoPathMethods.TryPickItemAtRear(ref belt1, 0, RecipeProto.fractionatorNeeds, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
@@ -183,8 +181,9 @@ internal struct OptimizedFractionator
                 }
             }
         }
-        if (belt2 != null)
+        if (belt2Index != OptimizedCargoPath.NO_BELT_INDEX)
         {
+            ref OptimizedCargoPath belt2 = ref optimizedCargoPaths[belt2Index];
             if (configuration.IsOutput2)
             {
                 if (fluidOutputCount > 0)
@@ -210,7 +209,7 @@ internal struct OptimizedFractionator
             {
                 if (fluidId.ItemIndex > 0)
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt2, fluidId.ItemIndex, null, out OptimizedCargo optimizedCargo))
+                    if (CargoPathMethods.TryPickItemAtRear(ref belt2, fluidId.ItemIndex, null, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
@@ -219,7 +218,7 @@ internal struct OptimizedFractionator
                 }
                 else
                 {
-                    if (CargoPathMethods.TryPickItemAtRear(belt2, 0, RecipeProto.fractionatorNeeds, out OptimizedCargo optimizedCargo))
+                    if (CargoPathMethods.TryPickItemAtRear(ref belt2, 0, RecipeProto.fractionatorNeeds, out OptimizedCargo optimizedCargo))
                     {
                         fractionatorPowerFields.fluidInputCount += optimizedCargo.Stack;
                         fractionatorPowerFields.fluidInputInc += optimizedCargo.Inc;
@@ -229,9 +228,13 @@ internal struct OptimizedFractionator
                 }
             }
         }
-        if (belt0 != null && configuration.IsOutput0 && productOutputCount > 0 && belt0.TryInsertItemAtHeadAndFillBlank(productId.ItemIndex, 1, 0))
+        if (belt0Index != OptimizedCargoPath.NO_BELT_INDEX)
         {
-            productOutputCount--;
+            ref OptimizedCargoPath belt0 = ref optimizedCargoPaths[belt0Index];
+            if (configuration.IsOutput0 && productOutputCount > 0 && belt0.TryInsertItemAtHeadAndFillBlank(productId.ItemIndex, 1, 0))
+            {
+                productOutputCount--;
+            }
         }
         if (fractionatorPowerFields.fluidInputCount == 0 && fluidOutputCount == 0 && productOutputCount == 0)
         {

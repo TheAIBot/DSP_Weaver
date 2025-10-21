@@ -18,7 +18,8 @@ internal sealed class MonitorExecutor
     public void GameTick(PlanetFactory planet,
                          int[] monitorPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
-                         long[] thisSubFactoryNetworkPowerConsumption)
+                         long[] thisSubFactoryNetworkPowerConsumption,
+                         OptimizedCargoPath[] optimizedCargoPaths)
     {
         SpeakerComponent[] speakerPool = planet.digitalSystem.speakerPool;
         bool sandboxToolsEnabled = GameMain.sandboxToolsEnabled;
@@ -33,7 +34,7 @@ internal sealed class MonitorExecutor
             int monitorIndex = monitorIndexes[monitorIndexIndex];
             int networkIndex = networkIds[monitorIndexIndex];
             float power = networkServes[networkIndex];
-            optimizedMonitors[monitorIndexIndex].InternalUpdate(ref monitors[monitorIndex], power, sandboxToolsEnabled, speakerPool);
+            optimizedMonitors[monitorIndexIndex].InternalUpdate(ref monitors[monitorIndex], power, sandboxToolsEnabled, speakerPool, optimizedCargoPaths);
 
             UpdatePower(monitorPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, monitorIndexIndex, networkIndex);
         }
@@ -115,7 +116,7 @@ internal sealed class MonitorExecutor
                 continue;
             }
 
-            if (!beltExecutor.TryOptimizedCargoPath(planet, monitor.targetBeltId, out OptimizedCargoPath? targetBelt))
+            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, monitor.targetBeltId, out int targetBeltIndex))
             {
                 continue;
             }
@@ -126,7 +127,7 @@ internal sealed class MonitorExecutor
             subFactoryPowerSystemBuilder.AddMonitor(in monitor, networkIndex);
             monitorIndexes.Add(monitorIndex);
             networkIds.Add(networkIndex);
-            optimizedMonitors.Add(new OptimizedMonitor(targetBelt, targetBeltComponent.speed, targetBeltOffset));
+            optimizedMonitors.Add(new OptimizedMonitor(targetBeltIndex, targetBeltComponent.speed, targetBeltOffset));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[monitor.entityId]);
         }
 

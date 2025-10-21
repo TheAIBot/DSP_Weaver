@@ -20,7 +20,8 @@ internal sealed class WaterMinerExecutor
                          int[] waterMinerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
-                         int[] productRegister)
+                         int[] productRegister,
+                         OptimizedCargoPath[] optimizedCargoPaths)
     {
         GameHistoryData history = GameMain.history;
         float[] networkServes = planet.powerSystem.networkServes;
@@ -33,7 +34,7 @@ internal sealed class WaterMinerExecutor
             int networkIndex = networkIds[minerIndex];
             float power = networkServes[networkIndex];
             ref OptimizedWaterMiner miner = ref optimizedMiners[minerIndex];
-            miner.InternalUpdate(power, miningSpeedScale, productRegister);
+            miner.InternalUpdate(power, miningSpeedScale, productRegister, optimizedCargoPaths);
 
             UpdatePower(waterMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref miner);
         }
@@ -159,7 +160,7 @@ internal sealed class WaterMinerExecutor
             }
 
             int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
-            if (!beltExecutor.TryOptimizedCargoPath(planet, outputBeltId, out OptimizedCargoPath? outputBelt))
+            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, outputBeltId, out int outputBeltIndex))
             {
                 continue;
             }
@@ -170,7 +171,7 @@ internal sealed class WaterMinerExecutor
             subFactoryPowerSystemBuilder.AddWaterMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
-            optimizedMiners.Add(new OptimizedWaterMiner(outputBelt, outputBeltOffset, productId, in miner));
+            optimizedMiners.Add(new OptimizedWaterMiner(outputBeltIndex, outputBeltOffset, productId, in miner));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 

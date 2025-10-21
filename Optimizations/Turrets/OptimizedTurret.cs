@@ -6,11 +6,11 @@ namespace Weaver.Optimizations.Turrets;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal readonly struct OptimizedTurret
 {
-    private readonly OptimizedCargoPath? targetBelt;
+    private readonly OptimizedIndexedCargoPath targetBelt;
     private readonly int targetBeltOffset;
     public readonly int turretIndex;
 
-    public OptimizedTurret(OptimizedCargoPath? targetBelt, int targetBeltOffset, int turretIndex)
+    public OptimizedTurret(OptimizedIndexedCargoPath targetBelt, int targetBeltOffset, int turretIndex)
     {
         this.targetBelt = targetBelt;
         this.targetBeltOffset = targetBeltOffset;
@@ -132,20 +132,20 @@ internal readonly struct OptimizedTurret
 
     public void BeltUpdate(ref TurretComponent turret)
     {
-        if (targetBelt == null || turret.itemCount >= 5)
+        if (!targetBelt.HasBelt || turret.itemCount >= 5)
         {
             return;
         }
         if (turret.itemId == 0)
         {
-            if (targetBelt.TryPickItem(targetBeltOffset - 2, 5, 0, ItemProto.turretNeeds[(uint)turret.ammoType], out OptimizedCargo optimizedCargo))
+            if (targetBelt.Belt.TryPickItem(targetBeltOffset - 2, 5, 0, ItemProto.turretNeeds[(uint)turret.ammoType], out OptimizedCargo optimizedCargo))
             {
                 turret.SetNewItem(optimizedCargo.Item, optimizedCargo.Stack, optimizedCargo.Inc);
             }
         }
         else
         {
-            targetBelt.TryPickItem(targetBeltOffset - 2, 5, turret.itemId, out OptimizedCargo optimizedCargo);
+            targetBelt.Belt.TryPickItem(targetBeltOffset - 2, 5, turret.itemId, out OptimizedCargo optimizedCargo);
             if (turret.itemId == optimizedCargo.Item)
             {
                 turret.itemCount += optimizedCargo.Stack;

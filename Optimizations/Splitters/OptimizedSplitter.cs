@@ -16,16 +16,24 @@ internal struct OptimizedSplitter
     private byte prioritySlotPresets;
     private int outFilter;
     private int outFilterPreset;
-    private int input0;
-    private int input1;
-    private int input2;
-    private int input3;
-    private int output0;
-    private int output1;
-    private int output2;
-    private int output3;
+    private int input0Index;
+    private int input1Index;
+    private int input2Index;
+    private int input3Index;
+    private int output0Index;
+    private int output1Index;
+    private int output2Index;
+    private int output3Index;
 
-    public OptimizedSplitter(ref readonly SplitterComponent splitter)
+    public OptimizedSplitter(ref readonly SplitterComponent splitter,
+                             int input0Index,
+                             int input1Index,
+                             int input2Index,
+                             int input3Index,
+                             int output0Index,
+                             int output1Index,
+                             int output2Index,
+                             int output3Index)
     {
         beltA = splitter.beltA;
         beltB = splitter.beltB;
@@ -37,35 +45,34 @@ internal struct OptimizedSplitter
         prioritySlotPresets = splitter.prioritySlotPresets;
         outFilter = splitter.outFilter;
         outFilterPreset = splitter.outFilterPreset;
-        input0 = splitter.input0;
-        input1 = splitter.input1;
-        input2 = splitter.input2;
-        input3 = splitter.input3;
-        output0 = splitter.output0;
-        output1 = splitter.output1;
-        output2 = splitter.output2;
-        output3 = splitter.output3;
+        this.input0Index = input0Index;
+        this.input1Index = input1Index;
+        this.input2Index = input2Index;
+        this.input3Index = input3Index;
+        this.output0Index = output0Index;
+        this.output1Index = output1Index;
+        this.output2Index = output2Index;
+        this.output3Index = output3Index;
     }
 
-    public void UpdateSplitter(PlanetFactory planet, CargoTraffic cargoTraffic, OptimizedSubFactory subFactory, BeltExecutor beltExecutor)
+    public void UpdateSplitter(OptimizedSubFactory subFactory, OptimizedCargoPath[] optimizedCargoPaths)
     {
         CheckPriorityPreset();
         if (topId == 0)
         {
-            if (input0 == 0 || output0 == 0)
+            if (input0Index == OptimizedCargoPath.NO_BELT_INDEX || output0Index == OptimizedCargoPath.NO_BELT_INDEX)
             {
                 return;
             }
         }
-        else if (input0 == 0 && output0 == 0)
+        else if (input0Index == OptimizedCargoPath.NO_BELT_INDEX && output0Index == OptimizedCargoPath.NO_BELT_INDEX)
         {
             return;
         }
-        OptimizedCargoPath? us_tmp_inputPath;
-        OptimizedCargoPath? us_tmp_inputPath0 = null;
-        OptimizedCargoPath? us_tmp_inputPath1 = null;
-        OptimizedCargoPath? us_tmp_inputPath2 = null;
-        OptimizedCargoPath? us_tmp_inputPath3 = null;
+        int us_tmp_inputPath0 = OptimizedCargoPath.NO_BELT_INDEX;
+        int us_tmp_inputPath1 = OptimizedCargoPath.NO_BELT_INDEX;
+        int us_tmp_inputPath2 = OptimizedCargoPath.NO_BELT_INDEX;
+        int us_tmp_inputPath3 = OptimizedCargoPath.NO_BELT_INDEX;
         OptimizedCargo us_tmp_inputCargo;
         OptimizedCargo us_tmp_inputCargo0 = default;
         OptimizedCargo us_tmp_inputCargo1 = default;
@@ -75,92 +82,83 @@ internal struct OptimizedSplitter
         int us_tmp_inputIndex1 = -1;
         int us_tmp_inputIndex2 = -1;
         int us_tmp_inputIndex3 = -1;
-        OptimizedCargoPath? us_tmp_outputPath;
-        OptimizedCargoPath? us_tmp_outputPath0;
+        int us_tmp_outputPath0 = OptimizedCargoPath.NO_BELT_INDEX;
         int us_tmp_outputIdx;
 
-        if (input0 != 0)
+        if (input0Index != OptimizedCargoPath.NO_BELT_INDEX)
         {
-            // SUPER HACK!!!!
-            beltExecutor.TryOptimizedCargoPath(planet, input0, out us_tmp_inputPath);
-            if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
+            if (optimizedCargoPaths[input0Index].TryGetCargoIdAtRear(out us_tmp_inputCargo))
             {
                 us_tmp_inputCargo0 = us_tmp_inputCargo;
-                us_tmp_inputPath0 = us_tmp_inputPath;
+                us_tmp_inputPath0 = input0Index;
                 us_tmp_inputIndex0 = 0;
             }
-            if (input1 != 0)
+            if (input1Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                // SUPER HACK!!!!
-                beltExecutor.TryOptimizedCargoPath(planet, input1, out us_tmp_inputPath);
-                if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
+                if (optimizedCargoPaths[input1Index].TryGetCargoIdAtRear(out us_tmp_inputCargo))
                 {
-                    if (us_tmp_inputPath0 == null)
+                    if (us_tmp_inputPath0 == OptimizedCargoPath.NO_BELT_INDEX)
                     {
                         us_tmp_inputCargo0 = us_tmp_inputCargo;
-                        us_tmp_inputPath0 = us_tmp_inputPath;
+                        us_tmp_inputPath0 = input1Index;
                         us_tmp_inputIndex0 = 1;
                     }
                     else
                     {
                         us_tmp_inputCargo1 = us_tmp_inputCargo;
-                        us_tmp_inputPath1 = us_tmp_inputPath;
+                        us_tmp_inputPath1 = input1Index;
                         us_tmp_inputIndex1 = 1;
                     }
                 }
-                if (input2 != 0)
+                if (input2Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    // SUPER HACK!!!!
-                    beltExecutor.TryOptimizedCargoPath(planet, input2, out us_tmp_inputPath);
-                    if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
+                    if (optimizedCargoPaths[input2Index].TryGetCargoIdAtRear(out us_tmp_inputCargo))
                     {
-                        if (us_tmp_inputPath0 == null)
+                        if (us_tmp_inputPath0 == OptimizedCargoPath.NO_BELT_INDEX)
                         {
                             us_tmp_inputCargo0 = us_tmp_inputCargo;
-                            us_tmp_inputPath0 = us_tmp_inputPath;
+                            us_tmp_inputPath0 = input2Index;
                             us_tmp_inputIndex0 = 2;
                         }
-                        else if (us_tmp_inputPath1 == null)
+                        else if (us_tmp_inputPath1 == OptimizedCargoPath.NO_BELT_INDEX)
                         {
                             us_tmp_inputCargo1 = us_tmp_inputCargo;
-                            us_tmp_inputPath1 = us_tmp_inputPath;
+                            us_tmp_inputPath1 = input2Index;
                             us_tmp_inputIndex1 = 2;
                         }
                         else
                         {
                             us_tmp_inputCargo2 = us_tmp_inputCargo;
-                            us_tmp_inputPath2 = us_tmp_inputPath;
+                            us_tmp_inputPath2 = input2Index;
                             us_tmp_inputIndex2 = 2;
                         }
                     }
-                    if (input3 != 0)
+                    if (input3Index != OptimizedCargoPath.NO_BELT_INDEX)
                     {
-                        // SUPER HACK!!!!
-                        beltExecutor.TryOptimizedCargoPath(planet, input3, out us_tmp_inputPath);
-                        if (us_tmp_inputPath!.TryGetCargoIdAtRear(out us_tmp_inputCargo))
+                        if (optimizedCargoPaths[input3Index].TryGetCargoIdAtRear(out us_tmp_inputCargo))
                         {
-                            if (us_tmp_inputPath0 == null)
+                            if (us_tmp_inputPath0 == OptimizedCargoPath.NO_BELT_INDEX)
                             {
                                 us_tmp_inputCargo0 = us_tmp_inputCargo;
-                                us_tmp_inputPath0 = us_tmp_inputPath;
+                                us_tmp_inputPath0 = input3Index;
                                 us_tmp_inputIndex0 = 3;
                             }
-                            else if (us_tmp_inputPath1 == null)
+                            else if (us_tmp_inputPath1 == OptimizedCargoPath.NO_BELT_INDEX)
                             {
                                 us_tmp_inputCargo1 = us_tmp_inputCargo;
-                                us_tmp_inputPath1 = us_tmp_inputPath;
+                                us_tmp_inputPath1 = input3Index;
                                 us_tmp_inputIndex1 = 3;
                             }
-                            else if (us_tmp_inputPath2 == null)
+                            else if (us_tmp_inputPath2 == OptimizedCargoPath.NO_BELT_INDEX)
                             {
                                 us_tmp_inputCargo2 = us_tmp_inputCargo;
-                                us_tmp_inputPath2 = us_tmp_inputPath;
+                                us_tmp_inputPath2 = input3Index;
                                 us_tmp_inputIndex2 = 3;
                             }
                             else
                             {
                                 us_tmp_inputCargo3 = us_tmp_inputCargo;
-                                us_tmp_inputPath3 = us_tmp_inputPath;
+                                us_tmp_inputPath3 = input3Index;
                                 us_tmp_inputIndex3 = 3;
                             }
                         }
@@ -168,62 +166,58 @@ internal struct OptimizedSplitter
                 }
             }
         }
-        while (us_tmp_inputPath0 != null)
+        while (us_tmp_inputPath0 != OptimizedCargoPath.NO_BELT_INDEX)
         {
             bool flag = true;
             if (outFilter != 0)
             {
                 flag = us_tmp_inputCargo0.Item == outFilter;
             }
-            us_tmp_outputPath0 = null;
+            us_tmp_outputPath0 = OptimizedCargoPath.NO_BELT_INDEX;
             us_tmp_outputIdx = 0;
             int num = -1;
             if (!flag && outFilter != 0)
             {
                 goto IL_03e5;
             }
-            if (output0 != 0)
+            if (output0Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                // SUPER HACK!!!!
-                beltExecutor.TryOptimizedCargoPath(planet, output0, out us_tmp_outputPath);
-                num = us_tmp_outputPath!.TestBlankAtHead();
-                if (us_tmp_outputPath.pathLength <= 10 || num < 0)
+                ref OptimizedCargoPath belt = ref optimizedCargoPaths[output0Index];
+                num = belt.TestBlankAtHead();
+                if (belt.pathLength <= 10 || num < 0)
                 {
                     goto IL_03e5;
                 }
-                us_tmp_outputPath0 = us_tmp_outputPath;
+                us_tmp_outputPath0 = output0Index;
                 us_tmp_outputIdx = 0;
             }
             goto IL_0514;
         IL_03e5:
-            if ((!flag || outFilter == 0) && output1 != 0)
+            if ((!flag || outFilter == 0) && output1Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                // SUPER HACK!!!!
-                beltExecutor.TryOptimizedCargoPath(planet, output1, out us_tmp_outputPath);
-                num = us_tmp_outputPath!.TestBlankAtHead();
-                if (us_tmp_outputPath.pathLength > 10 && num >= 0)
+                ref OptimizedCargoPath belt = ref optimizedCargoPaths[output1Index];
+                num = belt.TestBlankAtHead();
+                if (belt.pathLength > 10 && num >= 0)
                 {
-                    us_tmp_outputPath0 = us_tmp_outputPath;
+                    us_tmp_outputPath0 = output1Index;
                     us_tmp_outputIdx = 1;
                 }
-                else if (output2 != 0)
+                else if (output2Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    // SUPER HACK!!!!
-                    beltExecutor.TryOptimizedCargoPath(planet, output2, out us_tmp_outputPath);
-                    num = us_tmp_outputPath!.TestBlankAtHead();
-                    if (us_tmp_outputPath.pathLength > 10 && num >= 0)
+                    belt = ref optimizedCargoPaths[output2Index];
+                    num = belt.TestBlankAtHead();
+                    if (belt.pathLength > 10 && num >= 0)
                     {
-                        us_tmp_outputPath0 = us_tmp_outputPath;
+                        us_tmp_outputPath0 = output2Index;
                         us_tmp_outputIdx = 2;
                     }
-                    else if (output3 != 0)
+                    else if (output3Index != OptimizedCargoPath.NO_BELT_INDEX)
                     {
-                        // SUPER HACK!!!!
-                        beltExecutor.TryOptimizedCargoPath(planet, output3, out us_tmp_outputPath);
-                        num = us_tmp_outputPath!.TestBlankAtHead();
-                        if (us_tmp_outputPath.pathLength > 10 && num >= 0)
+                        belt = ref optimizedCargoPaths[output3Index];
+                        num = belt.TestBlankAtHead();
+                        if (belt.pathLength > 10 && num >= 0)
                         {
-                            us_tmp_outputPath0 = us_tmp_outputPath;
+                            us_tmp_outputPath0 = output3Index;
                             us_tmp_outputIdx = 3;
                         }
                     }
@@ -231,17 +225,20 @@ internal struct OptimizedSplitter
             }
             goto IL_0514;
         IL_0514:
-            if (us_tmp_outputPath0 != null)
+            if (us_tmp_outputPath0 != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num2);
+                ref OptimizedCargoPath inputBelt = ref optimizedCargoPaths[us_tmp_inputPath0];
+                ref OptimizedCargoPath outputBelt = ref optimizedCargoPaths[us_tmp_outputPath0];
+                inputBelt.TryPickCargoAtEnd(out OptimizedCargo num2);
                 Assert.True(num2.Item >= 0);
-                us_tmp_outputPath0.InsertCargoAtHeadDirect(num2, num);
+                outputBelt.InsertCargoAtHeadDirect(num2, num);
                 InputAlternate(us_tmp_inputIndex0);
                 OutputAlternate(us_tmp_outputIdx);
             }
             else if (topId != 0 && (flag || outFilter == 0) && subFactory.InsertCargoIntoStorage(topId, us_tmp_inputCargo0))
             {
-                us_tmp_inputPath0.TryPickCargoAtEnd(out OptimizedCargo num3);
+                ref OptimizedCargoPath inputBelt = ref optimizedCargoPaths[us_tmp_inputPath0];
+                inputBelt.TryPickCargoAtEnd(out OptimizedCargo num3);
                 Assert.True(num3.Item >= 0);
                 InputAlternate(us_tmp_inputIndex0);
             }
@@ -254,7 +251,7 @@ internal struct OptimizedSplitter
             us_tmp_inputPath2 = us_tmp_inputPath3;
             us_tmp_inputCargo2 = us_tmp_inputCargo3;
             us_tmp_inputIndex2 = us_tmp_inputIndex3;
-            us_tmp_inputPath3 = null;
+            us_tmp_inputPath3 = OptimizedCargoPath.NO_BELT_INDEX;
             us_tmp_inputCargo3 = default;
             us_tmp_inputIndex3 = -1;
         }
@@ -267,54 +264,50 @@ internal struct OptimizedSplitter
             int num4 = 4;
             while (num4-- > 0)
             {
-                us_tmp_outputPath0 = null;
+                us_tmp_outputPath0 = OptimizedCargoPath.NO_BELT_INDEX;
                 us_tmp_outputIdx = 0;
                 int num5 = -1;
-                if (output0 != 0)
+                if (output0Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    // SUPER HACK!!!!
-                    beltExecutor.TryOptimizedCargoPath(planet, output0, out us_tmp_outputPath);
-                    num5 = us_tmp_outputPath!.TestBlankAtHead();
-                    if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
+                    ref OptimizedCargoPath belt = ref optimizedCargoPaths[output0Index];
+                    num5 = belt.TestBlankAtHead();
+                    if (belt.pathLength > 10 && num5 >= 0)
                     {
-                        us_tmp_outputPath0 = us_tmp_outputPath;
+                        us_tmp_outputPath0 = output0Index;
                         us_tmp_outputIdx = 0;
                     }
-                    else if (output1 != 0)
+                    else if (output1Index != OptimizedCargoPath.NO_BELT_INDEX)
                     {
-                        // SUPER HACK!!!!
-                        beltExecutor.TryOptimizedCargoPath(planet, output1, out us_tmp_outputPath);
-                        num5 = us_tmp_outputPath!.TestBlankAtHead();
-                        if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
+                        belt = ref optimizedCargoPaths[output1Index];
+                        num5 = belt.TestBlankAtHead();
+                        if (belt.pathLength > 10 && num5 >= 0)
                         {
-                            us_tmp_outputPath0 = us_tmp_outputPath;
+                            us_tmp_outputPath0 = output1Index;
                             us_tmp_outputIdx = 1;
                         }
-                        else if (output2 != 0)
+                        else if (output2Index != OptimizedCargoPath.NO_BELT_INDEX)
                         {
-                            // SUPER HACK!!!!
-                            beltExecutor.TryOptimizedCargoPath(planet, output2, out us_tmp_outputPath);
-                            num5 = us_tmp_outputPath!.TestBlankAtHead();
-                            if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
+                            belt = ref optimizedCargoPaths[output2Index];
+                            num5 = belt.TestBlankAtHead();
+                            if (belt.pathLength > 10 && num5 >= 0)
                             {
-                                us_tmp_outputPath0 = us_tmp_outputPath;
+                                us_tmp_outputPath0 = output2Index;
                                 us_tmp_outputIdx = 2;
                             }
-                            else if (output3 != 0)
+                            else if (output3Index != OptimizedCargoPath.NO_BELT_INDEX)
                             {
-                                // SUPER HACK!!!!
-                                beltExecutor.TryOptimizedCargoPath(planet, output3, out us_tmp_outputPath);
-                                num5 = us_tmp_outputPath!.TestBlankAtHead();
-                                if (us_tmp_outputPath.pathLength > 10 && num5 >= 0)
+                                belt = ref optimizedCargoPaths[output3Index];
+                                num5 = belt.TestBlankAtHead();
+                                if (belt.pathLength > 10 && num5 >= 0)
                                 {
-                                    us_tmp_outputPath0 = us_tmp_outputPath;
+                                    us_tmp_outputPath0 = output3Index;
                                     us_tmp_outputIdx = 3;
                                 }
                             }
                         }
                     }
                 }
-                if (us_tmp_outputPath0 != null)
+                if (us_tmp_outputPath0 != OptimizedCargoPath.NO_BELT_INDEX)
                 {
                     int filter = us_tmp_outputIdx == 0 ? outFilter : -outFilter;
                     int inc;
@@ -322,7 +315,8 @@ internal struct OptimizedSplitter
                     if (filter > 0 && num6 > 0)
                     {
                         OptimizedCargo optimizedCargo = new OptimizedCargo((short)filter, (byte)num6, (byte)inc);
-                        us_tmp_outputPath0.InsertCargoAtHeadDirect(optimizedCargo, num5);
+                        ref OptimizedCargoPath belt = ref optimizedCargoPaths[us_tmp_outputPath0];
+                        belt.InsertCargoAtHeadDirect(optimizedCargo, num5);
                         OutputAlternate(us_tmp_outputIdx);
                         continue;
                     }
@@ -332,21 +326,20 @@ internal struct OptimizedSplitter
             }
             return;
         }
-        us_tmp_outputPath0 = null;
+        us_tmp_outputPath0 = OptimizedCargoPath.NO_BELT_INDEX;
         us_tmp_outputIdx = 0;
         int num7 = -1;
-        if (output0 != 0)
+        if (output0Index != OptimizedCargoPath.NO_BELT_INDEX)
         {
-            // SUPER HACK!!!!
-            beltExecutor.TryOptimizedCargoPath(planet, output0, out us_tmp_outputPath);
-            num7 = us_tmp_outputPath!.TestBlankAtHead();
-            if (us_tmp_outputPath.pathLength > 10 && num7 >= 0)
+            ref OptimizedCargoPath belt = ref optimizedCargoPaths[output0Index];
+            num7 = belt.TestBlankAtHead();
+            if (belt.pathLength > 10 && num7 >= 0)
             {
-                us_tmp_outputPath0 = us_tmp_outputPath;
+                us_tmp_outputPath0 = output0Index;
                 us_tmp_outputIdx = 0;
             }
         }
-        if (us_tmp_outputPath0 != null)
+        if (us_tmp_outputPath0 != OptimizedCargoPath.NO_BELT_INDEX)
         {
             int filter2 = outFilter;
             int inc2;
@@ -354,50 +347,48 @@ internal struct OptimizedSplitter
             if (filter2 > 0 && num8 > 0)
             {
                 OptimizedCargo optimizedCargo = new OptimizedCargo((short)filter2, (byte)num8, (byte)inc2);
-                us_tmp_outputPath0.InsertCargoAtHeadDirect(optimizedCargo, num7);
+                ref OptimizedCargoPath belt = ref optimizedCargoPaths[us_tmp_outputPath0];
+                belt.InsertCargoAtHeadDirect(optimizedCargo, num7);
                 OutputAlternate(us_tmp_outputIdx);
             }
         }
         int num9 = 3;
         while (num9-- > 0)
         {
-            us_tmp_outputPath0 = null;
+            us_tmp_outputPath0 = OptimizedCargoPath.NO_BELT_INDEX;
             us_tmp_outputIdx = 0;
             int num10 = -1;
-            if (output1 != 0)
+            if (output1Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                // SUPER HACK!!!!
-                beltExecutor.TryOptimizedCargoPath(planet, output1, out us_tmp_outputPath);
-                num10 = us_tmp_outputPath!.TestBlankAtHead();
-                if (us_tmp_outputPath.pathLength > 10 && num10 >= 0)
+                ref OptimizedCargoPath belt = ref optimizedCargoPaths[output1Index];
+                num10 = belt.TestBlankAtHead();
+                if (belt.pathLength > 10 && num10 >= 0)
                 {
-                    us_tmp_outputPath0 = us_tmp_outputPath;
+                    us_tmp_outputPath0 = output1Index;
                     us_tmp_outputIdx = 1;
                 }
-                else if (output2 != 0)
+                else if (output2Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    // SUPER HACK!!!!
-                    beltExecutor.TryOptimizedCargoPath(planet, output2, out us_tmp_outputPath);
-                    num10 = us_tmp_outputPath!.TestBlankAtHead();
-                    if (us_tmp_outputPath.pathLength > 10 && num10 >= 0)
+                    belt = ref optimizedCargoPaths[output2Index];
+                    num10 = belt.TestBlankAtHead();
+                    if (belt.pathLength > 10 && num10 >= 0)
                     {
-                        us_tmp_outputPath0 = us_tmp_outputPath;
+                        us_tmp_outputPath0 = output2Index;
                         us_tmp_outputIdx = 2;
                     }
-                    else if (output3 != 0)
+                    else if (output3Index != OptimizedCargoPath.NO_BELT_INDEX)
                     {
-                        // SUPER HACK!!!!
-                        beltExecutor.TryOptimizedCargoPath(planet, output3, out us_tmp_outputPath);
-                        num10 = us_tmp_outputPath!.TestBlankAtHead();
-                        if (us_tmp_outputPath.pathLength > 10 && num10 >= 0)
+                        belt = ref optimizedCargoPaths[output3Index];
+                        num10 = belt.TestBlankAtHead();
+                        if (belt.pathLength > 10 && num10 >= 0)
                         {
-                            us_tmp_outputPath0 = us_tmp_outputPath;
+                            us_tmp_outputPath0 = output3Index;
                             us_tmp_outputIdx = 3;
                         }
                     }
                 }
             }
-            if (us_tmp_outputPath0 != null)
+            if (us_tmp_outputPath0 != OptimizedCargoPath.NO_BELT_INDEX)
             {
                 int filter3 = -outFilter;
                 int inc3;
@@ -405,7 +396,8 @@ internal struct OptimizedSplitter
                 if (filter3 > 0 && num11 > 0)
                 {
                     OptimizedCargo optimizedCargo = new OptimizedCargo((short)filter3, (byte)num11, (byte)inc3);
-                    us_tmp_outputPath0.InsertCargoAtHeadDirect(optimizedCargo, num10);
+                    ref OptimizedCargoPath belt = ref optimizedCargoPaths[us_tmp_outputPath0];
+                    belt.InsertCargoAtHeadDirect(optimizedCargo, num10);
                     OutputAlternate(us_tmp_outputIdx);
                     continue;
                 }
@@ -480,72 +472,72 @@ internal struct OptimizedSplitter
         }
         if (isPriority)
         {
-            if (input0 == num)
+            if (input0Index == num)
             {
                 inPriority = true;
             }
-            else if (input1 == num)
+            else if (input1Index == num)
             {
                 inPriority = true;
-                int num2 = input0;
-                input0 = input1;
-                input1 = num2;
+                int num2 = input0Index;
+                input0Index = input1Index;
+                input1Index = num2;
             }
-            else if (input2 == num)
+            else if (input2Index == num)
             {
                 inPriority = true;
-                int num2 = input0;
-                input0 = input2;
-                input2 = num2;
+                int num2 = input0Index;
+                input0Index = input2Index;
+                input2Index = num2;
             }
-            else if (input3 == num)
+            else if (input3Index == num)
             {
                 inPriority = true;
-                int num2 = input0;
-                input0 = input3;
-                input3 = num2;
+                int num2 = input0Index;
+                input0Index = input3Index;
+                input3Index = num2;
             }
-            else if (output0 == num)
+            else if (output0Index == num)
             {
                 outPriority = true;
                 outFilter = filter;
                 outFilterPreset = 0;
             }
-            else if (output1 == num)
+            else if (output1Index == num)
             {
                 outPriority = true;
-                int num2 = output0;
-                output0 = output1;
-                output1 = num2;
+                int num2 = output0Index;
+                output0Index = output1Index;
+                output1Index = num2;
                 outFilter = filter;
                 outFilterPreset = 0;
             }
-            else if (output2 == num)
+            else if (output2Index == num)
             {
                 outPriority = true;
-                int num2 = output0;
-                output0 = output2;
-                output2 = num2;
+                int num2 = output0Index;
+                output0Index = output2Index;
+                output2Index = num2;
                 outFilter = filter;
                 outFilterPreset = 0;
             }
-            else if (output3 == num)
+            else if (output3Index == num)
             {
                 outPriority = true;
-                int num2 = output0;
-                output0 = output3;
-                output3 = num2;
+                int num2 = output0Index;
+                output0Index = output3Index;
+                output3Index = num2;
                 outFilter = filter;
                 outFilterPreset = 0;
             }
             InputReorder();
             OutputReorder();
         }
-        else if (input0 == num)
+        else if (input0Index == num)
         {
             inPriority = false;
         }
-        else if (output0 == num)
+        else if (output0Index == num)
         {
             outPriority = false;
             outFilter = 0;
@@ -563,26 +555,26 @@ internal struct OptimizedSplitter
                     {
                         return;
                     }
-                    int num = input0;
-                    input0 = input1;
-                    input1 = input2;
-                    input2 = input3;
-                    input3 = num;
+                    int num = input0Index;
+                    input0Index = input1Index;
+                    input1Index = input2Index;
+                    input2Index = input3Index;
+                    input3Index = num;
                     break;
                 }
             case 1:
                 {
-                    int num = input1;
-                    input1 = input2;
-                    input2 = input3;
-                    input3 = num;
+                    int num = input1Index;
+                    input1Index = input2Index;
+                    input2Index = input3Index;
+                    input3Index = num;
                     break;
                 }
             case 2:
                 {
-                    int num = input2;
-                    input2 = input3;
-                    input3 = num;
+                    int num = input2Index;
+                    input2Index = input3Index;
+                    input3Index = num;
                     break;
                 }
         }
@@ -591,50 +583,50 @@ internal struct OptimizedSplitter
 
     private void InputReorder()
     {
-        if (input0 == 0)
+        if (input0Index == OptimizedCargoPath.NO_BELT_INDEX)
         {
-            if (input1 == 0)
+            if (input1Index == OptimizedCargoPath.NO_BELT_INDEX)
             {
-                if (input2 != 0)
+                if (input2Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    input0 = input2;
-                    input1 = input3;
-                    input2 = 0;
-                    input3 = 0;
+                    input0Index = input2Index;
+                    input1Index = input3Index;
+                    input2Index = OptimizedCargoPath.NO_BELT_INDEX;
+                    input3Index = OptimizedCargoPath.NO_BELT_INDEX;
                 }
-                else if (input3 != 0)
+                else if (input3Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    input0 = input3;
-                    input1 = 0;
-                    input2 = 0;
-                    input3 = 0;
+                    input0Index = input3Index;
+                    input1Index = OptimizedCargoPath.NO_BELT_INDEX;
+                    input2Index = OptimizedCargoPath.NO_BELT_INDEX;
+                    input3Index = OptimizedCargoPath.NO_BELT_INDEX;
                 }
                 return;
             }
-            input0 = input1;
-            input1 = input2;
-            input2 = input3;
-            input3 = 0;
+            input0Index = input1Index;
+            input1Index = input2Index;
+            input2Index = input3Index;
+            input3Index = OptimizedCargoPath.NO_BELT_INDEX;
         }
-        if (input1 == 0)
+        if (input1Index == OptimizedCargoPath.NO_BELT_INDEX)
         {
-            if (input2 != 0)
+            if (input2Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                input1 = input2;
-                input2 = input3;
-                input3 = 0;
+                input1Index = input2Index;
+                input2Index = input3Index;
+                input3Index = OptimizedCargoPath.NO_BELT_INDEX;
             }
-            else if (input3 != 0)
+            else if (input3Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                input1 = input3;
-                input2 = 0;
-                input3 = 0;
+                input1Index = input3Index;
+                input2Index = OptimizedCargoPath.NO_BELT_INDEX;
+                input3Index = OptimizedCargoPath.NO_BELT_INDEX;
             }
         }
-        else if (input2 == 0)
+        else if (input2Index == OptimizedCargoPath.NO_BELT_INDEX)
         {
-            input2 = input3;
-            input3 = 0;
+            input2Index = input3Index;
+            input3Index = OptimizedCargoPath.NO_BELT_INDEX;
         }
     }
 
@@ -648,26 +640,26 @@ internal struct OptimizedSplitter
                     {
                         return;
                     }
-                    int num = output0;
-                    output0 = output1;
-                    output1 = output2;
-                    output2 = output3;
-                    output3 = num;
+                    int num = output0Index;
+                    output0Index = output1Index;
+                    output1Index = output2Index;
+                    output2Index = output3Index;
+                    output3Index = num;
                     break;
                 }
             case 1:
                 {
-                    int num = output1;
-                    output1 = output2;
-                    output2 = output3;
-                    output3 = num;
+                    int num = output1Index;
+                    output1Index = output2Index;
+                    output2Index = output3Index;
+                    output3Index = num;
                     break;
                 }
             case 2:
                 {
-                    int num = output2;
-                    output2 = output3;
-                    output3 = num;
+                    int num = output2Index;
+                    output2Index = output3Index;
+                    output3Index = num;
                     break;
                 }
         }
@@ -676,50 +668,50 @@ internal struct OptimizedSplitter
 
     private void OutputReorder()
     {
-        if (output0 == 0)
+        if (output0Index == OptimizedCargoPath.NO_BELT_INDEX)
         {
-            if (output1 == 0)
+            if (output1Index == OptimizedCargoPath.NO_BELT_INDEX)
             {
-                if (output2 != 0)
+                if (output2Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    output0 = output2;
-                    output1 = output3;
-                    output2 = 0;
-                    output3 = 0;
+                    output0Index = output2Index;
+                    output1Index = output3Index;
+                    output2Index = OptimizedCargoPath.NO_BELT_INDEX;
+                    output3Index = OptimizedCargoPath.NO_BELT_INDEX;
                 }
-                else if (output3 != 0)
+                else if (output3Index != OptimizedCargoPath.NO_BELT_INDEX)
                 {
-                    output0 = output3;
-                    output1 = 0;
-                    output2 = 0;
-                    output3 = 0;
+                    output0Index = output3Index;
+                    output1Index = OptimizedCargoPath.NO_BELT_INDEX;
+                    output2Index = OptimizedCargoPath.NO_BELT_INDEX;
+                    output3Index = OptimizedCargoPath.NO_BELT_INDEX;
                 }
                 return;
             }
-            output0 = output1;
-            output1 = output2;
-            output2 = output3;
-            output3 = 0;
+            output0Index = output1Index;
+            output1Index = output2Index;
+            output2Index = output3Index;
+            output3Index = OptimizedCargoPath.NO_BELT_INDEX;
         }
-        if (output1 == 0)
+        if (output1Index == OptimizedCargoPath.NO_BELT_INDEX)
         {
-            if (output2 != 0)
+            if (output2Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                output1 = output2;
-                output2 = output3;
-                output3 = 0;
+                output1Index = output2Index;
+                output2Index = output3Index;
+                output3Index = OptimizedCargoPath.NO_BELT_INDEX;
             }
-            else if (output3 != 0)
+            else if (output3Index != OptimizedCargoPath.NO_BELT_INDEX)
             {
-                output1 = output3;
-                output2 = 0;
-                output3 = 0;
+                output1Index = output3Index;
+                output2Index = OptimizedCargoPath.NO_BELT_INDEX;
+                output3Index = OptimizedCargoPath.NO_BELT_INDEX;
             }
         }
-        else if (output2 == 0)
+        else if (output2Index == OptimizedCargoPath.NO_BELT_INDEX)
         {
-            output2 = output3;
-            output3 = 0;
+            output2Index = output3Index;
+            output3Index = OptimizedCargoPath.NO_BELT_INDEX;
         }
     }
 }

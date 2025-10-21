@@ -8,8 +8,8 @@ namespace Weaver.Optimizations.Spraycoaters;
 internal struct OptimizedSpraycoater
 {
     public readonly int incommingBeltSegIndexPlusSegPivotOffset;
-    public readonly OptimizedCargoPath? incommingCargoPath;
-    public readonly OptimizedCargoPath? outgoingCargoPath;
+    public readonly int incommingBeltIndex;
+    public readonly int outgoingBeltIndex;
     public readonly int outgoingBeltSegIndexPlusSegPivotOffset;
     public readonly int outgoingBeltSpeed;
     public readonly int incCapacity;
@@ -22,8 +22,8 @@ internal struct OptimizedSpraycoater
     public bool incUsed;
 
     public OptimizedSpraycoater(int incommingBeltSegIndexPlusSegPivotOffset,
-                                OptimizedCargoPath? incommingCargoPath,
-                                OptimizedCargoPath? outgoingCargoPath,
+                                int incommingBeltIndex,
+                                int outgoingBeltIndex,
                                 int outgoingBeltSegIndexPlusSegPivotOffset,
                                 int outgoingBeltSpeed,
                                 PowerNetwork? powerNetwork,
@@ -31,8 +31,8 @@ internal struct OptimizedSpraycoater
                                 ref readonly SpraycoaterComponent spraycoater)
     {
         this.incommingBeltSegIndexPlusSegPivotOffset = incommingBeltSegIndexPlusSegPivotOffset;
-        this.incommingCargoPath = incommingCargoPath;
-        this.outgoingCargoPath = outgoingCargoPath;
+        this.incommingBeltIndex = incommingBeltIndex;
+        this.outgoingBeltIndex = outgoingBeltIndex;
         this.outgoingBeltSegIndexPlusSegPivotOffset = outgoingBeltSegIndexPlusSegPivotOffset;
         this.outgoingBeltSpeed = outgoingBeltSpeed;
         this.powerNetwork = powerNetwork;
@@ -45,11 +45,12 @@ internal struct OptimizedSpraycoater
         incUsed = spraycoater.incUsed;
     }
 
-    public void InternalUpdate(OptimizedItemId[] incItemIds, int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime)
+    public void InternalUpdate(OptimizedItemId[] incItemIds, int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime, OptimizedCargoPath[] optimizedCargoPaths)
     {
-        if (incommingCargoPath != null && incCount + extraIncCount < incCapacity)
+        if (incommingBeltIndex != OptimizedCargoPath.NO_BELT_INDEX && incCount + extraIncCount < incCapacity)
         {
-            if (incommingCargoPath.GetCargoAtIndex(incommingBeltSegIndexPlusSegPivotOffset, out OptimizedCargo cargo, out var _, out var _))
+            ref OptimizedCargoPath incommingBelt = ref optimizedCargoPaths[incommingBeltIndex];
+            if (incommingBelt.GetCargoAtIndex(incommingBeltSegIndexPlusSegPivotOffset, out OptimizedCargo cargo, out var _, out var _))
             {
                 if (cargo.Item != incItemId.ItemIndex && incCount == 0 && incCount == 0)
                 {
@@ -72,7 +73,7 @@ internal struct OptimizedSpraycoater
                 }
                 if (incItemId.ItemIndex != 0 && incItemId.ItemIndex == cargo.Item)
                 {
-                    if (incommingCargoPath.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId.ItemIndex, out OptimizedCargo someOtherCargo))
+                    if (incommingBelt.TryPickItem(incommingBeltSegIndexPlusSegPivotOffset - 2, 5, incItemId.ItemIndex, out OptimizedCargo someOtherCargo))
                     {
                         int inc = someOtherCargo.Inc;
                         int stack = someOtherCargo.Stack;
@@ -95,7 +96,7 @@ internal struct OptimizedSpraycoater
         }
         float num4 = powerNetwork != null ? (float)powerNetwork.consumerRatio : 0f;
         bool flag = num4 > 0.1f;
-        if (outgoingCargoPath != null)
+        if (outgoingBeltIndex != OptimizedCargoPath.NO_BELT_INDEX)
         {
             if (sprayTime < 10000)
             {
@@ -105,14 +106,15 @@ internal struct OptimizedSpraycoater
             {
                 isSpraycoatingItem = false;
             }
-            if (flag && outgoingCargoPath != null && outgoingCargoPath.GetCargoAtIndex(outgoingBeltSegIndexPlusSegPivotOffset, out var cargo2, out var cargoBufferIndex, out var _) && sprayTime >= 10000)
+            ref OptimizedCargoPath outgoingBelt = ref optimizedCargoPaths[outgoingBeltIndex];
+            if (flag && outgoingBelt.GetCargoAtIndex(outgoingBeltSegIndexPlusSegPivotOffset, out var cargo2, out var cargoBufferIndex, out var _) && sprayTime >= 10000)
             {
                 int num5 = cargo2.Stack > incCount + extraIncCount ? incCount + extraIncCount : cargo2.Stack;
                 if (num5 * incAbility > cargo2.Inc)
                 {
                     sprayTime -= 10000;
                     cargo2.Inc = (byte)(num5 * incAbility);
-                    outgoingCargoPath.SetCargoInBuffer(cargoBufferIndex, cargo2);
+                    outgoingBelt.SetCargoInBuffer(cargoBufferIndex, cargo2);
                     extraIncCount -= num5;
                     if (extraIncCount < 0)
                     {

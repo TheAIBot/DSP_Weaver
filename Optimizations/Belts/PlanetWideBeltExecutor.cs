@@ -4,18 +4,18 @@ namespace Weaver.Optimizations.Belts;
 
 internal sealed class PlanetWideBeltExecutor
 {
-    private readonly Dictionary<CargoPath, OptimizedCargoPath> _cargoPathToOptimizedCargoPath = [];
+    private readonly Dictionary<CargoPath, OptimizedIndexedCargoPath> _cargoPathToOptimizedCargoPath = [];
 
-    public OptimizedCargoPath GetOptimizedCargoPath(CargoPath cargoPath)
+    public OptimizedIndexedCargoPath GetOptimizedCargoPath(CargoPath cargoPath)
     {
         return _cargoPathToOptimizedCargoPath[cargoPath];
     }
 
     public void AddBeltExecutor(BeltExecutor beltExecutor)
     {
-        foreach (var cargoPathWithOptimizedCargoPath in beltExecutor.CargoPathToOptimizedCargoPath)
+        foreach (var cargoPathWithOptimizedCargoPath in beltExecutor.CargoPathToOptimizedCargoPathIndex)
         {
-            _cargoPathToOptimizedCargoPath.Add(cargoPathWithOptimizedCargoPath.Key, cargoPathWithOptimizedCargoPath.Value);
+            _cargoPathToOptimizedCargoPath.Add(cargoPathWithOptimizedCargoPath.Key, new OptimizedIndexedCargoPath(beltExecutor.OptimizedCargoPaths, cargoPathWithOptimizedCargoPath.Value));
         }
     }
 }

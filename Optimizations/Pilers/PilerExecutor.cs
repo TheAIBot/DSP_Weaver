@@ -19,7 +19,8 @@ internal sealed class PilerExecutor
     public void GameTick(PlanetFactory planet,
                          int[] pilerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
-                         long[] thisSubFactoryNetworkPowerConsumption)
+                         long[] thisSubFactoryNetworkPowerConsumption,
+                         OptimizedCargoPath[] optimizedCargoPaths)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
@@ -32,7 +33,7 @@ internal sealed class PilerExecutor
             int networkIndex = networkIndices[pilerIndex];
             float power = networkServes[networkIndex];
             ref int timeSpend = ref timeSpends[pilerIndex];
-            optimizedPilers[pilerIndex].InternalUpdate(power, ref timeSpend);
+            optimizedPilers[pilerIndex].InternalUpdate(power, ref timeSpend, optimizedCargoPaths);
 
             UpdatePower(pilerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, pilerIndex, networkIndex, timeSpend);
         }
@@ -141,13 +142,13 @@ internal sealed class PilerExecutor
             }
 
             BeltComponent inputBeltComponent = planet.cargoTraffic.beltPool[piler.inputBeltId];
-            if (!beltExecutor.TryOptimizedCargoPath(planet, piler.inputBeltId, out OptimizedCargoPath? inputBelt))
+            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, piler.inputBeltId, out int inputBeltIndex))
             {
                 continue;
             }
 
             BeltComponent outputBeltComponent = planet.cargoTraffic.beltPool[piler.outputBeltId];
-            if (!beltExecutor.TryOptimizedCargoPath(planet, piler.outputBeltId, out OptimizedCargoPath? outputBelt))
+            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, piler.outputBeltId, out int outputBeltIndex))
             {
                 continue;
             }
@@ -155,7 +156,7 @@ internal sealed class PilerExecutor
             int networkIndex = planet.powerSystem.consumerPool[piler.pcId].networkId;
             networkIndices.Add(networkIndex);
             pilerIdToOptimizedIndex.Add(piler.id, optimizedPilers.Count);
-            optimizedPilers.Add(new OptimizedPiler(inputBelt, outputBelt, inputBeltComponent.speed, outputBeltComponent.speed, in piler));
+            optimizedPilers.Add(new OptimizedPiler(inputBeltIndex, outputBeltIndex, inputBeltComponent.speed, outputBeltComponent.speed, in piler));
             timeSpends.Add(piler.timeSpend);
             subFactoryPowerSystemBuilder.AddPiler(in piler, networkIndex);
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[piler.entityId]);

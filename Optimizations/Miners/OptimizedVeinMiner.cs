@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Miners;
@@ -46,7 +47,8 @@ internal struct OptimizedVeinMiner<T> : IMiner
                                float miningRate,
                                float miningSpeed,
                                int[] productRegister,
-                               ref MiningFlags miningFlags)
+                               ref MiningFlags miningFlags,
+                               OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
         {
@@ -179,7 +181,7 @@ internal struct OptimizedVeinMiner<T> : IMiner
             int num16 = (int)(num15 - 0.009999999776482582) / 1800 + 1;
             num16 = num16 >= 4 ? 4 : num16 < 1 ? 1 : num16;
             int num17 = ProductCount < num16 ? ProductCount : num16;
-            int num18 = output.InsertInto(productId.ItemIndex, (byte)num17);
+            int num18 = output.InsertInto(productId.ItemIndex, (byte)num17, optimizedCargoPaths);
             ProductCount -= num18;
             if (ProductCount == 0)
             {

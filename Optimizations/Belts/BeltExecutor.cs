@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Steamworks;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -9,29 +10,24 @@ namespace Weaver.Optimizations.Belts;
 internal sealed class BeltExecutor
 {
     private OptimizedCargoPath[] _optimizedCargoPaths = null!;
-    private Dictionary<CargoPath, OptimizedCargoPath> _cargoPathToOptimizedCargoPath = null!;
+    private Dictionary<CargoPath, int> _cargoPathToOptimizedCargoPathIndex = null!;
     private Dictionary<int, int> _cargoPathIdToOptimizedIndex = null!;
 
-    public Dictionary<CargoPath, OptimizedCargoPath> CargoPathToOptimizedCargoPath => _cargoPathToOptimizedCargoPath;
+    public Dictionary<CargoPath, int> CargoPathToOptimizedCargoPathIndex => _cargoPathToOptimizedCargoPathIndex;
 
     public int Count => _optimizedCargoPaths.Length;
 
-    public bool TryOptimizedCargoPath(PlanetFactory planet, int beltId, [NotNullWhen(true)] out OptimizedCargoPath? belt)
+    public OptimizedCargoPath[] OptimizedCargoPaths => _optimizedCargoPaths;
+
+    public bool TryGetOptimizedCargoPathIndex(PlanetFactory planet, int beltId, [NotNullWhen(true)] out int beltIndex)
     {
-        if (beltId <= 0)
+        if (!TryGetCargoPath(planet, beltId, out CargoPath? cargoPath))
         {
-            belt = null;
+            beltIndex = OptimizedCargoPath.NO_BELT_INDEX;
             return false;
         }
 
-        CargoPath? cargoPath = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[beltId].segPathId);
-        if (cargoPath == null)
-        {
-            belt = null;
-            return false;
-        }
-
-        belt = _cargoPathToOptimizedCargoPath[cargoPath];
+        beltIndex = _cargoPathToOptimizedCargoPathIndex[cargoPath];
         return true;
     }
 
@@ -45,23 +41,25 @@ internal sealed class BeltExecutor
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
         for (int i = 0; i < optimizedCargoPaths.Length; i++)
         {
-            optimizedCargoPaths[i].Update();
+            optimizedCargoPaths[i].Update(optimizedCargoPaths);
         }
     }
 
     public void Save(CargoContainer cargoContainer)
     {
-        foreach (KeyValuePair<CargoPath, OptimizedCargoPath> cargoPathWithOptimizedCargoPath in _cargoPathToOptimizedCargoPath)
+        OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
+        foreach (KeyValuePair<CargoPath, int> cargoPathWithOptimizedCargoPathIndex in _cargoPathToOptimizedCargoPathIndex)
         {
-            CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPath.Key.buffer, cargoPathWithOptimizedCargoPath.Value, cargoContainer);
-            cargoPathWithOptimizedCargoPath.Value.Save(cargoPathWithOptimizedCargoPath.Key);
+            ref readonly OptimizedCargoPath optimizedCargoPath = ref optimizedCargoPaths[cargoPathWithOptimizedCargoPathIndex.Value];
+            CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key.buffer, in optimizedCargoPath, cargoContainer);
+            optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key);
         }
     }
 
     public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
     {
         List<OptimizedCargoPath> optimizedCargoPaths = [];
-        Dictionary<CargoPath, OptimizedCargoPath> cargoPathToOptimizedCargoPath = [];
+        Dictionary<CargoPath, int> cargoPathToOptimizedCargoPath = [];
         Dictionary<int, int> cargoPathIdToOptimizedIndex = [];
 
         foreach (int cargoPathIndex in subFactoryGraph.GetAllNodes()
@@ -78,22 +76,25 @@ internal sealed class BeltExecutor
             byte[] updatedBuffer = GetBufferWithUpdatedCargoIndexes(cargoPath);
             var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath);
             cargoPathIdToOptimizedIndex.Add(cargoPathIndex, optimizedCargoPaths.Count);
+            cargoPathToOptimizedCargoPath.Add(cargoPath, optimizedCargoPaths.Count);
             optimizedCargoPaths.Add(optimizedCargoPath);
-            cargoPathToOptimizedCargoPath.Add(cargoPath, optimizedCargoPath);
         }
 
-        foreach (KeyValuePair<CargoPath, OptimizedCargoPath> cargoPathWithOptimizedCargoPath in cargoPathToOptimizedCargoPath)
+        _optimizedCargoPaths = optimizedCargoPaths.ToArray();
+
+        foreach (KeyValuePair<CargoPath, int> cargoPathWithOptimizedCargoPathIndex in cargoPathToOptimizedCargoPath)
         {
-            if (cargoPathWithOptimizedCargoPath.Key.outputPath == null)
+            if (cargoPathWithOptimizedCargoPathIndex.Key.outputPath == null)
             {
                 continue;
             }
 
-            cargoPathWithOptimizedCargoPath.Value.SetOutputPath(cargoPathToOptimizedCargoPath[cargoPathWithOptimizedCargoPath.Key.outputPath]);
+            ref OptimizedCargoPath belt = ref _optimizedCargoPaths[cargoPathWithOptimizedCargoPathIndex.Value];
+            belt.SetOutputPath(cargoPathIdToOptimizedIndex[cargoPathWithOptimizedCargoPathIndex.Key.outputPath.id]);
         }
 
-        _optimizedCargoPaths = optimizedCargoPaths.ToArray();
-        _cargoPathToOptimizedCargoPath = cargoPathToOptimizedCargoPath;
+
+        _cargoPathToOptimizedCargoPathIndex = cargoPathToOptimizedCargoPath;
         _cargoPathIdToOptimizedIndex = cargoPathIdToOptimizedIndex;
     }
 
@@ -153,7 +154,7 @@ internal sealed class BeltExecutor
     /// <summary>
     /// Modified <see cref="GetBufferWithUpdatedCargoIndexes"/>
     /// </summary>
-    private static void CopyToBufferWithUpdatedCargoIndexes(byte[] bufferCopy, OptimizedCargoPath optimizedCargoPath, CargoContainer cargoContainer)
+    private static void CopyToBufferWithUpdatedCargoIndexes(byte[] bufferCopy, ref readonly OptimizedCargoPath optimizedCargoPath, CargoContainer cargoContainer)
     {
         if (bufferCopy.Length != optimizedCargoPath.buffer.Length)
         {
@@ -218,5 +219,17 @@ internal sealed class BeltExecutor
         buffer[bufferIndex + 2] = (byte)(cargoIndex % 100 + 1);
         cargoIndex /= 100;
         buffer[bufferIndex + 3] = (byte)(cargoIndex % 100 + 1);
+    }
+
+    private static bool TryGetCargoPath(PlanetFactory planet, int beltId, [NotNullWhen(true)] out CargoPath? belt)
+    {
+        if (beltId <= 0)
+        {
+            belt = null;
+            return false;
+        }
+
+        belt = planet.cargoTraffic.GetCargoPath(planet.cargoTraffic.beltPool[beltId].segPathId);
+        return belt != null;
     }
 }

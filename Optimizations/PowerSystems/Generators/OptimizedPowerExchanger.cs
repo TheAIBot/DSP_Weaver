@@ -13,10 +13,10 @@ internal struct OptimizedPowerExchanger
     private readonly long maxPoolEnergy;
     private readonly OptimizedItemId emptyId;
     private readonly OptimizedItemId fullId;
-    private readonly OptimizedCargoPath? belt0;
-    private readonly OptimizedCargoPath? belt1;
-    private readonly OptimizedCargoPath? belt2;
-    private readonly OptimizedCargoPath? belt3;
+    private readonly OptimizedIndexedCargoPath belt0;
+    private readonly OptimizedIndexedCargoPath belt1;
+    private readonly OptimizedIndexedCargoPath belt2;
+    private readonly OptimizedIndexedCargoPath belt3;
     private readonly bool isOutput0;
     private readonly bool isOutput1;
     private readonly bool isOutput2;
@@ -37,10 +37,10 @@ internal struct OptimizedPowerExchanger
 
     public OptimizedPowerExchanger(OptimizedItemId emptyId,
                                    OptimizedItemId fullId,
-                                   OptimizedCargoPath? belt0,
-                                   OptimizedCargoPath? belt1,
-                                   OptimizedCargoPath? belt2,
-                                   OptimizedCargoPath? belt3,
+                                   OptimizedIndexedCargoPath belt0,
+                                   OptimizedIndexedCargoPath belt1,
+                                   OptimizedIndexedCargoPath belt2,
+                                   OptimizedIndexedCargoPath belt3,
                                    ref readonly PowerExchangerComponent powerExchanger)
     {
         targetState = powerExchanger.targetState;
@@ -232,7 +232,7 @@ internal struct OptimizedPowerExchanger
     {
         int num2 = 0;
         int num3 = 0;
-        if (belt0 != null)
+        if (belt0.HasBelt)
         {
             if (isOutput0)
             {
@@ -243,7 +243,7 @@ internal struct OptimizedPowerExchanger
                 num3++;
             }
         }
-        if (belt1 != null)
+        if (belt1.HasBelt)
         {
             if (isOutput1)
             {
@@ -254,7 +254,7 @@ internal struct OptimizedPowerExchanger
                 num3++;
             }
         }
-        if (belt2 != null)
+        if (belt2.HasBelt)
         {
             if (isOutput2)
             {
@@ -265,7 +265,7 @@ internal struct OptimizedPowerExchanger
                 num3++;
             }
         }
-        if (belt3 != null)
+        if (belt3.HasBelt)
         {
             if (isOutput3)
             {
@@ -282,11 +282,11 @@ internal struct OptimizedPowerExchanger
             {
                 inputSlot = inputRectify;
             }
-            OptimizedCargoPath? num = null;
+            OptimizedIndexedCargoPath num = OptimizedIndexedCargoPath.NoBelt;
             bool flag = false;
             if (inputSlot == 0)
             {
-                if (belt0 != null)
+                if (belt0.HasBelt)
                 {
                     num = belt0;
                     flag = isOutput0;
@@ -294,7 +294,7 @@ internal struct OptimizedPowerExchanger
             }
             else if (inputSlot == 1)
             {
-                if (belt1 != null)
+                if (belt1.HasBelt)
                 {
                     num = belt1;
                     flag = isOutput1;
@@ -302,20 +302,20 @@ internal struct OptimizedPowerExchanger
             }
             else if (inputSlot == 2)
             {
-                if (belt2 != null)
+                if (belt2.HasBelt)
                 {
                     num = belt2;
                     flag = isOutput2;
                 }
             }
-            else if (inputSlot == 3 && belt3 != null)
+            else if (inputSlot == 3 && belt3.HasBelt)
             {
                 num = belt3;
                 flag = isOutput3;
             }
-            if (num != null)
+            if (num.HasBelt)
             {
-                inputRectify = ComputeInsertOrPick(num, flag) ? FindTheNextSlot(flag) : inputRectify;
+                inputRectify = ComputeInsertOrPick(ref num.Belt, flag) ? FindTheNextSlot(flag) : inputRectify;
                 inputSlot = FindTheNextSlot(flag);
             }
         }
@@ -325,11 +325,11 @@ internal struct OptimizedPowerExchanger
             {
                 outputSlot = outputRectify;
             }
-            OptimizedCargoPath? num = null;
+            OptimizedIndexedCargoPath num = OptimizedIndexedCargoPath.NoBelt;
             bool flag = false;
             if (outputSlot == 0)
             {
-                if (belt0 != null)
+                if (belt0.HasBelt)
                 {
                     num = belt0;
                     flag = isOutput0;
@@ -337,7 +337,7 @@ internal struct OptimizedPowerExchanger
             }
             else if (outputSlot == 1)
             {
-                if (belt1 != null)
+                if (belt1.HasBelt)
                 {
                     num = belt1;
                     flag = isOutput1;
@@ -345,64 +345,61 @@ internal struct OptimizedPowerExchanger
             }
             else if (outputSlot == 2)
             {
-                if (belt2 != null)
+                if (belt2.HasBelt)
                 {
                     num = belt2;
                     flag = isOutput2;
                 }
             }
-            else if (outputSlot == 3 && belt3 != null)
+            else if (outputSlot == 3 && belt3.HasBelt)
             {
                 num = belt3;
                 flag = isOutput3;
             }
-            if (num != null)
+            if (num.HasBelt)
             {
-                outputRectify = ComputeInsertOrPick(num, flag) ? FindTheNextSlot(flag) : outputRectify;
+                outputRectify = ComputeInsertOrPick(ref num.Belt, flag) ? FindTheNextSlot(flag) : outputRectify;
                 outputSlot = FindTheNextSlot(flag);
             }
         }
     }
 
-    public bool ComputeInsertOrPick(OptimizedCargoPath belt, bool isOutput)
+    public bool ComputeInsertOrPick(ref OptimizedCargoPath belt, bool isOutput)
     {
-        if (belt != null)
+        if (isOutput)
         {
-            if (isOutput)
+            if (state == 0f)
             {
-                if (state == 0f)
-                {
-                    return InsertItemToBelt(belt);
-                }
-                if (state == -1f)
-                {
-                    return InsertItemToBelt(belt, isEmptyAcc: true);
-                }
-                if (state == 1f)
-                {
-                    return InsertItemToBelt(belt, isEmptyAcc: false);
-                }
+                return InsertItemToBelt(ref belt);
             }
-            else if (!isOutput)
+            if (state == -1f)
             {
-                if (state == 0f)
-                {
-                    return PickItemFromBelt(belt);
-                }
-                if (state == -1f)
-                {
-                    return PickItemFromBelt(belt);
-                }
-                if (state == 1f)
-                {
-                    return PickItemFromBelt(belt);
-                }
+                return InsertItemToBelt(ref belt, isEmptyAcc: true);
+            }
+            if (state == 1f)
+            {
+                return InsertItemToBelt(ref belt, isEmptyAcc: false);
+            }
+        }
+        else if (!isOutput)
+        {
+            if (state == 0f)
+            {
+                return PickItemFromBelt(ref belt);
+            }
+            if (state == -1f)
+            {
+                return PickItemFromBelt(ref belt);
+            }
+            if (state == 1f)
+            {
+                return PickItemFromBelt(ref belt);
             }
         }
         return false;
     }
 
-    private bool InsertItemToBelt(OptimizedCargoPath belt, bool isEmptyAcc)
+    private bool InsertItemToBelt(ref OptimizedCargoPath belt, bool isEmptyAcc)
     {
         if (isEmptyAcc)
         {
@@ -434,7 +431,7 @@ internal struct OptimizedPowerExchanger
         return false;
     }
 
-    private bool InsertItemToBelt(OptimizedCargoPath belt)
+    private bool InsertItemToBelt(ref OptimizedCargoPath belt)
     {
         if (emptyCount > 0)
         {
@@ -463,11 +460,11 @@ internal struct OptimizedPowerExchanger
         return false;
     }
 
-    private bool PickItemFromBelt(OptimizedCargoPath beltId)
+    private bool PickItemFromBelt(ref OptimizedCargoPath beltId)
     {
         if (emptyCount < 5)
         {
-            CargoPathMethods.TryPickItemAtRear(beltId, emptyId.ItemIndex, null, out OptimizedCargo optimizedCargo);
+            CargoPathMethods.TryPickItemAtRear(ref beltId, emptyId.ItemIndex, null, out OptimizedCargo optimizedCargo);
             if (emptyId.ItemIndex == optimizedCargo.Item)
             {
                 emptyCount += optimizedCargo.Stack;
@@ -477,7 +474,7 @@ internal struct OptimizedPowerExchanger
         }
         if (fullCount < 5)
         {
-            CargoPathMethods.TryPickItemAtRear(beltId, fullId.ItemIndex, null, out OptimizedCargo optimizedCargo);
+            CargoPathMethods.TryPickItemAtRear(ref beltId, fullId.ItemIndex, null, out OptimizedCargo optimizedCargo);
             if (fullId.ItemIndex == optimizedCargo.Item)
             {
                 fullCount += optimizedCargo.Stack;
@@ -497,19 +494,19 @@ internal struct OptimizedPowerExchanger
             {
                 num++;
                 num = num <= 3 ? num : num - 4;
-                if (num == 0 && belt0 != null && isOutput0)
+                if (num == 0 && belt0.HasBelt && isOutput0)
                 {
                     return num;
                 }
-                if (num == 1 && belt1 != null && isOutput1)
+                if (num == 1 && belt1.HasBelt && isOutput1)
                 {
                     return num;
                 }
-                if (num == 2 && belt2 != null && isOutput2)
+                if (num == 2 && belt2.HasBelt && isOutput2)
                 {
                     return num;
                 }
-                if (num == 3 && belt3 != null && isOutput3)
+                if (num == 3 && belt3.HasBelt && isOutput3)
                 {
                     return num;
                 }
@@ -522,19 +519,19 @@ internal struct OptimizedPowerExchanger
             {
                 num2++;
                 num2 = num2 <= 3 ? num2 : num2 - 4;
-                if (num2 == 0 && belt0 != null && !isOutput0)
+                if (num2 == 0 && belt0.HasBelt && !isOutput0)
                 {
                     return num2;
                 }
-                if (num2 == 1 && belt1 != null && !isOutput1)
+                if (num2 == 1 && belt1.HasBelt && !isOutput1)
                 {
                     return num2;
                 }
-                if (num2 == 2 && belt2 != null && !isOutput2)
+                if (num2 == 2 && belt2.HasBelt && !isOutput2)
                 {
                     return num2;
                 }
-                if (num2 == 3 && belt3 != null && !isOutput3)
+                if (num2 == 3 && belt3.HasBelt && !isOutput3)
                 {
                     return num2;
                 }

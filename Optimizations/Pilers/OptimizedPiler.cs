@@ -6,8 +6,8 @@ namespace Weaver.Optimizations.Pilers;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedPiler
 {
-    private readonly OptimizedCargoPath inputBelt;
-    private readonly OptimizedCargoPath outputBelt;
+    private readonly int inputBeltIndex;
+    private readonly int outputBeltIndex;
     private readonly int inputBeltSpeed;
     private readonly int outputBeltSpeed;
     private readonly PilerState pilerState;
@@ -20,14 +20,14 @@ internal struct OptimizedPiler
     private short cacheItemId2;
     private int slowlyBeltSpeed;
 
-    public OptimizedPiler(OptimizedCargoPath inputBelt,
-                          OptimizedCargoPath outputBelt,
+    public OptimizedPiler(int inputBeltIndex,
+                          int outputBeltIndex,
                           int inputBeltSpeed,
                           int outputBeltSpeed,
                           ref readonly PilerComponent piler)
     {
-        this.inputBelt = inputBelt;
-        this.outputBelt = outputBelt;
+        this.inputBeltIndex = inputBeltIndex;
+        this.outputBeltIndex = outputBeltIndex;
         this.inputBeltSpeed = inputBeltSpeed;
         this.outputBeltSpeed = outputBeltSpeed;
         cacheCargoStack1 = piler.cacheCargoStack1;
@@ -41,7 +41,7 @@ internal struct OptimizedPiler
         slowlyBeltSpeed = piler.slowlyBeltSpeed;
     }
 
-    public uint InternalUpdate(float power, ref int timeSpend)
+    public uint InternalUpdate(float power, ref int timeSpend, OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (cacheCdTick > 0)
         {
@@ -54,6 +54,8 @@ internal struct OptimizedPiler
         {
             timeSpend += flag ? (pilerState == PilerState.Pile ? inputBeltSpeed : outputBeltSpeed) * (int)(1000f * power) : 0;
         }
+        ref OptimizedCargoPath inputBelt = ref optimizedCargoPaths[inputBeltIndex];
+        ref OptimizedCargoPath outputBelt = ref optimizedCargoPaths[outputBeltIndex];
         bool flag2 = flag && timeSpend >= 10000;
         if (pilerState == PilerState.Pile)
         {

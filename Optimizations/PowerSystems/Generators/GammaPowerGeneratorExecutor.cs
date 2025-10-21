@@ -127,7 +127,7 @@ internal sealed class GammaPowerGeneratorExecutor
             prototypeId = componentPrototypeId;
 
             planet.ReadObjectConn(powerGenerator.entityId, 0, out var isOutput, out var otherObjId, out var _);
-            OptimizedCargoPath? slot0Belt = null;
+            OptimizedIndexedCargoPath slot0Belt = OptimizedIndexedCargoPath.NoBelt;
             int slot0BeltOffset = 0;
             if (otherObjId > 0 && planet.entityPool[otherObjId].beltId > 0)
             {
@@ -138,7 +138,7 @@ internal sealed class GammaPowerGeneratorExecutor
             }
 
             planet.ReadObjectConn(powerGenerator.entityId, 1, out var isOutput2, out var otherObjId2, out var _);
-            OptimizedCargoPath? slot1Belt = null;
+            OptimizedIndexedCargoPath slot1Belt = OptimizedIndexedCargoPath.NoBelt;
             int slot1BeltOffset = 0;
             if (otherObjId2 > 0 && planet.entityPool[otherObjId2].beltId > 0)
             {

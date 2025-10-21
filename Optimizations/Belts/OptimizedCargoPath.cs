@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace Weaver.Optimizations.Belts;
 
-internal sealed class OptimizedCargoPath
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+internal struct OptimizedCargoPath
 {
     public readonly byte[] buffer;
     private readonly int[] chunks;
@@ -10,10 +12,11 @@ internal sealed class OptimizedCargoPath
     public readonly bool closed;
     public readonly int bufferLength;
     public readonly int chunkCount;
-    public OptimizedCargoPath? outputPath;
+    public int outputCargoPathIndex;
     private int outputChunk;
     private bool lastUpdateFrameOdd;
     public int updateLen;
+    public const int NO_BELT_INDEX = -1;
     public int pathLength => bufferLength;
 
     public OptimizedCargoPath(byte[] buffer, CargoPath cargoPath)
@@ -24,6 +27,7 @@ internal sealed class OptimizedCargoPath
         closed = cargoPath.closed;
         bufferLength = cargoPath.bufferLength;
         chunkCount = cargoPath.chunkCount;
+        outputCargoPathIndex = NO_BELT_INDEX;
         outputChunk = cargoPath.outputChunk;
         lastUpdateFrameOdd = cargoPath.lastUpdateFrameOdd;
         updateLen = cargoPath.updateLen;
@@ -36,9 +40,9 @@ internal sealed class OptimizedCargoPath
         cargoPath.updateLen = updateLen;
     }
 
-    public void SetOutputPath(OptimizedCargoPath cargoPath)
+    public void SetOutputPath(int cargoPathIndex)
     {
-        outputPath = cargoPath;
+        outputCargoPathIndex = cargoPathIndex;
     }
 
     public bool TryInsertCargo(int index, OptimizedCargo optimizedCargo)
@@ -1294,19 +1298,20 @@ internal sealed class OptimizedCargoPath
         return false;
     }
 
-    public void Update()
+    public void Update(OptimizedCargoPath[] optimizedCargoPaths)
     {
-        if (outputPath != null)
+        if (outputCargoPathIndex != NO_BELT_INDEX)
         {
+            ref OptimizedCargoPath outputCargoPath = ref optimizedCargoPaths[outputCargoPathIndex];
             int num;
-            if (outputPath.chunkCount == 1)
+            if (outputCargoPath.chunkCount == 1)
             {
-                num = outputPath.chunks[2];
+                num = outputCargoPath.chunks[2];
                 outputChunk = 0;
             }
             else
             {
-                int num2 = outputPath.chunkCount - 1;
+                int num2 = outputCargoPath.chunkCount - 1;
                 if (outputChunk > num2)
                 {
                     outputChunk = num2;
@@ -1314,20 +1319,20 @@ internal sealed class OptimizedCargoPath
                 int num3 = 0;
                 while (true)
                 {
-                    if (outputIndex < outputPath.chunks[outputChunk * 3])
+                    if (outputIndex < outputCargoPath.chunks[outputChunk * 3])
                     {
                         num2 = outputChunk - 1;
                         outputChunk = (num3 + num2) / 2;
                         continue;
                     }
-                    if (outputIndex < outputPath.chunks[outputChunk * 3] + outputPath.chunks[outputChunk * 3 + 1])
+                    if (outputIndex < outputCargoPath.chunks[outputChunk * 3] + outputCargoPath.chunks[outputChunk * 3 + 1])
                     {
                         break;
                     }
                     num3 = outputChunk + 1;
                     outputChunk = (num3 + num2) / 2;
                 }
-                num = outputPath.chunks[outputChunk * 3 + 2];
+                num = outputCargoPath.chunks[outputChunk * 3 + 2];
             }
             int num4 = bufferLength - 5 - 1;
             if (buffer[num4] == 250)
@@ -1335,13 +1340,13 @@ internal sealed class OptimizedCargoPath
                 OptimizedCargo optimizedCargo = GetCargo(num4 + 1);
                 if (closed)
                 {
-                    if (outputPath.TryInsertCargoNoSqueeze(outputIndex, optimizedCargo))
+                    if (outputCargoPath.TryInsertCargoNoSqueeze(outputIndex, optimizedCargo))
                     {
                         Array.Clear(buffer, num4 - 4, 10);
                         updateLen = bufferLength;
                     }
                 }
-                else if (outputPath.TryInsertCargo(lastUpdateFrameOdd == outputPath.lastUpdateFrameOdd ? outputIndex : outputIndex + num > outputPath.bufferLength - 6 ? outputPath.bufferLength - 6 : outputIndex + num, optimizedCargo))
+                else if (outputCargoPath.TryInsertCargo(lastUpdateFrameOdd == outputCargoPath.lastUpdateFrameOdd ? outputIndex : outputIndex + num > outputCargoPath.bufferLength - 6 ? outputCargoPath.bufferLength - 6 : outputIndex + num, optimizedCargo))
                 {
                     Array.Clear(buffer, num4 - 4, 10);
                     updateLen = bufferLength;

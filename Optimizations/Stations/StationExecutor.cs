@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Miners;
@@ -13,12 +15,12 @@ internal sealed class StationExecutor
 
     public int Count => _optimizedStations.Length;
 
-    public void InputFromBelt()
+    public void InputFromBelt(OptimizedCargoPath[] optimizedCargoPaths)
     {
         OptimizedStation[] optimizedStations = _optimizedStations;
         for (int i = 0; i < optimizedStations.Length; i++)
         {
-            optimizedStations[i].UpdateInputSlots();
+            optimizedStations[i].UpdateInputSlots(optimizedCargoPaths);
         }
     }
 
@@ -75,13 +77,13 @@ internal sealed class StationExecutor
         }
     }
 
-    public void OutputToBelt()
+    public void OutputToBelt(OptimizedCargoPath[] optimizedCargoPaths)
     {
         OptimizedStation[] optimizedStations = _optimizedStations;
         int stationPilerLevel = GameMain.history.stationPilerLevel;
         for (int i = 0; i < optimizedStations.Length; i++)
         {
-            optimizedStations[i].UpdateOutputSlots(stationPilerLevel);
+            optimizedStations[i].UpdateOutputSlots(stationPilerLevel, optimizedCargoPaths);
         }
     }
 
@@ -104,13 +106,18 @@ internal sealed class StationExecutor
                 continue;
             }
 
-            OptimizedCargoPath?[]? belts = null;
+            int[]? beltIndexes = null;
             for (int i = 0; i < station.slots.Length; i++)
             {
-                if (beltExecutor.TryOptimizedCargoPath(planet, station.slots[i].beltId, out OptimizedCargoPath? belt))
+                if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, station.slots[i].beltId, out int beltIndex))
                 {
-                    belts ??= new OptimizedCargoPath[station.slots.Length];
-                    belts[i] = belt;
+                    if (beltIndexes == null)
+                    {
+                        beltIndexes = new int[station.slots.Length];
+                        beltIndexes.Fill(OptimizedCargoPath.NO_BELT_INDEX);
+                    }
+
+                    beltIndexes[i] = beltIndex;
                 }
             }
 
@@ -121,7 +128,7 @@ internal sealed class StationExecutor
             }
 
             int networkIndex = planet.powerSystem.consumerPool[station.pcId].networkId;
-            optimizedStations.Add(new OptimizedStation(station, belts, optimizedMinerIndex));
+            optimizedStations.Add(new OptimizedStation(station, beltIndexes, optimizedMinerIndex));
             networkIds.Add(networkIndex);
 
             planet.entityNeeds[station.entityId] = station.needs;

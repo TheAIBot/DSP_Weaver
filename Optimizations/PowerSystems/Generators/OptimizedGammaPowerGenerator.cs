@@ -7,10 +7,10 @@ namespace Weaver.Optimizations.PowerSystems.Generators;
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedGammaPowerGenerator
 {
-    private readonly OptimizedCargoPath? slot0Belt;
+    private readonly OptimizedIndexedCargoPath slot0Belt;
     private readonly int slot0BeltOffset;
     private readonly bool slot0IsOutput;
-    private readonly OptimizedCargoPath? slot1Belt;
+    private readonly OptimizedIndexedCargoPath slot1Belt;
     private readonly int slot1BeltOffset;
     private readonly bool slot1IsOutput;
     private readonly OptimizedItemId catalystId;
@@ -42,10 +42,10 @@ internal struct OptimizedGammaPowerGenerator
         }
     }
 
-    public OptimizedGammaPowerGenerator(OptimizedCargoPath? slot0Belt,
+    public OptimizedGammaPowerGenerator(OptimizedIndexedCargoPath slot0Belt,
                                         int slot0BeltOffset,
                                         bool slot0IsOutput,
-                                        OptimizedCargoPath? slot1Belt,
+                                        OptimizedIndexedCargoPath slot1Belt,
                                         int slot1BeltOffset,
                                         bool slot1IsOutput,
                                         OptimizedItemId catalystId,
@@ -147,7 +147,7 @@ internal struct OptimizedGammaPowerGenerator
         }
         bool flag3;
         bool flag4;
-        if (slot0Belt == null)
+        if (!slot0Belt.HasBelt)
         {
             flag3 = false;
             flag4 = false;
@@ -159,7 +159,7 @@ internal struct OptimizedGammaPowerGenerator
         }
         bool flag5;
         bool flag6;
-        if (slot1Belt == null)
+        if (!slot1Belt.HasBelt)
         {
             flag5 = false;
             flag6 = false;
@@ -175,23 +175,23 @@ internal struct OptimizedGammaPowerGenerator
             {
                 if (fuelHeat == 0L)
                 {
-                    if (InsertInto(slot0Belt!, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
+                    if (InsertInto(ref slot0Belt.Belt, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                     {
                         productCount -= 1f;
                         fuelHeat = 1L;
                     }
-                    else if (InsertInto(slot1Belt!, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
+                    else if (InsertInto(ref slot1Belt.Belt, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                     {
                         productCount -= 1f;
                         fuelHeat = 0L;
                     }
                 }
-                else if (InsertInto(slot1Belt!, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
+                else if (InsertInto(ref slot1Belt.Belt, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 0L;
                 }
-                else if (InsertInto(slot0Belt!, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
+                else if (InsertInto(ref slot0Belt.Belt, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 1L;
@@ -199,13 +199,13 @@ internal struct OptimizedGammaPowerGenerator
             }
             else if (flag3)
             {
-                if (InsertInto(slot0Belt!, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
+                if (InsertInto(ref slot0Belt.Belt, slot0BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
                 {
                     productCount -= 1f;
                     fuelHeat = 1L;
                 }
             }
-            else if (flag5 && InsertInto(slot1Belt!, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
+            else if (flag5 && InsertInto(ref slot1Belt.Belt, slot1BeltOffset, productId.ItemIndex, 1, 0, out _) == 1)
             {
                 productCount -= 1f;
                 fuelHeat = 0L;
@@ -215,7 +215,7 @@ internal struct OptimizedGammaPowerGenerator
         {
             if (flag4)
             {
-                OptimizedCargo optimizedCargo = PickFrom(slot0Belt!, slot0BeltOffset, catalystId.ItemIndex, null);
+                OptimizedCargo optimizedCargo = PickFrom(ref slot0Belt.Belt, slot0BeltOffset, catalystId.ItemIndex, null);
                 if (optimizedCargo.Item == catalystId.ItemIndex)
                 {
                     catalystPoint += 3600 * optimizedCargo.Stack;
@@ -225,7 +225,7 @@ internal struct OptimizedGammaPowerGenerator
 
             if (flag6)
             {
-                OptimizedCargo optimizedCargo = PickFrom(slot1Belt!, slot1BeltOffset, catalystId.ItemIndex, null);
+                OptimizedCargo optimizedCargo = PickFrom(ref slot1Belt.Belt, slot1BeltOffset, catalystId.ItemIndex, null);
                 if (optimizedCargo.Item == catalystId.ItemIndex)
                 {
                     catalystPoint += 3600 * optimizedCargo.Stack;
@@ -248,7 +248,7 @@ internal struct OptimizedGammaPowerGenerator
         powerGenerator.capacityCurrentTick = capacityCurrentTick;
     }
 
-    private static int InsertInto(OptimizedCargoPath belt, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
+    private static int InsertInto(ref OptimizedCargoPath belt, int offset, int itemId, byte itemCount, byte itemInc, out byte remainInc)
     {
         remainInc = itemInc;
         if (belt.TryInsertItem(offset, itemId, itemCount, itemInc))
@@ -259,7 +259,7 @@ internal struct OptimizedGammaPowerGenerator
         return 0;
     }
 
-    private static OptimizedCargo PickFrom(OptimizedCargoPath belt, int offset, int filter, int[]? needs)
+    private static OptimizedCargo PickFrom(ref OptimizedCargoPath belt, int offset, int filter, int[]? needs)
     {
         if (needs == null)
         {

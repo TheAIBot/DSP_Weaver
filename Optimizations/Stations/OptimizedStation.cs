@@ -14,22 +14,22 @@ namespace Weaver.Optimizations.Stations;
 internal readonly struct OptimizedStation
 {
     public readonly StationComponent stationComponent;
-    private readonly OptimizedCargoPath?[]? _cargoPaths;
+    private readonly int[]? _beltIndexes;
     private readonly int? _optimizedMinerIndex;
 
     public OptimizedStation(StationComponent stationComponent,
-                            OptimizedCargoPath?[]? cargoPaths,
+                            int[]? beltIndexes,
                             int? optimizedMinerIndex)
     {
         this.stationComponent = stationComponent;
-        _cargoPaths = cargoPaths;
+        _beltIndexes = beltIndexes;
         _optimizedMinerIndex = optimizedMinerIndex;
     }
 
-    public void UpdateOutputSlots(int maxPilerCount)
+    public void UpdateOutputSlots(int maxPilerCount, OptimizedCargoPath[] optimizedCargoPaths)
     {
-        OptimizedCargoPath?[]? cargoPaths = _cargoPaths;
-        if (cargoPaths == null)
+        int[]? beltIndexes = _beltIndexes;
+        if (beltIndexes == null)
         {
             return;
         }
@@ -44,12 +44,13 @@ internal readonly struct OptimizedStation
             {
                 for (int i = 0; i < num2; i++)
                 {
-                    OptimizedCargoPath? cargoPath = cargoPaths[i];
-                    if (cargoPath == null)
+                    int beltIndex = beltIndexes[i];
+                    if (beltIndex == OptimizedCargoPath.NO_BELT_INDEX)
                     {
                         continue;
                     }
 
+                    ref OptimizedCargoPath belt = ref optimizedCargoPaths[beltIndex];
                     ref SlotData reference = ref stationComponent.slots[i];
                     if (reference.dir == IODir.Output)
                     {
@@ -59,7 +60,7 @@ internal readonly struct OptimizedStation
                         }
                         else
                         {
-                            if (cargoPath.buffer[9] != 0)
+                            if (belt.buffer[9] != 0)
                             {
                                 continue;
                             }
@@ -76,7 +77,7 @@ internal readonly struct OptimizedStation
                                         int n = stationComponent.storage[num5].count;
                                         int m = stationComponent.storage[num5].inc;
                                         int num8 = split_inc(ref n, ref m, num7);
-                                        if (cargoPath.TryInsertItemAtHeadAndFillBlank(num6, (byte)num7, (byte)num8))
+                                        if (belt.TryInsertItemAtHeadAndFillBlank(num6, (byte)num7, (byte)num8))
                                         {
                                             stationComponent.storage[num5].count = n;
                                             stationComponent.storage[num5].inc = m;
@@ -87,7 +88,7 @@ internal readonly struct OptimizedStation
                                 else
                                 {
                                     num6 = 1210;
-                                    if (stationComponent.warperCount > 0 && cargoPath.TryInsertItemAtHeadAndFillBlank(num6, 1, 0))
+                                    if (stationComponent.warperCount > 0 && belt.TryInsertItemAtHeadAndFillBlank(num6, 1, 0))
                                     {
                                         stationComponent.warperCount--;
                                         reference.counter = 1;
@@ -98,7 +99,7 @@ internal readonly struct OptimizedStation
                     }
                     else if (reference.dir != IODir.Input)
                     {
-                        cargoPaths[i] = null;
+                        beltIndexes[i] = OptimizedCargoPath.NO_BELT_INDEX;
                         reference.beltId = 0;
                         reference.counter = 0;
                     }
@@ -110,12 +111,13 @@ internal readonly struct OptimizedStation
                 for (int k = 0; k < num2; k++)
                 {
                     int num10 = (stationComponent.outSlotOffset + k) % num2;
-                    OptimizedCargoPath? cargoPath2 = cargoPaths[num10];
-                    if (cargoPath2 == null)
+                    int beltIndex = beltIndexes[num10];
+                    if (beltIndex == OptimizedCargoPath.NO_BELT_INDEX)
                     {
                         continue;
                     }
 
+                    ref OptimizedCargoPath belt = ref optimizedCargoPaths[beltIndex];
                     ref SlotData reference2 = ref stationComponent.slots[num10];
                     if (reference2.dir == IODir.Output)
                     {
@@ -127,7 +129,7 @@ internal readonly struct OptimizedStation
                             if (num12 > 0 && stationComponent.storage[num11].count > 0)
                             {
                                 int num13 = stationComponent.storage[num11].inc / stationComponent.storage[num11].count;
-                                if (cargoPath2.TryUpdateItemAtHeadAndFillBlank(num12, num, 1, (byte)num13))
+                                if (belt.TryUpdateItemAtHeadAndFillBlank(num12, num, 1, (byte)num13))
                                 {
                                     stationComponent.storage[num11].count--;
                                     stationComponent.storage[num11].inc -= num13;
@@ -138,7 +140,10 @@ internal readonly struct OptimizedStation
                     }
                     else if (reference2.dir != IODir.Input)
                     {
-                        cargoPaths[k] = null;
+                        // k here is mostly likely a mistake and should be num10
+                        // to match the read index at the start of the loop.
+                        // Haven't tested whether it is the case or not.
+                        beltIndexes[k] = OptimizedCargoPath.NO_BELT_INDEX;
                         reference2.beltId = 0;
                         reference2.counter = 0;
                     }
@@ -151,10 +156,10 @@ internal readonly struct OptimizedStation
         }
     }
 
-    public void UpdateInputSlots()
+    public void UpdateInputSlots(OptimizedCargoPath[] optimizedCargoPaths)
     {
-        OptimizedCargoPath?[]? cargoPaths = _cargoPaths;
-        if (cargoPaths == null)
+        int[]? beltIndexes = _beltIndexes;
+        if (beltIndexes == null)
         {
             return;
         }
@@ -166,12 +171,13 @@ internal readonly struct OptimizedStation
             int num2 = stationComponent.needs[0] + stationComponent.needs[1] + stationComponent.needs[2] + stationComponent.needs[3] + stationComponent.needs[4] + stationComponent.needs[5];
             for (int i = 0; i < num; i++)
             {
-                OptimizedCargoPath? cargoPath = cargoPaths[i];
-                if (cargoPath == null)
+                int beltIndex = beltIndexes[i];
+                if (beltIndex == OptimizedCargoPath.NO_BELT_INDEX)
                 {
                     continue;
                 }
 
+                ref OptimizedCargoPath belt = ref optimizedCargoPaths[beltIndex];
                 ref SlotData reference = ref stationComponent.slots[i];
                 if (reference.dir == IODir.Input)
                 {
@@ -187,7 +193,7 @@ internal readonly struct OptimizedStation
                         }
 
                         int needIdx = -1;
-                        OptimizedCargo num3 = cargoPath.TryPickItemAtRear(stationComponent.needs, out needIdx);
+                        OptimizedCargo num3 = belt.TryPickItemAtRear(stationComponent.needs, out needIdx);
                         if (needIdx >= 0)
                         {
                             InputItem(num3, needIdx);
@@ -198,7 +204,7 @@ internal readonly struct OptimizedStation
                 }
                 else if (reference.dir != IODir.Output)
                 {
-                    cargoPaths[i] = null;
+                    beltIndexes[i] = OptimizedCargoPath.NO_BELT_INDEX;
                     reference.beltId = 0;
                     reference.counter = 0;
                 }

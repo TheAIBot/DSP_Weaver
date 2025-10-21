@@ -126,7 +126,7 @@ internal sealed class OptimizedSubFactory
         InitializePilers(subFactoryGraph, subFactoryPowerSystemBuilder, _beltExecutor);
         InitializeFractionators(subFactoryGraph, subFactoryPowerSystemBuilder, subFactoryProductionRegisterBuilder, _beltExecutor);
         InitializeTanks(subFactoryGraph, _beltExecutor);
-        InitializeSplitters(subFactoryGraph);
+        InitializeSplitters(subFactoryGraph, _beltExecutor);
 
         turretExecutorBuilder.Initialize(_planet, subFactoryGraph, planetWideProductionRegisterBuilder, _beltExecutor);
 
@@ -162,7 +162,8 @@ internal sealed class OptimizedSubFactory
                                                                                                   _researchingLabExecutor._matrixServed,
                                                                                                   _researchingLabExecutor._matrixIncServed,
                                                                                                   _siloExecutor._siloIndexes,
-                                                                                                  _ejectorExecutor._ejectorIndexes);
+                                                                                                  _ejectorExecutor._ejectorIndexes,
+                                                                                                  beltExecutor.OptimizedCargoPaths);
         _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, subFactoryPowerSystemBuilder.CreateBiInserterBuilder(), beltExecutor);
 
         _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter, InserterGrade>(_assemblerExecutor._assemblerNetworkIdAndStates,
@@ -186,7 +187,8 @@ internal sealed class OptimizedSubFactory
                                                                                             _researchingLabExecutor._matrixServed,
                                                                                             _researchingLabExecutor._matrixIncServed,
                                                                                             _siloExecutor._siloIndexes,
-                                                                                            _ejectorExecutor._ejectorIndexes);
+                                                                                            _ejectorExecutor._ejectorIndexes,
+                                                                                            beltExecutor.OptimizedCargoPaths);
         _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, subFactoryPowerSystemBuilder.CreateInserterBuilder(), beltExecutor);
     }
 
@@ -329,10 +331,10 @@ internal sealed class OptimizedSubFactory
         planetWideBeltExecutor.AddBeltExecutor(_beltExecutor);
     }
 
-    private void InitializeSplitters(Graph subFactoryGraph)
+    private void InitializeSplitters(Graph subFactoryGraph, BeltExecutor beltExecutor)
     {
         _splitterExecutor = new SplitterExecutor();
-        _splitterExecutor.Initialize(_planet, subFactoryGraph);
+        _splitterExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
     }
 
     public void GameTick(int workerIndex, long time, SubFactoryPowerConsumption powerSystem)
@@ -348,10 +350,10 @@ internal sealed class OptimizedSubFactory
         if (minerCount > 0)
         {
             DeepProfiler.BeginSample(DPEntry.Miner, workerIndex);
-            _beltVeinMinerExecutor.GameTick(_planet, powerSystem.BeltVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags);
-            _stationVeinMinerExecutor.GameTick(_planet, powerSystem.StationVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags);
-            _oilMinerExecutor.GameTick(_planet, powerSystem.OilMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister);
-            _waterMinerExecutor.GameTick(_planet, powerSystem.WaterMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister);
+            _beltVeinMinerExecutor.GameTick(_planet, powerSystem.BeltVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags, _beltExecutor.OptimizedCargoPaths);
+            _stationVeinMinerExecutor.GameTick(_planet, powerSystem.StationVeinMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, ref miningFlags, _beltExecutor.OptimizedCargoPaths);
+            _oilMinerExecutor.GameTick(_planet, powerSystem.OilMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, _beltExecutor.OptimizedCargoPaths);
+            _waterMinerExecutor.GameTick(_planet, powerSystem.WaterMinerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, _beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndSample(DPEntry.Miner, workerIndex);
         }
 
@@ -365,7 +367,7 @@ internal sealed class OptimizedSubFactory
         if (_fractionatorExecutor.Count > 0)
         {
             DeepProfiler.BeginSample(DPEntry.Fractionator, workerIndex);
-            _fractionatorExecutor.GameTick(_planet, powerSystem.FractionatorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister);
+            _fractionatorExecutor.GameTick(_planet, powerSystem.FractionatorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, productRegister, consumeRegister, _beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndSample(DPEntry.Fractionator, workerIndex);
         }
 
@@ -412,7 +414,7 @@ internal sealed class OptimizedSubFactory
         if (_stationExecutor.Count > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Station, workerIndex);
-            _stationExecutor.InputFromBelt();
+            _stationExecutor.InputFromBelt(_beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Station, workerIndex);
         }
 
@@ -429,7 +431,7 @@ internal sealed class OptimizedSubFactory
         {
             DeepProfiler.BeginMajorSample(DPEntry.Storage, workerIndex);
             // Storage has no logic on planets the player isn't on which is why it is omitted
-            _tankExecutor.GameTick();
+            _tankExecutor.GameTick(_beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Storage, workerIndex);
         }
 
@@ -443,35 +445,35 @@ internal sealed class OptimizedSubFactory
         if (_splitterExecutor.Count > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Splitter, workerIndex);
-            _splitterExecutor.GameTick(_planet, this, _beltExecutor);
+            _splitterExecutor.GameTick(this, _beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Splitter, workerIndex);
         }
 
         if (_monitorExecutor.Count > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Monitor, workerIndex);
-            _monitorExecutor.GameTick(_planet, powerSystem.MonitorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
+            _monitorExecutor.GameTick(_planet, powerSystem.MonitorPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, _beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Monitor, workerIndex);
         }
 
         if (_spraycoaterExecutor.Count > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Spraycoater, workerIndex);
-            _spraycoaterExecutor.GameTick(powerSystem.SpraycoaterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister);
+            _spraycoaterExecutor.GameTick(powerSystem.SpraycoaterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, consumeRegister, _beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Spraycoater, workerIndex);
         }
 
         if (_pilerExecutor.Count > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Piler, workerIndex);
-            _pilerExecutor.GameTick(_planet, powerSystem.PilerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
+            _pilerExecutor.GameTick(_planet, powerSystem.PilerPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, _beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Piler, workerIndex);
         }
 
         if (_stationExecutor.Count > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Station, workerIndex);
-            _stationExecutor.OutputToBelt();
+            _stationExecutor.OutputToBelt(_beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Station, workerIndex);
         }
 

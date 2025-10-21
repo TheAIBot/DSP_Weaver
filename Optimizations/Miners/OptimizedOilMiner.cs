@@ -7,7 +7,7 @@ namespace Weaver.Optimizations.Miners;
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedOilMiner
 {
-    private readonly OptimizedCargoPath outputBelt;
+    private readonly int outputBeltIndex;
     private readonly int outputBeltOffset;
     public readonly int speed;
     private readonly int period;
@@ -19,9 +19,9 @@ internal struct OptimizedOilMiner
     public int productCount;
     private double costFrac;
 
-    public OptimizedOilMiner(OptimizedCargoPath outputBelt, int outputBeltOffset, OptimizedItemId productId, ref readonly MinerComponent miner)
+    public OptimizedOilMiner(int outputBeltIndex, int outputBeltOffset, OptimizedItemId productId, ref readonly MinerComponent miner)
     {
-        this.outputBelt = outputBelt;
+        this.outputBeltIndex = outputBeltIndex;
         this.outputBeltOffset = outputBeltOffset;
         speed = miner.speed;
         speedDamper = miner.speedDamper;
@@ -34,7 +34,7 @@ internal struct OptimizedOilMiner
         costFrac = miner.costFrac;
     }
 
-    public void InternalUpdate(PlanetFactory factory, VeinData[] veinPool, float power, float miningRate, float miningSpeed, int[] productRegister)
+    public void InternalUpdate(PlanetFactory factory, VeinData[] veinPool, float power, float miningRate, float miningSpeed, int[] productRegister, OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
         {
@@ -84,7 +84,7 @@ internal struct OptimizedOilMiner
             int num16 = (int)(num15 - 0.009999999776482582) / 1800 + 1;
             num16 = num16 >= 4 ? 4 : num16 < 1 ? 1 : num16;
             int num17 = productCount < num16 ? productCount : num16;
-            int num18 = outputBelt.TryInsertItem(outputBeltOffset, productId.ItemIndex, (byte)num17, 0) ? (byte)num17 : 0;
+            int num18 = optimizedCargoPaths[outputBeltIndex].TryInsertItem(outputBeltOffset, productId.ItemIndex, (byte)num17, 0) ? (byte)num17 : 0;
             productCount -= num18;
         }
     }

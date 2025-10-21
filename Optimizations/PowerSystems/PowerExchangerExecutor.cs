@@ -175,10 +175,10 @@ internal sealed class PowerExchangerExecutor
             }
             prototypeId = componentPrototypeId;
 
-            OptimizedCargoPath? belt0 = null;
-            OptimizedCargoPath? belt1 = null;
-            OptimizedCargoPath? belt2 = null;
-            OptimizedCargoPath? belt3 = null;
+            OptimizedIndexedCargoPath belt0 = OptimizedIndexedCargoPath.NoBelt;
+            OptimizedIndexedCargoPath belt1 = OptimizedIndexedCargoPath.NoBelt;
+            OptimizedIndexedCargoPath belt2 = OptimizedIndexedCargoPath.NoBelt;
+            OptimizedIndexedCargoPath belt3 = OptimizedIndexedCargoPath.NoBelt;
 
             OptimizedItemId emptyId = default;
             OptimizedItemId fullId = default;

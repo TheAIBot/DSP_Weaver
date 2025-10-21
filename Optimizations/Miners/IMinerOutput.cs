@@ -5,7 +5,7 @@ namespace Weaver.Optimizations.Miners;
 internal interface IMinerOutput<T>
     where T : IMinerOutput<T>
 {
-    int InsertInto(int itemId, byte itemCount);
+    int InsertInto(int itemId, byte itemCount, OptimizedCargoPath[] optimizedCargoPaths);
 
     void PrePowerUpdate<TMiner>(ref TMiner miner) where TMiner : IMiner;
 

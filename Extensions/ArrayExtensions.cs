@@ -23,4 +23,12 @@ internal static class ArrayExtensions
             yield return enumValue;
         }
     }
+
+    public static void Fill(this int[] array, int value)
+    {
+        for (int i = 0; i < array.Length; i++)
+        {
+            array[i] = value;
+        }
+    }
 }

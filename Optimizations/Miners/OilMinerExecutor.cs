@@ -20,7 +20,8 @@ internal sealed class OilMinerExecutor
                          int[] oilMinerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
-                         int[] productRegister)
+                         int[] productRegister,
+                         OptimizedCargoPath[] optimizedCargoPaths)
     {
         GameHistoryData history = GameMain.history;
         float[] networkServes = planet.powerSystem.networkServes;
@@ -46,7 +47,7 @@ internal sealed class OilMinerExecutor
             int networkIndex = networkIds[minerIndex];
             float power = networkServes[networkIndex];
             ref OptimizedOilMiner miner = ref optimizedMiners[minerIndex];
-            miner.InternalUpdate(planet, veinPool, power, num5, miningSpeedScale, productRegister);
+            miner.InternalUpdate(planet, veinPool, power, num5, miningSpeedScale, productRegister, optimizedCargoPaths);
 
             UpdatePower(oilMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref miner);
         }
@@ -172,7 +173,7 @@ internal sealed class OilMinerExecutor
             }
 
             int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
-            if (!beltExecutor.TryOptimizedCargoPath(planet, outputBeltId, out OptimizedCargoPath? outputBelt))
+            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, outputBeltId, out int outputBeltIndex))
             {
                 continue;
             }
@@ -189,7 +190,7 @@ internal sealed class OilMinerExecutor
             subFactoryPowerSystemBuilder.AddOilMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
             networkIds.Add(networkIndex);
-            optimizedMiners.Add(new OptimizedOilMiner(outputBelt, outputBeltOffset, oilProductId, in miner));
+            optimizedMiners.Add(new OptimizedOilMiner(outputBeltIndex, outputBeltOffset, oilProductId, in miner));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 

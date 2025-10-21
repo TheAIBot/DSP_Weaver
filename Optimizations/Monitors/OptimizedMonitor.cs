@@ -6,24 +6,24 @@ namespace Weaver.Optimizations.Monitors;
 
 /// <summary>
 /// Monitors are tightly coupled with the <see cref="WarningSystem"/>.
-/// If i wan to optimize this further then i also have to deal with the <see cref="WarningSystem"/>
+/// If i wanr to optimize this further then i also have to deal with the <see cref="WarningSystem"/>
 /// which i currently don't want to do.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal readonly struct OptimizedMonitor
 {
-    private readonly OptimizedCargoPath targetBelt;
+    private readonly int targetBeltIndex;
     private readonly int targetBeltSpeed;
     private readonly int targetBeltOffset;
 
-    public OptimizedMonitor(OptimizedCargoPath targetBelt, int targetBeltSpeed, int targetBeltOffset)
+    public OptimizedMonitor(int targetBeltIndex, int targetBeltSpeed, int targetBeltOffset)
     {
-        this.targetBelt = targetBelt;
+        this.targetBeltIndex = targetBeltIndex;
         this.targetBeltSpeed = targetBeltSpeed;
         this.targetBeltOffset = targetBeltOffset;
     }
 
-    public void InternalUpdate(ref MonitorComponent monitor, float power, bool sandbox, SpeakerComponent[] _speakerPool)
+    public void InternalUpdate(ref MonitorComponent monitor, float power, bool sandbox, SpeakerComponent[] _speakerPool, OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (monitor.periodTickCount < 60)
         {
@@ -46,7 +46,8 @@ internal readonly struct OptimizedMonitor
         {
             monitor.prewarmSampleTick++;
         }
-        GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num3, out var cargo, out int cargoBufferIndex, out int num5);
+        ref OptimizedCargoPath targetBelt = ref optimizedCargoPaths[targetBeltIndex];
+        GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num3, out var cargo, out int cargoBufferIndex, out int num5);
         if (monitor.lastCargoId == -1 && cargoBufferIndex >= 0)
         {
             num = cargoBufferIndex != monitor.formerCargoId ? num + (10 - num5 - 1) * cargo.Stack : num - (num5 + 1) * cargo.Stack;
@@ -61,7 +62,7 @@ internal readonly struct OptimizedMonitor
         }
         if (num4 < targetBelt.pathLength)
         {
-            GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num4, out var _, out monitor.formerCargoId, out _);
+            GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num4, out var _, out monitor.formerCargoId, out _);
         }
         else
         {
@@ -150,8 +151,8 @@ internal readonly struct OptimizedMonitor
         monitor.totalCargoBytes += num;
         monitor.cargoBytesArray[monitor.periodTickCount - 1] = (sbyte)num;
         monitor.periodCargoBytesArray[monitor.periodTickCount - 1] = monitor.cargoFlow;
-        monitor.isSpeakerAlarming = Alarming(ref monitor, monitor.alarmMode) && flag;
-        monitor.isSystemAlarming = Alarming(ref monitor, monitor.systemWarningMode);
+        monitor.isSpeakerAlarming = Alarming(ref monitor, monitor.alarmMode, ref targetBelt) && flag;
+        monitor.isSystemAlarming = Alarming(ref monitor, monitor.systemWarningMode, ref targetBelt);
         if (monitor.isSpeakerAlarming)
         {
             _speakerPool[monitor.speakerId].Play(ESpeakerPlaybackOrigin.Current);
@@ -163,7 +164,7 @@ internal readonly struct OptimizedMonitor
         _speakerPool[monitor.speakerId].SetPowerRatio(power);
     }
 
-    private bool Alarming(ref MonitorComponent monitor, int _mode)
+    private bool Alarming(ref MonitorComponent monitor, int _mode, ref OptimizedCargoPath targetBelt)
     {
         if (monitor.periodTickCount == 0 || _mode == 0)
         {
@@ -183,7 +184,7 @@ internal readonly struct OptimizedMonitor
                     bool flag = true;
                     for (int i = 0; i < targetBeltSpeed; i++)
                     {
-                        GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num + i, out _, out int cargoBufferIndex, out _);
+                        GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num + i, out _, out int cargoBufferIndex, out _);
                         if (cargoBufferIndex < 0)
                         {
                             flag = false;
@@ -211,7 +212,7 @@ internal readonly struct OptimizedMonitor
                                 int num4 = num + j;
                                 num4 = num4 < num3 ? num3 : num4;
                                 num4 = num4 >= pathLength ? pathLength - 1 : num4;
-                                GetCargoAtIndexByFilter(monitor.cargoFilter, targetBelt, num4, out _, out int cargoBufferIndex, out _);
+                                GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num4, out _, out int cargoBufferIndex, out _);
                                 if (cargoBufferIndex < 0)
                                 {
                                     flag = false;
@@ -230,9 +231,9 @@ internal readonly struct OptimizedMonitor
         }
     }
 
-    private static void GetCargoAtIndexByFilter(int filter, OptimizedCargoPath path, int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
+    private static void GetCargoAtIndexByFilter(int filter, ref OptimizedCargoPath targetBelt, int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
     {
-        path.GetCargoAtIndex(index, out cargo, out cargoBufferIndex, out offset);
+        targetBelt.GetCargoAtIndex(index, out cargo, out cargoBufferIndex, out offset);
         if (cargoBufferIndex >= 0 && cargo.Item != filter && filter != 0)
         {
             cargo.Item = 0;

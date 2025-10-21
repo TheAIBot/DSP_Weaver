@@ -23,7 +23,8 @@ internal sealed class SpraycoaterExecutor
     public void GameTick(int[] spraycoaterPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
-                         int[] consumeRegister)
+                         int[] consumeRegister,
+                         OptimizedCargoPath[] optimizedCargoPaths)
     {
 
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
@@ -35,7 +36,7 @@ internal sealed class SpraycoaterExecutor
         {
             ref bool isSpraycoatingItem = ref isSpraycoatingItems[spraycoaterIndex];
             ref int sprayTime = ref sprayTimes[spraycoaterIndex];
-            optimizedSpraycoaters[spraycoaterIndex].InternalUpdate(incItemIds, consumeRegister, ref isSpraycoatingItems[spraycoaterIndex], ref sprayTimes[spraycoaterIndex]);
+            optimizedSpraycoaters[spraycoaterIndex].InternalUpdate(incItemIds, consumeRegister, ref isSpraycoatingItems[spraycoaterIndex], ref sprayTimes[spraycoaterIndex], optimizedCargoPaths);
 
             int networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
             UpdatePower(spraycoaterPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, spraycoaterIndex, networkIndex, isSpraycoatingItems[spraycoaterIndex], sprayTimes[spraycoaterIndex]);
@@ -157,7 +158,7 @@ internal sealed class SpraycoaterExecutor
 
             BeltComponent? incommingBeltComponent = default;
             int incomingBeltSegIndexPlusSegPivotOffset = 0;
-            if (beltExecutor.TryOptimizedCargoPath(planet, spraycoater.incBeltId, out OptimizedCargoPath? incomingCargoPath))
+            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, spraycoater.incBeltId, out int incomingBeltIndex))
             {
                 incommingBeltComponent = planet.cargoTraffic.beltPool[spraycoater.incBeltId];
                 incomingBeltSegIndexPlusSegPivotOffset = incommingBeltComponent.Value.segIndex + incommingBeltComponent.Value.segPivotOffset;
@@ -166,7 +167,7 @@ internal sealed class SpraycoaterExecutor
             BeltComponent? outgoingBeltComponent = default;
             int outgoingBeltSegIndexPlusSegPivotOffset = 0;
             int outgoingBeltSpeed = 0;
-            if (beltExecutor.TryOptimizedCargoPath(planet, spraycoater.cargoBeltId, out OptimizedCargoPath? outgoingCargoPath))
+            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, spraycoater.cargoBeltId, out int outgoingbeltIndex))
             {
                 outgoingBeltComponent = planet.cargoTraffic.beltPool[spraycoater.cargoBeltId];
                 outgoingBeltSegIndexPlusSegPivotOffset = outgoingBeltComponent.Value.segIndex + outgoingBeltComponent.Value.segPivotOffset;
@@ -195,8 +196,8 @@ internal sealed class SpraycoaterExecutor
             spraycoaterIdToOptimizedSpraycoaterIndex.Add(spraycoaterIndex, optimizedSpraycoaters.Count);
             spraycoaterNetworkIds.Add(networkId);
             optimizedSpraycoaters.Add(new OptimizedSpraycoater(incomingBeltSegIndexPlusSegPivotOffset,
-                                                               incomingCargoPath,
-                                                               outgoingCargoPath,
+                                                               incomingBeltIndex,
+                                                               outgoingbeltIndex,
                                                                outgoingBeltSegIndexPlusSegPivotOffset,
                                                                outgoingBeltSpeed,
                                                                powerNetwork,

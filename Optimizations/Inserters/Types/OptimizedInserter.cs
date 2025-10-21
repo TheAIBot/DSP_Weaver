@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Inserters.Types;
@@ -280,12 +281,12 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                         int num3 = itemCount;
                         int num4 = itemInc;
                         ConnectionBelts connectionBelts = inserterExecutor._connectionBelts[inserterIndex];
-                        if (connectionBelts.InsertInto == null)
+                        if (connectionBelts.InsertIntoIndex == OptimizedCargoPath.NO_BELT_INDEX)
                         {
-                            throw new InvalidOperationException($"{nameof(connectionBelts.InsertInto)} was null.");
+                            throw new InvalidOperationException($"{nameof(connectionBelts.InsertIntoIndex)} was null.");
                         }
 
-                        connectionBelts.InsertInto.TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
+                        inserterExecutor.OptimizedCargoPaths[connectionBelts.InsertIntoIndex].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
                         itemCount = (short)num3;
                         itemInc = (short)num4;
                         stackCount = itemCount > 0 ? (itemCount - 1) / 4 + 1 : 0;

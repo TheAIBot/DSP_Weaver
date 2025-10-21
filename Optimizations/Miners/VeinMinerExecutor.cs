@@ -27,7 +27,8 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
-                         ref MiningFlags miningFlags)
+                         ref MiningFlags miningFlags,
+                         OptimizedCargoPath[] optimizedCargoPaths)
     {
         GameHistoryData history = GameMain.history;
         float[] networkServes = planet.powerSystem.networkServes;
@@ -48,7 +49,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
             int networkIndex = networkIds[minerIndex];
             float power = networkServes[networkIndex];
             ref OptimizedVeinMiner<TMinerOutput> miner = ref optimizedMiners[minerIndex];
-            miner.InternalUpdate(planet, veinPool, power, num4, miningSpeedScale, productRegister, ref miningFlags);
+            miner.InternalUpdate(planet, veinPool, power, num4, miningSpeedScale, productRegister, ref miningFlags, optimizedCargoPaths);
 
             UpdatePower(veinMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref miner);
         }
