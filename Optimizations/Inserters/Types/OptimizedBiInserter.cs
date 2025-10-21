@@ -148,7 +148,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                        ref readonly BiInserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        InserterConnections[] insertersConnections,
-                       ref readonly SubFactoryNeeds subFactoryNeeds)
+                       ref readonly SubFactoryNeeds subFactoryNeeds,
+                       OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
         {
@@ -182,7 +183,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                                                    inserterConnections,
                                                                    groupNeeds,
                                                                    out stack,
-                                                                   out inc);
+                                                                   out inc,
+                                                                   optimizedCargoPaths);
                             if (num2 > 0)
                             {
                                 itemId = num2;
@@ -218,7 +220,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                                            inserterConnections,
                                                            default,
                                                            out stack,
-                                                           out inc);
+                                                           out inc,
+                                                           optimizedCargoPaths);
                     if (num2 > 0)
                     {
                         itemId = num2;
@@ -259,7 +262,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                                                       inserterConnections,
                                                                       groupNeeds,
                                                                       out stack,
-                                                                      out inc);
+                                                                      out inc,
+                                                                      optimizedCargoPaths);
                                 if (num44 > 0)
                                 {
                                     itemCount += stack;
@@ -295,7 +299,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                                        inserterConnections,
                                                        default,
                                                        out stack,
-                                                       out inc) > 0)
+                                                       out inc,
+                                                       optimizedCargoPaths) > 0)
                         {
                             itemCount += stack;
                             itemInc += inc;
@@ -344,7 +349,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                     throw new InvalidOperationException($"{nameof(connectionBelts.InsertIntoIndex)} was null.");
                 }
 
-                inserterExecutor.OptimizedCargoPaths[connectionBelts.InsertIntoIndex].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
+                optimizedCargoPaths[connectionBelts.InsertIntoIndex].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num5, ref num6);
                 if (num5 < itemCount)
                 {
                     num3 = itemId;
@@ -387,7 +392,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                                    itemId,
                                                    (byte)num7,
                                                    (byte)num8,
-                                                   out remainInc);
+                                                   out remainInc,
+                                                   optimizedCargoPaths);
             if (num9 <= 0)
             {
                 break;

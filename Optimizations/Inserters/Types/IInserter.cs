@@ -1,4 +1,5 @@
-﻿using Weaver.Optimizations.Inserters;
+﻿using Weaver.Optimizations.Belts;
+using Weaver.Optimizations.Inserters;
 using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Inserters.Types;
@@ -21,7 +22,8 @@ internal interface IInserter<TInserter, TInserterGrade>
                 ref readonly TInserterGrade inserterGrade,
                 ref OptimizedInserterStage stage,
                 InserterConnections[] insertersConnections,
-                ref readonly SubFactoryNeeds subFactoryNeeds);
+                ref readonly SubFactoryNeeds subFactoryNeeds,
+                OptimizedCargoPath[] optimizedCargoPaths);
 
     void Save(ref InserterComponent inserter, EInserterStage inserterStage);
 }

@@ -105,7 +105,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                        ref readonly InserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        InserterConnections[] insertersConnections,
-                       ref readonly SubFactoryNeeds subFactoryNeeds)
+                       ref readonly SubFactoryNeeds subFactoryNeeds, 
+                       OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
         {
@@ -137,7 +138,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                                           inserterConnections,
                                                                           groupNeeds,
                                                                           out stack,
-                                                                          out inc);
+                                                                          out inc,
+                                                                          optimizedCargoPaths);
                                     if (num > 0)
                                     {
                                         itemId = num;
@@ -164,7 +166,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                                   inserterConnections,
                                                                   default,
                                                                   out stack,
-                                                                  out inc);
+                                                                  out inc,
+                                                                  optimizedCargoPaths);
                             if (num > 0)
                             {
                                 itemId = num;
@@ -195,7 +198,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                                   inserterConnections,
                                                                   groupNeeds,
                                                                   out stack,
-                                                                  out inc) > 0)
+                                                                  out inc,
+                                                                  optimizedCargoPaths) > 0)
                                     {
                                         itemCount += stack;
                                         itemInc += inc;
@@ -220,7 +224,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                            inserterConnections,
                                                            default,
                                                            out stack,
-                                                           out inc) > 0)
+                                                           out inc,
+                                                           optimizedCargoPaths) > 0)
                             {
                                 itemCount += stack;
                                 itemInc += inc;
@@ -286,7 +291,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                             throw new InvalidOperationException($"{nameof(connectionBelts.InsertIntoIndex)} was null.");
                         }
 
-                        inserterExecutor.OptimizedCargoPaths[connectionBelts.InsertIntoIndex].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
+                        optimizedCargoPaths[connectionBelts.InsertIntoIndex].TryInsertItemWithStackIncreasement(insertOffset, itemId, inserterGrade.StackOutput, ref num3, ref num4);
                         itemCount = (short)num3;
                         itemInc = (short)num4;
                         stackCount = itemCount > 0 ? (itemCount - 1) / 4 + 1 : 0;
@@ -324,7 +329,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                            itemId,
                                                            (byte)num5,
                                                            (byte)num6,
-                                                           out remainInc);
+                                                           out remainInc,
+                                                           optimizedCargoPaths);
                     if (num7 > 0)
                     {
                         if (remainInc == 0 && num7 == num5)

@@ -110,8 +110,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly int[] _siloIndexes;
     private readonly int[] _ejectorIndexes;
 
-    public OptimizedCargoPath[] OptimizedCargoPaths;
-
     public int Count => _optimizedInserters.Length;
 
     public InserterExecutor(NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates,
@@ -135,8 +133,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             int[] researchingLabMatrixServed,
                             int[] researchingLabMatrixIncServed,
                             int[] siloIndexes,
-                            int[] ejectorIndexes,
-                            OptimizedCargoPath[] optimizedCargoPaths)
+                            int[] ejectorIndexes)
     {
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates;
         _producingLabNetworkIdAndStates = producingLabNetworkIdAndStates;
@@ -160,13 +157,13 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         _researchingLabMatrixIncServed = researchingLabMatrixIncServed;
         _siloIndexes = siloIndexes;
         _ejectorIndexes = ejectorIndexes;
-        OptimizedCargoPaths = optimizedCargoPaths;
     }
 
     public void GameTickInserters(PlanetFactory planet,
                                   int[] inserterPowerConsumerIndexes,
                                   PowerConsumerType[] powerConsumerTypes,
-                                  long[] thisSubFactoryNetworkPowerConsumption)
+                                  long[] thisSubFactoryNetworkPowerConsumption,
+                                  OptimizedCargoPath[] optimizedCargoPaths)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
@@ -215,7 +212,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                                      in inserterGrade,
                                      ref optimizedInserterStage,
                                      _inserterConnections,
-                                     in _subFactoryNeeds);
+                                     in _subFactoryNeeds,
+                                     optimizedCargoPaths);
 
             UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
         }
@@ -353,7 +351,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                           InserterConnections inserterConnections,
                           GroupNeeds groupNeeds,
                           out byte stack,
-                          out byte inc)
+                          out byte inc,
+                          OptimizedCargoPath[] optimizedCargoPaths)
     {
         stack = 1;
         inc = 0;
@@ -368,7 +367,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 throw new InvalidOperationException($"{nameof(connectionBelts.PickFromIndex)} was null.");
             }
 
-            ref OptimizedCargoPath pickFromBelt = ref OptimizedCargoPaths[connectionBelts.PickFromIndex];
+            ref OptimizedCargoPath pickFromBelt = ref optimizedCargoPaths[connectionBelts.PickFromIndex];
             if (groupNeeds.GroupNeedsSize == 0)
             {
                 if (filter != 0)
@@ -566,7 +565,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             int itemId,
                             byte itemCount,
                             byte itemInc,
-                            out byte remainInc)
+                            out byte remainInc,
+                            OptimizedCargoPath[] optimizedCargoPaths)
     {
         remainInc = itemInc;
         TypedObjectIndex typedObjectIndex = inserterConnections.InsertInto;
@@ -580,7 +580,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 throw new InvalidOperationException($"{nameof(connectionBelts.InsertIntoIndex)} was null.");
             }
 
-            ref OptimizedCargoPath insertIntoBelt = ref OptimizedCargoPaths[connectionBelts.InsertIntoIndex];
+            ref OptimizedCargoPath insertIntoBelt = ref optimizedCargoPaths[connectionBelts.InsertIntoIndex];
             if (insertIntoBelt.TryInsertItem(offset, itemId, itemCount, itemInc))
             {
                 remainInc = 0;

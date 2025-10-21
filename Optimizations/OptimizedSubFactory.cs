@@ -162,8 +162,7 @@ internal sealed class OptimizedSubFactory
                                                                                                   _researchingLabExecutor._matrixServed,
                                                                                                   _researchingLabExecutor._matrixIncServed,
                                                                                                   _siloExecutor._siloIndexes,
-                                                                                                  _ejectorExecutor._ejectorIndexes,
-                                                                                                  beltExecutor.OptimizedCargoPaths);
+                                                                                                  _ejectorExecutor._ejectorIndexes);
         _optimizedBiInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => x.bidirectional, subFactoryPowerSystemBuilder.CreateBiInserterBuilder(), beltExecutor);
 
         _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter, InserterGrade>(_assemblerExecutor._assemblerNetworkIdAndStates,
@@ -187,8 +186,7 @@ internal sealed class OptimizedSubFactory
                                                                                             _researchingLabExecutor._matrixServed,
                                                                                             _researchingLabExecutor._matrixIncServed,
                                                                                             _siloExecutor._siloIndexes,
-                                                                                            _ejectorExecutor._ejectorIndexes,
-                                                                                            beltExecutor.OptimizedCargoPaths);
+                                                                                            _ejectorExecutor._ejectorIndexes);
         _optimizedInserterExecutor.Initialize(_planet, this, subFactoryGraph, x => !x.bidirectional, subFactoryPowerSystemBuilder.CreateInserterBuilder(), beltExecutor);
     }
 
@@ -422,8 +420,8 @@ internal sealed class OptimizedSubFactory
         if (inserterCount > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Inserter, workerIndex);
-            _optimizedBiInserterExecutor.GameTickInserters(_planet, powerSystem.InserterBiPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
-            _optimizedInserterExecutor.GameTickInserters(_planet, powerSystem.InserterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions);
+            _optimizedBiInserterExecutor.GameTickInserters(_planet, powerSystem.InserterBiPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, _beltExecutor.OptimizedCargoPaths);
+            _optimizedInserterExecutor.GameTickInserters(_planet, powerSystem.InserterPowerConsumerTypeIndexes, powerSystem.PowerConsumerTypes, networkPowerConsumptions, _beltExecutor.OptimizedCargoPaths);
             DeepProfiler.EndMajorSample(DPEntry.Inserter, workerIndex);
         }
 
