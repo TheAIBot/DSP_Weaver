@@ -374,7 +374,7 @@ internal static class OptimizedStarCluster
     {
         if (_dysonSphereStatisticsManager.IsDysonSphereStatistics(__instance))
         {
-            _dysonSphereStatisticsManager.DysonSphereGameTick(__instance, time);
+            DysonSphereStatisticsManager.DysonSphereGameTick(__instance, time);
         }
 
         if (!TryGetOptimizedPlanet(__instance, out IOptimizedPlanet? optimizedPlanet))
@@ -396,7 +396,7 @@ internal static class OptimizedStarCluster
     {
         if (_dysonSphereStatisticsManager.IsDysonSphereStatistics(__instance))
         {
-            _dysonSphereStatisticsManager.DysonSphereClearRegisters(__instance);
+            DysonSphereStatisticsManager.DysonSphereClearRegisters(__instance);
         }
 
         if (!TryGetOptimizedPlanet(__instance, out IOptimizedPlanet? optimizedPlanet))

@@ -50,8 +50,8 @@ internal sealed class BeltExecutor
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
         foreach (KeyValuePair<CargoPath, int> cargoPathWithOptimizedCargoPathIndex in _cargoPathToOptimizedCargoPathIndex)
         {
-            ref readonly OptimizedCargoPath optimizedCargoPath = ref optimizedCargoPaths[cargoPathWithOptimizedCargoPathIndex.Value];
-            CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key.buffer, in optimizedCargoPath, cargoContainer);
+            ref OptimizedCargoPath optimizedCargoPath = ref optimizedCargoPaths[cargoPathWithOptimizedCargoPathIndex.Value];
+            CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key.buffer, ref optimizedCargoPath, cargoContainer);
             optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key);
         }
     }
@@ -154,7 +154,7 @@ internal sealed class BeltExecutor
     /// <summary>
     /// Modified <see cref="GetBufferWithUpdatedCargoIndexes"/>
     /// </summary>
-    private static void CopyToBufferWithUpdatedCargoIndexes(byte[] bufferCopy, ref readonly OptimizedCargoPath optimizedCargoPath, CargoContainer cargoContainer)
+    private static void CopyToBufferWithUpdatedCargoIndexes(byte[] bufferCopy, ref OptimizedCargoPath optimizedCargoPath, CargoContainer cargoContainer)
     {
         if (bufferCopy.Length != optimizedCargoPath.buffer.Length)
         {

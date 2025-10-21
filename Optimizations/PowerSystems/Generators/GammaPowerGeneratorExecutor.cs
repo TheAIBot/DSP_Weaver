@@ -79,8 +79,7 @@ internal sealed class GammaPowerGeneratorExecutor
                 continue;
             }
 
-            ref readonly OptimizedGammaPowerGenerator optimizedGamma = ref optimizedGammaPowerGenerators[optimizedIndex];
-            optimizedGamma.Save(ref powerGenerators[i]);
+            optimizedGammaPowerGenerators[optimizedIndex].Save(ref powerGenerators[i]);
         }
     }
 

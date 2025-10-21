@@ -226,10 +226,10 @@ internal sealed class OptimizedPowerSystem
         }
     }
 
-    private void FactorySystemBeforePower(PlanetFactory planet,
-                                          OptimizedSubFactory subFactory,
-                                          SubFactoryPowerConsumption subFactoryPowerConsumption,
-                                          long[] networksPowerConsumption)
+    private static void FactorySystemBeforePower(PlanetFactory planet,
+                                                 OptimizedSubFactory subFactory,
+                                                 SubFactoryPowerConsumption subFactoryPowerConsumption,
+                                                 long[] networksPowerConsumption)
     {
         subFactory._beltVeinMinerExecutor.UpdatePower(subFactoryPowerConsumption.BeltVeinMinerPowerConsumerTypeIndexes,
                                                       subFactoryPowerConsumption.PowerConsumerTypes,
@@ -276,9 +276,9 @@ internal sealed class OptimizedPowerSystem
                                                           networksPowerConsumption);
     }
 
-    private void CargoTrafficBeforePower(OptimizedSubFactory subFactory,
-                                         SubFactoryPowerConsumption subFactoryPowerConsumption,
-                                         long[] networksPowerConsumption)
+    private static void CargoTrafficBeforePower(OptimizedSubFactory subFactory,
+                                                SubFactoryPowerConsumption subFactoryPowerConsumption,
+                                                long[] networksPowerConsumption)
     {
         subFactory._monitorExecutor.UpdatePower(subFactoryPowerConsumption.MonitorPowerConsumerTypeIndexes,
                                                 subFactoryPowerConsumption.PowerConsumerTypes,

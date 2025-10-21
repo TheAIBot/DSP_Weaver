@@ -57,8 +57,7 @@ internal sealed class GeothermalGeneratorExecutor
                 continue;
             }
 
-            ref readonly OptimizedGeothermalGenerator optimizedGeothermal = ref optimizedGeothermalGenerators[optimizedIndex];
-            optimizedGeothermal.Save(ref powerGenerators[i]);
+            optimizedGeothermalGenerators[optimizedIndex].Save(ref powerGenerators[i]);
         }
     }
 

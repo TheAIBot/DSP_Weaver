@@ -70,8 +70,9 @@ internal sealed class FuelGeneratorExecutor
                 continue;
             }
 
-            ref readonly OptimizedFuelGenerator optimizedGeothermal = ref generatorIDWithOptimizedFuelGenerators[optimizedIndex.GeneratorIDIndex].OptimizedFuelGenerators[optimizedIndex.OptimizedGeneratorIndex];
-            optimizedGeothermal.Save(ref powerGenerators[i]);
+            generatorIDWithOptimizedFuelGenerators[optimizedIndex.GeneratorIDIndex]
+                .OptimizedFuelGenerators[optimizedIndex.OptimizedGeneratorIndex]
+                .Save(ref powerGenerators[i]);
         }
     }
 

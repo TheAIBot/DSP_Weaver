@@ -40,12 +40,12 @@ internal sealed class DysonSphereStatisticsManager
         _dysonSphereProductionRegisters.Clear();
     }
 
-    public void DysonSphereGameTick(FactoryProductionStat factoryStats, long time)
+    public static void DysonSphereGameTick(FactoryProductionStat factoryStats, long time)
     {
         ProductionHelper.PartialProductionStatisticsGameTick(factoryStats, time, _dysonItemIds);
     }
 
-    public void DysonSphereClearRegisters(FactoryProductionStat factoryStats)
+    public static void DysonSphereClearRegisters(FactoryProductionStat factoryStats)
     {
         int[] dysonitemIds = _dysonItemIds;
         for (int i = 0; i < dysonitemIds.Length; i++)

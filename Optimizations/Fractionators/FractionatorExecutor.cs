@@ -134,9 +134,8 @@ internal sealed class FractionatorExecutor
                 continue;
             }
 
-            ref readonly OptimizedFractionator optimizedFractionator = ref optimizedFractionators[optimizedIndex];
             ref readonly FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[optimizedIndex];
-            optimizedFractionator.Save(ref fractionators[i], in fractionatorPowerFields, entitySignPool);
+            optimizedFractionators[optimizedIndex].Save(ref fractionators[i], in fractionatorPowerFields, entitySignPool);
         }
     }
 

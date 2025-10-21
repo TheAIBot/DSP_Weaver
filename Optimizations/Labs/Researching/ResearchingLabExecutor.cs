@@ -128,7 +128,7 @@ internal sealed class ResearchingLabExecutor
                 }
 
                 ref OptimizedResearchingLab reference = ref optimizedLabs[labIndex];
-                reference.UpdateNeedsResearch(groupNeeds, needs, matrixServed, labIndex);
+                OptimizedResearchingLab.UpdateNeedsResearch(groupNeeds, needs, matrixServed, labIndex);
                 if (flag2)
                 {
                     int curLevel = ts.curLevel;

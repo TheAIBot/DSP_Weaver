@@ -17,7 +17,7 @@ internal struct OptimizedCargoPath
     private bool lastUpdateFrameOdd;
     public int updateLen;
     public const int NO_BELT_INDEX = -1;
-    public int pathLength => bufferLength;
+    public readonly int pathLength => bufferLength;
 
     public OptimizedCargoPath(byte[] buffer, CargoPath cargoPath)
     {
@@ -33,7 +33,7 @@ internal struct OptimizedCargoPath
         updateLen = cargoPath.updateLen;
     }
 
-    public void Save(CargoPath cargoPath)
+    public readonly void Save(CargoPath cargoPath)
     {
         cargoPath.outputChunk = outputChunk;
         cargoPath.lastUpdateFrameOdd = lastUpdateFrameOdd;
@@ -45,7 +45,7 @@ internal struct OptimizedCargoPath
         outputCargoPathIndex = cargoPathIndex;
     }
 
-    public bool TryInsertCargo(int index, OptimizedCargo optimizedCargo)
+    public readonly bool TryInsertCargo(int index, OptimizedCargo optimizedCargo)
     {
         int num = index + 5;
         int num2 = index - 5;
@@ -207,7 +207,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public bool TryInsertItem(int index, int itemId, byte stack, byte inc)
+    public readonly bool TryInsertItem(int index, int itemId, byte stack, byte inc)
     {
         int num = index + 5;
         int num2 = index - 5;
@@ -644,7 +644,7 @@ internal struct OptimizedCargoPath
         }
     }
 
-    public bool TryInsertCargoNoSqueeze(int index, OptimizedCargo optimizedCargo)
+    public readonly bool TryInsertCargoNoSqueeze(int index, OptimizedCargo optimizedCargo)
     {
         if (index < 4 || index + 5 >= bufferLength)
         {
@@ -667,7 +667,7 @@ internal struct OptimizedCargoPath
         return true;
     }
 
-    public void InsertCargoAtHeadDirect(OptimizedCargo optimizedCargo, int headIndex)
+    public readonly void InsertCargoAtHeadDirect(OptimizedCargo optimizedCargo, int headIndex)
     {
         buffer[headIndex] = 246;
         buffer[headIndex + 1] = 247;
@@ -678,7 +678,7 @@ internal struct OptimizedCargoPath
         buffer[headIndex + 9] = byte.MaxValue;
     }
 
-    private void InsertCargoDirect(int index, OptimizedCargo optimizedCargo)
+    private readonly void InsertCargoDirect(int index, OptimizedCargo optimizedCargo)
     {
         int num = index - 4;
         buffer[num] = 246;
@@ -690,7 +690,7 @@ internal struct OptimizedCargoPath
         buffer[num + 9] = byte.MaxValue;
     }
 
-    public void InsertItemDirect(int index, int itemId, byte stack, byte inc)
+    public readonly void InsertItemDirect(int index, int itemId, byte stack, byte inc)
     {
         OptimizedCargo optimizedCargo = new OptimizedCargo((short)itemId, stack, inc);
 
@@ -704,7 +704,7 @@ internal struct OptimizedCargoPath
         buffer[num2 + 9] = byte.MaxValue;
     }
 
-    public bool TryInsertItemAtHead(int itemId, byte stack, byte inc)
+    public readonly bool TryInsertItemAtHead(int itemId, byte stack, byte inc)
     {
         if (buffer[0] != 0 || buffer[9] != 0)
         {
@@ -721,7 +721,7 @@ internal struct OptimizedCargoPath
         return true;
     }
 
-    public bool TryInsertItemAtHeadAndFillBlank(int itemId, byte stack, byte inc)
+    public readonly bool TryInsertItemAtHeadAndFillBlank(int itemId, byte stack, byte inc)
     {
         int num = TestBlankAtHead();
         if (num < 0)
@@ -744,7 +744,7 @@ internal struct OptimizedCargoPath
         return true;
     }
 
-    public bool TryUpdateItemAtHeadAndFillBlank(int itemId, int maxStack, byte stack, byte inc)
+    public readonly bool TryUpdateItemAtHeadAndFillBlank(int itemId, int maxStack, byte stack, byte inc)
     {
         int num = TestBlankAtHead();
         if (num < 0)
@@ -779,7 +779,7 @@ internal struct OptimizedCargoPath
         return true;
     }
 
-    public OptimizedCargo QueryItemAtIndex(int index, out int cargoBufferIndex)
+    public readonly OptimizedCargo QueryItemAtIndex(int index, out int cargoBufferIndex)
     {
         if (index < 0)
         {
@@ -1064,7 +1064,7 @@ internal struct OptimizedCargoPath
         }
     }
 
-    public int TestBlankAtHead()
+    public readonly int TestBlankAtHead()
     {
         int num = 9;
         if (buffer[num] != 0)
@@ -1118,7 +1118,7 @@ internal struct OptimizedCargoPath
         return 0;
     }
 
-    public bool TryGetCargoIdAtRear(out OptimizedCargo cargo)
+    public readonly bool TryGetCargoIdAtRear(out OptimizedCargo cargo)
     {
         int num = bufferLength - 5 - 1;
         if (buffer[num] == 250)
@@ -1229,7 +1229,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public bool GetCargoAtIndex(int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
+    public readonly bool GetCargoAtIndex(int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
     {
         cargo = new OptimizedCargo(0, 1, 0);
         offset = -1;
@@ -1267,7 +1267,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public bool TryGetCargoIdAtIndex(int index, int length, out OptimizedCargo cargo, out int cargoBufferIndex)
+    public readonly bool TryGetCargoIdAtIndex(int index, int length, out OptimizedCargo cargo, out int cargoBufferIndex)
     {
         if (index < 0)
         {
@@ -1440,7 +1440,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    internal void SetCargoInBuffer(int bufferIndex, OptimizedCargo optimizedCargo)
+    internal readonly void SetCargoInBuffer(int bufferIndex, OptimizedCargo optimizedCargo)
     {
         SetCargoInBuffer(buffer, bufferIndex, optimizedCargo);
     }
@@ -1450,7 +1450,7 @@ internal struct OptimizedCargoPath
         BeltExecutor.SetCargoInBuffer(buffer, bufferIndex, optimizedCargo);
     }
 
-    private OptimizedCargo GetCargo(int index)
+    private readonly OptimizedCargo GetCargo(int index)
     {
         return BeltExecutor.GetCargo(buffer, index);
     }

@@ -53,10 +53,10 @@ internal struct OptimizedResearchingLab
         signPool[entityId].iconType = techId != 0 ? 3u : 0u;
     }
 
-    public readonly void UpdateNeedsResearch(GroupNeeds groupNeeds,
-                                             short[] needs,
-                                             int[] matrixServed,
-                                             int labIndex)
+    public static void UpdateNeedsResearch(GroupNeeds groupNeeds,
+                                           short[] needs,
+                                           int[] matrixServed,
+                                           int labIndex)
     {
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
         int matrixServedOffset = groupNeeds.GroupNeedsSize * labIndex;

@@ -61,8 +61,7 @@ internal sealed class SolarGeneratorExecutor
                 continue;
             }
 
-            ref readonly OptimizedSolarGenerator optimizedSolar = ref optimizedSolarGenerators[optimizedIndex];
-            optimizedSolar.Save(ref powerGenerators[i]);
+            optimizedSolarGenerators[optimizedIndex].Save(ref powerGenerators[i]);
         }
     }
 
