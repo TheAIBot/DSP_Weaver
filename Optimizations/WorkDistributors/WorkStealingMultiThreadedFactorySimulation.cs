@@ -351,7 +351,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         gameLogic.GalacticDigitalGameTick();
 
         // 801
-        //gameLogic.DysonSphereBeforeGameTick();
+        // Handled by SolarSystemDysonSphereWorkChunk
 
         // 1001
         gameLogic.OnFactoryBeginProfiler();
@@ -362,15 +362,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         gameLogic.FactoryBeforeGameTick();
 
         // 1201
-        DeepProfiler.BeginSample(DPEntry.PowerSystem);
-        DeepProfiler.BeginSample(DPEntry.PowerGamma);
-        for (int i = 0; i < planetsToUpdate.Length; i++)
-        {
-            PlanetFactory? planet = planetsToUpdate[i];
-            planet?.powerSystem.RequestDysonSpherePower();
-        }
-        DeepProfiler.EndSample(DPEntry.PowerGamma);
-        DeepProfiler.EndSample(DPEntry.PowerSystem);
+        // Handled by DysonSpherePowerRequest
 
         // 1250
         //gameLogic.EnemyGroundPrepare();
