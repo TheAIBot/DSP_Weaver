@@ -17,6 +17,7 @@ Known incompatible mods:
 * Multfuntion mod
 * More Mega Structures
 * VeinityProject
+* PlanetMiner
 
 # Known issues
 None. You can [report bugs here.](https://github.com/TheAIBot/DSP_Weaver/issues)
