@@ -25,6 +25,8 @@ internal struct OptimizedEjector
     private readonly bool autoOrbit;
     private readonly float localAlt;
     private readonly int incLevel;
+    private readonly Vector3 localPosN;
+    private readonly Quaternion localRot;
     private int direction;
     private int time;
     private int bulletCount;
@@ -33,8 +35,6 @@ internal struct OptimizedEjector
     private int findingOrbitId;
     private int runtimeOrbitId;
     private bool incUsed;
-    private Vector3 localPosN;
-    private Quaternion localRot;
     private Vector3 localDir;
     private double targetDist;
     private bool needFindNextOrbit;
