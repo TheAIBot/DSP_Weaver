@@ -1,3 +1,11 @@
+## 2.1.0
+* Optimized sorters memory usage.
+* Optimized belts memory usage and accessing belts.
+* Optimized dyson sphere power calculation.
+* Fix ray receivers were
+* Popup box will now report if any used mods are known to be incompatible with Weaver.
+	* Added configuration WarnAboutModIncompatibility to disable the popup box.
+
 ## 2.0.4
 * Updated to DSP version 0.10.33.27005.
 * Fix going to a planet with a recently destroyed assembler could cause the game to crash.
