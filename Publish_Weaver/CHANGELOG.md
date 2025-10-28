@@ -2,7 +2,7 @@
 * Optimized sorters memory usage.
 * Optimized belts memory usage and accessing belts.
 * Optimized dyson sphere power calculation.
-* Fix ray receivers were
+* Fix ray receivers dyson power demand was updated twice.
 * Fix sorters on optimized planets could not take items from silos and ejectors and put them on belts.
 * Popup box will now report if any used mods are known to be incompatible with Weaver.
 	* Added configuration WarnAboutModIncompatibility to disable the popup box.
