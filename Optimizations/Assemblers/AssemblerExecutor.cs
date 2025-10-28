@@ -62,9 +62,9 @@ internal sealed class AssemblerExecutor
                 continue;
             }
 
-            AssemblerRecipe recipeData = assemblerRecipes[assemblerRecipeIndexes[assemblerIndex]];
+            ref readonly AssemblerRecipe recipeData = ref assemblerRecipes[assemblerRecipeIndexes[assemblerIndex]];
             ref AssemblerTimingData assemblerTimingData = ref assemblersTimingData[assemblerIndex];
-            OptimizedAssembler.UpdateNeeds(ref recipeData,
+            OptimizedAssembler.UpdateNeeds(in recipeData,
                                            ref assemblerTimingData,
                                            groupNeeds,
                                            served,
@@ -83,7 +83,7 @@ internal sealed class AssemblerExecutor
             assemblerNetworkIdAndState.State = (int)assembler.Update(power,
                                                                      productRegister,
                                                                      consumeRegister,
-                                                                     ref recipeData,
+                                                                     in recipeData,
                                                                      ref replicating,
                                                                      ref extraPowerRatios,
                                                                      ref assemblerTimingData,
