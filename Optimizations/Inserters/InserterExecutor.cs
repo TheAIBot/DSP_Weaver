@@ -415,7 +415,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[ejectorId];
             int bulletId = ejector.bulletId;
             int bulletCount = ejector.bulletCount;
-            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && needs[needsOffset + EjectorExecutor.SoleEjectorNeedsIndex] == bulletId)
+            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && IsInNeed((short)bulletId, needs, needsOffset + EjectorExecutor.SoleEjectorNeedsIndex, groupNeeds.GroupNeedsSize))
             {
                 ejector.TakeOneBulletUnsafe(out inc);
                 return (short)bulletId;
@@ -430,7 +430,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             ref SiloComponent silo = ref planet.factorySystem.siloPool[siloId];
             int bulletId2 = silo.bulletId;
             int bulletCount2 = silo.bulletCount;
-            if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && needs[needsOffset + SiloExecutor.SoleSiloNeedsIndex] == bulletId2)
+            if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && IsInNeed((short)bulletId2, needs, needsOffset + SiloExecutor.SoleSiloNeedsIndex, groupNeeds.GroupNeedsSize))
             {
                 silo.TakeOneBulletUnsafe(out inc);
                 return (short)bulletId2;
