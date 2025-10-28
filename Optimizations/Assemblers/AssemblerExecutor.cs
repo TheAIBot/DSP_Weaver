@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
@@ -24,6 +26,7 @@ internal sealed class AssemblerExecutor
     public short[] _served = null!;
     public short[] _incServed = null!;
     public short[] _produced = null!;
+    public bool[] _needToUpdateNeeds = null!;
 
 
     public int Count => _optimizedAssemblers.Length;
@@ -50,6 +53,7 @@ internal sealed class AssemblerExecutor
         short[] incServed = _incServed;
         short[] produced = _produced;
         short[] assemblerRecipeIndexes = _assemblerRecipeIndexes;
+        bool[] needToUpdateNeeds = _needToUpdateNeeds;
 
         for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
         {
@@ -64,12 +68,16 @@ internal sealed class AssemblerExecutor
 
             ref readonly AssemblerRecipe recipeData = ref assemblerRecipes[assemblerRecipeIndexes[assemblerIndex]];
             ref AssemblerTimingData assemblerTimingData = ref assemblersTimingData[assemblerIndex];
-            OptimizedAssembler.UpdateNeeds(in recipeData,
-                                           ref assemblerTimingData,
-                                           groupNeeds,
-                                           served,
-                                           needs,
-                                           assemblerIndex);
+            if (needToUpdateNeeds[assemblerIndex])
+            {
+                OptimizedAssembler.UpdateNeeds(in recipeData,
+                                               ref assemblerTimingData,
+                                               groupNeeds,
+                                               served,
+                                               needs,
+                                               assemblerIndex);
+                needToUpdateNeeds[assemblerIndex] = false;
+            }
             float power = networkServes[assemblerNetworkIdAndState.Index];
             if (!assemblerTimingData.UpdateTimings(power, replicating, in recipeData))
             {
@@ -92,6 +100,10 @@ internal sealed class AssemblerExecutor
                                                                      served,
                                                                      incServed,
                                                                      produced);
+
+            // Just assumes default update requires updating needs.
+            // In reality it only needs to be done if any served items were consumed.
+            needToUpdateNeeds[assemblerIndex] = true;
 
             UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, networksPowerConsumption, assemblerIndex, assemblerNetworkIdAndState.Index, replicating, extraPowerRatios);
         }
@@ -327,6 +339,8 @@ internal sealed class AssemblerExecutor
             _served = servedFlat.ToArray();
             _incServed = incServedFlat.ToArray();
             _produced = producedFlat.ToArray();
+            _needToUpdateNeeds = new bool[optimizedAssemblers.Count];
+            _needToUpdateNeeds.Fill(true);
         }
 
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates.ToArray();

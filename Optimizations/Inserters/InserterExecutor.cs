@@ -83,6 +83,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly short[] _assemblerProduced;
     private readonly short[] _assemblerRecipeIndexes;
     private readonly AssemblerRecipe[] _assemblerRecipes;
+    private readonly bool[] _assemblerNeedToUpdateNeeds;
 
     private readonly int _producingLabProducedSize;
     private readonly short[] _producingLabServed;
@@ -111,6 +112,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             short[] assemblerProduced,
                             short[] assemblerRecipeIndexes,
                             AssemblerRecipe[] assemblerRecipes,
+                            bool[] assemblerNeedToUpdateNeeds,
                             int producingLabProducedSize,
                             short[] producingLabServed,
                             short[] producingLabIncServed,
@@ -134,6 +136,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         _assemblerProduced = assemblerProduced;
         _assemblerRecipeIndexes = assemblerRecipeIndexes;
         _assemblerRecipes = assemblerRecipes;
+        _assemblerNeedToUpdateNeeds = assemblerNeedToUpdateNeeds;
         _producingLabProducedSize = producingLabProducedSize;
         _producingLabServed = producingLabServed;
         _producingLabIncServed = producingLabIncServed;
@@ -594,6 +597,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 assemblerIncServed[assemblerServedOffset + i] += itemInc;
                 remainInc = 0;
                 _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                _assemblerNeedToUpdateNeeds[objectIndex] = true;
                 return itemCount;
             }
 
