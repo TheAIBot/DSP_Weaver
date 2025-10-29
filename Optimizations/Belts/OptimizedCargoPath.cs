@@ -669,39 +669,17 @@ internal struct OptimizedCargoPath
 
     public readonly void InsertCargoAtHeadDirect(OptimizedCargo optimizedCargo, int headIndex)
     {
-        buffer[headIndex] = 246;
-        buffer[headIndex + 1] = 247;
-        buffer[headIndex + 2] = 248;
-        buffer[headIndex + 3] = 249;
-        buffer[headIndex + 4] = 250;
-        SetCargoInBuffer(headIndex + 5, optimizedCargo);
-        buffer[headIndex + 9] = byte.MaxValue;
+        SetCargo(headIndex, optimizedCargo);
     }
 
     private readonly void InsertCargoDirect(int index, OptimizedCargo optimizedCargo)
     {
-        int num = index - 4;
-        buffer[num] = 246;
-        buffer[num + 1] = 247;
-        buffer[num + 2] = 248;
-        buffer[num + 3] = 249;
-        buffer[num + 4] = 250;
-        SetCargoInBuffer(num + 5, optimizedCargo);
-        buffer[num + 9] = byte.MaxValue;
+        SetCargo(index - 4, optimizedCargo);
     }
 
     public readonly void InsertItemDirect(int index, int itemId, byte stack, byte inc)
     {
-        OptimizedCargo optimizedCargo = new OptimizedCargo((short)itemId, stack, inc);
-
-        int num2 = index - 4;
-        buffer[num2] = 246;
-        buffer[num2 + 1] = 247;
-        buffer[num2 + 2] = 248;
-        buffer[num2 + 3] = 249;
-        buffer[num2 + 4] = 250;
-        SetCargoInBuffer(num2 + 5, optimizedCargo);
-        buffer[num2 + 9] = byte.MaxValue;
+        SetCargo(index - 4, new OptimizedCargo((short)itemId, stack, inc));
     }
 
     public readonly bool TryInsertItemAtHead(int itemId, byte stack, byte inc)
@@ -710,14 +688,8 @@ internal struct OptimizedCargoPath
         {
             return false;
         }
-        OptimizedCargo optimizedCargo = new OptimizedCargo((short)itemId, stack, inc);
-        buffer[0] = 246;
-        buffer[1] = 247;
-        buffer[2] = 248;
-        buffer[3] = 249;
-        buffer[4] = 250;
-        SetCargoInBuffer(5, optimizedCargo);
-        buffer[9] = byte.MaxValue;
+
+        SetCargo(0, new OptimizedCargo((short)itemId, stack, inc));
         return true;
     }
 
@@ -733,14 +705,8 @@ internal struct OptimizedCargoPath
         {
             return false;
         }
-        OptimizedCargo optimizedCargo = new OptimizedCargo((short)itemId, stack, inc);
-        buffer[num] = 246;
-        buffer[num + 1] = 247;
-        buffer[num + 2] = 248;
-        buffer[num + 3] = 249;
-        buffer[num + 4] = 250;
-        SetCargoInBuffer(num + 5, optimizedCargo);
-        buffer[num + 9] = byte.MaxValue;
+
+        SetCargo(num, new OptimizedCargo((short)itemId, stack, inc));
         return true;
     }
 
@@ -768,14 +734,8 @@ internal struct OptimizedCargoPath
         {
             return false;
         }
-        OptimizedCargo optimizedCargo = new OptimizedCargo((short)itemId, stack, inc);
-        buffer[num] = 246;
-        buffer[num + 1] = 247;
-        buffer[num + 2] = 248;
-        buffer[num + 3] = 249;
-        buffer[num + 4] = 250;
-        SetCargoInBuffer(num + 5, optimizedCargo);
-        buffer[num + 9] = byte.MaxValue;
+
+        SetCargo(num, new OptimizedCargo((short)itemId, stack, inc));
         return true;
     }
 
@@ -1453,6 +1413,17 @@ internal struct OptimizedCargoPath
     private readonly OptimizedCargo GetCargo(int index)
     {
         return BeltExecutor.GetCargo(buffer, index);
+    }
+
+    private readonly void SetCargo(int index, OptimizedCargo optimizedCargo)
+    {
+        buffer[index + 0] = 246;
+        buffer[index + 1] = 247;
+        buffer[index + 2] = 248;
+        buffer[index + 3] = 249;
+        buffer[index + 4] = 250;
+        SetCargoInBuffer(index + 5, optimizedCargo);
+        buffer[index + 9] = byte.MaxValue;
     }
 
     private static OptimizedCargo AddItemStackToCargo(OptimizedCargo cargo, int itemId, int maxStack, ref int count, ref int inc)
