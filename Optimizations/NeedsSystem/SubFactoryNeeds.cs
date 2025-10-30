@@ -2,24 +2,26 @@
 
 namespace Weaver.Optimizations.NeedsSystem;
 
-internal readonly struct SubFactoryNeeds
+internal sealed class SubFactoryNeeds
 {
     private readonly GroupNeeds[] _groupNeeds;
-    public readonly short[] Needs;
+    public short[] NeedsPatterns { get; }
+    public ComponentNeeds[] ComponentsNeeds { get; }
 
-    public SubFactoryNeeds(GroupNeeds[] groupNeeds, short[] needs)
+    public SubFactoryNeeds(GroupNeeds[] groupNeeds, short[] needsPatterns, ComponentNeeds[] componentsNeeds)
     {
         _groupNeeds = groupNeeds;
-        Needs = needs;
+        NeedsPatterns = needsPatterns;
+        ComponentsNeeds = componentsNeeds;
     }
 
-    public readonly GroupNeeds GetGroupNeeds(EntityType entityType)
+    public GroupNeeds GetGroupNeeds(EntityType entityType)
     {
         return _groupNeeds[(int)entityType];
     }
 
-    public readonly int GetTypedObjectNeedsIndex(TypedObjectIndex typedObjectIndex)
+    public int GetTypedObjectNeedsIndex(TypedObjectIndex typedObjectIndex)
     {
-        return _groupNeeds[(int)typedObjectIndex.EntityType].GetObjectNeedsIndex(typedObjectIndex.Index);
+        return GetGroupNeeds(typedObjectIndex.EntityType).GetObjectNeedsIndex(typedObjectIndex.Index);
     }
 }

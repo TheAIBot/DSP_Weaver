@@ -374,7 +374,7 @@ internal sealed class EjectorExecutor
         EjectorComponent[] ejectors = planet.factorySystem.ejectorPool;
         short[] optimizedBulletItemId = _optimizedBulletItemId;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Ejector);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
 
         DysonSwarm? swarm = null;
         if (planet.factorySystem.factory.dysonSphere != null)
@@ -395,7 +395,7 @@ internal sealed class EjectorExecutor
             int networkIndex = ejectorNetworkIds[ejectorIndexIndex];
             float power3 = networkServes[networkIndex];
             ref EjectorComponent ejector = ref ejectors[ejectorIndex];
-            InternalUpdate(ref planet.factorySystem.ejectorPool[ejectorIndex], power3, time, swarm, astroPoses, optimizedBulletId, consumeRegister, needs, needsOffset);
+            InternalUpdate(ref planet.factorySystem.ejectorPool[ejectorIndex], power3, time, swarm, astroPoses, optimizedBulletId, consumeRegister, componentsNeeds, needsOffset);
 
             UpdatePower(ejectorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, ejectorIndexIndex, networkIndex, ref ejector);
         }
@@ -474,17 +474,19 @@ internal sealed class EjectorExecutor
         int[] ejectorIndexes = _ejectorIndexes;
         EjectorComponent[] ejectors = planet.factorySystem.ejectorPool;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Ejector);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
+        short[] needsPatterns = subFactoryNeeds.NeedsPatterns;
 
         for (int ejectorIndexIndex = 0; ejectorIndexIndex < ejectorIndexes.Length; ejectorIndexIndex++)
         {
             int ejectorIndex = ejectorIndexes[ejectorIndexIndex];
             int needsOffset = groupNeeds.GetObjectNeedsIndex(ejectorIndexIndex);
+            ComponentNeeds componentNeeds = componentsNeeds[needsOffset];
             ref EjectorComponent ejector = ref ejectors[ejectorIndex];
 
             for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
             {
-                GroupNeeds.SetIfInRange(ejector.needs, needs, i, needsOffset + i);
+                GroupNeeds.SetNeedsIfInRange(ejector.needs, componentNeeds, needsPatterns, i);
             }
         }
     }
@@ -521,7 +523,7 @@ internal sealed class EjectorExecutor
             // Need to investigate when i need to update it.
             ejector.needs ??= new int[6];
             planet.entityNeeds[ejector.entityId] = ejector.needs;
-            needsBuilder.AddNeeds(ejector.needs, 1);
+            needsBuilder.AddNeeds(ejector.needs, [ejector.bulletId]);
 
             subFactoryPowerSystemBuilder.AddEjector(in ejector, networkIndex);
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[ejector.entityId]);
@@ -546,7 +548,7 @@ internal sealed class EjectorExecutor
                                        AstroData[] astroPoses,
                                        short optimizedBulletId,
                                        int[] consumeRegister,
-                                       short[] needs,
+                                       ComponentNeeds[] componentsNeeds,
                                        int needsOffset)
     {
         if (swarm == null)
@@ -554,7 +556,7 @@ internal sealed class EjectorExecutor
             throw new InvalidOperationException("I am very confused about why this ever worked to begin with. Swarm was null for ejector which is possible. The game ignores it but it will cause a crash.");
         }
 
-        needs[needsOffset + SoleEjectorNeedsIndex] = (short)(ejector.bulletCount < 20 ? ejector.bulletId : 0);
+        componentsNeeds[needsOffset + SoleEjectorNeedsIndex].Needs = (byte)(ejector.bulletCount < 20 ? 1 : 0);
         ejector.targetState = ETargetState.None;
         //// No point in updating anything else if the ejector can't shoot anyway
         //if (ejector.bulletCount == 0)

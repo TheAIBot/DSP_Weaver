@@ -41,7 +41,7 @@ internal sealed class ProducingLabExecutor
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         ProducingLabRecipe[] producingLabRecipes = universeStaticData.ProducingLabRecipes;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         int producedSize = _producedSize;
         short[] served = _served;
         short[] incServed = _incServed;
@@ -63,7 +63,7 @@ internal sealed class ProducingLabExecutor
             lab.UpdateNeedsAssemble(in producingLabRecipe,
                                     groupNeeds,
                                     served,
-                                    needs,
+                                    componentsNeeds,
                                     labIndex);
 
             int servedOffset = labIndex * groupNeeds.GroupNeedsSize;
@@ -87,7 +87,7 @@ internal sealed class ProducingLabExecutor
     public void GameTickLabOutputToNext(SubFactoryNeeds subFactoryNeeds, UniverseStaticData universeStaticData)
     {
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         int producedSize = _producedSize;
         short[] served = _served;
         short[] incServed = _incServed;
@@ -106,7 +106,7 @@ internal sealed class ProducingLabExecutor
                                    networkIdAndStates,
                                    in producingLabRecipe,
                                    groupNeeds,
-                                   needs,
+                                   componentsNeeds,
                                    servedOffset,
                                    producedSize,
                                    served,
@@ -182,7 +182,8 @@ internal sealed class ProducingLabExecutor
         OptimizedProducingLab[] optimizedProducingLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
+        short[] needsPatterns = subFactoryNeeds.NeedsPatterns;
         int producedSize = _producedSize;
         short[] served = _served;
         short[] incServed = _incServed;
@@ -198,7 +199,8 @@ internal sealed class ProducingLabExecutor
             optimizedLab.Save(ref labComponents[i],
                               labsPowerFields[optimizedIndex],
                               groupNeeds,
-                              needs,
+                              componentsNeeds,
+                              needsPatterns,
                               producedSize,
                               served,
                               incServed,
@@ -296,7 +298,7 @@ internal sealed class ProducingLabExecutor
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[lab.entityId] = lab.needs;
-            needsBuilder.AddNeeds(lab.needs, producingLabRecipe.Requires.Length);
+            needsBuilder.AddNeeds(lab.needs, lab.requires);
         }
 
         for (int i = 0; i < optimizedLabs.Count; i++)

@@ -38,7 +38,7 @@ internal sealed class SiloExecutor
         SiloComponent[] silos = planet.factorySystem.siloPool;
         short[] optimizedBulletItemId = _optimizedBulletItemId;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Silo);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
 
         DysonSphere dysonSphere = planet.factorySystem.factory.dysonSphere;
         for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
@@ -49,7 +49,7 @@ internal sealed class SiloExecutor
             int networkIndex = siloNetworkIds[siloIndexIndex];
             float power4 = networkServes[networkIndex];
             ref SiloComponent silo = ref silos[siloIndex];
-            InternalUpdate(ref silo, power4, dysonSphere, optimizedBulletId, consumeRegister, needs, needsOffset);
+            InternalUpdate(ref silo, power4, dysonSphere, optimizedBulletId, consumeRegister, componentsNeeds, needsOffset);
 
             UpdatePower(siloPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, siloIndexIndex, networkIndex, in silo);
         }
@@ -128,17 +128,19 @@ internal sealed class SiloExecutor
         int[] siloIndexes = _siloIndexes;
         SiloComponent[] silos = planet.factorySystem.siloPool;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Silo);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
+        short[] needsPatterns = subFactoryNeeds.NeedsPatterns;
 
         for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
         {
             int siloIndex = siloIndexes[siloIndexIndex];
             int needsOffset = groupNeeds.GetObjectNeedsIndex(siloIndexIndex);
+            ComponentNeeds componentNeeds = componentsNeeds[needsOffset];
             ref SiloComponent silo = ref silos[siloIndex];
 
             for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
             {
-                GroupNeeds.SetIfInRange(silo.needs, needs, i, needsOffset + i);
+                GroupNeeds.SetNeedsIfInRange(silo.needs, componentNeeds, needsPatterns, i);
             }
         }
     }
@@ -174,7 +176,7 @@ internal sealed class SiloExecutor
             // set it here so we don't have to set it in the update loop
             silo.needs ??= new int[6];
             planet.entityNeeds[silo.entityId] = silo.needs;
-            needsBuilder.AddNeeds(silo.needs, 1);
+            needsBuilder.AddNeeds(silo.needs, [silo.bulletId]);
 
             subFactoryPowerSystemBuilder.AddSilo(in silo, networkIndex);
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[silo.entityId]);
@@ -197,10 +199,10 @@ internal sealed class SiloExecutor
                                        DysonSphere sphere,
                                        short optimizedBulletId,
                                        int[] consumeRegister,
-                                       short[] needs,
+                                       ComponentNeeds[] componentsNeeds,
                                        int needsOffset)
     {
-        needs[needsOffset + SoleSiloNeedsIndex] = (short)(silo.bulletCount < 20 ? silo.bulletId : 0);
+        componentsNeeds[needsOffset + SoleSiloNeedsIndex].Needs = (byte)(silo.bulletCount < 20 ? 1 : 0);
         if (silo.fired && silo.direction != -1)
         {
             silo.fired = false;

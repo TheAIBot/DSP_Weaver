@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Belts;
 
@@ -970,7 +971,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public OptimizedCargo TryPickItem(int index, int length, int filter, short[] needs, int needsOffset, int needsSize)
+    public OptimizedCargo TryPickItem(int index, int length, int filter, ComponentNeeds componentNeeds, short[] needsPatterns, int needsSize)
     {
         if (index < 0)
         {
@@ -994,7 +995,7 @@ internal struct OptimizedCargoPath
             i += 250 - buffer[i];
             OptimizedCargo optimizedCargo = GetCargo(i + 1);
             int item = optimizedCargo.Item;
-            if ((filter == 0 || item == filter) && AnyMatch(needs, needsOffset, needsSize, item))
+            if ((filter == 0 || item == filter) && AnyMatch(componentNeeds, needsPatterns, needsSize, item))
             {
                 Array.Clear(buffer, i - 4, 10);
                 int num3 = i + 5 + 1;
@@ -1386,11 +1387,11 @@ internal struct OptimizedCargoPath
         }
     }
 
-    private static bool AnyMatch(short[] needs, int needsOffset, int needsSize, int match)
+    private static bool AnyMatch(ComponentNeeds componentNeeds, short[] needsPatterns, int needsSize, int match)
     {
         for (int i = 0; i < needsSize; i++)
         {
-            if (needs[needsOffset + i] == match)
+            if (componentNeeds.GetNeeds(i) && needsPatterns[componentNeeds.PatternIndex + i] == match)
             {
                 return true;
             }

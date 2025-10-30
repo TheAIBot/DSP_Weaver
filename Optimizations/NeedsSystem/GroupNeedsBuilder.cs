@@ -6,54 +6,57 @@ namespace Weaver.Optimizations.NeedsSystem;
 
 internal sealed class GroupNeedsBuilder
 {
-    private readonly IWholeNeedsBuilder _wholeNeedsBuilder;
-    private readonly EntityType _groupEntityType;
-    private readonly List<int[]> _allNeeds = [];
-    private int _maxNeedsSize = int.MinValue;
 
-    public GroupNeedsBuilder(IWholeNeedsBuilder wholeNeedsBuilder, EntityType groupEntityType)
+    private readonly SubFactoryNeedsBuilder _needsBuilder;
+    private readonly EntityType _entityType;
+    private readonly int _needsStartIndex;
+    private readonly List<(int[] Needs, int[] Pattern)> _needsWithPatterns = [];
+
+    public GroupNeedsBuilder(SubFactoryNeedsBuilder needsBuilder, 
+                                EntityType entityType,
+                                int needsStartIndex)
     {
-        _wholeNeedsBuilder = wholeNeedsBuilder;
-        _groupEntityType = groupEntityType;
+        _needsBuilder = needsBuilder;
+        _entityType = entityType;
+        _needsStartIndex = needsStartIndex;
     }
 
-    public void AddNeeds(int[] needs, int needsSize)
+    public void AddNeeds(int[] needs, int[] pattern)
     {
-        _allNeeds.Add(needs);
-        _maxNeedsSize = Math.Max(_maxNeedsSize, needsSize);
+        _needsWithPatterns.Add((needs, pattern));
     }
 
     public void Complete()
     {
-        List<int[]> allNeeds = _allNeeds;
-        if (allNeeds.Count == 0)
+        int largestPatternSize = 0;
+        foreach (var item in _needsWithPatterns)
         {
-            return;
+            largestPatternSize = Math.Max(largestPatternSize, item.Pattern.Length);
         }
 
-        List<short> needsFlat = _wholeNeedsBuilder.GetNeedsFlat();
-        int groupStartIndex = needsFlat.Count;
-        int maxNeedsSize = _maxNeedsSize;
 
-        for (int i = 0; i < allNeeds.Count; i++)
+        foreach (var item in _needsWithPatterns)
         {
-            for (int needsIndex = 0; needsIndex < maxNeedsSize; needsIndex++)
-            {
-
-                needsFlat.Add(GetOrDefault(allNeeds[i], needsIndex));
-            }
+            short patternIndex = AddNeedsPattern(item.Needs, item.Pattern, largestPatternSize);
+            _needsBuilder.AddNeeds(patternIndex, item.Pattern);
         }
 
-        _wholeNeedsBuilder.CompletedGroup(_groupEntityType, new GroupNeeds(groupStartIndex, maxNeedsSize));
+        _needsBuilder.CompleteGroup(_entityType, new GroupNeeds(_needsStartIndex, (byte)largestPatternSize));
     }
 
-    private static short GetOrDefault(int[] values, int index)
+    private short AddNeedsPattern(int[] needs, int[] pattern, int largestPatternSize)
     {
-        if (values.Length <= index)
+        if (pattern.Length > SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH)
         {
-            return 0;
+            throw new InvalidOperationException($"Assumption that no needs pattern is larger than {SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH} was incorrect. Length: {pattern.Length}");
         }
 
-        return (short)values[index];
+        if (needs.Length > SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH)
+        {
+            throw new InvalidOperationException($"Assumption that no needs is larger than {SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH} was incorrect. Length: {needs.Length}");
+        }
+
+        var needsPattern = new NeedsPattern(pattern, largestPatternSize);
+        return _needsBuilder.AddPattern(needsPattern, largestPatternSize);
     }
 }

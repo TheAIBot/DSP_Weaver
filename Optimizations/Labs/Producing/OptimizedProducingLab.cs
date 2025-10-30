@@ -45,7 +45,7 @@ internal struct OptimizedProducingLab
     public readonly void UpdateNeedsAssemble(ref readonly ProducingLabRecipe producingLabRecipe,
                                              GroupNeeds groupNeeds,
                                              short[] served,
-                                             short[] needs,
+                                             ComponentNeeds[] componentsNeeds,
                                              int labIndex)
     {
         int num2 = producingLabRecipe.TimeSpend > 5400000 ? 6 : 3 * ((speedOverride + 5001) / 10000) + 3;
@@ -53,10 +53,13 @@ internal struct OptimizedProducingLab
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * labIndex;
         OptimizedItemId[] requires = producingLabRecipe.Requires;
+        byte needBits = 0;
         for (int i = 0; i < requires.Length; i++)
         {
-            needs[needsOffset + i] = served[servedOffset + i] < num2 ? requires[i].ItemIndex : (short)0;
+            needBits |= (byte)((served[servedOffset + i] < num2 ? 1 : 0) << i);
         }
+
+        componentsNeeds[needsOffset].Needs = needBits;
     }
 
     public LabState InternalUpdateAssemble(float power,
@@ -169,7 +172,7 @@ internal struct OptimizedProducingLab
                                             NetworkIdAndState<LabState>[] networkIdAndStates,
                                             ref readonly ProducingLabRecipe producingLabRecipe,
                                             GroupNeeds groupNeeds,
-                                            short[] needs,
+                                            ComponentNeeds[] componentsNeeds,
                                             int serveOffset,
                                             int producedSize,
                                             short[] served,
@@ -186,9 +189,10 @@ internal struct OptimizedProducingLab
         int nextLabNeedsOffset = groupNeeds.GetObjectNeedsIndex(nextLabIndex);
         int nextLabServeOffset = groupNeeds.GroupNeedsSize * nextLabIndex;
         int recipeRequireCountLength = producingLabRecipe.RequireCounts.Length;
+        ComponentNeeds nextLabNeeds = componentsNeeds[nextLabNeedsOffset];
         for (int i = 0; i < recipeRequireCountLength; i++)
         {
-            if (needs[nextLabNeedsOffset + i] == producingLabRecipe.Requires[i].ItemIndex && served[serveOffset + i] >= producingLabRecipe.RequireCounts[i] + num14)
+            if (nextLabNeeds.GetNeeds(i) && served[serveOffset + i] >= producingLabRecipe.RequireCounts[i] + num14)
             {
                 int num15 = served[serveOffset + i] - producingLabRecipe.RequireCounts[i] - num14;
                 if (num15 > 5)
@@ -225,7 +229,8 @@ internal struct OptimizedProducingLab
     public readonly void Save(ref LabComponent lab,
                               LabPowerFields labPowerFields,
                               GroupNeeds groupNeeds,
-                              short[] needs,
+                              ComponentNeeds[] componentsNeeds,
+                              short[] needsPatterns,
                               int producedSize,
                               short[] served,
                               short[] incServed,
@@ -234,10 +239,11 @@ internal struct OptimizedProducingLab
     {
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * labIndex;
+        ComponentNeeds componentNeeds = componentsNeeds[needsOffset];
         for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
             GroupNeeds.SetIfInRange(lab.served, served, i, servedOffset + i);
-            GroupNeeds.SetIfInRange(lab.needs, needs, i, needsOffset + i);
+            GroupNeeds.SetNeedsIfInRange(lab.needs, componentNeeds, needsPatterns, i);
             GroupNeeds.SetIfInRange(lab.incServed, incServed, i, servedOffset + i);
         }
 

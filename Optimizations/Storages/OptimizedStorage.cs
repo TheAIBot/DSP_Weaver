@@ -1,12 +1,14 @@
-﻿namespace Weaver.Optimizations.Storages;
+﻿using Weaver.Optimizations.NeedsSystem;
+
+namespace Weaver.Optimizations.Storages;
 
 internal sealed class OptimizedStorage
 {
     public static bool TakeTailItems(StorageComponent storageComponent,
                                      ref int itemId,
                                      ref int count,
-                                     short[] needs,
-                                     int needsOffset,
+                                     ComponentNeeds componentNeeds,
+                                     short[] needsPatterns,
                                      int needsSize,
                                      out int inc,
                                      bool useBan = false)
@@ -27,7 +29,7 @@ internal sealed class OptimizedStorage
             {
                 result = true;
                 int gridItemIndex = storageComponent.grids[num2].itemId;
-                if (IsInNeed(gridItemIndex, needs, needsOffset, needsSize))
+                if (IsInNeed(gridItemIndex, componentNeeds, needsPatterns, needsSize))
                 {
                     itemId = storageComponent.grids[num2].itemId;
                     if (storageComponent.grids[num2].count > num)
@@ -63,13 +65,13 @@ internal sealed class OptimizedStorage
     }
 
     private static bool IsInNeed(int productItemIndex,
-                                 short[] needs,
-                                 int needsOffset,
+                                 ComponentNeeds componentNeeds,
+                                 short[] needsPatterns,
                                  int needsSize)
     {
         for (int i = 0; i < needsSize; i++)
         {
-            if (needs[needsOffset + i] == productItemIndex)
+            if (componentNeeds.GetNeeds(i) && needsPatterns[componentNeeds.PatternIndex + i] == productItemIndex)
             {
                 return true;
             }

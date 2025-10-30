@@ -47,7 +47,7 @@ internal sealed class AssemblerExecutor
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         AssemblerTimingData[] assemblersTimingData = _assemblersTimingData;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Assembler);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         int producedSize = _producedSize;
         short[] served = _served;
         short[] incServed = _incServed;
@@ -74,7 +74,7 @@ internal sealed class AssemblerExecutor
                                                ref assemblerTimingData,
                                                groupNeeds,
                                                served,
-                                               needs,
+                                               componentsNeeds,
                                                assemblerIndex);
                 needToUpdateNeeds[assemblerIndex] = false;
             }
@@ -186,7 +186,8 @@ internal sealed class AssemblerExecutor
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         AssemblerTimingData[] assemblersTimingData = _assemblersTimingData;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Assembler);
-        short[] needs = subFactoryNeeds.Needs;
+        ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
+        short[] needsPatterns = subFactoryNeeds.NeedsPatterns;
         int producedSize = _producedSize;
         short[] served = _served;
         short[] incServed = _incServed;
@@ -204,7 +205,8 @@ internal sealed class AssemblerExecutor
                                     assemblerExtraPowerRatios[optimizedIndex],
                                     in assemblersTimingData[optimizedIndex],
                                     groupNeeds,
-                                    needs,
+                                    componentsNeeds,
+                                    needsPatterns,
                                     producedSize,
                                     served,
                                     incServed,
@@ -300,7 +302,7 @@ internal sealed class AssemblerExecutor
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[assembler.entityId] = assembler.needs;
-            needsBuilder.AddNeeds(assembler.needs, assemblerRecipe.Requires.Length);
+            needsBuilder.AddNeeds(assembler.needs, assembler.requires);
         }
 
         if (assemblerRecipes.Count > 0)

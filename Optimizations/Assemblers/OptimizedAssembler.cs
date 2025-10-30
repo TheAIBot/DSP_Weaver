@@ -55,7 +55,7 @@ internal struct OptimizedAssembler
                                    ref readonly AssemblerTimingData assemblerTimingData,
                                    GroupNeeds groupNeeds,
                                    short[] served,
-                                   short[] needs,
+                                   ComponentNeeds[] componentsNeeds,
                                    int assemblerIndex)
     {
         int num2 = assemblerTimingData.speedOverride * 180 / assemblerRecipeData.TimeSpend + 1;
@@ -67,11 +67,13 @@ internal struct OptimizedAssembler
         int needsOffset = groupNeeds.GetObjectNeedsIndex(assemblerIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * assemblerIndex;
         int[] requireCounts = assemblerRecipeData.RequireCounts;
-        OptimizedItemId[] requires = assemblerRecipeData.Requires;
+        byte needBits = 0;
         for (int i = 0; i < requireCounts.Length; i++)
         {
-            needs[needsOffset + i] = served[servedOffset + i] < requireCounts[i] * num2 ? requires[i].ItemIndex : (short)0;
+            needBits |= (byte)((served[servedOffset + i] < requireCounts[i] * num2 ? 1 : 0) << i);
         }
+
+        componentsNeeds[needsOffset].Needs = needBits;
     }
 
     public AssemblerState Update(float power,
@@ -268,7 +270,8 @@ internal struct OptimizedAssembler
                               int extraPowerRatio,
                               ref readonly AssemblerTimingData assemblerTimingData,
                               GroupNeeds groupNeeds,
-                              short[] needs,
+                              ComponentNeeds[] componentsNeeds,
+                              short[] needsPatterns,
                               int producedSize,
                               short[] served,
                               short[] incServed,
@@ -277,10 +280,11 @@ internal struct OptimizedAssembler
     {
         int needsOffset = groupNeeds.GetObjectNeedsIndex(assemblerIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * assemblerIndex;
+        ComponentNeeds componentNeeds = componentsNeeds[needsOffset];
         for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
             GroupNeeds.SetIfInRange(assembler.served, served, i, servedOffset + i);
-            GroupNeeds.SetIfInRange(assembler.needs, needs, i, needsOffset + i);
+            GroupNeeds.SetNeedsIfInRange(assembler.needs, componentNeeds, needsPatterns, i);
             GroupNeeds.SetIfInRange(assembler.incServed, incServed, i, servedOffset + i);
         }
 

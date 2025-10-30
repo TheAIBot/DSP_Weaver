@@ -37,7 +37,7 @@ internal struct OptimizedResearchingLab
                             SignData[] signPool,
                             ref LabPowerFields labPowerFields,
                             GroupNeeds groupNeeds,
-                            short[] needs,
+                            ComponentNeeds[] componentsNeeds,
                             int labIndex)
     {
         hashBytes = 0;
@@ -45,25 +45,32 @@ internal struct OptimizedResearchingLab
         labPowerFields.extraPowerRatio = 0;
         incUsed = false;
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
+        byte needBits = 0;
         for (int i = 0; i < LabComponent.matrixIds.Length; i++)
         {
-            needs[needsOffset + i] = (short)LabComponent.matrixIds[i];
+            needBits |= (byte)((LabComponent.matrixIds[i] > 0 ? 1 : 0) << i);
         }
+
+        componentsNeeds[needsOffset].Needs = needBits;
+
         signPool[entityId].iconId0 = (uint)techId;
         signPool[entityId].iconType = techId != 0 ? 3u : 0u;
     }
 
     public static void UpdateNeedsResearch(GroupNeeds groupNeeds,
-                                           short[] needs,
+                                           ComponentNeeds[] componentsNeeds,
                                            int[] matrixServed,
                                            int labIndex)
     {
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
         int matrixServedOffset = groupNeeds.GroupNeedsSize * labIndex;
+        byte needBits = 0;
         for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
-            needs[needsOffset + i] = matrixServed[matrixServedOffset + i] < 36000 ? (short)(6001 + i) : (short)0;
+            needBits |= (byte)((matrixServed[matrixServedOffset + i] < 36000 ? 1 : 0) << i);
         }
+
+        componentsNeeds[needsOffset].Needs = needBits;
     }
 
     public LabState InternalUpdateResearch(float power,
@@ -188,7 +195,7 @@ internal struct OptimizedResearchingLab
                                             OptimizedResearchingLab[] labPool,
                                             NetworkIdAndState<LabState>[] networkIdAndStates,
                                             GroupNeeds groupNeeds,
-                                            short[] needs,
+                                            ComponentNeeds[] componentsNeeds,
                                             int[] matrixServed,
                                             int[] matrixIncServed)
     {
@@ -202,9 +209,10 @@ internal struct OptimizedResearchingLab
 
         bool movedItems = false;
         int nextLabNeedsOffset = groupNeeds.GetObjectNeedsIndex(nextLabIndex);
+        ComponentNeeds nextLabNeeds = componentsNeeds[nextLabNeedsOffset];
         for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
-            if (needs[nextLabNeedsOffset + i] == 6001 + i && matrixServed[matrixServedOffset + i] >= 7200)
+            if (nextLabNeeds.GetNeeds(i) && matrixServed[matrixServedOffset + i] >= 7200)
             {
                 int num = (matrixServed[matrixServedOffset + i] - 7200) / 3600 * 3600;
                 if (num > 36000)
@@ -230,17 +238,19 @@ internal struct OptimizedResearchingLab
                               int[] matrixPoints,
                               int researchTechId,
                               GroupNeeds groupNeeds,
-                              short[] needs,
+                              ComponentNeeds[] componentsNeeds,
+                              short[] needsPatterns,
                               int[] matrixServed,
                               int[] matrixIncServed,
                               int labIndex)
     {
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * labIndex;
+        ComponentNeeds componentNeeds = componentsNeeds[needsOffset];
         for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
             GroupNeeds.SetIfInRange(lab.matrixServed, matrixServed, i, servedOffset + i);
-            GroupNeeds.SetIfInRange(lab.needs, needs, i, needsOffset + i);
+            GroupNeeds.SetNeedsIfInRange(lab.needs, componentNeeds, needsPatterns, i);
             GroupNeeds.SetIfInRange(lab.matrixIncServed, matrixIncServed, i, servedOffset + i);
         }
 

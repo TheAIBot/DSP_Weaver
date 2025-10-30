@@ -2,11 +2,11 @@
 
 namespace Weaver.Optimizations.NeedsSystem;
 
-internal record struct GroupNeeds(int GroupStartIndex, int GroupNeedsSize)
+internal record struct GroupNeeds(int GroupNeedStartIndex, byte GroupNeedsSize)
 {
     public int GetObjectNeedsIndex(int objectIndex)
     {
-        return GroupStartIndex + objectIndex * GroupNeedsSize;
+        return GroupNeedStartIndex + objectIndex;
     }
 
     public static void SetIfInRange(int[] copyTo, short[] copyFrom, int copyToIndex, int copyFromIndex)
@@ -17,6 +17,16 @@ internal record struct GroupNeeds(int GroupStartIndex, int GroupNeedsSize)
         }
 
         copyTo[copyToIndex] = copyFrom[copyFromIndex];
+    }
+
+    public static void SetNeedsIfInRange(int[] copyTo, ComponentNeeds componentNeeds, short[] needsPatterns, int copyIndex)
+    {
+        if (copyTo.Length <= copyIndex)
+        {
+            return;
+        }
+
+        copyTo[copyIndex] = componentNeeds.GetNeeds(copyIndex) ? needsPatterns[componentNeeds.PatternIndex + copyIndex] : 0;
     }
 
     public static void SetIfInRange(int[] copyTo, int[] copyFrom, int copyToIndex, int copyFromIndex)

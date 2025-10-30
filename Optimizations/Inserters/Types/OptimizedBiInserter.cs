@@ -111,7 +111,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
     }
 
     internal static bool IsNeedsNotEmpty(InserterConnections[] insertersConnections,
-                                         ref readonly SubFactoryNeeds subFactoryNeeds,
+                                         SubFactoryNeeds subFactoryNeeds,
                                          int inserterIndex,
                                          out InserterConnections inserterConnections,
                                          out GroupNeeds groupNeeds)
@@ -125,20 +125,11 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             return true;
         }
 
-        short[] needs = subFactoryNeeds.Needs;
         int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
-        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
-        {
-            if (needs[needsOffset + i] != 0)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return subFactoryNeeds.ComponentsNeeds[needsOffset].Needs != 0;
     }
 
-    internal static bool IsNeedsEmpty(ref readonly SubFactoryNeeds subFactoryNeeds,
+    internal static bool IsNeedsEmpty(SubFactoryNeeds subFactoryNeeds,
                                       InserterConnections inserterConnections,
                                       out GroupNeeds groupNeeds)
     {
@@ -150,17 +141,8 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             return true;
         }
 
-        short[] needs = subFactoryNeeds.Needs;
         int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
-        for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
-        {
-            if (needs[needsOffset + i] != 0)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return subFactoryNeeds.ComponentsNeeds[needsOffset].Needs == 0;
     }
 
     public void Update(PlanetFactory planet,
@@ -171,7 +153,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                        ref readonly BiInserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        InserterConnections[] insertersConnections,
-                       ref readonly SubFactoryNeeds subFactoryNeeds,
+                       SubFactoryNeeds subFactoryNeeds,
                        OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
@@ -193,7 +175,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                     if (idleTick-- < 1)
                     {
                         if (IsNeedsNotEmpty(insertersConnections,
-                                            in subFactoryNeeds,
+                                            subFactoryNeeds,
                                             inserterIndex,
                                             out InserterConnections inserterConnections,
                                             out GroupNeeds groupNeeds))
@@ -272,7 +254,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                         if (idleTick-- < 1)
                         {
                             if (IsNeedsNotEmpty(insertersConnections,
-                                                in subFactoryNeeds,
+                                                subFactoryNeeds,
                                                 inserterIndex,
                                                 out InserterConnections inserterConnections,
                                                 out GroupNeeds groupNeeds))
@@ -389,7 +371,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             if (inserterGrade.CareNeeds)
             {
 
-                if (IsNeedsEmpty(in subFactoryNeeds,
+                if (IsNeedsEmpty(subFactoryNeeds,
                                  inserterConnections,
                                  out groupNeeds))
                 {

@@ -131,7 +131,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                        ref readonly InserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        InserterConnections[] insertersConnections,
-                       ref readonly SubFactoryNeeds subFactoryNeeds, 
+                       SubFactoryNeeds subFactoryNeeds, 
                        OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
@@ -151,7 +151,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                             if (idleTick-- < 1)
                             {
                                 if (OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
-                                                                        in subFactoryNeeds,
+                                                                        subFactoryNeeds,
                                                                         inserterIndex,
                                                                         out InserterConnections inserterConnections,
                                                                         out GroupNeeds groupNeeds))
@@ -211,7 +211,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                             if (idleTick-- < 1)
                             {
                                 if (OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
-                                                                        in subFactoryNeeds,
+                                                                        subFactoryNeeds,
                                                                         inserterIndex,
                                                                         out InserterConnections inserterConnections,
                                                                         out GroupNeeds groupNeeds))
@@ -329,7 +329,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                     GroupNeeds groupNeeds = default;
                     if (inserterGrade.CareNeeds)
                     {
-                        if (OptimizedBiInserter.IsNeedsEmpty(in subFactoryNeeds,
+                        if (OptimizedBiInserter.IsNeedsEmpty(subFactoryNeeds,
                                                              inserterConnections,
                                                              out groupNeeds))
                         {

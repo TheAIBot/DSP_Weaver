@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.FatoryGraphs;
@@ -200,7 +201,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                                      in inserterGrade,
                                      ref optimizedInserterStage,
                                      _inserterConnections,
-                                     in _subFactoryNeeds,
+                                     _subFactoryNeeds,
                                      optimizedCargoPaths);
 
             UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
@@ -310,8 +311,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     }
 
     private static bool IsInNeed(short productItemIndex,
-                                 short[] needs,
-                                 int needsOffset,
+                                 ComponentNeeds componentNeeds,
+                                 short[] needsPatterns,
                                  int needsSize)
     {
         // What is inserted into might not have any needs. For example a belt.
@@ -322,7 +323,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 
         for (int i = 0; i < needsSize; i++)
         {
-            if (needs[needsOffset + i] == productItemIndex)
+            if (componentNeeds.GetNeeds(i) && needsPatterns[componentNeeds.PatternIndex + i] == productItemIndex)
             {
                 return true;
             }
@@ -368,10 +369,16 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
 
             {
-                short[] needs = _subFactoryNeeds.Needs;
                 int needsSize = groupNeeds.GroupNeedsSize;
                 int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
-                OptimizedCargo optimizedCargo = pickFromBelt.TryPickItem(offset - 2, 5, filter, needs, needsOffset, needsSize);
+                //if (needsOffset >= _subFactoryNeeds.ComponentsNeeds.Length)
+                //{
+                //    throw new InvalidOperationException($"Belt. needsOffset: {needsOffset}, component length: {_subFactoryNeeds.ComponentsNeeds.Length}");
+                //}
+                ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+                short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
+
+                OptimizedCargo optimizedCargo = pickFromBelt.TryPickItem(offset - 2, 5, filter, componentNeeds, needsPatterns, needsSize);
                 stack = optimizedCargo.Stack;
                 inc = optimizedCargo.Inc;
                 return optimizedCargo.Item;
@@ -387,9 +394,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 return 0;
             }
 
-            short[] needs = _subFactoryNeeds.Needs;
             int needsSize = groupNeeds.GroupNeedsSize;
             int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+            ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+            short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
             OptimizedItemId[] products = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Products;
             short[] produced = _assemblerProduced;
@@ -398,7 +406,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             for (int i = 0; i < products.Length; i++)
             {
                 short productItemIndex = products[i].ItemIndex;
-                if ((filter == productItemIndex || filter == 0) && produced[producedOffset + i] > 0 && productItemIndex > 0 && IsInNeed(productItemIndex, needs, needsOffset, needsSize))
+                if ((filter == productItemIndex || filter == 0) && produced[producedOffset + i] > 0 && productItemIndex > 0 && IsInNeed(productItemIndex, componentNeeds, needsPatterns, needsSize))
                 {
                     produced[producedOffset + i]--;
                     _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
@@ -411,12 +419,14 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         else if (typedObjectIndex.EntityType == EntityType.Ejector)
         {
             int ejectorId = _ejectorIndexes[objectIndex];
-            short[] needs = _subFactoryNeeds.Needs;
             int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+            ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+            short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
+
             ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[ejectorId];
             int bulletId = ejector.bulletId;
             int bulletCount = ejector.bulletCount;
-            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && IsInNeed((short)bulletId, needs, needsOffset + EjectorExecutor.SoleEjectorNeedsIndex, groupNeeds.GroupNeedsSize))
+            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && IsInNeed((short)bulletId, componentNeeds, needsPatterns, groupNeeds.GroupNeedsSize))
             {
                 ejector.TakeOneBulletUnsafe(out inc);
                 return (short)bulletId;
@@ -426,12 +436,14 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         else if (typedObjectIndex.EntityType == EntityType.Silo)
         {
             int siloId = _siloIndexes[objectIndex];
-            short[] needs = _subFactoryNeeds.Needs;
             int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+            ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+            short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
+
             ref SiloComponent silo = ref planet.factorySystem.siloPool[siloId];
             int bulletId2 = silo.bulletId;
             int bulletCount2 = silo.bulletCount;
-            if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && IsInNeed((short)bulletId2, needs, needsOffset + SiloExecutor.SoleSiloNeedsIndex, groupNeeds.GroupNeedsSize))
+            if (bulletId2 > 0 && bulletCount2 > 1 && (filter == 0 || filter == bulletId2) && IsInNeed((short)bulletId2, componentNeeds, needsPatterns, groupNeeds.GroupNeedsSize))
             {
                 silo.TakeOneBulletUnsafe(out inc);
                 return (short)bulletId2;
@@ -445,7 +457,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             StorageComponent storageComponent2 = storageComponent;
             if (storageComponent != null)
             {
-                short[] needs = _subFactoryNeeds.Needs;
+                short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
                 storageComponent = storageComponent.topStorage;
                 while (storageComponent != null)
                 {
@@ -463,7 +475,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                         else
                         {
                             int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
-                            bool flag2 = OptimizedStorage.TakeTailItems(storageComponent, ref itemId, ref count, needs, needsOffset, groupNeeds.GroupNeedsSize, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                            ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+                            bool flag2 = OptimizedStorage.TakeTailItems(storageComponent, ref itemId, ref count, componentNeeds, needsPatterns, groupNeeds.GroupNeedsSize, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
                             inc = (byte)inc2;
                             flag = count == 1 || flag2;
                         }
@@ -505,14 +518,15 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             short[] produced = _producingLabProduced;
             int producedOffset = _producingLabProducedSize * objectIndex;
 
-            short[] needs = _subFactoryNeeds.Needs;
             int needsSize = groupNeeds.GroupNeedsSize;
             int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
+            ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+            short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
             for (int j = 0; j < products.Length; j++)
             {
                 short productItemIndex = products[j].ItemIndex;
-                if (produced[producedOffset + j] > 0 && productItemIndex > 0 && (filter == 0 || filter == productItemIndex) && IsInNeed(productItemIndex, needs, needsOffset, needsSize))
+                if (produced[producedOffset + j] > 0 && productItemIndex > 0 && (filter == 0 || filter == productItemIndex) && IsInNeed(productItemIndex, componentNeeds, needsPatterns, needsSize))
                 {
                     produced[producedOffset + j]--;
                     _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
@@ -609,9 +623,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
 
             int ejectorId = _ejectorIndexes[objectIndex];
-            short[] needs = _subFactoryNeeds.Needs;
             int needsOffset = groupNeeds.GetObjectNeedsIndex(objectIndex);
-            if (needs[needsOffset + EjectorExecutor.SoleEjectorNeedsIndex] == itemId && planet.factorySystem.ejectorPool[ejectorId].bulletId == itemId)
+            ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+            short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
+
+            if (needsPatterns[componentNeeds.PatternIndex + EjectorExecutor.SoleEjectorNeedsIndex] == itemId && planet.factorySystem.ejectorPool[ejectorId].bulletId == itemId)
             {
                 planet.factorySystem.ejectorPool[ejectorId].bulletCount += itemCount;
                 planet.factorySystem.ejectorPool[ejectorId].bulletInc += itemInc;
@@ -628,9 +644,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
 
             int siloId = _siloIndexes[objectIndex];
-            short[] needs = _subFactoryNeeds.Needs;
             int needsOffset = groupNeeds.GetObjectNeedsIndex(objectIndex);
-            if (needs[needsOffset + SiloExecutor.SoleSiloNeedsIndex] == itemId && planet.factorySystem.siloPool[siloId].bulletId == itemId)
+            ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
+            short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
+
+            if (needsPatterns[componentNeeds.PatternIndex + SiloExecutor.SoleSiloNeedsIndex] == itemId && planet.factorySystem.siloPool[siloId].bulletId == itemId)
             {
                 planet.factorySystem.siloPool[siloId].bulletCount += itemCount;
                 planet.factorySystem.siloPool[siloId].bulletInc += itemInc;

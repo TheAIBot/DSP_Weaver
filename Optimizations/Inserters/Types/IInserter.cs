@@ -24,7 +24,7 @@ internal interface IInserter<TInserter, TInserterGrade>
                 ref readonly TInserterGrade inserterGrade,
                 ref OptimizedInserterStage stage,
                 InserterConnections[] insertersConnections,
-                ref readonly SubFactoryNeeds subFactoryNeeds,
+                SubFactoryNeeds subFactoryNeeds,
                 OptimizedCargoPath[] optimizedCargoPaths);
 
     void Save(ref InserterComponent inserter, EInserterStage inserterStage);
