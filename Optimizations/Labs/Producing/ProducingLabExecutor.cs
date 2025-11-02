@@ -14,7 +14,6 @@ internal sealed class ProducingLabExecutor
     public OptimizedProducingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
     public short[] _labRecipeIndexes = null!;
-    public ProducingLabRecipe[] _producingLabRecipes = null!;
     public int[] _entityIds = null!;
     public Dictionary<int, int> _labIdToOptimizedLabIndex = null!;
     public HashSet<int> _unOptimizedLabIds = null!;
@@ -33,13 +32,14 @@ internal sealed class ProducingLabExecutor
                                        long[] thisSubFactoryNetworkPowerConsumption,
                                        int[] productRegister,
                                        int[] consumeRegister,
-                                       SubFactoryNeeds subFactoryNeeds)
+                                       SubFactoryNeeds subFactoryNeeds,
+                                       UniverseStaticData universeStaticData)
     {
         float[] networkServes = planet.powerSystem.networkServes;
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
+        ProducingLabRecipe[] producingLabRecipes = universeStaticData.ProducingLabRecipes;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
         short[] needs = subFactoryNeeds.Needs;
         int producedSize = _producedSize;
@@ -84,7 +84,7 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    public void GameTickLabOutputToNext(SubFactoryNeeds subFactoryNeeds)
+    public void GameTickLabOutputToNext(SubFactoryNeeds subFactoryNeeds, UniverseStaticData universeStaticData)
     {
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
         short[] needs = subFactoryNeeds.Needs;
@@ -95,7 +95,7 @@ internal sealed class ProducingLabExecutor
         short[] labRecipeIndexes = _labRecipeIndexes;
         NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
-        ProducingLabRecipe[] producingLabRecipes = _producingLabRecipes;
+        ProducingLabRecipe[] producingLabRecipes = universeStaticData.ProducingLabRecipes;
         for (int labIndex = (int)(GameMain.gameTick % 5); labIndex < optimizedLabs.Length; labIndex += 5)
         {
             int servedOffset = labIndex * groupNeeds.GroupNeedsSize;
@@ -211,13 +211,13 @@ internal sealed class ProducingLabExecutor
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           SubFactoryNeedsBuilder subFactoryNeedsBuilder)
+                           SubFactoryNeedsBuilder subFactoryNeedsBuilder,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<NetworkIdAndState<LabState>> networkIdAndStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
         List<LabPowerFields> labsPowerFields = [];
-        Dictionary<ProducingLabRecipe, int> producingLabRecipeToRecipeIndex = [];
-        List<ProducingLabRecipe> producingLabRecipes = [];
+        HashSet<ProducingLabRecipe> producingLabRecipes = [];
         List<int> entityIds = [];
         List<short> labRecipeIndexes = [];
         Dictionary<int, int> labIdToOptimizedLabIndex = [];
@@ -278,12 +278,8 @@ internal sealed class ProducingLabExecutor
             }
 
             var producingLabRecipe = new ProducingLabRecipe(in lab, subFactoryProductionRegisterBuilder);
-            if (!producingLabRecipeToRecipeIndex.TryGetValue(producingLabRecipe, out int producingLabRecipeIndex))
-            {
-                producingLabRecipeToRecipeIndex.Add(producingLabRecipe, producingLabRecipes.Count);
-                producingLabRecipeIndex = producingLabRecipes.Count;
-                producingLabRecipes.Add(producingLabRecipe);
-            }
+            producingLabRecipes.Add(producingLabRecipe);
+            int producingLabRecipeIndex = universeStaticDataBuilder.AddProducingLabRecipe(in producingLabRecipe);
 
             labIdToOptimizedLabIndex.Add(labIndex, optimizedLabs.Count);
             optimizedLabs.Add(new OptimizedProducingLab(nextLabIndex, ref lab));
@@ -356,7 +352,6 @@ internal sealed class ProducingLabExecutor
         _networkIdAndStates = networkIdAndStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
         _labsPowerFields = labsPowerFields.ToArray();
-        _producingLabRecipes = producingLabRecipes.ToArray();
         _entityIds = entityIds.ToArray();
         _labRecipeIndexes = labRecipeIndexes.ToArray();
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;

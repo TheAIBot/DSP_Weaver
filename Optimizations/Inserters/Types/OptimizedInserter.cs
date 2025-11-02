@@ -97,6 +97,11 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
         return new OptimizedInserter(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
 
+    public readonly InserterGrade[] GetInserterGrades(UniverseStaticData universeStaticData)
+    {
+        return universeStaticData.InserterGrades;
+    }
+
     public void Update(PlanetFactory planet,
                        InserterExecutor<OptimizedInserter, InserterGrade> inserterExecutor,
                        float power,

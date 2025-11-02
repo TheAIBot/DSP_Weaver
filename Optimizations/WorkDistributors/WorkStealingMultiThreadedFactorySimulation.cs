@@ -153,6 +153,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
     private readonly object _singleThreadedCodeLock = new();
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private readonly DysonSphereManager _dysonSphereManager;
+    private readonly UniverseStaticDataBuilder _universeStaticDataBuilder;
     private StarClusterWorkManager? _starClusterWorkManager;
     private WeaverThread[]? _threads;
 
@@ -164,10 +165,12 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
 
 
     public WorkStealingMultiThreadedFactorySimulation(StarClusterResearchManager starClusterResearchManager,
-                                                      DysonSphereManager dysonSphereManager)
+                                                      DysonSphereManager dysonSphereManager,
+                                                      UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _starClusterResearchManager = starClusterResearchManager;
         _dysonSphereManager = dysonSphereManager;
+        _universeStaticDataBuilder = universeStaticDataBuilder;
     }
 
     /// <summary>
@@ -231,6 +234,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
             _localPlanet = GameMain.localPlanet;
             _time = GameMain.gameTick;
             _playerPosition = GameMain.mainPlayer.position;
+            _universeStaticDataBuilder.UpdateStaticDataIfRequired();
 
             //WeaverFixes.Logger.LogMessage("Before pre single threaded steps");
             ExecutePreFactorySingleThreadedSteps(gameLogic, planetsToUpdate, _localPlanet, _time, targetThreadCount);

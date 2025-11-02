@@ -87,6 +87,11 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
         return new OptimizedBiInserter(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
 
+    public readonly BiInserterGrade[] GetInserterGrades(UniverseStaticData universeStaticData)
+    {
+        return universeStaticData.BiInserterGrades;
+    }
+
     internal static bool IsNeedsNotEmpty(InserterConnections[] insertersConnections,
                                          ref readonly SubFactoryNeeds subFactoryNeeds,
                                          int inserterIndex,

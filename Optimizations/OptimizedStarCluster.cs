@@ -19,7 +19,8 @@ internal static class OptimizedStarCluster
     public static readonly StarClusterResearchManager _starClusterResearchManager = new();
     public static readonly DysonSphereManager _dysonSphereManager = new();
     private static readonly DysonSphereStatisticsManager _dysonSphereStatisticsManager = new();
-    private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager, _dysonSphereManager);
+    private static readonly UniverseStaticDataBuilder _universeStaticDataBuilder = new();
+    private static readonly WorkStealingMultiThreadedFactorySimulation _workStealingMultiThreadedFactorySimulation = new(_starClusterResearchManager, _dysonSphereManager, _universeStaticDataBuilder);
     private static bool _clearOptimizedPlanetsOnNextTick = false;
     private static bool _firstUpdate = true;
     private static bool _programShutdown = false;
@@ -98,6 +99,7 @@ internal static class OptimizedStarCluster
         _planetToOptimizedPlanet.Clear();
         _planetProductionStatisticsToOptimizedPlanet.Clear();
         _dysonSphereStatisticsManager.ClearDysonSphereProductRegisters();
+        _universeStaticDataBuilder.Clear();
         _workStealingMultiThreadedFactorySimulation.Clear();
         KillStatisticsPatches.Clear();
         TrafficStatisticsPatches.Clear();
@@ -120,7 +122,8 @@ internal static class OptimizedStarCluster
         {
             var optimizedPlanet = new OptimizedTerrestrialPlanet(planet,
                                                                  _starClusterResearchManager,
-                                                                 _dysonSphereManager);
+                                                                 _dysonSphereManager,
+                                                                 _universeStaticDataBuilder);
             _planetToOptimizedPlanet.Add(planet, optimizedPlanet);
             _planetProductionStatisticsToOptimizedPlanet.Add(GameMain.statistics.production.factoryStatPool[planet.index], optimizedPlanet);
         }

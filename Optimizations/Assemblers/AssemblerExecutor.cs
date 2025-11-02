@@ -17,7 +17,6 @@ internal sealed class AssemblerExecutor
     private int[] _assemblerExtraPowerRatios = null!;
     private AssemblerTimingData[] _assemblersTimingData = null!;
     public short[] _assemblerRecipeIndexes = null!;
-    public AssemblerRecipe[] _assemblerRecipes = null!;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex = null!;
     public HashSet<int> _unOptimizedAssemblerIds = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -37,12 +36,13 @@ internal sealed class AssemblerExecutor
                          long[] networksPowerConsumption,
                          int[] productRegister,
                          int[] consumeRegister,
-                         SubFactoryNeeds subFactoryNeeds)
+                         SubFactoryNeeds subFactoryNeeds,
+                         UniverseStaticData universeStaticData)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
-        AssemblerRecipe[] assemblerRecipes = _assemblerRecipes;
+        AssemblerRecipe[] assemblerRecipes = universeStaticData.AssemblerRecipes;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         AssemblerTimingData[] assemblersTimingData = _assemblersTimingData;
@@ -217,7 +217,8 @@ internal sealed class AssemblerExecutor
                                      Graph subFactoryGraph,
                                      SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                                      SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                                     SubFactoryNeedsBuilder subFactoryNeedsBuilder)
+                                     SubFactoryNeedsBuilder subFactoryNeedsBuilder,
+                                     UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<NetworkIdAndState<AssemblerState>> assemblerNetworkIdAndStates = [];
         List<OptimizedAssembler> optimizedAssemblers = [];
@@ -225,8 +226,7 @@ internal sealed class AssemblerExecutor
         List<int> assemblerExtraPowerRatios = [];
         List<AssemblerTimingData> assemblersTimingData = [];
         List<short> assemblerRecipeIndexes = [];
-        Dictionary<AssemblerRecipe, int> assemblerRecipeToIndex = [];
-        List<AssemblerRecipe> assemblerRecipes = [];
+        HashSet<AssemblerRecipe> assemblerRecipes = [];
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
         HashSet<int> unOptimizedAssemblerIds = [];
         List<int[]> served = [];
@@ -279,12 +279,8 @@ internal sealed class AssemblerExecutor
                                                                   assembler.requireCounts,
                                                                   subFactoryProductionRegisterBuilder.AddProduct(assembler.products),
                                                                   assembler.productCounts);
-            if (!assemblerRecipeToIndex.TryGetValue(assemblerRecipe, out int assemblerRecipeIndex))
-            {
-                assemblerRecipeIndex = assemblerRecipeToIndex.Count;
-                assemblerRecipeToIndex.Add(assemblerRecipe, assemblerRecipeIndex);
-                assemblerRecipes.Add(assemblerRecipe);
-            }
+            assemblerRecipes.Add(assemblerRecipe);
+            int assemblerRecipeIndex = universeStaticDataBuilder.AddAssemblerRecipe(in assemblerRecipe);
 
             assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
             int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
@@ -344,7 +340,6 @@ internal sealed class AssemblerExecutor
         }
 
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates.ToArray();
-        _assemblerRecipes = assemblerRecipes.ToArray();
         _optimizedAssemblers = optimizedAssemblers.ToArray();
         _assemblerReplicatings = assemblerReplicatings.ToArray();
         _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();

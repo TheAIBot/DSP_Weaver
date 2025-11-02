@@ -14,6 +14,8 @@ internal interface IInserter<TInserter, TInserterGrade>
 
     TInserter Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
 
+    TInserterGrade[] GetInserterGrades(UniverseStaticData universeStaticData);
+
     void Update(PlanetFactory planet,
                 InserterExecutor<TInserter, TInserterGrade> inserterExecutor,
                 float power,

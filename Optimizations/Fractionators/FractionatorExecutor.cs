@@ -9,11 +9,9 @@ namespace Weaver.Optimizations.Fractionators;
 
 internal sealed class FractionatorExecutor
 {
-    private int[] _fractionatorNetworkId = null!;
+    private int[]? _fractionatorNetworkId = null;
     private OptimizedFractionator[] _optimizedFractionators = null!;
     private FractionatorPowerFields[] _fractionatorsPowerFields = null!;
-    private FractionatorConfiguration[] _fractionatorConfigurations = null!;
-    private FractionatorRecipeProduct[]? _fractionatorRecipeProducts = null!;
     public Dictionary<int, int> _fractionatorIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
@@ -25,9 +23,10 @@ internal sealed class FractionatorExecutor
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
                          int[] consumeRegister,
-                         OptimizedCargoPath[] optimizedCargoPaths)
+                         OptimizedCargoPath[] optimizedCargoPaths,
+                         UniverseStaticData universeStaticData)
     {
-        if (_fractionatorRecipeProducts == null)
+        if (_fractionatorNetworkId == null)
         {
             return;
         }
@@ -37,8 +36,8 @@ internal sealed class FractionatorExecutor
         int[] fractionatorNetworkId = _fractionatorNetworkId;
         OptimizedFractionator[] optimizedFractionators = _optimizedFractionators;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
-        FractionatorConfiguration[] fractionatorConfigurations = _fractionatorConfigurations;
-        FractionatorRecipeProduct[] fractionatorRecipeProducts = _fractionatorRecipeProducts;
+        FractionatorConfiguration[] fractionatorConfigurations = universeStaticData.FractionatorConfigurations;
+        FractionatorRecipeProduct[] fractionatorRecipeProducts = universeStaticData.FractionatorRecipeProducts;
 
         for (int fractionatorIndex = 0; fractionatorIndex < optimizedFractionators.Length; fractionatorIndex++)
         {
@@ -63,6 +62,11 @@ internal sealed class FractionatorExecutor
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
+        if (_fractionatorNetworkId == null)
+        {
+            return;
+        }
+
         int[] fractionatorNetworkId = _fractionatorNetworkId;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         for (int fractionatorIndex = 0; fractionatorIndex < fractionatorsPowerFields.Length; fractionatorIndex++)
@@ -143,13 +147,12 @@ internal sealed class FractionatorExecutor
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           BeltExecutor beltExecutor)
+                           BeltExecutor beltExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<int> fractionatorNetworkId = [];
         List<OptimizedFractionator> optimizedFractionators = [];
         List<FractionatorPowerFields> fractionatorsPowerFields = [];
-        Dictionary<FractionatorConfiguration, int> fractionatorConfigurationToIndex = [];
-        List<FractionatorConfiguration> fractionatorConfigurations = [];
         Dictionary<int, int> fractionatorIdToOptimizedIndex = [];
         var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
@@ -164,18 +167,13 @@ internal sealed class FractionatorExecutor
                 continue;
             }
 
-            FractionatorConfiguration configuration = new FractionatorConfiguration(fractionator.isOutput0,
-                                                                                    fractionator.isOutput1,
-                                                                                    fractionator.isOutput2,
-                                                                                    fractionator.fluidInputMax,
-                                                                                    fractionator.fluidOutputMax,
-                                                                                    fractionator.productOutputMax);
-            if (!fractionatorConfigurationToIndex.TryGetValue(configuration, out int fractionatorConfigurationIndex))
-            {
-                fractionatorConfigurationIndex = fractionatorConfigurationToIndex.Count;
-                fractionatorConfigurationToIndex.Add(configuration, fractionatorConfigurationIndex);
-                fractionatorConfigurations.Add(configuration);
-            }
+            var configuration = new FractionatorConfiguration(fractionator.isOutput0,
+                                                              fractionator.isOutput1,
+                                                              fractionator.isOutput2,
+                                                              fractionator.fluidInputMax,
+                                                              fractionator.fluidOutputMax,
+                                                              fractionator.productOutputMax);
+            int fractionatorConfigurationIndex = universeStaticDataBuilder.AddFractionatorConfiguration(in configuration);
 
             beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt0, out int belt0Index);
             beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt1, out int belt1Index);
@@ -208,27 +206,26 @@ internal sealed class FractionatorExecutor
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[fractionator.entityId]);
         }
 
-        _fractionatorRecipeProducts = null;
+        _fractionatorNetworkId = null;
         if (optimizedFractionators.Count > 0)
         {
             RecipeProto[] fractionatorRecipes = RecipeProto.fractionatorRecipes;
             var fractionatorRecipeProducts = new FractionatorRecipeProduct[fractionatorRecipes.Length];
             for (int i = 0; i < fractionatorRecipeProducts.Length; i++)
             {
-                fractionatorRecipeProducts[i] = new FractionatorRecipeProduct(fractionatorRecipes[i].Items[0],
+                var fractionatorRecipeProduct = new FractionatorRecipeProduct(fractionatorRecipes[i].Items[0],
                                                                               subFactoryProductionRegisterBuilder.AddConsume(fractionatorRecipes[i].Items[0]),
                                                                               subFactoryProductionRegisterBuilder.AddProduct(fractionatorRecipes[i].Results[0]),
                                                                               fractionatorRecipes[i].ResultCounts[0] / (float)fractionatorRecipes[i].ItemCounts[0]);
+                universeStaticDataBuilder.AddFractionatorRecipeProduct(in fractionatorRecipeProduct);
 
             }
 
-            _fractionatorRecipeProducts = fractionatorRecipeProducts;
+            _fractionatorNetworkId = fractionatorNetworkId.ToArray();
         }
 
-        _fractionatorNetworkId = fractionatorNetworkId.ToArray();
         _optimizedFractionators = optimizedFractionators.ToArray();
         _fractionatorsPowerFields = fractionatorsPowerFields.ToArray();
-        _fractionatorConfigurations = fractionatorConfigurations.ToArray();
         _fractionatorIdToOptimizedIndex = fractionatorIdToOptimizedIndex;
         _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
     }

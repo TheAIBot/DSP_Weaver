@@ -64,7 +64,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 {
     private TInserter[] _optimizedInserters = null!;
     private OptimizedInserterStage[] _optimizedInserterStages = null!;
-    private TInserterGrade[] _inserterGrades = null!;
     public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates = null!;
     public InserterConnections[] _inserterConnections = null!;
     public Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
@@ -82,7 +81,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly short[] _assemblerIncServed;
     private readonly short[] _assemblerProduced;
     private readonly short[] _assemblerRecipeIndexes;
-    private readonly AssemblerRecipe[] _assemblerRecipes;
     private readonly bool[] _assemblerNeedToUpdateNeeds;
 
     private readonly int _producingLabProducedSize;
@@ -90,13 +88,14 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly short[] _producingLabIncServed;
     private readonly short[] _producingLabProduced;
     private readonly short[] _producingLabRecipeIndexes;
-    private readonly ProducingLabRecipe[] _producingLabRecipes;
 
     private readonly int[] _researchingLabMatrixServed = null!;
     private readonly int[] _researchingLabMatrixIncServed = null!;
 
     private readonly int[] _siloIndexes;
     private readonly int[] _ejectorIndexes;
+
+    private readonly UniverseStaticData _universeStaticData;
 
     public int Count => _optimizedInserters.Length;
 
@@ -111,18 +110,17 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             short[] assemblerIncServed,
                             short[] assemblerProduced,
                             short[] assemblerRecipeIndexes,
-                            AssemblerRecipe[] assemblerRecipes,
                             bool[] assemblerNeedToUpdateNeeds,
                             int producingLabProducedSize,
                             short[] producingLabServed,
                             short[] producingLabIncServed,
                             short[] producingLabProduced,
                             short[] producingLabRecipeIndexes,
-                            ProducingLabRecipe[] producingLabRecipes,
                             int[] researchingLabMatrixServed,
                             int[] researchingLabMatrixIncServed,
                             int[] siloIndexes,
-                            int[] ejectorIndexes)
+                            int[] ejectorIndexes,
+                            UniverseStaticData universeStaticData)
     {
         _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates;
         _producingLabNetworkIdAndStates = producingLabNetworkIdAndStates;
@@ -135,32 +133,32 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         _assemblerIncServed = assemblerIncServed;
         _assemblerProduced = assemblerProduced;
         _assemblerRecipeIndexes = assemblerRecipeIndexes;
-        _assemblerRecipes = assemblerRecipes;
         _assemblerNeedToUpdateNeeds = assemblerNeedToUpdateNeeds;
         _producingLabProducedSize = producingLabProducedSize;
         _producingLabServed = producingLabServed;
         _producingLabIncServed = producingLabIncServed;
         _producingLabProduced = producingLabProduced;
         _producingLabRecipeIndexes = producingLabRecipeIndexes;
-        _producingLabRecipes = producingLabRecipes;
         _researchingLabMatrixServed = researchingLabMatrixServed;
         _researchingLabMatrixIncServed = researchingLabMatrixIncServed;
         _siloIndexes = siloIndexes;
         _ejectorIndexes = ejectorIndexes;
+        _universeStaticData = universeStaticData;
     }
 
     public void GameTickInserters(PlanetFactory planet,
                                   int[] inserterPowerConsumerIndexes,
                                   PowerConsumerType[] powerConsumerTypes,
                                   long[] thisSubFactoryNetworkPowerConsumption,
-                                  OptimizedCargoPath[] optimizedCargoPaths)
+                                  OptimizedCargoPath[] optimizedCargoPaths,
+                                  UniverseStaticData universeStaticData)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
         NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = _inserterNetworkIdAndStates;
         TInserter[] optimizedInserters = _optimizedInserters;
-        TInserterGrade[] inserterGrades = _inserterGrades;
+        TInserterGrade[] inserterGrades = default(TInserter).GetInserterGrades(universeStaticData);
 
         for (int inserterIndex = 0; inserterIndex < inserterNetworkIdAndStates.Length; inserterIndex++)
         {
@@ -393,7 +391,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             int needsSize = groupNeeds.GroupNeedsSize;
             int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
 
-            OptimizedItemId[] products = _assemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Products;
+            OptimizedItemId[] products = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Products;
             short[] produced = _assemblerProduced;
             int producedOffset = _assemblerProducedSize * objectIndex;
 
@@ -503,7 +501,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 return 0;
             }
 
-            OptimizedItemId[] products = _producingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Products;
+            OptimizedItemId[] products = _universeStaticData.ProducingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Products;
             short[] produced = _producingLabProduced;
             int producedOffset = _producingLabProducedSize * objectIndex;
 
@@ -581,7 +579,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 throw new InvalidOperationException($"Needs should only be null if assembler is inactive which the above if statement should have caught.");
             }
 
-            OptimizedItemId[] requires = _assemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Requires;
+            OptimizedItemId[] requires = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Requires;
             short[] assemblerServed = _assemblerServed;
             short[] assemblerIncServed = _assemblerIncServed;
             int assemblerServedOffset = groupNeeds.GroupNeedsSize * objectIndex;
@@ -656,7 +654,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 throw new InvalidOperationException($"Needs should only be null if producing lab is inactive which the above if statement should have caught.");
             }
 
-            OptimizedItemId[] requires = _producingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Requires;
+            OptimizedItemId[] requires = _universeStaticData.ProducingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Requires;
             short[] served = _producingLabServed;
             short[] incServed = _producingLabIncServed;
             int servedOffset = groupNeeds.GroupNeedsSize * objectIndex;
@@ -803,12 +801,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                            Graph subFactoryGraph,
                            Func<InserterComponent, bool> inserterSelector,
                            OptimizedPowerSystemInserterBuilder optimizedPowerSystemInserterBuilder,
-                           BeltExecutor beltExecutor)
+                           BeltExecutor beltExecutor,
+                           UniverseInserterStaticDataBuilder<TInserterGrade> universeInserterStaticDataBuilder)
     {
         List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates = [];
         List<InserterConnections> inserterConnections = [];
-        List<TInserterGrade> inserterGrades = [];
-        Dictionary<TInserterGrade, int> inserterGradeToIndex = [];
         List<TInserter> optimizedInserters = [];
         List<OptimizedInserterStage> optimizedInserterStages = [];
         Dictionary<int, int> inserterIdToOptimizedIndex = [];
@@ -893,13 +890,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             optimizedPowerSystemInserterBuilder.AddInserter(ref inserter, networkIndex);
 
             TInserterGrade inserterGrade = default(TInserterGrade).Create(ref inserter);
-
-            if (!inserterGradeToIndex.TryGetValue(inserterGrade, out int inserterGradeIndex))
-            {
-                inserterGradeIndex = inserterGrades.Count;
-                inserterGrades.Add(inserterGrade);
-                inserterGradeToIndex.Add(inserterGrade, inserterGradeIndex);
-            }
+            int inserterGradeIndex = universeInserterStaticDataBuilder.AddInserterGrade(in inserterGrade);
 
             int pickFromOffset = inserter.pickOffset;
             if (pickFrom.EntityType == EntityType.Belt)
@@ -964,7 +955,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 
         _inserterNetworkIdAndStates = optimalInserterNeedsOrder.Select(x => inserterNetworkIdAndStates[x]).ToArray();
         _inserterConnections = optimalInserterNeedsOrder.Select(x => inserterConnections[x]).ToArray();
-        _inserterGrades = inserterGrades.ToArray();
         _optimizedInserters = optimalInserterNeedsOrder.Select(x => optimizedInserters[x]).ToArray();
         _optimizedInserterStages = optimalInserterNeedsOrder.Select(x => optimizedInserterStages[x]).ToArray();
         _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex.ToDictionary(x => x.Key, x => oldIndexToNewIndex[x.Value]);

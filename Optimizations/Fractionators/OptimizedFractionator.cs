@@ -6,7 +6,24 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Fractionators;
 
-internal record struct FractionatorRecipeProduct(int GameFluidId, OptimizedItemId Fluid, OptimizedItemId Product, float ProduceProbability);
+internal readonly struct FractionatorRecipeProduct
+{
+    public readonly int GameFluidId;
+    public readonly OptimizedItemId Fluid;
+    public readonly OptimizedItemId Product;
+    public readonly float ProduceProbability;
+
+    public FractionatorRecipeProduct(int gameFluidId, 
+                                     OptimizedItemId fluid, 
+                                     OptimizedItemId product, 
+                                     float produceProbability)
+    {
+        GameFluidId = gameFluidId;
+        Fluid = fluid;
+        Product = product;
+        ProduceProbability = produceProbability;
+    }
+}
 
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedFractionator

@@ -20,6 +20,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private readonly DysonSphereManager _dysonSphereManager;
+    private readonly UniverseStaticDataBuilder _universeStaticDataBuilder;
     private OptimizedSubFactory[] _subFactories = null!;
     private OptimizedPowerSystem _optimizedPowerSystem = null!;
     private TurretExecutor _turretExecutor = null!;
@@ -32,11 +33,13 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
     public OptimizedTerrestrialPlanet(PlanetFactory planet,
                                       StarClusterResearchManager starClusterResearchManager,
-                                      DysonSphereManager dysonSphereManager)
+                                      DysonSphereManager dysonSphereManager,
+                                      UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _planet = planet;
         _starClusterResearchManager = starClusterResearchManager;
         _dysonSphereManager = dysonSphereManager;
+        _universeStaticDataBuilder = universeStaticDataBuilder;
     }
 
     public void Save()
@@ -80,7 +83,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
         {
-            _subFactories[i] = new OptimizedSubFactory(_planet, this, _starClusterResearchManager);
+            _subFactories[i] = new OptimizedSubFactory(_planet, this, _starClusterResearchManager, _universeStaticDataBuilder);
             _subFactories[i].Initialize(subFactoryGraphs[i],
                                         optimizedPowerSystemBuilder,
                                         planetWideBeltExecutor,
