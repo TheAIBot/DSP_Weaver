@@ -297,7 +297,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
                     }
                 }
             }
-            DeepProfiler.EndSample(-1, -2L);
+            DeepProfiler.EndSample(DPEntry.Beacon);
         }
         bool flag2 = false;
         for (int num3 = defenseSystem.localGlobalTargetCursor - 1; num3 >= 0; num3--)
@@ -313,6 +313,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         {
             defenseSystem.ArrangeGlobalTargets();
         }
+        defenseSystem.UpdateSpaceUniqueGlobalTargets();
         defenseSystem.UpdateOtherGlobalTargets();
         defenseSystem.engagingGaussCount = 0;
         defenseSystem.engagingLaserCount = 0;
@@ -332,52 +333,62 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         {
             defenseSystem.incomingSupernovaTime = 0;
         }
-        int cursor3 = defenseSystem.fieldGenerators.cursor;
-        FieldGeneratorComponent[] buffer3 = defenseSystem.fieldGenerators.buffer;
-        for (int k = 1; k < cursor3; k++)
+        if (defenseSystem.fieldGenerators.count > 0)
         {
-            ref FieldGeneratorComponent reference3 = ref buffer3[k];
-            if (reference3.id != k)
+            DeepProfiler.BeginSample(DPEntry.PlanetATFieldGenerator, -1, defenseSystem.factory.planetId);
+            int cursor3 = defenseSystem.fieldGenerators.cursor;
+            FieldGeneratorComponent[] buffer3 = defenseSystem.fieldGenerators.buffer;
+
+            for (int k = 1; k < cursor3; k++)
             {
-                continue;
+                ref FieldGeneratorComponent reference3 = ref buffer3[k];
+                if (reference3.id != k)
+                {
+                    continue;
+                }
+                ref PowerConsumerComponent reference4 = ref consumerPool[reference3.pcId];
+                float num11 = networkServes[reference4.networkId];
+                reference3.InternalUpdate(defenseSystem.factory, num11, ref reference4, ref entityAnimPool[reference3.entityId]);
             }
-            ref PowerConsumerComponent reference4 = ref consumerPool[reference3.pcId];
-            float num11 = networkServes[reference4.networkId];
-            reference3.InternalUpdate(defenseSystem.factory, num11, ref reference4, ref entityAnimPool[reference3.entityId]);
+
+            DeepProfiler.EndSample(DPEntry.PlanetATFieldGenerator);
         }
     }
 
     private void DefenseGameTickUIThread(long tick)
     {
-        DeepProfiler.BeginSample(DPEntry.BattleBase, -1, _planet.planetId);
         DefenseSystem defenseSystem = _planet.defenseSystem;
-        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[defenseSystem.factory.index];
-        int[] productRegister = obj.productRegister;
-        PowerSystem powerSystem = defenseSystem.factory.powerSystem;
-        float[] networkServes = powerSystem.networkServes;
-        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
-        AnimData[] entityAnimPool = defenseSystem.factory.entityAnimPool;
-        VectorLF3 relativePos = defenseSystem.factory.gameData.relativePos;
-        UnityEngine.Quaternion relativeRot = defenseSystem.factory.gameData.relativeRot;
-        TrashSystem trashSystem = defenseSystem.factory.gameData.trashSystem;
-        bool flag = trashSystem.trashCount > 0;
-        float num = 1f / 60f;
-        int num13 = (int)(tick % 4);
-        BattleBaseComponent[] buffer4 = defenseSystem.battleBases.buffer;
-        for (int l = 1; l < defenseSystem.battleBases.cursor; l++)
+        if (defenseSystem.battleBases.count > 0)
         {
-            BattleBaseComponent battleBaseComponent = buffer4[l];
-            if (battleBaseComponent != null && battleBaseComponent.id == l)
+            DeepProfiler.BeginSample(DPEntry.BattleBase, -1, _planet.planetId);
+            FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[defenseSystem.factory.index];
+            int[] productRegister = obj.productRegister;
+            PowerSystem powerSystem = defenseSystem.factory.powerSystem;
+            float[] networkServes = powerSystem.networkServes;
+            PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+            AnimData[] entityAnimPool = defenseSystem.factory.entityAnimPool;
+            VectorLF3 relativePos = defenseSystem.factory.gameData.relativePos;
+            UnityEngine.Quaternion relativeRot = defenseSystem.factory.gameData.relativeRot;
+            TrashSystem trashSystem = defenseSystem.factory.gameData.trashSystem;
+            bool flag = trashSystem.trashCount > 0;
+            float num = 1f / 60f;
+            int num13 = (int)(tick % 4);
+            BattleBaseComponent[] buffer4 = defenseSystem.battleBases.buffer;
+            for (int l = 1; l < defenseSystem.battleBases.cursor; l++)
             {
-                float power2 = networkServes[consumerPool[battleBaseComponent.pcId].networkId];
-                battleBaseComponent.InternalUpdate(num, defenseSystem.factory, power2, ref entityAnimPool[battleBaseComponent.entityId]);
-                if (flag && battleBaseComponent.autoPickEnabled && battleBaseComponent.energy > 0 && l % 4L == num13)
+                BattleBaseComponent battleBaseComponent = buffer4[l];
+                if (battleBaseComponent != null && battleBaseComponent.id == l)
                 {
-                    battleBaseComponent.AutoPickTrash(defenseSystem.factory, trashSystem, tick, ref relativePos, ref relativeRot, productRegister);
+                    float power2 = networkServes[consumerPool[battleBaseComponent.pcId].networkId];
+                    battleBaseComponent.InternalUpdate(num, defenseSystem.factory, power2, ref entityAnimPool[battleBaseComponent.entityId]);
+                    if (flag && battleBaseComponent.autoPickEnabled && battleBaseComponent.energy > 0 && l % 4L == num13)
+                    {
+                        battleBaseComponent.AutoPickTrash(defenseSystem.factory, trashSystem, tick, ref relativePos, ref relativeRot, productRegister);
+                    }
                 }
             }
+            DeepProfiler.EndSample(DPEntry.BattleBase);
         }
-        DeepProfiler.EndSample(DPEntry.BattleBase);
     }
 
     public void AddMiningFlags(MiningFlags miningFlags)
