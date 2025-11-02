@@ -1,4 +1,5 @@
 ## 2.1.0
+* 5-10% DSP performance improvement compared to 2.0.4
 * Optimized sorters memory usage.
 * Optimized belts memory usage and accessing belts.
 * Optimized dyson sphere power calculation.
