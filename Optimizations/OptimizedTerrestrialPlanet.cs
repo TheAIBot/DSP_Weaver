@@ -106,7 +106,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     public void GameTickDefense(long time)
     {
         bool isActive = GameMain.localPlanet == _planet.planet;
-        _planet.spaceHashSystemDynamic.GameTick();
+        //_planet.spaceHashSystemDynamic.GameTick();
         if (Status == OptimizedPlanetStatus.Running)
         {
             DefenseGameTick(_planet.defenseSystem, time);

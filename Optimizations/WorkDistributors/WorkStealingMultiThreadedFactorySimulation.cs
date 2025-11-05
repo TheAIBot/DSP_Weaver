@@ -105,6 +105,9 @@ internal sealed class WeaverThread : IDisposable
                     case WorkTaskType.DefenseSystemTurret:
                         _workExecutor.ExecuteDefenseSystemTurret(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
                         break;
+                    case WorkTaskType.SpaceHashSystemDynamic:
+                        _workExecutor.ExecuteSpaceHashSystem(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
+                        break;
                     default:
                         throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
                 }
@@ -144,7 +147,8 @@ internal sealed class WeaverThread : IDisposable
 internal enum WorkTaskType
 {
     FactorySimulation,
-    DefenseSystemTurret
+    DefenseSystemTurret,
+    SpaceHashSystemDynamic
 }
 
 internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
@@ -460,6 +464,9 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
 
         // 3100
         DeepProfiler.BeginSample(DPEntry.GroundDefenseSystem);
+        
+        ExecuteParallel(targetThreadCount, WorkTaskType.SpaceHashSystemDynamic);
+
         foreach (var optimizedPlanet in OptimizedStarCluster.GetAllOptimizedPlanets())
         {
             if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)

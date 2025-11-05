@@ -48,4 +48,19 @@ internal sealed class WorkExecutor
             throw;
         }
     }
+
+    public void ExecuteSpaceHashSystem(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    {
+        try
+        {
+            RootWorkNode rootWorkNode = _starClusterWorkManager.GetSpaceHashRootWorkNode();
+            rootWorkNode.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
+        }
+        catch (Exception e)
+        {
+            WeaverFixes.Logger.LogError(e.Message);
+            WeaverFixes.Logger.LogError(e.StackTrace);
+            throw;
+        }
+    }
 }

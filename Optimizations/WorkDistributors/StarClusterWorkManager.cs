@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
@@ -14,6 +15,7 @@ internal sealed class StarClusterWorkManager : IDisposable
     private readonly List<IWorkNode> _solarSystemWorkNodes = [];
     private RootWorkNode? _factorySimulationRootWorkNode;
     private RootWorkNode? _defenseSystemTurretRootWorkNode;
+    private RootWorkNode? _spaceHashRootWorkNode;
 
     public int Parallelism { get; private set; } = -1;
 
@@ -50,6 +52,8 @@ internal sealed class StarClusterWorkManager : IDisposable
             _factorySimulationRootWorkNode = null;
             _defenseSystemTurretRootWorkNode?.Dispose();
             _defenseSystemTurretRootWorkNode = null;
+            _spaceHashRootWorkNode?.Dispose();
+            _spaceHashRootWorkNode = null;
         }
 
         for (int i = 0; i < _solarSystemWorkManagers.Count; i++)
@@ -126,6 +130,29 @@ internal sealed class StarClusterWorkManager : IDisposable
 
             _defenseSystemTurretRootWorkNode = new RootWorkNode(new WorkLeaf(_defenseSystemTurretWork.ToArray()));
         }
+
+        if (_spaceHashRootWorkNode == null)
+        {
+            Dictionary<StarData, List<DFSDynamicHashSystem>> starToSpaceHash = [];
+            for (int i = 0; i < allPlanets.Length; i++)
+            {
+                PlanetFactory? planet = allPlanets[i];
+                if (planet == null)
+                {
+                    continue;
+                }
+
+                if (!starToSpaceHash.TryGetValue(planet.planet.star, out List<DFSDynamicHashSystem>? starSystemSpaceHashes))
+                {
+                    starSystemSpaceHashes = [];
+                    starToSpaceHash.Add(planet.planet.star, starSystemSpaceHashes);
+                }
+
+                starSystemSpaceHashes.Add(planet.spaceHashSystemDynamic);
+            }
+
+            _spaceHashRootWorkNode = new RootWorkNode(new WorkLeaf(starToSpaceHash.Values.Select(x => new StarSystemSpaceHashWork(x)).ToArray()));
+        }
     }
 
     public RootWorkNode GetFactorySimulationRootWorkNode()
@@ -148,6 +175,16 @@ internal sealed class StarClusterWorkManager : IDisposable
         return _defenseSystemTurretRootWorkNode;
     }
 
+    public RootWorkNode GetSpaceHashRootWorkNode()
+    {
+        if (_spaceHashRootWorkNode == null)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _spaceHashRootWorkNode;
+    }
+
     public void Reset()
     {
         if (_factorySimulationRootWorkNode == null)
@@ -161,6 +198,12 @@ internal sealed class StarClusterWorkManager : IDisposable
             throw new InvalidOperationException();
         }
         _defenseSystemTurretRootWorkNode.Reset();
+
+        if (_spaceHashRootWorkNode == null)
+        {
+            throw new InvalidOperationException();
+        }
+        _spaceHashRootWorkNode.Reset();
     }
 
     public StarClusterWorkStatistics GetStarClusterStatistics()
