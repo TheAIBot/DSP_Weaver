@@ -1,3 +1,6 @@
+## 2.1.1
+* Fix each new structure point was added twice.
+
 ## 2.1.0
 * 5-10% DSP performance improvement compared to 2.0.4
 * Optimized sorters memory usage.
