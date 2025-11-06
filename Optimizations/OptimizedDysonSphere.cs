@@ -58,14 +58,14 @@ internal sealed class OptimizedDysonSphere
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(DysonSphere), nameof(DysonSphere.ConstructSp))]
-    public static void DysonSphere_ConstructSp(DysonSphere __instance, DysonNode node)
+    public static bool DysonSphere_ConstructSp(DysonSphere __instance, DysonNode node)
     {
         OptimizedDysonSphere optimizedDysonSphere = GetOptimizedDysonSphere(__instance);
 
         object obj = node.ConstructSp();
         if (obj == null)
         {
-            return;
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
         }
         if (obj is DysonNode dysonNode)
         {
@@ -85,6 +85,8 @@ internal sealed class OptimizedDysonSphere
                 array[ProductionStatistics.DYSON_STRUCTURE_ID]++;
             }
         }
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
     [HarmonyPrefix]
