@@ -210,15 +210,14 @@ internal sealed class FractionatorExecutor
         if (optimizedFractionators.Count > 0)
         {
             RecipeProto[] fractionatorRecipes = RecipeProto.fractionatorRecipes;
-            var fractionatorRecipeProducts = new FractionatorRecipeProduct[fractionatorRecipes.Length];
-            for (int i = 0; i < fractionatorRecipeProducts.Length; i++)
+            for (int i = 0; i < fractionatorRecipes.Length; i++)
             {
-                var fractionatorRecipeProduct = new FractionatorRecipeProduct(fractionatorRecipes[i].Items[0],
-                                                                              subFactoryProductionRegisterBuilder.AddConsume(fractionatorRecipes[i].Items[0]),
-                                                                              subFactoryProductionRegisterBuilder.AddProduct(fractionatorRecipes[i].Results[0]),
-                                                                              fractionatorRecipes[i].ResultCounts[0] / (float)fractionatorRecipes[i].ItemCounts[0]);
+                RecipeProto fractionatorRecipe = fractionatorRecipes[i];
+                var fractionatorRecipeProduct = new FractionatorRecipeProduct(fractionatorRecipe.Items[0],
+                                                                              subFactoryProductionRegisterBuilder.AddConsume(fractionatorRecipe.Items[0]),
+                                                                              subFactoryProductionRegisterBuilder.AddProduct(fractionatorRecipe.Results[0]),
+                                                                              fractionatorRecipe.ResultCounts[0] / (float)fractionatorRecipe.ItemCounts[0]);
                 universeStaticDataBuilder.AddFractionatorRecipeProduct(in fractionatorRecipeProduct);
-
             }
 
             _fractionatorNetworkId = fractionatorNetworkId.ToArray();
