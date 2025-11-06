@@ -173,7 +173,7 @@ internal sealed class OilMinerExecutor
             }
 
             int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
-            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, outputBeltId, out int outputBeltIndex))
+            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, outputBeltId, out BeltIndex outputBeltIndex))
             {
                 continue;
             }

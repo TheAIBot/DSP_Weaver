@@ -10,30 +10,24 @@ namespace Weaver.Optimizations.Belts;
 internal sealed class BeltExecutor
 {
     private OptimizedCargoPath[] _optimizedCargoPaths = null!;
-    private Dictionary<CargoPath, int> _cargoPathToOptimizedCargoPathIndex = null!;
-    private Dictionary<int, int> _cargoPathIdToOptimizedIndex = null!;
+    private Dictionary<CargoPath, BeltIndex> _cargoPathToOptimizedCargoPathIndex = null!;
 
-    public Dictionary<CargoPath, int> CargoPathToOptimizedCargoPathIndex => _cargoPathToOptimizedCargoPathIndex;
+    public Dictionary<CargoPath, BeltIndex> CargoPathToOptimizedCargoPathIndex => _cargoPathToOptimizedCargoPathIndex;
 
     public int Count => _optimizedCargoPaths.Length;
 
     public OptimizedCargoPath[] OptimizedCargoPaths => _optimizedCargoPaths;
 
-    public bool TryGetOptimizedCargoPathIndex(PlanetFactory planet, int beltId, [NotNullWhen(true)] out int beltIndex)
+    public bool TryGetOptimizedCargoPathIndex(PlanetFactory planet, int beltId, [NotNullWhen(true)] out BeltIndex beltIndex)
     {
         if (!TryGetCargoPath(planet, beltId, out CargoPath? cargoPath))
         {
-            beltIndex = OptimizedCargoPath.NO_BELT_INDEX;
+            beltIndex = BeltIndex.NoBelt;
             return false;
         }
 
         beltIndex = _cargoPathToOptimizedCargoPathIndex[cargoPath];
         return true;
-    }
-
-    public int GetOptimizedCargoPathIndex(int cargoPathIndex)
-    {
-        return _cargoPathIdToOptimizedIndex[cargoPathIndex];
     }
 
     public void GameTick()
@@ -48,9 +42,9 @@ internal sealed class BeltExecutor
     public void Save(CargoContainer cargoContainer)
     {
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
-        foreach (KeyValuePair<CargoPath, int> cargoPathWithOptimizedCargoPathIndex in _cargoPathToOptimizedCargoPathIndex)
+        foreach (KeyValuePair<CargoPath, BeltIndex> cargoPathWithOptimizedCargoPathIndex in _cargoPathToOptimizedCargoPathIndex)
         {
-            ref OptimizedCargoPath optimizedCargoPath = ref optimizedCargoPaths[cargoPathWithOptimizedCargoPathIndex.Value];
+            ref OptimizedCargoPath optimizedCargoPath = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBelt(optimizedCargoPaths);
             CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key.buffer, ref optimizedCargoPath, cargoContainer);
             optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key);
         }
@@ -59,8 +53,7 @@ internal sealed class BeltExecutor
     public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
     {
         List<OptimizedCargoPath> optimizedCargoPaths = [];
-        Dictionary<CargoPath, int> cargoPathToOptimizedCargoPath = [];
-        Dictionary<int, int> cargoPathIdToOptimizedIndex = [];
+        Dictionary<CargoPath, BeltIndex> cargoPathToOptimizedCargoPath = [];
 
         foreach (int cargoPathIndex in subFactoryGraph.GetAllNodes()
                                                       .Where(x => x.EntityTypeIndex.EntityType == EntityType.Belt)
@@ -75,27 +68,24 @@ internal sealed class BeltExecutor
 
             byte[] updatedBuffer = GetBufferWithUpdatedCargoIndexes(cargoPath);
             var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath);
-            cargoPathIdToOptimizedIndex.Add(cargoPathIndex, optimizedCargoPaths.Count);
-            cargoPathToOptimizedCargoPath.Add(cargoPath, optimizedCargoPaths.Count);
+            cargoPathToOptimizedCargoPath.Add(cargoPath, new BeltIndex(optimizedCargoPaths.Count));
             optimizedCargoPaths.Add(optimizedCargoPath);
         }
 
         _optimizedCargoPaths = optimizedCargoPaths.ToArray();
 
-        foreach (KeyValuePair<CargoPath, int> cargoPathWithOptimizedCargoPathIndex in cargoPathToOptimizedCargoPath)
+        foreach (KeyValuePair<CargoPath, BeltIndex> cargoPathWithOptimizedCargoPathIndex in cargoPathToOptimizedCargoPath)
         {
             if (cargoPathWithOptimizedCargoPathIndex.Key.outputPath == null)
             {
                 continue;
             }
 
-            ref OptimizedCargoPath belt = ref _optimizedCargoPaths[cargoPathWithOptimizedCargoPathIndex.Value];
-            belt.SetOutputPath(cargoPathIdToOptimizedIndex[cargoPathWithOptimizedCargoPathIndex.Key.outputPath.id]);
+            ref OptimizedCargoPath belt = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBelt(_optimizedCargoPaths);
+            belt.SetOutputPath(cargoPathToOptimizedCargoPath[cargoPathWithOptimizedCargoPathIndex.Key.outputPath]);
         }
 
-
         _cargoPathToOptimizedCargoPathIndex = cargoPathToOptimizedCargoPath;
-        _cargoPathIdToOptimizedIndex = cargoPathIdToOptimizedIndex;
     }
 
     /// <summary>

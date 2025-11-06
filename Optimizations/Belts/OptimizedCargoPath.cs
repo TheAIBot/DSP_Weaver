@@ -12,11 +12,10 @@ internal struct OptimizedCargoPath
     public readonly bool closed;
     public readonly int bufferLength;
     public readonly int chunkCount;
-    public int outputCargoPathIndex;
+    public BeltIndex outputCargoPathIndex;
     private int outputChunk;
     private bool lastUpdateFrameOdd;
     public int updateLen;
-    public const int NO_BELT_INDEX = -1;
     public readonly int pathLength => bufferLength;
 
     public OptimizedCargoPath(byte[] buffer, CargoPath cargoPath)
@@ -27,7 +26,7 @@ internal struct OptimizedCargoPath
         closed = cargoPath.closed;
         bufferLength = cargoPath.bufferLength;
         chunkCount = cargoPath.chunkCount;
-        outputCargoPathIndex = NO_BELT_INDEX;
+        outputCargoPathIndex = BeltIndex.NoBelt;
         outputChunk = cargoPath.outputChunk;
         lastUpdateFrameOdd = cargoPath.lastUpdateFrameOdd;
         updateLen = cargoPath.updateLen;
@@ -40,7 +39,7 @@ internal struct OptimizedCargoPath
         cargoPath.updateLen = updateLen;
     }
 
-    public void SetOutputPath(int cargoPathIndex)
+    public void SetOutputPath(BeltIndex cargoPathIndex)
     {
         outputCargoPathIndex = cargoPathIndex;
     }
@@ -1260,9 +1259,9 @@ internal struct OptimizedCargoPath
 
     public void Update(OptimizedCargoPath[] optimizedCargoPaths)
     {
-        if (outputCargoPathIndex != NO_BELT_INDEX)
+        if (outputCargoPathIndex.HasValue)
         {
-            ref OptimizedCargoPath outputCargoPath = ref optimizedCargoPaths[outputCargoPathIndex];
+            ref OptimizedCargoPath outputCargoPath = ref outputCargoPathIndex.GetBelt(optimizedCargoPaths);
             int num;
             if (outputCargoPath.chunkCount == 1)
             {

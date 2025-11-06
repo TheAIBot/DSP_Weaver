@@ -158,7 +158,7 @@ internal sealed class SpraycoaterExecutor
 
             BeltComponent? incommingBeltComponent = default;
             int incomingBeltSegIndexPlusSegPivotOffset = 0;
-            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, spraycoater.incBeltId, out int incomingBeltIndex))
+            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, spraycoater.incBeltId, out BeltIndex incomingBeltIndex))
             {
                 incommingBeltComponent = planet.cargoTraffic.beltPool[spraycoater.incBeltId];
                 incomingBeltSegIndexPlusSegPivotOffset = incommingBeltComponent.Value.segIndex + incommingBeltComponent.Value.segPivotOffset;
@@ -167,7 +167,7 @@ internal sealed class SpraycoaterExecutor
             BeltComponent? outgoingBeltComponent = default;
             int outgoingBeltSegIndexPlusSegPivotOffset = 0;
             int outgoingBeltSpeed = 0;
-            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, spraycoater.cargoBeltId, out int outgoingbeltIndex))
+            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, spraycoater.cargoBeltId, out BeltIndex outgoingbeltIndex))
             {
                 outgoingBeltComponent = planet.cargoTraffic.beltPool[spraycoater.cargoBeltId];
                 outgoingBeltSegIndexPlusSegPivotOffset = outgoingBeltComponent.Value.segIndex + outgoingBeltComponent.Value.segPivotOffset;

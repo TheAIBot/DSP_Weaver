@@ -12,11 +12,11 @@ namespace Weaver.Optimizations.Monitors;
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal readonly struct OptimizedMonitor
 {
-    private readonly int targetBeltIndex;
+    private readonly BeltIndex targetBeltIndex;
     private readonly int targetBeltSpeed;
     private readonly int targetBeltOffset;
 
-    public OptimizedMonitor(int targetBeltIndex, int targetBeltSpeed, int targetBeltOffset)
+    public OptimizedMonitor(BeltIndex targetBeltIndex, int targetBeltSpeed, int targetBeltOffset)
     {
         this.targetBeltIndex = targetBeltIndex;
         this.targetBeltSpeed = targetBeltSpeed;
@@ -46,7 +46,7 @@ internal readonly struct OptimizedMonitor
         {
             monitor.prewarmSampleTick++;
         }
-        ref OptimizedCargoPath targetBelt = ref optimizedCargoPaths[targetBeltIndex];
+        ref OptimizedCargoPath targetBelt = ref targetBeltIndex.GetBelt(optimizedCargoPaths);
         GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num3, out var cargo, out int cargoBufferIndex, out int num5);
         if (monitor.lastCargoId == -1 && cargoBufferIndex >= 0)
         {

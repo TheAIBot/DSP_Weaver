@@ -28,7 +28,7 @@ internal sealed class TurretExecutorBuilder
 
             OptimizedIndexedCargoPath targetBelt = OptimizedIndexedCargoPath.NoBelt;
             int targetBeltOffset = 0;
-            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, turret.targetBeltId, out int targetBeltIndex))
+            if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, turret.targetBeltId, out BeltIndex targetBeltIndex))
             {
                 targetBeltOffset = planet.cargoTraffic.beltPool[turret.targetBeltId].pivotOnPath;
                 targetBelt = new OptimizedIndexedCargoPath(beltExecutor.OptimizedCargoPaths, targetBeltIndex);

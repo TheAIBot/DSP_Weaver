@@ -7,7 +7,7 @@ namespace Weaver.Optimizations.Miners;
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedWaterMiner
 {
-    private readonly int outputBeltIndex;
+    private readonly BeltIndex outputBeltIndex;
     private readonly int outputBeltOffset;
     private readonly int period;
     private readonly OptimizedItemId productId;
@@ -16,7 +16,7 @@ internal struct OptimizedWaterMiner
     public float speedDamper;
     public int productCount;
 
-    public OptimizedWaterMiner(int outputBeltIndex, int outputBeltOffset, OptimizedItemId productId, ref readonly MinerComponent miner)
+    public OptimizedWaterMiner(BeltIndex outputBeltIndex, int outputBeltOffset, OptimizedItemId productId, ref readonly MinerComponent miner)
     {
         this.outputBeltIndex = outputBeltIndex;
         this.outputBeltOffset = outputBeltOffset;
@@ -56,7 +56,7 @@ internal struct OptimizedWaterMiner
             int num16 = (int)(num15 - 0.009999999776482582) / 1800 + 1;
             num16 = num16 >= 4 ? 4 : num16 < 1 ? 1 : num16;
             int num17 = productCount < num16 ? productCount : num16;
-            int num18 = optimizedCargoPaths[outputBeltIndex].TryInsertItem(outputBeltOffset, productId.ItemIndex, (byte)num17, 0) ? (byte)num17 : 0;
+            int num18 = outputBeltIndex.GetBelt(optimizedCargoPaths).TryInsertItem(outputBeltOffset, productId.ItemIndex, (byte)num17, 0) ? (byte)num17 : 0;
             productCount -= num18;
         }
         return result;

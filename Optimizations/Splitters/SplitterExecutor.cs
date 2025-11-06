@@ -34,16 +34,24 @@ internal sealed class SplitterExecutor
                 continue;
             }
 
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input0, out int input0Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input1, out int input1Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input2, out int input2Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input3, out int input3Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output0, out int output0Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output1, out int output1Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output2, out int output2Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output3, out int output3Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.beltA, out BeltIndex beltA);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.beltB, out BeltIndex beltB);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.beltC, out BeltIndex beltC);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.beltD, out BeltIndex beltD);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input0, out BeltIndex input0Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input1, out BeltIndex input1Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input2, out BeltIndex input2Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.input3, out BeltIndex input3Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output0, out BeltIndex output0Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output1, out BeltIndex output1Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output2, out BeltIndex output2Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, splitter.output3, out BeltIndex output3Index);
 
             optimizedSplitters.Add(new OptimizedSplitter(in splitter,
+                                                         beltA,
+                                                         beltB,
+                                                         beltC,
+                                                         beltD,
                                                          input0Index,
                                                          input1Index,
                                                          input2Index,

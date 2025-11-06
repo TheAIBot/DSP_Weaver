@@ -28,9 +28,9 @@ internal readonly struct FractionatorRecipeProduct
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 internal struct OptimizedFractionator
 {
-    public readonly int belt0Index;
-    public readonly int belt1Index;
-    public readonly int belt2Index;
+    public readonly BeltIndex belt0Index;
+    public readonly BeltIndex belt1Index;
+    public readonly BeltIndex belt2Index;
     public readonly int configurationIndex;
     public OptimizedItemId fluidId;
     public OptimizedItemId productId;
@@ -45,9 +45,9 @@ internal struct OptimizedFractionator
     public int productOutputTotal;
     public uint seed;
 
-    public OptimizedFractionator(int belt0Index,
-                                 int belt1Index,
-                                 int belt2Index,
+    public OptimizedFractionator(BeltIndex belt0Index,
+                                 BeltIndex belt1Index,
+                                 BeltIndex belt2Index,
                                  int configurationIndex,
                                  OptimizedItemId fluidId,
                                  OptimizedItemId productId,
@@ -151,9 +151,9 @@ internal struct OptimizedFractionator
         {
             fractionSuccess = false;
         }
-        if (belt1Index != OptimizedCargoPath.NO_BELT_INDEX)
+        if (belt1Index.HasValue)
         {
-            ref OptimizedCargoPath belt1 = ref optimizedCargoPaths[belt1Index];
+            ref OptimizedCargoPath belt1 = ref belt1Index.GetBelt(optimizedCargoPaths);
             if (configuration.IsOutput1)
             {
                 if (fluidOutputCount > 0)
@@ -198,9 +198,9 @@ internal struct OptimizedFractionator
                 }
             }
         }
-        if (belt2Index != OptimizedCargoPath.NO_BELT_INDEX)
+        if (belt2Index.HasValue)
         {
-            ref OptimizedCargoPath belt2 = ref optimizedCargoPaths[belt2Index];
+            ref OptimizedCargoPath belt2 = ref belt2Index.GetBelt(optimizedCargoPaths);
             if (configuration.IsOutput2)
             {
                 if (fluidOutputCount > 0)
@@ -245,10 +245,10 @@ internal struct OptimizedFractionator
                 }
             }
         }
-        if (belt0Index != OptimizedCargoPath.NO_BELT_INDEX)
+        if (belt0Index.HasValue && configuration.IsOutput0 && productOutputCount > 0)
         {
-            ref OptimizedCargoPath belt0 = ref optimizedCargoPaths[belt0Index];
-            if (configuration.IsOutput0 && productOutputCount > 0 && belt0.TryInsertItemAtHeadAndFillBlank(productId.ItemIndex, 1, 0))
+            ref OptimizedCargoPath belt0 = ref belt0Index.GetBelt(optimizedCargoPaths);
+            if (belt0.TryInsertItemAtHeadAndFillBlank(productId.ItemIndex, 1, 0))
             {
                 productOutputCount--;
             }

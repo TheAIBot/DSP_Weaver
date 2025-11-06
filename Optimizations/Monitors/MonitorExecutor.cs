@@ -116,7 +116,7 @@ internal sealed class MonitorExecutor
                 continue;
             }
 
-            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, monitor.targetBeltId, out int targetBeltIndex))
+            if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, monitor.targetBeltId, out BeltIndex targetBeltIndex))
             {
                 continue;
             }

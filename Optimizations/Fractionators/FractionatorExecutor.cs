@@ -175,9 +175,9 @@ internal sealed class FractionatorExecutor
                                                               fractionator.productOutputMax);
             int fractionatorConfigurationIndex = universeStaticDataBuilder.AddFractionatorConfiguration(in configuration);
 
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt0, out int belt0Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt1, out int belt1Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt2, out int belt2Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt0, out BeltIndex belt0Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt1, out BeltIndex belt1Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, fractionator.belt2, out BeltIndex belt2Index);
 
             OptimizedItemId fluidId = default;
             if (fractionator.fluidId > 0)

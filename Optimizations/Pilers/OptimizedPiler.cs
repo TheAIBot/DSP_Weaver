@@ -6,8 +6,8 @@ namespace Weaver.Optimizations.Pilers;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedPiler
 {
-    private readonly int inputBeltIndex;
-    private readonly int outputBeltIndex;
+    private readonly BeltIndex inputBeltIndex;
+    private readonly BeltIndex outputBeltIndex;
     private readonly int inputBeltSpeed;
     private readonly int outputBeltSpeed;
     private readonly PilerState pilerState;
@@ -20,8 +20,8 @@ internal struct OptimizedPiler
     private short cacheItemId2;
     private int slowlyBeltSpeed;
 
-    public OptimizedPiler(int inputBeltIndex,
-                          int outputBeltIndex,
+    public OptimizedPiler(BeltIndex inputBeltIndex,
+                          BeltIndex outputBeltIndex,
                           int inputBeltSpeed,
                           int outputBeltSpeed,
                           ref readonly PilerComponent piler)
@@ -54,8 +54,8 @@ internal struct OptimizedPiler
         {
             timeSpend += flag ? (pilerState == PilerState.Pile ? inputBeltSpeed : outputBeltSpeed) * (int)(1000f * power) : 0;
         }
-        ref OptimizedCargoPath inputBelt = ref optimizedCargoPaths[inputBeltIndex];
-        ref OptimizedCargoPath outputBelt = ref optimizedCargoPaths[outputBeltIndex];
+        ref OptimizedCargoPath inputBelt = ref inputBeltIndex.GetBelt(optimizedCargoPaths);
+        ref OptimizedCargoPath outputBelt = ref outputBeltIndex.GetBelt(optimizedCargoPaths);
         bool flag2 = flag && timeSpend >= 10000;
         if (pilerState == PilerState.Pile)
         {

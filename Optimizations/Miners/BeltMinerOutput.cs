@@ -4,10 +4,10 @@ namespace Weaver.Optimizations.Miners;
 
 internal readonly struct BeltMinerOutput : IMinerOutput<BeltMinerOutput>
 {
-    private readonly int outputBeltIndex;
+    private readonly BeltIndex outputBeltIndex;
     private readonly int beltOffset;
 
-    public BeltMinerOutput(int outputBeltIndex, int beltOffset)
+    public BeltMinerOutput(BeltIndex outputBeltIndex, int beltOffset)
     {
         this.outputBeltIndex = outputBeltIndex;
         this.beltOffset = beltOffset;
@@ -15,7 +15,7 @@ internal readonly struct BeltMinerOutput : IMinerOutput<BeltMinerOutput>
 
     public readonly int InsertInto(int itemId, byte itemCount, OptimizedCargoPath[] optimizedCargoPaths)
     {
-        return optimizedCargoPaths[outputBeltIndex].TryInsertItem(beltOffset, itemId, itemCount, 0) ? itemCount : 0;
+        return outputBeltIndex.GetBelt(optimizedCargoPaths).TryInsertItem(beltOffset, itemId, itemCount, 0) ? itemCount : 0;
     }
 
     public readonly void PrePowerUpdate<T>(ref T miner)
@@ -37,7 +37,7 @@ internal readonly struct BeltMinerOutput : IMinerOutput<BeltMinerOutput>
         }
 
         int outputBeltId = planet.entityPool[miner.insertTarget].beltId;
-        if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, outputBeltId, out int outputBeltIndex))
+        if (!beltExecutor.TryGetOptimizedCargoPathIndex(planet, outputBeltId, out BeltIndex outputBeltIndex))
         {
             minerOutput = default;
             return false;

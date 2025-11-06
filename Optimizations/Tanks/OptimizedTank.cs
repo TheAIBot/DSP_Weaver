@@ -9,10 +9,10 @@ internal struct OptimizedTank
 {
     public const int NO_TANK = -1;
     private int id;
-    private readonly int belt0Index;
-    private readonly int belt1Index;
-    private readonly int belt2Index;
-    private readonly int belt3Index;
+    private readonly BeltIndex belt0Index;
+    private readonly BeltIndex belt1Index;
+    private readonly BeltIndex belt2Index;
+    private readonly BeltIndex belt3Index;
     private readonly bool isOutput0;
     private readonly bool isOutput1;
     private readonly bool isOutput2;
@@ -29,10 +29,10 @@ internal struct OptimizedTank
 
     public OptimizedTank(ref readonly TankComponent tank,
                          int tankIndex,
-                         int belt0Index,
-                         int belt1Index,
-                         int belt2Index,
-                         int belt3Index)
+                         BeltIndex belt0Index,
+                         BeltIndex belt1Index,
+                         BeltIndex belt2Index,
+                         BeltIndex belt3Index)
     {
         id = tankIndex;
         lastTankIndex = int.MaxValue;
@@ -192,14 +192,14 @@ internal struct OptimizedTank
         tank.fluidId = fluidId;
     }
 
-    private void UpdateTankBelt(int beltIndex, bool isOutput, TankExecutor tankExecutor, ref byte stack, ref byte inc, OptimizedCargoPath[] optimizedCargoPaths)
+    private void UpdateTankBelt(BeltIndex beltIndex, bool isOutput, TankExecutor tankExecutor, ref byte stack, ref byte inc, OptimizedCargoPath[] optimizedCargoPaths)
     {
-        if (beltIndex == OptimizedCargoPath.NO_BELT_INDEX)
+        if (!beltIndex.HasValue)
         {
             return;
         }
 
-        ref OptimizedCargoPath belt = ref optimizedCargoPaths[beltIndex];
+        ref OptimizedCargoPath belt = ref beltIndex.GetBelt(optimizedCargoPaths);
         if (isOutput && outputSwitch)
         {
             if (fluidId > 0 && fluidCount > 0)

@@ -896,10 +896,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             if (pickFrom.EntityType == EntityType.Belt)
             {
                 BeltComponent belt = planet.cargoTraffic.beltPool[pickFrom.Index];
-                if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, pickFrom.Index, out int pickFromBeltIndex))
+                if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, pickFrom.Index, out BeltIndex pickFromBeltIndex))
                 {
-                    pickFromOffset = GetCorrectedPickOffset(inserter.pickOffset, ref belt, in beltExecutor.OptimizedCargoPaths[pickFromBeltIndex]);
-                    pickFrom = new TypedObjectIndex(pickFrom.EntityType, pickFromBeltIndex);
+                    pickFromOffset = GetCorrectedPickOffset(inserter.pickOffset, ref belt, in pickFromBeltIndex.GetBelt(beltExecutor.OptimizedCargoPaths));
+                    pickFrom = new TypedObjectIndex(pickFrom.EntityType, pickFromBeltIndex.GetIndex());
                 }
                 pickFromOffset += belt.pivotOnPath;
             }
@@ -914,10 +914,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             if (insertInto.EntityType == EntityType.Belt)
             {
                 BeltComponent belt = planet.cargoTraffic.beltPool[insertInto.Index];
-                if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, insertInto.Index, out int insertIntoBeltIndex))
+                if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, insertInto.Index, out BeltIndex insertIntoBeltIndex))
                 {
-                    insertIntoOffset = GetCorrectedInsertOffset(inserter.insertOffset, ref belt, in beltExecutor.OptimizedCargoPaths[insertIntoBeltIndex]);
-                    insertInto = new TypedObjectIndex(insertInto.EntityType, insertIntoBeltIndex);
+                    insertIntoOffset = GetCorrectedInsertOffset(inserter.insertOffset, ref belt, in insertIntoBeltIndex.GetBelt(beltExecutor.OptimizedCargoPaths));
+                    insertInto = new TypedObjectIndex(insertInto.EntityType, insertIntoBeltIndex.GetIndex());
                 }
                 insertIntoOffset += belt.pivotOnPath;
             }

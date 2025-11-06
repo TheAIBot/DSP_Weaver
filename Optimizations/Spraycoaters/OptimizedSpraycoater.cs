@@ -8,8 +8,8 @@ namespace Weaver.Optimizations.Spraycoaters;
 internal struct OptimizedSpraycoater
 {
     public readonly int incommingBeltSegIndexPlusSegPivotOffset;
-    public readonly int incommingBeltIndex;
-    public readonly int outgoingBeltIndex;
+    public readonly BeltIndex incommingBeltIndex;
+    public readonly BeltIndex outgoingBeltIndex;
     public readonly int outgoingBeltSegIndexPlusSegPivotOffset;
     public readonly int outgoingBeltSpeed;
     public readonly int incCapacity;
@@ -22,8 +22,8 @@ internal struct OptimizedSpraycoater
     public bool incUsed;
 
     public OptimizedSpraycoater(int incommingBeltSegIndexPlusSegPivotOffset,
-                                int incommingBeltIndex,
-                                int outgoingBeltIndex,
+                                BeltIndex incommingBeltIndex,
+                                BeltIndex outgoingBeltIndex,
                                 int outgoingBeltSegIndexPlusSegPivotOffset,
                                 int outgoingBeltSpeed,
                                 PowerNetwork? powerNetwork,
@@ -47,9 +47,9 @@ internal struct OptimizedSpraycoater
 
     public void InternalUpdate(OptimizedItemId[] incItemIds, int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime, OptimizedCargoPath[] optimizedCargoPaths)
     {
-        if (incommingBeltIndex != OptimizedCargoPath.NO_BELT_INDEX && incCount + extraIncCount < incCapacity)
+        if (incommingBeltIndex.HasValue && incCount + extraIncCount < incCapacity)
         {
-            ref OptimizedCargoPath incommingBelt = ref optimizedCargoPaths[incommingBeltIndex];
+            ref OptimizedCargoPath incommingBelt = ref incommingBeltIndex.GetBelt(optimizedCargoPaths);
             if (incommingBelt.GetCargoAtIndex(incommingBeltSegIndexPlusSegPivotOffset, out OptimizedCargo cargo, out var _, out var _))
             {
                 if (cargo.Item != incItemId.ItemIndex && incCount == 0 && incCount == 0)
@@ -96,7 +96,7 @@ internal struct OptimizedSpraycoater
         }
         float num4 = powerNetwork != null ? (float)powerNetwork.consumerRatio : 0f;
         bool flag = num4 > 0.1f;
-        if (outgoingBeltIndex != OptimizedCargoPath.NO_BELT_INDEX)
+        if (outgoingBeltIndex.HasValue)
         {
             if (sprayTime < 10000)
             {
@@ -106,7 +106,7 @@ internal struct OptimizedSpraycoater
             {
                 isSpraycoatingItem = false;
             }
-            ref OptimizedCargoPath outgoingBelt = ref optimizedCargoPaths[outgoingBeltIndex];
+            ref OptimizedCargoPath outgoingBelt = ref outgoingBeltIndex.GetBelt(optimizedCargoPaths);
             if (flag && outgoingBelt.GetCargoAtIndex(outgoingBeltSegIndexPlusSegPivotOffset, out var cargo2, out var cargoBufferIndex, out var _) && sprayTime >= 10000)
             {
                 int num5 = cargo2.Stack > incCount + extraIncCount ? incCount + extraIncCount : cargo2.Stack;

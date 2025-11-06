@@ -14,11 +14,11 @@ namespace Weaver.Optimizations.Stations;
 internal readonly struct OptimizedStation
 {
     public readonly StationComponent stationComponent;
-    private readonly int[]? _beltIndexes;
+    private readonly BeltIndex[]? _beltIndexes;
     private readonly int? _optimizedMinerIndex;
 
     public OptimizedStation(StationComponent stationComponent,
-                            int[]? beltIndexes,
+                            BeltIndex[]? beltIndexes,
                             int? optimizedMinerIndex)
     {
         this.stationComponent = stationComponent;
@@ -28,7 +28,7 @@ internal readonly struct OptimizedStation
 
     public void UpdateOutputSlots(int maxPilerCount, OptimizedCargoPath[] optimizedCargoPaths)
     {
-        int[]? beltIndexes = _beltIndexes;
+        BeltIndex[]? beltIndexes = _beltIndexes;
         if (beltIndexes == null)
         {
             return;
@@ -44,13 +44,13 @@ internal readonly struct OptimizedStation
             {
                 for (int i = 0; i < num2; i++)
                 {
-                    int beltIndex = beltIndexes[i];
-                    if (beltIndex == OptimizedCargoPath.NO_BELT_INDEX)
+                    BeltIndex beltIndex = beltIndexes[i];
+                    if (!beltIndex.HasValue)
                     {
                         continue;
                     }
 
-                    ref OptimizedCargoPath belt = ref optimizedCargoPaths[beltIndex];
+                    ref OptimizedCargoPath belt = ref beltIndex.GetBelt(optimizedCargoPaths);
                     ref SlotData reference = ref stationComponent.slots[i];
                     if (reference.dir == IODir.Output)
                     {
@@ -99,7 +99,7 @@ internal readonly struct OptimizedStation
                     }
                     else if (reference.dir != IODir.Input)
                     {
-                        beltIndexes[i] = OptimizedCargoPath.NO_BELT_INDEX;
+                        beltIndexes[i] = BeltIndex.NoBelt;
                         reference.beltId = 0;
                         reference.counter = 0;
                     }
@@ -111,13 +111,13 @@ internal readonly struct OptimizedStation
                 for (int k = 0; k < num2; k++)
                 {
                     int num10 = (stationComponent.outSlotOffset + k) % num2;
-                    int beltIndex = beltIndexes[num10];
-                    if (beltIndex == OptimizedCargoPath.NO_BELT_INDEX)
+                    BeltIndex beltIndex = beltIndexes[num10];
+                    if (!beltIndex.HasValue)
                     {
                         continue;
                     }
 
-                    ref OptimizedCargoPath belt = ref optimizedCargoPaths[beltIndex];
+                    ref OptimizedCargoPath belt = ref beltIndex.GetBelt(optimizedCargoPaths);
                     ref SlotData reference2 = ref stationComponent.slots[num10];
                     if (reference2.dir == IODir.Output)
                     {
@@ -143,7 +143,7 @@ internal readonly struct OptimizedStation
                         // k here is mostly likely a mistake and should be num10
                         // to match the read index at the start of the loop.
                         // Haven't tested whether it is the case or not.
-                        beltIndexes[k] = OptimizedCargoPath.NO_BELT_INDEX;
+                        beltIndexes[k] = BeltIndex.NoBelt;
                         reference2.beltId = 0;
                         reference2.counter = 0;
                     }
@@ -158,7 +158,7 @@ internal readonly struct OptimizedStation
 
     public void UpdateInputSlots(OptimizedCargoPath[] optimizedCargoPaths)
     {
-        int[]? beltIndexes = _beltIndexes;
+        BeltIndex[]? beltIndexes = _beltIndexes;
         if (beltIndexes == null)
         {
             return;
@@ -171,13 +171,13 @@ internal readonly struct OptimizedStation
             int num2 = stationComponent.needs[0] + stationComponent.needs[1] + stationComponent.needs[2] + stationComponent.needs[3] + stationComponent.needs[4] + stationComponent.needs[5];
             for (int i = 0; i < num; i++)
             {
-                int beltIndex = beltIndexes[i];
-                if (beltIndex == OptimizedCargoPath.NO_BELT_INDEX)
+                BeltIndex beltIndex = beltIndexes[i];
+                if (!beltIndex.HasValue)
                 {
                     continue;
                 }
 
-                ref OptimizedCargoPath belt = ref optimizedCargoPaths[beltIndex];
+                ref OptimizedCargoPath belt = ref beltIndex.GetBelt(optimizedCargoPaths);
                 ref SlotData reference = ref stationComponent.slots[i];
                 if (reference.dir == IODir.Input)
                 {
@@ -204,7 +204,7 @@ internal readonly struct OptimizedStation
                 }
                 else if (reference.dir != IODir.Output)
                 {
-                    beltIndexes[i] = OptimizedCargoPath.NO_BELT_INDEX;
+                    beltIndexes[i] = BeltIndex.NoBelt;
                     reference.beltId = 0;
                     reference.counter = 0;
                 }

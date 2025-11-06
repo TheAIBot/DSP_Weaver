@@ -63,10 +63,10 @@ internal sealed class TankExecutor
                 continue;
             }
 
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt0, out int optimizedBelt0Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt1, out int optimizedBelt1Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt2, out int optimizedBelt2Index);
-            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt3, out int optimizedBelt3Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt0, out BeltIndex optimizedBelt0Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt1, out BeltIndex optimizedBelt1Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt2, out BeltIndex optimizedBelt2Index);
+            beltExecutor.TryGetOptimizedCargoPathIndex(planet, tank.belt3, out BeltIndex optimizedBelt3Index);
 
             int optimizedTankIndex = optimizedTanks.Count;
             tankIdToOptimizedTankIndex.Add(tank.id, optimizedTankIndex);

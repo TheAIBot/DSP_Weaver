@@ -13,7 +13,7 @@ internal sealed class PlanetWideBeltExecutor
 
     public void AddBeltExecutor(BeltExecutor beltExecutor)
     {
-        foreach (var cargoPathWithOptimizedCargoPath in beltExecutor.CargoPathToOptimizedCargoPathIndex)
+        foreach (KeyValuePair<CargoPath, BeltIndex> cargoPathWithOptimizedCargoPath in beltExecutor.CargoPathToOptimizedCargoPathIndex)
         {
             _cargoPathToOptimizedCargoPath.Add(cargoPathWithOptimizedCargoPath.Key, new OptimizedIndexedCargoPath(beltExecutor.OptimizedCargoPaths, cargoPathWithOptimizedCargoPath.Value));
         }
