@@ -18,7 +18,7 @@ internal static class ModInfo
 {
     public const string Guid = "Weaver";
     public const string Name = "Weaver";
-    public const string Version = "2.1.1";
+    public const string Version = "2.1.2";
 }
 
 [BepInPlugin(ModInfo.Guid, ModInfo.Name, ModInfo.Version)]
