@@ -54,6 +54,27 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>
             return new InserterGrade(0, 1, 1, inserter.careNeeds, inserter.filter, inserter.speed, inserter.stt);
         }
     }
+
+    public readonly bool Equals(InserterGrade other)
+    {
+        return Delay == other.Delay &&
+               StackInput == other.StackInput &&
+               StackOutput == other.StackOutput &&
+               CareNeeds == other.CareNeeds &&
+               Filter == other.Filter &&
+               Speed == other.Speed &&
+               Stt == other.Stt;
+    }
+
+    public override readonly bool Equals(object obj)
+    {
+        return obj is InserterGrade inserterGrade && Equals(inserterGrade);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        return HashCode.Combine(Delay, StackInput, StackOutput, CareNeeds, Filter, Speed, Stt);
+    }
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]

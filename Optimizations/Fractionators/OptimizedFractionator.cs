@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Inserters;
@@ -6,7 +7,7 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Fractionators;
 
-internal readonly struct FractionatorRecipeProduct
+internal readonly struct FractionatorRecipeProduct : IEquatable<FractionatorRecipeProduct>
 {
     public readonly int GameFluidId;
     public readonly OptimizedItemId Fluid;
@@ -22,6 +23,24 @@ internal readonly struct FractionatorRecipeProduct
         Fluid = fluid;
         Product = product;
         ProduceProbability = produceProbability;
+    }
+
+    public bool Equals(FractionatorRecipeProduct other)
+    {
+        return GameFluidId == other.GameFluidId &&
+               Fluid.Equals(other.Fluid) &&
+               Product.Equals(other.Product) &&
+               ProduceProbability == other.ProduceProbability;
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is FractionatorRecipeProduct recipe && Equals(recipe);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(GameFluidId, Fluid, Product, ProduceProbability);
     }
 }
 

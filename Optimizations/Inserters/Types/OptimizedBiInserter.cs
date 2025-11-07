@@ -46,6 +46,24 @@ internal readonly struct BiInserterGrade : IInserterGrade<BiInserterGrade>
             return new BiInserterGrade(1, 1, inserter.careNeeds, inserter.filter);
         }
     }
+
+    public readonly bool Equals(BiInserterGrade other)
+    {
+        return StackInput == other.StackInput &&
+               StackOutput == other.StackOutput &&
+               CareNeeds == other.CareNeeds &&
+               Filter == other.Filter;
+    }
+
+    public override readonly bool Equals(object obj)
+    {
+        return obj is BiInserterGrade inserterGrade && Equals(inserterGrade);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        return HashCode.Combine(StackInput, StackOutput, CareNeeds, Filter);
+    }
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]

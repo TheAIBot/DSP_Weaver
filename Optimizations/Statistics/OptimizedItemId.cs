@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Weaver.Optimizations.Statistics;
 
-internal readonly struct OptimizedItemId
+internal readonly struct OptimizedItemId : IEquatable<OptimizedItemId>
 {
     public readonly short ItemIndex;
     public readonly short OptimizedItemIndex;
@@ -22,23 +23,19 @@ internal readonly struct OptimizedItemId
         OptimizedItemIndex = (short)optimizedItemIndex;
     }
 
+    public readonly bool Equals(OptimizedItemId other)
+    {
+        return ItemIndex == other.ItemIndex && 
+               OptimizedItemIndex == other.OptimizedItemIndex;
+    }
+
     public override readonly bool Equals(object obj)
     {
-        if (obj is not OptimizedItemId other)
-        {
-            return false;
-        }
-
-        return ItemIndex == other.ItemIndex &&
-               OptimizedItemIndex == other.OptimizedItemIndex;
+        return obj is OptimizedItemId other && Equals(other);
     }
 
     public override readonly int GetHashCode()
     {
-        var hasCode = new HashCode();
-        hasCode.Add(ItemIndex);
-        hasCode.Add(OptimizedItemIndex);
-
-        return hasCode.ToHashCode();
+        return HashCode.Combine(ItemIndex, OptimizedItemIndex);
     }
 }

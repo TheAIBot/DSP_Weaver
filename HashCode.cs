@@ -20,6 +20,83 @@ public struct HashCode
     private uint _queue1, _queue2, _queue3;
     private uint _length;
 
+    public static int Combine<T>(T value1)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value1);
+
+        return hashCode.GetHashCode();
+    }
+
+    public static int Combine<T1, T2>(T1 value1, T2 value2)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value1);
+        hashCode.Add(value2);
+
+        return hashCode.GetHashCode();
+    }
+
+    public static int Combine<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value1);
+        hashCode.Add(value2);
+        hashCode.Add(value3);
+
+        return hashCode.GetHashCode();
+    }
+
+    public static int Combine<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value1);
+        hashCode.Add(value2);
+        hashCode.Add(value3);
+        hashCode.Add(value4);
+
+        return hashCode.GetHashCode();
+    }
+
+    public static int Combine<T1, T2, T3, T4, T5>(T1 value1, T2 value2, T3 value3, T4 value4, T5 value5)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value1);
+        hashCode.Add(value2);
+        hashCode.Add(value3);
+        hashCode.Add(value4);
+        hashCode.Add(value5);
+
+        return hashCode.GetHashCode();
+    }
+
+    public static int Combine<T1, T2, T3, T4, T5, T6>(T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value1);
+        hashCode.Add(value2);
+        hashCode.Add(value3);
+        hashCode.Add(value4);
+        hashCode.Add(value5);
+        hashCode.Add(value6);
+
+        return hashCode.GetHashCode();
+    }
+
+    public static int Combine<T1, T2, T3, T4, T5, T6, T7>(T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value1);
+        hashCode.Add(value2);
+        hashCode.Add(value3);
+        hashCode.Add(value4);
+        hashCode.Add(value5);
+        hashCode.Add(value6);
+        hashCode.Add(value7);
+
+        return hashCode.GetHashCode();
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Initialize(out uint v1, out uint v2, out uint v3, out uint v4)
     {

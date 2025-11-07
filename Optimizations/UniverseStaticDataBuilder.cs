@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Weaver.Optimizations.Assemblers;
 using Weaver.Optimizations.Fractionators;
@@ -8,7 +9,7 @@ using Weaver.Optimizations.Labs.Producing;
 
 namespace Weaver.Optimizations;
 
-internal sealed class DataDeduplicator<T> where T : struct
+internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>
 {
     private readonly Dictionary<T, int> _uniqueValueToIndex;
     private readonly List<T> _uniqueValues;
@@ -112,26 +113,32 @@ internal sealed class UniverseStaticDataBuilder
     {
         if (_assemblerRecipes.TryGetUpdatedData(out AssemblerRecipe[]? assemblerRecipes))
         {
+            //WeaverFixes.Logger.LogMessage($"Assembler recipe count: {assemblerRecipes.Length}");
             UniverseStaticData.UpdateAssemblerRecipes(assemblerRecipes);
         }
         if (_fractionatorConfigurations.TryGetUpdatedData(out FractionatorConfiguration[]? fractionatorConfiguration))
         {
+            //WeaverFixes.Logger.LogMessage($"Fractionator configuration count: {fractionatorConfiguration.Length}");
             UniverseStaticData.UpdateFractionatorConfigurations(fractionatorConfiguration);
         }
         if (_fractionatorRecipeProducts.TryGetUpdatedData(out FractionatorRecipeProduct[]? fractionatorRecipeProduct))
         {
+            //WeaverFixes.Logger.LogMessage($"Fractionator recipe count: {fractionatorRecipeProduct.Length}");
             UniverseStaticData.UpdateFractionatorRecipeProducts(fractionatorRecipeProduct);
         }
         if (_producingLabRecipes.TryGetUpdatedData(out ProducingLabRecipe[]? producingLabRecipe))
         {
+            //WeaverFixes.Logger.LogMessage($"Producing lab recipe count: {producingLabRecipe.Length}");
             UniverseStaticData.UpdateProducingLabRecipe(producingLabRecipe);
         }
         if (BiInserterGrades.TryGetUpdatedData(out BiInserterGrade[]? biInserterGrades))
         {
+            //WeaverFixes.Logger.LogMessage($"Bi-inserter grade count: {biInserterGrades.Length}");
             UniverseStaticData.UpdateBiInserterGrades(biInserterGrades);
         }
         if (InserterGrades.TryGetUpdatedData(out InserterGrade[]? inserterGrades))
         {
+            //WeaverFixes.Logger.LogMessage($"Inserter grade count: {inserterGrades.Length}");
             UniverseStaticData.UpdateInserterGrades(inserterGrades);
         }
     }

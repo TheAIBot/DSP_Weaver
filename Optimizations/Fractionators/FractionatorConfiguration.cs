@@ -28,7 +28,7 @@ internal readonly struct FractionatorConfiguration : IEquatable<FractionatorConf
         ProductOutputMax = productOutputMax;
     }
 
-    public bool Equals(FractionatorConfiguration other)
+    public readonly bool Equals(FractionatorConfiguration other)
     {
         return IsOutput0 == other.IsOutput0 &&
                IsOutput1 == other.IsOutput1 &&
@@ -38,21 +38,13 @@ internal readonly struct FractionatorConfiguration : IEquatable<FractionatorConf
                ProductOutputMax == other.ProductOutputMax;
     }
 
-    public override bool Equals(object obj)
+    public override readonly bool Equals(object obj)
     {
         return obj is FractionatorConfiguration configuration && Equals(configuration);
     }
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
-        var hashCode = new HashCode();
-        hashCode.Add(IsOutput0);
-        hashCode.Add(IsOutput1);
-        hashCode.Add(IsOutput2);
-        hashCode.Add(FluidInputMax);
-        hashCode.Add(FluidOutputMax);
-        hashCode.Add(ProductOutputMax);
-
-        return hashCode.ToHashCode();
+        return HashCode.Combine(IsOutput0, IsOutput1, IsOutput2, FluidInputMax, FluidOutputMax, ProductOutputMax);
     }
 }

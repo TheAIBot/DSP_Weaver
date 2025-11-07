@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.Statistics;
@@ -6,7 +7,7 @@ using Weaver.Optimizations.Statistics;
 namespace Weaver.Optimizations.Assemblers;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
+internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>
 {
     public readonly int RecipeId;
     public readonly ERecipeType RecipeType;
@@ -39,20 +40,25 @@ internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
         ProductCounts = productCounts;
     }
 
-    public bool Equals(AssemblerRecipe x, AssemblerRecipe y)
+    public readonly bool Equals(AssemblerRecipe other)
     {
-        return x.RecipeId == y.RecipeId &&
-               x.RecipeType == y.RecipeType &&
-               x.TimeSpend == y.TimeSpend &&
-               x.ExtraTimeSpend == y.ExtraTimeSpend &&
-               x.Productive == y.Productive &&
-               x.Requires.SequenceEqual(y.Requires) &&
-               x.RequireCounts.SequenceEqual(y.RequireCounts) &&
-               x.Products.SequenceEqual(y.Products) &&
-               x.ProductCounts.SequenceEqual(y.ProductCounts);
+        return RecipeId == other.RecipeId &&
+               RecipeType == other.RecipeType &&
+               TimeSpend == other.TimeSpend &&
+               ExtraTimeSpend == other.ExtraTimeSpend &&
+               Productive == other.Productive &&
+               Requires.SequenceEqual(other.Requires) &&
+               RequireCounts.SequenceEqual(other.RequireCounts) &&
+               Products.SequenceEqual(other.Products) &&
+               ProductCounts.SequenceEqual(other.ProductCounts);
     }
 
-    public int GetHashCode(AssemblerRecipe obj)
+    public override readonly bool Equals(object obj)
+    {
+        return obj is AssemblerRecipe other && Equals(other);
+    }
+
+    public override readonly int GetHashCode()
     {
         var hashCode = new HashCode();
         hashCode.Add(RecipeId);
@@ -80,21 +86,6 @@ internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
         return hashCode.ToHashCode();
     }
 
-    public override bool Equals(object obj)
-    {
-        if (obj is not AssemblerRecipe other)
-        {
-            return false;
-        }
-
-        return Equals(this, other);
-    }
-
-    public override int GetHashCode()
-    {
-        return GetHashCode(this);
-    }
-
     public void Print()
     {
         WeaverFixes.Logger.LogInfo($"{nameof(RecipeId)}: {RecipeId}");
@@ -106,6 +97,6 @@ internal readonly struct AssemblerRecipe : IEqualityComparer<AssemblerRecipe>
         WeaverFixes.Logger.LogInfo($"{nameof(RequireCounts)}: [{(RequireCounts != null ? string.Join(", ", RequireCounts) : null)}]");
         WeaverFixes.Logger.LogInfo($"{nameof(Products)}: [{(Products != null ? string.Join(", ", Products) : null)}]");
         WeaverFixes.Logger.LogInfo($"{nameof(ProductCounts)}: [{(ProductCounts != null ? string.Join(", ", ProductCounts) : null)}]");
-        WeaverFixes.Logger.LogInfo($"{nameof(GetHashCode)}: {GetHashCode(this)}");
+        WeaverFixes.Logger.LogInfo($"{nameof(GetHashCode)}: {GetHashCode()}");
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.Statistics;
@@ -6,7 +7,7 @@ using Weaver.Optimizations.Statistics;
 namespace Weaver.Optimizations.Labs.Producing;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal readonly struct ProducingLabRecipe : IEqualityComparer<ProducingLabRecipe>
+internal readonly struct ProducingLabRecipe : IEquatable<ProducingLabRecipe>
 {
     public readonly int RecipeId;
     public readonly int TimeSpend;
@@ -31,20 +32,25 @@ internal readonly struct ProducingLabRecipe : IEqualityComparer<ProducingLabReci
         ProductCounts = lab.productCounts;
     }
 
-    public bool Equals(ProducingLabRecipe x, ProducingLabRecipe y)
+    public readonly bool Equals(ProducingLabRecipe other)
     {
-        return x.RecipeId == y.RecipeId &&
-               x.TimeSpend == y.TimeSpend &&
-               x.ExtraTimeSpend == y.ExtraTimeSpend &&
-               x.Speed == y.Speed &&
-               x.Productive == y.Productive &&
-               x.Requires.SequenceEqual(y.Requires) &&
-               x.RequireCounts.SequenceEqual(y.RequireCounts) &&
-               x.Products.SequenceEqual(y.Products) &&
-               x.ProductCounts.SequenceEqual(y.ProductCounts);
+        return RecipeId == other.RecipeId &&
+               TimeSpend == other.TimeSpend &&
+               ExtraTimeSpend == other.ExtraTimeSpend &&
+               Speed == other.Speed &&
+               Productive == other.Productive &&
+               Requires.SequenceEqual(other.Requires) &&
+               RequireCounts.SequenceEqual(other.RequireCounts) &&
+               Products.SequenceEqual(other.Products) &&
+               ProductCounts.SequenceEqual(other.ProductCounts);
     }
 
-    public int GetHashCode(ProducingLabRecipe obj)
+    public override readonly bool Equals(object obj)
+    {
+        return obj is ProducingLabRecipe other && Equals(other);
+    }
+
+    public override readonly int GetHashCode()
     {
         var hashCode = new HashCode();
         hashCode.Add(RecipeId);
@@ -70,20 +76,5 @@ internal readonly struct ProducingLabRecipe : IEqualityComparer<ProducingLabReci
         }
 
         return hashCode.ToHashCode();
-    }
-
-    public override bool Equals(object obj)
-    {
-        if (obj is not ProducingLabRecipe other)
-        {
-            return false;
-        }
-
-        return Equals(this, other);
-    }
-
-    public override int GetHashCode()
-    {
-        return GetHashCode(this);
     }
 }
