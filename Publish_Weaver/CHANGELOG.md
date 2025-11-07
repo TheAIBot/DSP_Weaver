@@ -1,3 +1,6 @@
+## 2.1.2
+* Fix dyson sphere power update ignored structure points if the game loaded with sails in orbit.
+
 ## 2.1.1
 * Fix each new structure point was added twice.
 

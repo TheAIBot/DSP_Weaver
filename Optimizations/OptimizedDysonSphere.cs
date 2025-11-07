@@ -17,6 +17,8 @@ internal sealed class OptimizedDysonSphere
     {
         _dysonSphere = dysonSphere;
         _dysonSphereLayersPowerGenerated = new long[dysonSphere.layersSorted.Length];
+        // Must start like this so game state is read on the first tick
+        _needToRecalculatePower = true;
     }
 
     public static void Reset()
