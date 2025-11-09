@@ -18,6 +18,8 @@ Known incompatible mods:
 * More Mega Structures
 * VeinityProject
 * PlanetMiner
+* SmartTank
+* PlanetwideSpray
 
 # Known issues
 None. You can [report bugs here.](https://github.com/TheAIBot/DSP_Weaver/issues)

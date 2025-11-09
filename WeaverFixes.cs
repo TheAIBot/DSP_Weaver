@@ -64,7 +64,21 @@ public class WeaverFixes : BaseUnityPlugin
                                "crecheng.PlanetMiner",
                                IncompatibilityDegree.CompletelyIncompatible,
                                null,
-                               "It depends on the research lab update which weaver never calls for optimized planets.")
+                               "It depends on the research lab update which weaver never calls for optimized planets."),
+
+        // https://thunderstore.io/c/dyson-sphere-program/p/jinxOAO/SmartTank/
+        new ModIncompatibility("SmartTank",
+                               "GniMaerd.DSP.plugin.SmartTank",
+                               IncompatibilityDegree.PartiallyCompatible,
+                               "Well presumably most people will only use it on their first planet? If true then there is no issue.",
+                               "Patches base game code which Weaver never calls."),
+
+        // https://thunderstore.io/c/dyson-sphere-program/p/starfi5h/PlanetwideSpray/
+        new ModIncompatibility("PlanetwideSpray",
+                               "starfi5h.plugin.PlanetwideSpray",
+                               IncompatibilityDegree.CompletelyIncompatible,
+                               null,
+                               "Patches base game code which Weaver never calls.")
     ];
 
     private void Awake()

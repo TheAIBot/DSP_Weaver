@@ -1,5 +1,7 @@
 ## 2.1.3
 * Fix fractionators could use optimized item ids from other sub factories in the star cluster.
+* Add SmartTank and PlanetwideSpray to list of incompatible mods.
+	* Both will only work correctly on planets the player is near/standing on.
 
 ## 2.1.2
 * Fix dyson sphere power update ignored structure points if the game loaded with sails in orbit.
