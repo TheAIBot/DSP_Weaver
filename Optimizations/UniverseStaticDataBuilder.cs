@@ -82,7 +82,6 @@ internal sealed class UniverseStaticDataBuilder
     
     private readonly DataDeduplicator<AssemblerRecipe> _assemblerRecipes = new();
     private readonly DataDeduplicator<FractionatorConfiguration> _fractionatorConfigurations = new();
-    private readonly DataDeduplicator<FractionatorRecipeProduct> _fractionatorRecipeProducts = new();
     private readonly DataDeduplicator<ProducingLabRecipe> _producingLabRecipes = new();
     public UniverseInserterStaticDataBuilder<BiInserterGrade> BiInserterGrades { get; } = new();
     public UniverseInserterStaticDataBuilder<InserterGrade> InserterGrades { get; } = new();
@@ -97,11 +96,6 @@ internal sealed class UniverseStaticDataBuilder
     public int AddFractionatorConfiguration(ref readonly FractionatorConfiguration fractionatorConfiguration)
     {
         return _fractionatorConfigurations.GetDeduplicatedValueIndex(in fractionatorConfiguration);
-    }
-
-    public int AddFractionatorRecipeProduct(ref readonly FractionatorRecipeProduct fractionatorRecipeProduct)
-    {
-        return _fractionatorRecipeProducts.GetDeduplicatedValueIndex(in fractionatorRecipeProduct);
     }
 
     public int AddProducingLabRecipe(ref readonly ProducingLabRecipe producingLabRecipe)
@@ -120,11 +114,6 @@ internal sealed class UniverseStaticDataBuilder
         {
             //WeaverFixes.Logger.LogMessage($"Fractionator configuration count: {fractionatorConfiguration.Length}");
             UniverseStaticData.UpdateFractionatorConfigurations(fractionatorConfiguration);
-        }
-        if (_fractionatorRecipeProducts.TryGetUpdatedData(out FractionatorRecipeProduct[]? fractionatorRecipeProduct))
-        {
-            //WeaverFixes.Logger.LogMessage($"Fractionator recipe count: {fractionatorRecipeProduct.Length}");
-            UniverseStaticData.UpdateFractionatorRecipeProducts(fractionatorRecipeProduct);
         }
         if (_producingLabRecipes.TryGetUpdatedData(out ProducingLabRecipe[]? producingLabRecipe))
         {
@@ -147,7 +136,6 @@ internal sealed class UniverseStaticDataBuilder
     {
         _assemblerRecipes.Clear();
         _fractionatorConfigurations.Clear();
-        _fractionatorRecipeProducts.Clear();
         _producingLabRecipes.Clear();
         BiInserterGrades.Clear();
         InserterGrades.Clear();
@@ -160,7 +148,6 @@ internal sealed class UniverseStaticData
 {
     public AssemblerRecipe[] AssemblerRecipes { get; private set; } = [];
     public FractionatorConfiguration[] FractionatorConfigurations { get; private set; } = [];
-    public FractionatorRecipeProduct[] FractionatorRecipeProducts { get; private set; } = [];
     public ProducingLabRecipe[] ProducingLabRecipes { get; private set; } = [];
     public BiInserterGrade[] BiInserterGrades { get; private set; } = [];
     public InserterGrade[] InserterGrades { get; private set; } = [];
@@ -173,11 +160,6 @@ internal sealed class UniverseStaticData
     public void UpdateFractionatorConfigurations(FractionatorConfiguration[] fractionatorConfigurations)
     {
         FractionatorConfigurations = fractionatorConfigurations;
-    }
-
-    public void UpdateFractionatorRecipeProducts(FractionatorRecipeProduct[] fractionatorRecipeProducts)
-    {
-        FractionatorRecipeProducts = fractionatorRecipeProducts;
     }
 
     public void UpdateProducingLabRecipe(ProducingLabRecipe[] producingLabRecipe)
