@@ -6,6 +6,11 @@ internal record struct GroupNeeds(int GroupNeedStartIndex, byte GroupNeedsSize)
 {
     public int GetObjectNeedsIndex(int objectIndex)
     {
+        if (GroupNeedsSize == 0)
+        {
+            return 0;
+        }
+
         return GroupNeedStartIndex + objectIndex;
     }
 

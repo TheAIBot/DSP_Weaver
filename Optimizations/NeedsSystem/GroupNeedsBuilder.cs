@@ -29,13 +29,13 @@ internal sealed class GroupNeedsBuilder
     public void Complete()
     {
         int largestPatternSize = 0;
-        foreach (var item in _needsWithPatterns)
+        foreach ((int[] Needs, int[] Pattern) item in _needsWithPatterns)
         {
             largestPatternSize = Math.Max(largestPatternSize, item.Pattern.Length);
         }
 
 
-        foreach (var item in _needsWithPatterns)
+        foreach ((int[] Needs, int[] Pattern) item in _needsWithPatterns)
         {
             short patternIndex = AddNeedsPattern(item.Needs, item.Pattern, largestPatternSize);
             _needsBuilder.AddNeeds(patternIndex, item.Pattern);

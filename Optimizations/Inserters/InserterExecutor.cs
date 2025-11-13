@@ -371,10 +371,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             {
                 int needsSize = groupNeeds.GroupNeedsSize;
                 int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
-                //if (needsOffset >= _subFactoryNeeds.ComponentsNeeds.Length)
-                //{
-                //    throw new InvalidOperationException($"Belt. needsOffset: {needsOffset}, component length: {_subFactoryNeeds.ComponentsNeeds.Length}");
-                //}
                 ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
                 short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
