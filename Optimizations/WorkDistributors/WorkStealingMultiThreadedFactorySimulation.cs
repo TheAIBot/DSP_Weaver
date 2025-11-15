@@ -16,11 +16,10 @@ internal static class ThreadLocalData
 
 internal static class WeaverThreadHelper
 {
-    private static int _value = 0;
-
     public static int GetParallelism() => Math.Max(1, GameMain.logic.threadController.wantedThreadCount);
-    
+
     // For testing purposes on deadlocks happening more often under different thread counts
+    //private static int _value = 0;
     //public static int GetParallelism() => Math.Max(1, _value++ % 32);//Math.Max(1, GameMain.logic.threadController.wantedThreadCount);
 }
 
