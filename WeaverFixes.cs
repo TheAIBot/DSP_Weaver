@@ -98,6 +98,7 @@ public class WeaverFixes : BaseUnityPlugin
         //OptimizedStarCluster.EnableStatistics();
         //GraphStatistics.Enable(harmony);
         //GameStatistics.MemoryStatistics.EnableGameStatistics(harmony);
+        UniverseStaticDataBuilder.EnableStatistics();
     }
 
     //private static bool _isOptimizeLocalPlanetKeyDown = false;

@@ -149,22 +149,7 @@ internal sealed class ComparableArrayDeduplicator<T> : IComparableArrayDeduplica
     public int TotalBytes { get; private set; }
     public int BytesDeduplicated { get; private set; }
 
-    public T[] Deduplicate(T[] toDeduplicate, int itemSize)
-    {
-        int deduplicateSize = itemSize * toDeduplicate.Length;
-        TotalBytes += deduplicateSize;
-
-        if (_arrays.TryGetValue(toDeduplicate, out IList<T> deduplicated))
-        {
-            BytesDeduplicated += deduplicateSize;
-            return (T[])deduplicated;
-        }
-
-        _arrays.Add(toDeduplicate);
-        return toDeduplicate;
-    }
-
-    public T[] Deduplicate(List<T> toDeduplicate, int itemSize)
+    public T[] Deduplicate(IList<T> toDeduplicate, int itemSize)
     {
         int deduplicateSize = itemSize * toDeduplicate.Count;
         TotalBytes += deduplicateSize;
@@ -175,7 +160,16 @@ internal sealed class ComparableArrayDeduplicator<T> : IComparableArrayDeduplica
             return (T[])deduplicated;
         }
 
-        T[] array = toDeduplicate.ToArray();
+        T[] array;
+        if (toDeduplicate is List<T> toDeduplicateList)
+        {
+            array = toDeduplicateList.ToArray();
+        }
+        else
+        {
+            array = (T[])toDeduplicate;
+        }
+
         _arrays.Add(array);
         return array;
     }
@@ -219,48 +213,13 @@ internal sealed class UniverseStaticDataBuilder
         return _powerConsumerTypes.GetDeduplicatedValueIndex(in powerConsumerType);
     }
 
-    public T[] DeduplicateArrayUnmanaged<T>(T[] toDeduplicate)
+    public T[] DeduplicateArrayUnmanaged<T>(IList<T> toDeduplicate)
         where T : unmanaged, IEquatable<T>
     {
-        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
-        {
-            deduplicator = new ComparableArrayDeduplicator<T>();
-            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
-        }
-
-        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, Marshal.SizeOf<T>());
+        return DeduplicateArray(toDeduplicate, Marshal.SizeOf<T>());
     }
 
-    public T[] DeduplicateArray<T>(T[] toDeduplicate)
-        where T : IEquatable<T>, IMemorySize
-    {
-        if (toDeduplicate.Length == 0)
-        {
-            return [];
-        }
-
-        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
-        {
-            deduplicator = new ComparableArrayDeduplicator<T>();
-            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
-        }
-
-        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, toDeduplicate[0].GetSize());
-    }
-
-    public T[] DeduplicateArrayUnmanaged<T>(List<T> toDeduplicate)
-        where T : unmanaged, IEquatable<T>
-    {
-        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
-        {
-            deduplicator = new ComparableArrayDeduplicator<T>();
-            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
-        }
-
-        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, Marshal.SizeOf<T>());
-    }
-
-    public T[] DeduplicateArray<T>(List<T> toDeduplicate)
+    public T[] DeduplicateArray<T>(IList<T> toDeduplicate)
         where T : IEquatable<T>, IMemorySize
     {
         if (toDeduplicate.Count == 0)
@@ -268,13 +227,7 @@ internal sealed class UniverseStaticDataBuilder
             return [];
         }
 
-        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
-        {
-            deduplicator = new ComparableArrayDeduplicator<T>();
-            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
-        }
-
-        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, toDeduplicate[0].GetSize());
+        return DeduplicateArray(toDeduplicate, toDeduplicate[0].GetSize());
     }
 
     public void UpdateStaticDataIfRequired()
@@ -332,6 +285,18 @@ internal sealed class UniverseStaticDataBuilder
         InserterGrades.Clear();
 
         UpdateStaticDataIfRequired();
+    }
+
+    private T[] DeduplicateArray<T>(IList<T> toDeduplicate, int itemSize)
+    where T : IEquatable<T>
+    {
+        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
+        {
+            deduplicator = new ComparableArrayDeduplicator<T>();
+            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
+        }
+
+        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, itemSize);
     }
 
     private void PrintStaticDataStatistics()
