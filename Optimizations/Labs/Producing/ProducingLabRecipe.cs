@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Labs.Producing;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal readonly struct ProducingLabRecipe : IEquatable<ProducingLabRecipe>
+internal readonly struct ProducingLabRecipe : IEquatable<ProducingLabRecipe>, IMemorySize
 {
     public readonly int RecipeId;
     public readonly int TimeSpend;
@@ -30,6 +31,17 @@ internal readonly struct ProducingLabRecipe : IEquatable<ProducingLabRecipe>
         RequireCounts = lab.requireCounts;
         Products = subFactoryProductionRegisterBuilder.AddProduct(lab.products);
         ProductCounts = lab.productCounts;
+    }
+
+    public int GetSize()
+    {
+        int size = Marshal.SizeOf<ProducingLabRecipe>();
+        size += Marshal.SizeOf<OptimizedItemId>() * Requires.Length;
+        size += Marshal.SizeOf<int>() * RequireCounts.Length;
+        size += Marshal.SizeOf<OptimizedItemId>() * Products.Length;
+        size += Marshal.SizeOf<int>() * ProductCounts.Length;
+
+        return size;
     }
 
     public readonly bool Equals(ProducingLabRecipe other)

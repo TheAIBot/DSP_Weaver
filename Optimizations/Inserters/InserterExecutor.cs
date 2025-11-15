@@ -61,7 +61,7 @@ internal static class CargoPathMethods
 
 internal sealed class InserterExecutor<TInserter, TInserterGrade>
     where TInserter : struct, IInserter<TInserter, TInserterGrade>
-    where TInserterGrade : struct, IInserterGrade<TInserterGrade>
+    where TInserterGrade : struct, IInserterGrade<TInserterGrade>, IMemorySize
 {
     private TInserter[] _optimizedInserters = null!;
     private OptimizedInserterStage[] _optimizedInserterStages = null!;

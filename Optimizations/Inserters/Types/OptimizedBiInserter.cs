@@ -6,13 +6,13 @@ using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Inserters.Types;
 
-[StructLayout(LayoutKind.Auto)]
-internal readonly struct BiInserterGrade : IInserterGrade<BiInserterGrade>
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+internal readonly struct BiInserterGrade : IInserterGrade<BiInserterGrade>, IMemorySize
 {
+    public readonly short Filter;
     public readonly byte StackInput;
     public readonly byte StackOutput;
     public readonly bool CareNeeds;
-    public readonly short Filter;
 
     public BiInserterGrade(byte stackInput, byte stackOutput, bool careNeeds, int filter)
     {
@@ -46,6 +46,8 @@ internal readonly struct BiInserterGrade : IInserterGrade<BiInserterGrade>
             return new BiInserterGrade(1, 1, inserter.careNeeds, inserter.filter);
         }
     }
+
+    public unsafe int GetSize() => Marshal.SizeOf<BiInserterGrade>();
 
     public readonly bool Equals(BiInserterGrade other)
     {

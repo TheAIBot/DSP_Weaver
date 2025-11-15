@@ -4,14 +4,14 @@ using System.Runtime.InteropServices;
 namespace Weaver.Optimizations.Fractionators;
 
 [StructLayout(LayoutKind.Sequential, Pack=1)]
-internal readonly struct FractionatorConfiguration : IEquatable<FractionatorConfiguration>
+internal readonly struct FractionatorConfiguration : IEquatable<FractionatorConfiguration>, IMemorySize
 {
-    public readonly bool IsOutput0;
-    public readonly bool IsOutput1;
-    public readonly bool IsOutput2;
     public readonly int FluidInputMax;
     public readonly int FluidOutputMax;
     public readonly int ProductOutputMax;
+    public readonly bool IsOutput0;
+    public readonly bool IsOutput1;
+    public readonly bool IsOutput2;
 
     public FractionatorConfiguration(bool isOutput0, 
                                      bool isOutput1, 
@@ -27,6 +27,8 @@ internal readonly struct FractionatorConfiguration : IEquatable<FractionatorConf
         FluidOutputMax = fluidOutputMax;
         ProductOutputMax = productOutputMax;
     }
+
+    public int GetSize() => Marshal.SizeOf<FractionatorConfiguration>();
 
     public readonly bool Equals(FractionatorConfiguration other)
     {

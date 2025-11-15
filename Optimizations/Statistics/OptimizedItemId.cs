@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using Weaver.Optimizations.PowerSystems;
 
 namespace Weaver.Optimizations.Statistics;
 
-internal readonly struct OptimizedItemId : IEquatable<OptimizedItemId>
+internal readonly struct OptimizedItemId : IEquatable<OptimizedItemId>, IMemorySize
 {
     public readonly short ItemIndex;
     public readonly short OptimizedItemIndex;
@@ -22,6 +24,8 @@ internal readonly struct OptimizedItemId : IEquatable<OptimizedItemId>
         ItemIndex = (short)itemIndex;
         OptimizedItemIndex = (short)optimizedItemIndex;
     }
+
+    public unsafe int GetSize() => Marshal.SizeOf<OptimizedItemId>();
 
     public readonly bool Equals(OptimizedItemId other)
     {

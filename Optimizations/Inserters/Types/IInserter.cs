@@ -6,7 +6,7 @@ namespace Weaver.Optimizations.Inserters.Types;
 
 internal interface IInserter<TInserter, TInserterGrade>
     where TInserter : struct, IInserter<TInserter, TInserterGrade>
-    where TInserterGrade : struct, IInserterGrade<TInserterGrade>
+    where TInserterGrade : struct, IInserterGrade<TInserterGrade>, IMemorySize
 {
     short grade { get; }
     int pickOffset { get; }

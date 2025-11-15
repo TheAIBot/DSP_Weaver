@@ -10,11 +10,19 @@ using Weaver.Optimizations.PowerSystems;
 
 namespace Weaver.Optimizations;
 
-internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>
+internal interface IMemorySize
+{
+    int GetSize();
+}
+
+internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>, IMemorySize
 {
     private readonly Dictionary<T, int> _uniqueValueToIndex;
     private readonly List<T> _uniqueValues;
     private bool _dataUpdated;
+
+    public int TotalBytes { get; private set; }
+    public int BytesDeduplicated { get; private set; }
 
     public DataDeduplicator()
     {
@@ -25,6 +33,9 @@ internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>
 
     public int GetDeduplicatedValueIndex(ref readonly T potentiallyDuplicatedValue)
     {
+        int dataSize = potentiallyDuplicatedValue.GetSize();
+        TotalBytes += dataSize;
+
         if (!_uniqueValueToIndex.TryGetValue(potentiallyDuplicatedValue, out int deduplicatedIndex))
         {
             _dataUpdated = true;
@@ -32,6 +43,11 @@ internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>
             _uniqueValues.Add(potentiallyDuplicatedValue);
             _uniqueValueToIndex.Add(potentiallyDuplicatedValue, deduplicatedIndex);
         }
+        else
+        {
+            BytesDeduplicated += dataSize;
+        }
+
 
         return deduplicatedIndex;
     }
@@ -54,13 +70,18 @@ internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>
         _uniqueValueToIndex.Clear();
         _uniqueValues.Clear();
         _dataUpdated = true;
+        TotalBytes = 0;
+        BytesDeduplicated = 0;
     }
 }
 
 internal sealed class UniverseInserterStaticDataBuilder<TInserterGrade>
-    where TInserterGrade : struct, IInserterGrade<TInserterGrade>
+    where TInserterGrade : struct, IInserterGrade<TInserterGrade>, IMemorySize
 {
     private readonly DataDeduplicator<TInserterGrade> _inserterGrades = new DataDeduplicator<TInserterGrade>();
+
+    public int TotalBytes => _inserterGrades.TotalBytes;
+    public int BytesDeduplicated => _inserterGrades.BytesDeduplicated;
 
     public int AddInserterGrade(ref readonly TInserterGrade inserterGrade)
     {
@@ -80,7 +101,7 @@ internal sealed class UniverseInserterStaticDataBuilder<TInserterGrade>
 
 internal sealed class UniverseStaticDataBuilder
 {
-    
+    private static bool _printStatistics = false;
     private readonly DataDeduplicator<AssemblerRecipe> _assemblerRecipes = new();
     private readonly DataDeduplicator<FractionatorConfiguration> _fractionatorConfigurations = new();
     private readonly DataDeduplicator<ProducingLabRecipe> _producingLabRecipes = new();
@@ -89,6 +110,11 @@ internal sealed class UniverseStaticDataBuilder
     public UniverseInserterStaticDataBuilder<InserterGrade> InserterGrades { get; } = new();
 
     public UniverseStaticData UniverseStaticData { get; } = new UniverseStaticData();
+
+    public static void EnableStatistics()
+    {
+        _printStatistics = true;
+    }
 
     public int AddAssemblerRecipe(ref readonly AssemblerRecipe assemblerRecipe)
     {
@@ -112,35 +138,47 @@ internal sealed class UniverseStaticDataBuilder
 
     public void UpdateStaticDataIfRequired()
     {
+        bool dataUpdated = false;
         if (_assemblerRecipes.TryGetUpdatedData(out AssemblerRecipe[]? assemblerRecipes))
         {
             //WeaverFixes.Logger.LogMessage($"Assembler recipe count: {assemblerRecipes.Length}");
             UniverseStaticData.UpdateAssemblerRecipes(assemblerRecipes);
+            dataUpdated = true;
         }
         if (_fractionatorConfigurations.TryGetUpdatedData(out FractionatorConfiguration[]? fractionatorConfiguration))
         {
             //WeaverFixes.Logger.LogMessage($"Fractionator configuration count: {fractionatorConfiguration.Length}");
             UniverseStaticData.UpdateFractionatorConfigurations(fractionatorConfiguration);
+            dataUpdated = true;
         }
         if (_producingLabRecipes.TryGetUpdatedData(out ProducingLabRecipe[]? producingLabRecipe))
         {
             //WeaverFixes.Logger.LogMessage($"Producing lab recipe count: {producingLabRecipe.Length}");
             UniverseStaticData.UpdateProducingLabRecipes(producingLabRecipe);
+            dataUpdated = true;
         }
         if (_powerConsumerTypes.TryGetUpdatedData(out PowerConsumerType[]? powerConsumerTypes))
         {
             //WeaverFixes.Logger.LogMessage($"Power consumer type count: {powerConsumerTypes.Length}");
             UniverseStaticData.UpdatePowerConsumerTypes(powerConsumerTypes);
+            dataUpdated = true;
         }
         if (BiInserterGrades.TryGetUpdatedData(out BiInserterGrade[]? biInserterGrades))
         {
             //WeaverFixes.Logger.LogMessage($"Bi-inserter grade count: {biInserterGrades.Length}");
             UniverseStaticData.UpdateBiInserterGrades(biInserterGrades);
+            dataUpdated = true;
         }
         if (InserterGrades.TryGetUpdatedData(out InserterGrade[]? inserterGrades))
         {
             //WeaverFixes.Logger.LogMessage($"Inserter grade count: {inserterGrades.Length}");
             UniverseStaticData.UpdateInserterGrades(inserterGrades);
+            dataUpdated = true;
+        }
+
+        if (dataUpdated && _printStatistics)
+        {
+            PrintStaticDataStatistics();
         }
     }
 
@@ -153,6 +191,29 @@ internal sealed class UniverseStaticDataBuilder
         InserterGrades.Clear();
 
         UpdateStaticDataIfRequired();
+    }
+
+    private void PrintStaticDataStatistics()
+    {
+        int totalBytes = 0;
+        totalBytes += _assemblerRecipes.TotalBytes;
+        totalBytes += _fractionatorConfigurations.TotalBytes;
+        totalBytes += _producingLabRecipes.TotalBytes;
+        totalBytes += _powerConsumerTypes.TotalBytes;
+        totalBytes += BiInserterGrades.TotalBytes;
+        totalBytes += InserterGrades.TotalBytes;
+
+        int deduplicatedBytes = 0;
+        deduplicatedBytes += _assemblerRecipes.BytesDeduplicated;
+        deduplicatedBytes += _fractionatorConfigurations.BytesDeduplicated;
+        deduplicatedBytes += _producingLabRecipes.BytesDeduplicated;
+        deduplicatedBytes += _powerConsumerTypes.BytesDeduplicated;
+        deduplicatedBytes += BiInserterGrades.BytesDeduplicated;
+        deduplicatedBytes += InserterGrades.BytesDeduplicated;
+
+        WeaverFixes.Logger.LogMessage("Static data statistics:");
+        WeaverFixes.Logger.LogMessage($"\tTotal:        {totalBytes,12:N0} bytes");
+        WeaverFixes.Logger.LogMessage($"\tDeduplicated: {deduplicatedBytes,12:N0} bytes");
     }
 }
 

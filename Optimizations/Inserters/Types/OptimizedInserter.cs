@@ -2,20 +2,21 @@
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
+using System.Runtime.CompilerServices;
 using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Inserters.Types;
 
-[StructLayout(LayoutKind.Auto)]
-internal readonly struct InserterGrade : IInserterGrade<InserterGrade>
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemorySize
 {
     public readonly int Delay;
+    public readonly int Speed;
+    public readonly int Stt;
+    public readonly short Filter;
     public readonly byte StackInput;
     public readonly byte StackOutput;
     public readonly bool CareNeeds;
-    public readonly short Filter;
-    public readonly int Speed;
-    public readonly int Stt;
 
     public InserterGrade(int delay, byte stackInput, byte stackOutput, bool careNeeds, int filter, int speed, int stt)
     {
@@ -54,6 +55,8 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>
             return new InserterGrade(0, 1, 1, inserter.careNeeds, inserter.filter, inserter.speed, inserter.stt);
         }
     }
+
+    public unsafe int GetSize() => Marshal.SizeOf<InserterGrade>();
 
     public readonly bool Equals(InserterGrade other)
     {

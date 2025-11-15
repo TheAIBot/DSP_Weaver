@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.Labs.Producing;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Assemblers;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>
+internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemorySize
 {
     public readonly int RecipeId;
     public readonly ERecipeType RecipeType;
@@ -38,6 +39,17 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>
         RequireCounts = requireCounts;
         Products = products;
         ProductCounts = productCounts;
+    }
+
+    public int GetSize()
+    {
+        int size = Marshal.SizeOf<AssemblerRecipe>();
+        size += Marshal.SizeOf<OptimizedItemId>() * Requires.Length;
+        size += Marshal.SizeOf<int>() * RequireCounts.Length;
+        size += Marshal.SizeOf<OptimizedItemId>() * Products.Length;
+        size += Marshal.SizeOf<int>() * ProductCounts.Length;
+
+        return size;
     }
 
     public readonly bool Equals(AssemblerRecipe other)

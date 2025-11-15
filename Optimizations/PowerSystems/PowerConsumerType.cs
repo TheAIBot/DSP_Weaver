@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Runtime.InteropServices;
+using Weaver.Optimizations.Inserters.Types;
 
 namespace Weaver.Optimizations.PowerSystems;
 
-internal readonly struct PowerConsumerType : IEquatable<PowerConsumerType>
+internal readonly struct PowerConsumerType : IEquatable<PowerConsumerType>, IMemorySize
 {
     public readonly long WorkEnergyPerTick;
     public readonly long IdleEnergyPerTick;
@@ -28,6 +30,8 @@ internal readonly struct PowerConsumerType : IEquatable<PowerConsumerType>
     {
         return (long)(WorkEnergyPerTick * ratio + IdleEnergyPerTick * (1.0 - ratio));
     }
+
+    public unsafe int GetSize() => Marshal.SizeOf<PowerConsumerType>();
 
     public readonly bool Equals(PowerConsumerType other)
     {
