@@ -149,13 +149,14 @@ internal sealed class SiloExecutor
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           SubFactoryNeedsBuilder subFactoryNeedsBuilder)
+                           SubFactoryNeedsBuilder subFactoryNeedsBuilder,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        _siloIndexes = subFactoryGraph.GetAllNodes()
-                                      .Where(x => x.EntityTypeIndex.EntityType == EntityType.Silo)
-                                      .Select(x => x.EntityTypeIndex.Index)
-                                      .OrderBy(x => x)
-                                      .ToArray();
+        _siloIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(subFactoryGraph.GetAllNodes()
+                                                                                          .Where(x => x.EntityTypeIndex.EntityType == EntityType.Silo)
+                                                                                          .Select(x => x.EntityTypeIndex.Index)
+                                                                                          .OrderBy(x => x)
+                                                                                          .ToArray());
 
         short[] optimizedBulletItemId = new short[_siloIndexes.Length];
         int[] siloNetworkIds = new int[_siloIndexes.Length];
@@ -182,10 +183,10 @@ internal sealed class SiloExecutor
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[silo.entityId]);
         }
 
-        _optimizedBulletItemId = optimizedBulletItemId;
-        _siloNetworkIds = siloNetworkIds;
+        _optimizedBulletItemId = universeStaticDataBuilder.DeduplicateArrayUnmanaged(optimizedBulletItemId);
+        _siloNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(siloNetworkIds);
         _siloIdToOptimizedSiloIndex = siloIdToOptimizedSiloIndex;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
         needsBuilder.Complete();
     }
 

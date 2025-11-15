@@ -121,9 +121,7 @@ internal static class OptimizedStarCluster
         else
         {
             var optimizedPlanet = new OptimizedTerrestrialPlanet(planet,
-                                                                 _starClusterResearchManager,
-                                                                 _dysonSphereManager,
-                                                                 _universeStaticDataBuilder);
+                                                                 _starClusterResearchManager);
             _planetToOptimizedPlanet.Add(planet, optimizedPlanet);
             _planetProductionStatisticsToOptimizedPlanet.Add(GameMain.statistics.production.factoryStatPool[planet.index], optimizedPlanet);
         }
@@ -191,7 +189,7 @@ internal static class OptimizedStarCluster
                     }
 
                     WeaverFixes.Logger.LogInfo($"Optimizing planet: {planetToOptimizedPlanet.Key.planet.displayName}");
-                    planetToOptimizedPlanet.Value.Initialize();
+                    planetToOptimizedPlanet.Value.Initialize(_universeStaticDataBuilder);
                 }
 
                 continue;

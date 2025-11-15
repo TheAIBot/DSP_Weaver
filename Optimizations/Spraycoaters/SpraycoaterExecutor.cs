@@ -130,7 +130,8 @@ internal sealed class SpraycoaterExecutor
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           BeltExecutor beltExecutor)
+                           BeltExecutor beltExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<int> spraycoaterNetworkIds = [];
         List<OptimizedSpraycoater> optimizedSpraycoaters = [];
@@ -211,12 +212,12 @@ internal sealed class SpraycoaterExecutor
         incItemIds ??= [];
         _incItemIds = subFactoryProductionRegisterBuilder.AddConsume(incItemIds);
 
-        _spraycoaterNetworkIds = spraycoaterNetworkIds.ToArray();
+        _spraycoaterNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(spraycoaterNetworkIds);
         _optimizedSpraycoaters = optimizedSpraycoaters.ToArray();
         _isSpraycoatingItems = isSpraycoatingItems.ToArray();
         _sprayTimes = sprayTimes.ToArray();
         _spraycoaterIdToOptimizedSpraycoaterIndex = spraycoaterIdToOptimizedSpraycoaterIndex;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, bool isSprayCoatingItem, int sprayTime)

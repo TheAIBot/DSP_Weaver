@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Weaver.Optimizations.Statistics;
 
@@ -72,7 +73,7 @@ internal sealed class PlanetWideProductionRegisterBuilder
         _consumeIndexToItemIdWithOptimizedRegisterIndex.Add(itemId, new ItemIdWithOptimizedRegisterIndex(itemId, optimizedConsumeRegisterIndex));
     }
 
-    public OptimizedPlanetWideProductionStatistics Build()
+    public OptimizedPlanetWideProductionStatistics Build(UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         if (CanPickupItemsFromEnemy(_planet))
         {
@@ -103,10 +104,10 @@ internal sealed class PlanetWideProductionRegisterBuilder
                                                                                                                       .OrderBy(x => x.ItemIndex)
                                                                                                                       .ToArray();
 
-        return new OptimizedPlanetWideProductionStatistics(productIndexes,
-                                                           consumeIndexes,
-                                                           additionalProductsToWatch,
-                                                           additionalConsumesToWatch,
+        return new OptimizedPlanetWideProductionStatistics(universeStaticDataBuilder.DeduplicateArray(productIndexes),
+                                                           universeStaticDataBuilder.DeduplicateArray(consumeIndexes),
+                                                           universeStaticDataBuilder.DeduplicateArray(additionalProductsToWatch),
+                                                           universeStaticDataBuilder.DeduplicateArray(additionalConsumesToWatch),
                                                            _optimizedProductionStatistics.ToArray(),
                                                            GameMain.statistics.production.factoryStatPool[_planet.index]);
     }
@@ -162,7 +163,7 @@ internal sealed class PlanetWideProductionRegisterBuilder
     }
 }
 
-internal readonly struct ItemIdWithOptimizedRegisterIndex
+internal readonly struct ItemIdWithOptimizedRegisterIndex : IEquatable<ItemIdWithOptimizedRegisterIndex>, IMemorySize
 {
     public readonly short ItemIndex;
     public readonly short OptimizedRegisterIndex;
@@ -180,5 +181,23 @@ internal readonly struct ItemIdWithOptimizedRegisterIndex
 
         ItemIndex = (short)itemIndex;
         OptimizedRegisterIndex = (short)optimizedRegisterIndex;
+    }
+
+    public int GetSize() => Marshal.SizeOf<ItemIdWithOptimizedRegisterIndex>();
+
+    public readonly bool Equals(ItemIdWithOptimizedRegisterIndex other)
+    {
+        return ItemIndex == other.ItemIndex &&
+               OptimizedRegisterIndex == other.OptimizedRegisterIndex;
+    }
+
+    public override readonly bool Equals(object obj)
+    {
+        return obj is ItemIdWithOptimizedRegisterIndex other && Equals(other);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        return HashCode.Combine(ItemIndex, OptimizedRegisterIndex);
     }
 }

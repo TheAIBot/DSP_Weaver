@@ -50,7 +50,7 @@ internal sealed class BeltExecutor
         }
     }
 
-    public void Initialize(PlanetFactory planet, Graph subFactoryGraph)
+    public void Initialize(PlanetFactory planet, Graph subFactoryGraph, UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<OptimizedCargoPath> optimizedCargoPaths = [];
         Dictionary<CargoPath, BeltIndex> cargoPathToOptimizedCargoPath = [];
@@ -67,7 +67,7 @@ internal sealed class BeltExecutor
             }
 
             byte[] updatedBuffer = GetBufferWithUpdatedCargoIndexes(cargoPath);
-            var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath);
+            var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath, universeStaticDataBuilder);
             cargoPathToOptimizedCargoPath.Add(cargoPath, new BeltIndex(optimizedCargoPaths.Count));
             optimizedCargoPaths.Add(optimizedCargoPath);
         }

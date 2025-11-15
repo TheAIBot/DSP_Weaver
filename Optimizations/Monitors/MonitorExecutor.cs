@@ -98,7 +98,8 @@ internal sealed class MonitorExecutor
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
-                           BeltExecutor beltExecutor)
+                           BeltExecutor beltExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<int> monitorIndexes = [];
         List<int> networkIds = [];
@@ -131,10 +132,10 @@ internal sealed class MonitorExecutor
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[monitor.entityId]);
         }
 
-        _monitorIndexes = monitorIndexes.ToArray();
-        _networkIds = networkIds.ToArray();
+        _monitorIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(monitorIndexes);
+        _networkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(networkIds);
         _optimizedMonitors = optimizedMonitors.ToArray();
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType)

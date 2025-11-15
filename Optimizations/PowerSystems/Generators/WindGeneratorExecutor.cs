@@ -8,7 +8,6 @@ namespace Weaver.Optimizations.PowerSystems.Generators;
 internal sealed class WindGeneratorExecutor
 {
     private OptimizedWindGeneratorGroup[] _optimizedWindGeneratorGroups = null!;
-    private List<int> _optimizedWindIndexes = null!;
     private int _subId;
 
     [MemberNotNullWhen(true, nameof(PrototypeId))]
@@ -16,8 +15,6 @@ internal sealed class WindGeneratorExecutor
     public int GeneratorCount { get; private set; }
     public int? PrototypeId { get; private set; }
     public long TotalCapacityCurrentTick { get; private set; }
-
-    public IEnumerable<int> OptimizedPowerGeneratorIds => _optimizedWindIndexes;
 
     public long EnergyCap(float windStrength, long[] currentGeneratorCapacities)
     {
@@ -47,7 +44,6 @@ internal sealed class WindGeneratorExecutor
                            int networkId)
     {
         Dictionary<long, int> optimizedWindGeneratorGroupToCount = [];
-        List<int> optimizedWindIndexes = [];
         int? subId = null;
         int? prototypeId = null;
 
@@ -82,7 +78,6 @@ internal sealed class WindGeneratorExecutor
             }
             prototypeId = componentPrototypeId;
 
-            optimizedWindIndexes.Add(powerGenerator.id);
             if (!optimizedWindGeneratorGroupToCount.TryGetValue(powerGenerator.genEnergyPerTick, out int groupCount))
             {
                 optimizedWindGeneratorGroupToCount.Add(powerGenerator.genEnergyPerTick, 0);
@@ -91,7 +86,6 @@ internal sealed class WindGeneratorExecutor
         }
 
         _optimizedWindGeneratorGroups = optimizedWindGeneratorGroupToCount.Select(x => new OptimizedWindGeneratorGroup(x.Key, x.Value)).ToArray();
-        _optimizedWindIndexes = optimizedWindIndexes;
         _subId = subId ?? -1;
         GeneratorCount = optimizedWindGeneratorGroupToCount.Values.Sum();
         PrototypeId = prototypeId;

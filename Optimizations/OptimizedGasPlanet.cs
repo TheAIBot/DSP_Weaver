@@ -29,7 +29,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         return planet.planet.type == EPlanetType.Gas;
     }
 
-    public void Initialize()
+    public void Initialize(UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _planetWideStationExecutor = new GasPlanetWideStationExecutor();
         _planetWideStationExecutor.Initialize(_planet);
@@ -40,7 +40,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
             planetWideProductionRegisterBuilder.AdditionalProductItemsIdToWatch(_planet.planet.gasItems[i]);
         }
 
-        _optimizedPlanetWideProductionStatistics = planetWideProductionRegisterBuilder.Build();
+        _optimizedPlanetWideProductionStatistics = planetWideProductionRegisterBuilder.Build(universeStaticDataBuilder);
 
         Status = OptimizedPlanetStatus.Running;
         _workNodes = null;

@@ -229,7 +229,7 @@ internal sealed class FractionatorExecutor
         _fractionatorsPowerFields = fractionatorsPowerFields.ToArray();
         _fractionatorIdToOptimizedIndex = fractionatorIdToOptimizedIndex;
         _fractionatorRecipeProducts = fractionatorRecipeProducts.ToArray();
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly FractionatorPowerFields fractionatorPowerFields)

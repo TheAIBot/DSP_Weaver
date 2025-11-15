@@ -25,19 +25,19 @@ internal sealed class PrototypePowerConsumptionBuilder
         _prototypeCounts[prototypeIndex]++;
     }
 
-    public PrototypePowerConsumptionExecutor Build()
+    public PrototypePowerConsumptionExecutor Build(UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        return new PrototypePowerConsumptionExecutor(_prototypeIds.ToArray(),
-                                                     _prototypeCounts.ToArray(),
-                                                     _prototypeIdIndexes.ToArray(),
+        return new PrototypePowerConsumptionExecutor(universeStaticDataBuilder.DeduplicateArrayUnmanaged(_prototypeIds),
+                                                     universeStaticDataBuilder.DeduplicateArrayUnmanaged(_prototypeCounts),
+                                                     universeStaticDataBuilder.DeduplicateArrayUnmanaged(_prototypeIdIndexes),
                                                      new long[_prototypeIds.Count]);
     }
 
-    public PrototypePowerConsumptionExecutor Build(int[] reorder)
+    public PrototypePowerConsumptionExecutor Build(UniverseStaticDataBuilder universeStaticDataBuilder, int[] reorder)
     {
-        return new PrototypePowerConsumptionExecutor(_prototypeIds.ToArray(),
-                                                     _prototypeCounts.ToArray(),
-                                                     reorder.Select(x => _prototypeIdIndexes[x]).ToArray(),
+        return new PrototypePowerConsumptionExecutor(universeStaticDataBuilder.DeduplicateArrayUnmanaged(_prototypeIds),
+                                                     universeStaticDataBuilder.DeduplicateArrayUnmanaged(_prototypeCounts),
+                                                     universeStaticDataBuilder.DeduplicateArrayUnmanaged(reorder.Select(x => _prototypeIdIndexes[x]).ToArray()),
                                                      new long[_prototypeIds.Count]);
     }
 }

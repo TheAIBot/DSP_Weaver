@@ -354,11 +354,11 @@ internal sealed class ProducingLabExecutor
         _networkIdAndStates = networkIdAndStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
         _labsPowerFields = labsPowerFields.ToArray();
-        _entityIds = entityIds.ToArray();
-        _labRecipeIndexes = labRecipeIndexes.ToArray();
+        _entityIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(entityIds);
+        _labRecipeIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(labRecipeIndexes);
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
         _unOptimizedLabIds = unOptimizedLabIds;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
         needsBuilder.Complete();
     }
 

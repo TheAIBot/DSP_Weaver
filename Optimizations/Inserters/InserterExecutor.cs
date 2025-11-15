@@ -816,6 +816,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                            Func<InserterComponent, bool> inserterSelector,
                            OptimizedPowerSystemInserterBuilder optimizedPowerSystemInserterBuilder,
                            BeltExecutor beltExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder,
                            UniverseInserterStaticDataBuilder<TInserterGrade> universeInserterStaticDataBuilder)
     {
         List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates = [];
@@ -968,11 +969,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         //}
 
         _inserterNetworkIdAndStates = optimalInserterNeedsOrder.Select(x => inserterNetworkIdAndStates[x]).ToArray();
-        _inserterConnections = optimalInserterNeedsOrder.Select(x => inserterConnections[x]).ToArray();
+        _inserterConnections = universeStaticDataBuilder.DeduplicateArray(optimalInserterNeedsOrder.Select(x => inserterConnections[x]).ToArray());
         _optimizedInserters = optimalInserterNeedsOrder.Select(x => optimizedInserters[x]).ToArray();
         _optimizedInserterStages = optimalInserterNeedsOrder.Select(x => optimizedInserterStages[x]).ToArray();
         _inserterIdToOptimizedIndex = inserterIdToOptimizedIndex.ToDictionary(x => x.Key, x => oldIndexToNewIndex[x.Value]);
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(optimalInserterNeedsOrder);
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder, optimalInserterNeedsOrder);
     }
 
     private void Print(int inserterIndex)

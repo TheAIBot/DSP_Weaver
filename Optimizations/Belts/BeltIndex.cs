@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace Weaver.Optimizations.Belts;
 
-internal readonly struct BeltIndex
+internal readonly struct BeltIndex : IEquatable<BeltIndex>, IMemorySize
 {
     private const int NO_BELT_INDEX = -1;
     private readonly int _index;
@@ -16,12 +17,12 @@ internal readonly struct BeltIndex
         _index = index; 
     }
 
-    public ref OptimizedCargoPath GetBelt(OptimizedCargoPath[] belts)
+    public readonly ref OptimizedCargoPath GetBelt(OptimizedCargoPath[] belts)
     {
         return ref belts[_index];
     }
 
-    public int GetIndex()
+    public readonly int GetIndex()
     {
         if (!HasValue)
         {
@@ -30,6 +31,8 @@ internal readonly struct BeltIndex
 
         return _index; 
     }
+
+    public readonly int GetSize() => Marshal.SizeOf<BeltIndex>();
 
     public static bool operator==(BeltIndex left, BeltIndex right)
     {
@@ -41,12 +44,17 @@ internal readonly struct BeltIndex
         return left._index != right._index;
     }
 
-    public override bool Equals(object obj)
+    public readonly bool Equals(BeltIndex other)
     {
-        return obj is BeltIndex belt && belt == this;
+        return this == other;
     }
 
-    public override int GetHashCode()
+    public override readonly bool Equals(object obj)
+    {
+        return obj is BeltIndex other && Equals(other);
+    }
+
+    public override readonly int GetHashCode()
     {
         var hashCode = new HashCode();
         hashCode.Add(_index);

@@ -90,7 +90,8 @@ internal sealed class StationExecutor
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            BeltExecutor beltExecutor,
-                           VeinMinerExecutor<StationMinerOutput> stationVeinMinerExecutor)
+                           VeinMinerExecutor<StationMinerOutput> stationVeinMinerExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<OptimizedStation> optimizedStations = [];
         List<int> networkIds = [];
@@ -121,6 +122,11 @@ internal sealed class StationExecutor
                 }
             }
 
+            if (beltIndexes != null)
+            {
+                beltIndexes = universeStaticDataBuilder.DeduplicateArray(beltIndexes);
+            }
+
             int? optimizedMinerIndex = null;
             if (station.isVeinCollector)
             {
@@ -135,7 +141,7 @@ internal sealed class StationExecutor
         }
 
         _optimizedStations = optimizedStations.ToArray();
-        _networkIds = networkIds.ToArray();
+        _networkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(networkIds);
     }
 
     private void GameTick_SandboxMode()

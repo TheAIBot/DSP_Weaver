@@ -8,19 +8,16 @@ namespace Weaver.Optimizations.PowerSystems;
 
 internal sealed class OptimizedPowerSystem
 {
-    private readonly DysonSphereManager _dysonSphereManager;
     private readonly OptimizedPowerNetwork[] _optimizedPowerNetworks;
     public readonly Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> _subFactoryToPowerConsumption;
     private readonly OptimizedProductionStatistics _optimizedProductionStatistics;
     private readonly UniverseStaticData _universeStaticData;
 
-    public OptimizedPowerSystem(DysonSphereManager dysonSphereManager,
-                                OptimizedPowerNetwork[] optimizedPowerNetworks,
+    public OptimizedPowerSystem(OptimizedPowerNetwork[] optimizedPowerNetworks,
                                 Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption,
                                 OptimizedProductionStatistics optimizedProductionStatistics,
                                 UniverseStaticData universeStaticData)
     {
-        _dysonSphereManager = dysonSphereManager;
         _optimizedPowerNetworks = optimizedPowerNetworks;
         _subFactoryToPowerConsumption = subFactoryToPowerConsumption;
         _optimizedProductionStatistics = optimizedProductionStatistics;

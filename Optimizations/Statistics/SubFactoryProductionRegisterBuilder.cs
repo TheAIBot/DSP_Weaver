@@ -62,14 +62,14 @@ internal sealed class SubFactoryProductionRegisterBuilder
         return optimizedIndexes;
     }
 
-    public OptimizedProductionStatistics Build()
+    public OptimizedProductionStatistics Build(UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        int[] planetWideOptimizedProductIndex = _productIndexToOptimizedProductIndexes.OrderBy(x => x.Value.SubFactoryOptimizedIndex)
-                                                                                      .Select(x => x.Value.PlanetWideOptimizedIndex)
-                                                                                      .ToArray();
-        int[] planetWideOptimizedConsumeIndex = _consumeIndexToOptimizedConsumeIndexes.OrderBy(x => x.Value.SubFactoryOptimizedIndex)
-                                                                                      .Select(x => x.Value.PlanetWideOptimizedIndex)
-                                                                                      .ToArray();
+        int[] planetWideOptimizedProductIndex = universeStaticDataBuilder.DeduplicateArrayUnmanaged(_productIndexToOptimizedProductIndexes.OrderBy(x => x.Value.SubFactoryOptimizedIndex)
+                                                                                                                                          .Select(x => x.Value.PlanetWideOptimizedIndex)
+                                                                                                                                          .ToArray());
+        int[] planetWideOptimizedConsumeIndex = universeStaticDataBuilder.DeduplicateArrayUnmanaged(_consumeIndexToOptimizedConsumeIndexes.OrderBy(x => x.Value.SubFactoryOptimizedIndex)
+                                                                                                                                          .Select(x => x.Value.PlanetWideOptimizedIndex)
+                                                                                                                                          .ToArray());
 
         var optimizedStatistics = new OptimizedProductionStatistics(planetWideOptimizedProductIndex,
                                                                     planetWideOptimizedConsumeIndex);

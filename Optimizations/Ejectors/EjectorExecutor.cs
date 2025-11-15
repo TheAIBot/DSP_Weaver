@@ -495,13 +495,14 @@ internal sealed class EjectorExecutor
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           SubFactoryNeedsBuilder subFactoryNeedsBuilder)
+                           SubFactoryNeedsBuilder subFactoryNeedsBuilder,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        _ejectorIndexes = subFactoryGraph.GetAllNodes()
-                                         .Where(x => x.EntityTypeIndex.EntityType == EntityType.Ejector)
-                                         .Select(x => x.EntityTypeIndex.Index)
-                                         .OrderBy(x => x)
-                                         .ToArray();
+        _ejectorIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(subFactoryGraph.GetAllNodes()
+                                                                                             .Where(x => x.EntityTypeIndex.EntityType == EntityType.Ejector)
+                                                                                             .Select(x => x.EntityTypeIndex.Index)
+                                                                                             .OrderBy(x => x)
+                                                                                             .ToArray());
 
         short[] optimizedBulletItemId = new short[_ejectorIndexes.Length];
         int[] ejectorNetworkIds = new int[_ejectorIndexes.Length];
@@ -529,10 +530,10 @@ internal sealed class EjectorExecutor
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[ejector.entityId]);
         }
 
-        _optimizedBulletItemId = optimizedBulletItemId;
-        _ejectorNetworkIds = ejectorNetworkIds;
+        _optimizedBulletItemId = universeStaticDataBuilder.DeduplicateArrayUnmanaged(optimizedBulletItemId);
+        _ejectorNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(ejectorNetworkIds);
         _ejectorIdToOptimizedEjectorIndex = ejectorIdToOptimizedEjectorIndex;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
         needsBuilder.Complete();
     }
 

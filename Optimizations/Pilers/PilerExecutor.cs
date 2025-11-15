@@ -119,7 +119,8 @@ internal sealed class PilerExecutor
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
-                           BeltExecutor beltExecutor)
+                           BeltExecutor beltExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<int> networkIndices = [];
         List<OptimizedPiler> optimizedPilers = [];
@@ -162,11 +163,11 @@ internal sealed class PilerExecutor
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[piler.entityId]);
         }
 
-        _networkIndices = networkIndices.ToArray();
+        _networkIndices = universeStaticDataBuilder.DeduplicateArrayUnmanaged(networkIndices);
         _optimizedPilers = optimizedPilers.ToArray();
         _timeSpends = timeSpends.ToArray();
         _pilerIdToOptimizedIndex = pilerIdToOptimizedIndex;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, int timeSpend)

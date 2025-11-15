@@ -137,7 +137,8 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
                            Graph subFactoryGraph,
                            OptimizedPowerSystemVeinMinerBuilder optimizedPowerSystemVeinMinerBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           BeltExecutor beltExecutor)
+                           BeltExecutor beltExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<int> networkIds = [];
         List<OptimizedVeinMiner<TMinerOutput>> optimizedMiners = [];
@@ -186,10 +187,10 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 
-        _networkIds = networkIds.ToArray();
+        _networkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(networkIds);
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedVeinMiner<TMinerOutput> miner)

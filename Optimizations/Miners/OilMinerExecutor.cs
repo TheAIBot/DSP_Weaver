@@ -139,7 +139,8 @@ internal sealed class OilMinerExecutor
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           BeltExecutor beltExecutor)
+                           BeltExecutor beltExecutor,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<int> networkIds = [];
         List<OptimizedOilMiner> optimizedMiners = [];
@@ -194,10 +195,10 @@ internal sealed class OilMinerExecutor
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }
 
-        _networkIds = networkIds.ToArray();
+        _networkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(networkIds);
         _optimizedMiners = optimizedMiners.ToArray();
         _minerIdToOptimizedIndex = minerIdToOptimizedIndex;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
     }
 
     private static long GetPowerConsumption(PowerConsumerType powerConsumerType, ref readonly OptimizedOilMiner miner)

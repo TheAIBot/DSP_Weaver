@@ -295,7 +295,8 @@ internal sealed class ResearchingLabExecutor
                            Graph subFactoryGraph,
                            SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           SubFactoryNeedsBuilder subFactoryNeedsBuilder)
+                           SubFactoryNeedsBuilder subFactoryNeedsBuilder,
+                           UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         int[] matrixPoints = new int[LabComponent.matrixIds.Length];
         bool copiedMatrixPoints = false;
@@ -391,10 +392,10 @@ internal sealed class ResearchingLabExecutor
         _networkIdAndStates = networkIdAndStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
         _labsPowerFields = labsPowerFields.ToArray();
-        _entityIds = entityIds.ToArray();
+        _entityIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(entityIds);
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;
         _unOptimizedLabIds = unOptimizedLabIds;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
         needsBuilder.Complete();
     }
 

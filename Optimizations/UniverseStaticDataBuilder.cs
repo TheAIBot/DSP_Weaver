@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Weaver.Optimizations.Assemblers;
 using Weaver.Optimizations.Fractionators;
 using Weaver.Optimizations.Inserters;
@@ -99,6 +101,86 @@ internal sealed class UniverseInserterStaticDataBuilder<TInserterGrade>
     }
 }
 
+internal sealed class CompareArrayCollections<T> : IEqualityComparer<IList<T>>
+    where T : IEquatable<T>
+{
+    public bool Equals(IList<T> x, IList<T> y)
+    {
+        if (x.Count != y.Count)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < x.Count; i++)
+        {
+            if (!x[i].Equals(y[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public int GetHashCode(IList<T> value)
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(value.Count);
+        for (int i = 0; i < value.Count; i++)
+        {
+            hashCode.Add(value[i]);
+        }
+
+        return hashCode.ToHashCode();
+    }
+}
+
+internal interface IComparableArrayDeduplicator
+{
+    int TotalBytes { get; }
+    int BytesDeduplicated { get; }
+}
+
+internal sealed class ComparableArrayDeduplicator<T> : IComparableArrayDeduplicator
+    where T : IEquatable<T>
+{
+    private readonly HashSet<IList<T>> _arrays = new(new CompareArrayCollections<T>());
+
+    public int TotalBytes { get; private set; }
+    public int BytesDeduplicated { get; private set; }
+
+    public T[] Deduplicate(T[] toDeduplicate, int itemSize)
+    {
+        int deduplicateSize = itemSize * toDeduplicate.Length;
+        TotalBytes += deduplicateSize;
+
+        if (_arrays.TryGetValue(toDeduplicate, out IList<T> deduplicated))
+        {
+            BytesDeduplicated += deduplicateSize;
+            return (T[])deduplicated;
+        }
+
+        _arrays.Add(toDeduplicate);
+        return toDeduplicate;
+    }
+
+    public T[] Deduplicate(List<T> toDeduplicate, int itemSize)
+    {
+        int deduplicateSize = itemSize * toDeduplicate.Count;
+        TotalBytes += deduplicateSize;
+
+        if (_arrays.TryGetValue(toDeduplicate, out IList<T> deduplicated))
+        {
+            BytesDeduplicated += deduplicateSize;
+            return (T[])deduplicated;
+        }
+
+        T[] array = toDeduplicate.ToArray();
+        _arrays.Add(array);
+        return array;
+    }
+}
+
 internal sealed class UniverseStaticDataBuilder
 {
     private static bool _printStatistics = false;
@@ -106,6 +188,7 @@ internal sealed class UniverseStaticDataBuilder
     private readonly DataDeduplicator<FractionatorConfiguration> _fractionatorConfigurations = new();
     private readonly DataDeduplicator<ProducingLabRecipe> _producingLabRecipes = new();
     private readonly DataDeduplicator<PowerConsumerType> _powerConsumerTypes = new();
+    private readonly Dictionary<Type, IComparableArrayDeduplicator> _typeToComparableArrayDeduplicator = [];
     public UniverseInserterStaticDataBuilder<BiInserterGrade> BiInserterGrades { get; } = new();
     public UniverseInserterStaticDataBuilder<InserterGrade> InserterGrades { get; } = new();
 
@@ -134,6 +217,64 @@ internal sealed class UniverseStaticDataBuilder
     public int AddPowerConsumerType(ref readonly PowerConsumerType powerConsumerType)
     {
         return _powerConsumerTypes.GetDeduplicatedValueIndex(in powerConsumerType);
+    }
+
+    public T[] DeduplicateArrayUnmanaged<T>(T[] toDeduplicate)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
+        {
+            deduplicator = new ComparableArrayDeduplicator<T>();
+            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
+        }
+
+        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, Marshal.SizeOf<T>());
+    }
+
+    public T[] DeduplicateArray<T>(T[] toDeduplicate)
+        where T : IEquatable<T>, IMemorySize
+    {
+        if (toDeduplicate.Length == 0)
+        {
+            return [];
+        }
+
+        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
+        {
+            deduplicator = new ComparableArrayDeduplicator<T>();
+            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
+        }
+
+        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, toDeduplicate[0].GetSize());
+    }
+
+    public T[] DeduplicateArrayUnmanaged<T>(List<T> toDeduplicate)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
+        {
+            deduplicator = new ComparableArrayDeduplicator<T>();
+            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
+        }
+
+        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, Marshal.SizeOf<T>());
+    }
+
+    public T[] DeduplicateArray<T>(List<T> toDeduplicate)
+        where T : IEquatable<T>, IMemorySize
+    {
+        if (toDeduplicate.Count == 0)
+        {
+            return [];
+        }
+
+        if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
+        {
+            deduplicator = new ComparableArrayDeduplicator<T>();
+            _typeToComparableArrayDeduplicator.Add(typeof(T), deduplicator);
+        }
+
+        return ((ComparableArrayDeduplicator<T>)deduplicator).Deduplicate(toDeduplicate, toDeduplicate[0].GetSize());
     }
 
     public void UpdateStaticDataIfRequired()
@@ -210,6 +351,12 @@ internal sealed class UniverseStaticDataBuilder
         deduplicatedBytes += _powerConsumerTypes.BytesDeduplicated;
         deduplicatedBytes += BiInserterGrades.BytesDeduplicated;
         deduplicatedBytes += InserterGrades.BytesDeduplicated;
+
+        foreach (IComparableArrayDeduplicator item in _typeToComparableArrayDeduplicator.Values)
+        {
+            totalBytes += item.TotalBytes;
+            deduplicatedBytes += item.BytesDeduplicated;
+        }
 
         WeaverFixes.Logger.LogMessage("Static data statistics:");
         WeaverFixes.Logger.LogMessage($"\tTotal:        {totalBytes,12:N0} bytes");

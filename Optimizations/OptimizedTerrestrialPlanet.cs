@@ -19,8 +19,6 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     public static bool ViewBeltsOnLocalOptimizedPlanet = false;
     private readonly PlanetFactory _planet;
     private readonly StarClusterResearchManager _starClusterResearchManager;
-    private readonly DysonSphereManager _dysonSphereManager;
-    private readonly UniverseStaticDataBuilder _universeStaticDataBuilder;
     private OptimizedSubFactory[] _subFactories = null!;
     private OptimizedPowerSystem _optimizedPowerSystem = null!;
     private TurretExecutor _turretExecutor = null!;
@@ -32,14 +30,10 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     private int _workStepsParallelism;
 
     public OptimizedTerrestrialPlanet(PlanetFactory planet,
-                                      StarClusterResearchManager starClusterResearchManager,
-                                      DysonSphereManager dysonSphereManager,
-                                      UniverseStaticDataBuilder universeStaticDataBuilder)
+                                      StarClusterResearchManager starClusterResearchManager)
     {
         _planet = planet;
         _starClusterResearchManager = starClusterResearchManager;
-        _dysonSphereManager = dysonSphereManager;
-        _universeStaticDataBuilder = universeStaticDataBuilder;
     }
 
     public void Save()
@@ -68,7 +62,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
     }
 
-    public void Initialize()
+    public void Initialize(UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<Graph> subFactoryGraphs = Graphifier.ToGraphs(_planet);
         Graphifier.CombineSmallGraphs(subFactoryGraphs);
@@ -77,8 +71,8 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder(_planet);
         var optimizedPowerSystemBuilder = OptimizedPowerSystemBuilder.Create(_planet, 
-                                                                             planetWideProductionRegisterBuilder.GetSubFactoryBuilder(), 
-                                                                             _universeStaticDataBuilder, 
+                                                                             planetWideProductionRegisterBuilder.GetSubFactoryBuilder(),
+                                                                             universeStaticDataBuilder, 
                                                                              out OptimizedItemId[]?[]? fuelNeeds);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
@@ -86,19 +80,20 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _subFactories = new OptimizedSubFactory[subFactoryGraphs.Count];
         for (int i = 0; i < _subFactories.Length; i++)
         {
-            _subFactories[i] = new OptimizedSubFactory(_planet, this, _starClusterResearchManager, _universeStaticDataBuilder);
+            _subFactories[i] = new OptimizedSubFactory(_planet, this, _starClusterResearchManager, universeStaticDataBuilder.UniverseStaticData);
             _subFactories[i].Initialize(subFactoryGraphs[i],
                                         optimizedPowerSystemBuilder,
                                         planetWideBeltExecutor,
                                         turretExecutorBuilder,
                                         planetWideProductionRegisterBuilder,
                                         planetWideProductionRegisterBuilder.GetSubFactoryBuilder(),
-                                        fuelNeeds);
+                                        fuelNeeds,
+                                        universeStaticDataBuilder);
         }
 
-        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(_dysonSphereManager, planetWideBeltExecutor);
+        _optimizedPowerSystem = optimizedPowerSystemBuilder.Build(planetWideBeltExecutor);
         _turretExecutor = turretExecutorBuilder.Build();
-        _optimizedPlanetWideProductionStatistics = planetWideProductionRegisterBuilder.Build();
+        _optimizedPlanetWideProductionStatistics = planetWideProductionRegisterBuilder.Build(universeStaticDataBuilder);
 
         Status = OptimizedPlanetStatus.Running;
 

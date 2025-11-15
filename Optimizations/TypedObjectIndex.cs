@@ -3,7 +3,7 @@ using Weaver.FatoryGraphs;
 
 namespace Weaver.Optimizations;
 
-internal readonly struct TypedObjectIndex
+internal readonly struct TypedObjectIndex : IEquatable<TypedObjectIndex>
 {
     private const int IndexBitCount = 24;
     private const uint IndexBitMask = 0x00_ff_ff_ff;
@@ -27,6 +27,31 @@ internal readonly struct TypedObjectIndex
         }
 
         _value = (uint)entityType << IndexBitCount | IndexBitMask & (uint)index;
+    }
+
+    public static bool operator==(TypedObjectIndex left, TypedObjectIndex right)
+    {
+        return left._value == right._value;
+    }
+
+    public static bool operator !=(TypedObjectIndex left, TypedObjectIndex right)
+    {
+        return left._value != right._value;
+    }
+
+    public bool Equals(TypedObjectIndex other)
+    {
+        return _value == other._value;
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is TypedObjectIndex other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return _value.GetHashCode();
     }
 
     public override string ToString()

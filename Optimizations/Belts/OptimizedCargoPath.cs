@@ -19,10 +19,10 @@ internal struct OptimizedCargoPath
     public int updateLen;
     public readonly int pathLength => bufferLength;
 
-    public OptimizedCargoPath(byte[] buffer, CargoPath cargoPath)
+    public OptimizedCargoPath(byte[] buffer, CargoPath cargoPath, UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         this.buffer = buffer;
-        chunks = cargoPath.chunks;
+        chunks = universeStaticDataBuilder.DeduplicateArrayUnmanaged(cargoPath.chunks);
         outputIndex = cargoPath.outputIndex;
         closed = cargoPath.closed;
         bufferLength = cargoPath.bufferLength;

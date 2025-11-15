@@ -128,23 +128,23 @@ internal sealed class SubFactoryPowerSystemBuilder
         _optimizedPowerSystemBuilder.AddPowerConsumerIndexToNetwork(powerConsumerIndex, networkIndex);
     }
 
-    public SubFactoryPowerConsumption Build()
+    public SubFactoryPowerConsumption Build(UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        return new SubFactoryPowerConsumption(_assemblerPowerConsumerTypeIndexes.ToArray(),
-                                              _inserterBiPowerConsumerTypeIndexes.ToArray(),
-                                              _inserterPowerConsumerTypeIndexes.ToArray(),
-                                              _producingLabPowerConsumerTypeIndexes.ToArray(),
-                                              _researchingLabPowerConsumerTypeIndexes.ToArray(),
-                                              _spraycoaterPowerConsumerTypeIndexes.ToArray(),
-                                              _fractionatorPowerConsumerTypeIndexes.ToArray(),
-                                              _ejectorPowerConsumerTypeIndexes.ToArray(),
-                                              _siloPowerConsumerTypeIndexes.ToArray(),
-                                              _pilerPowerConsumerTypeIndexes.ToArray(),
-                                              _monitorPowerConsumerTypeIndexes.ToArray(),
-                                              _waterMinerPowerConsumerTypeIndexes.ToArray(),
-                                              _oilMinerPowerConsumerTypeIndexes.ToArray(),
-                                              _beltVeinMinerPowerConsumerTypeIndexes.ToArray(),
-                                              _stationVeinMinerPowerConsumerTypeIndexes.ToArray(),
+        return new SubFactoryPowerConsumption(universeStaticDataBuilder.DeduplicateArrayUnmanaged(_assemblerPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_inserterBiPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_inserterPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_producingLabPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_researchingLabPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_spraycoaterPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_fractionatorPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_ejectorPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_siloPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_pilerPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_monitorPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_waterMinerPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_oilMinerPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_beltVeinMinerPowerConsumerTypeIndexes),
+                                              universeStaticDataBuilder.DeduplicateArrayUnmanaged(_stationVeinMinerPowerConsumerTypeIndexes),
                                               _networksPowerConsumptions);
     }
 }
@@ -246,7 +246,7 @@ internal sealed class OptimizedPowerSystemBuilder
         optimizedConsumerIndexes.Add(powerConsumerIndex);
     }
 
-    public OptimizedPowerSystem Build(DysonSphereManager dysonSphereManager, PlanetWideBeltExecutor planetWideBeltExecutor)
+    public OptimizedPowerSystem Build(PlanetWideBeltExecutor planetWideBeltExecutor)
     {
         int[][] networkNonOptimizedPowerConsumerIndexes = new int[_planet.powerSystem.netCursor][];
         for (int i = 0; i < networkNonOptimizedPowerConsumerIndexes.Length; i++)
@@ -261,12 +261,11 @@ internal sealed class OptimizedPowerSystemBuilder
         }
 
         OptimizedPowerNetwork[] optimizedPowerNetworks = GetOptimizedPowerNetworks(_planet, planetWideBeltExecutor, _networkIndexToOptimizedConsumerIndexes);
-        Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption = _subFactoryToPowerSystemBuilder.ToDictionary(x => x.Key, x => x.Value.Build());
+        Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption = _subFactoryToPowerSystemBuilder.ToDictionary(x => x.Key, x => x.Value.Build(_universeStaticDataBuilder));
 
-        return new OptimizedPowerSystem(dysonSphereManager,
-                                        optimizedPowerNetworks,
+        return new OptimizedPowerSystem(optimizedPowerNetworks,
                                         subFactoryToPowerConsumption,
-                                        _subProductionRegisterBuilder.Build(),
+                                        _subProductionRegisterBuilder.Build(_universeStaticDataBuilder),
                                         _universeStaticDataBuilder.UniverseStaticData);
     }
 
@@ -287,13 +286,13 @@ internal sealed class OptimizedPowerSystemBuilder
             int[] networkNonOptimizedPowerConsumerIndexes;
             if (networkIndexToOptimizedConsumerIndexes.TryGetValue(i, out HashSet<int> optimizedConsumerIndexes))
             {
-                networkNonOptimizedPowerConsumerIndexes = planet.powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes)
-                                                                                                 .OrderBy(x => x)
-                                                                                                 .ToArray();
+                networkNonOptimizedPowerConsumerIndexes = _universeStaticDataBuilder.DeduplicateArrayUnmanaged(planet.powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes)
+                                                                                                                                                      .OrderBy(x => x)
+                                                                                                                                                      .ToArray());
             }
             else
             {
-                networkNonOptimizedPowerConsumerIndexes = planet.powerSystem.netPool[i].consumers.ToArray();
+                 networkNonOptimizedPowerConsumerIndexes = _universeStaticDataBuilder.DeduplicateArrayUnmanaged(planet.powerSystem.netPool[i].consumers);
             }
 
             var windExecutor = new WindGeneratorExecutor();

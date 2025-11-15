@@ -278,9 +278,9 @@ internal sealed class AssemblerExecutor
                                                                   assembler.extraTimeSpend,
                                                                   assembler.productive,
                                                                   subFactoryProductionRegisterBuilder.AddConsume(assembler.requires),
-                                                                  assembler.requireCounts,
+                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.requireCounts),
                                                                   subFactoryProductionRegisterBuilder.AddProduct(assembler.products),
-                                                                  assembler.productCounts);
+                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.productCounts));
             assemblerRecipes.Add(assemblerRecipe);
             int assemblerRecipeIndex = universeStaticDataBuilder.AddAssemblerRecipe(in assemblerRecipe);
 
@@ -346,10 +346,10 @@ internal sealed class AssemblerExecutor
         _assemblerReplicatings = assemblerReplicatings.ToArray();
         _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();
         _assemblersTimingData = assemblersTimingData.ToArray();
-        _assemblerRecipeIndexes = assemblerRecipeIndexes.ToArray();
+        _assemblerRecipeIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(assemblerRecipeIndexes);
         _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
         _unOptimizedAssemblerIds = unOptimizedAssemblerIds;
-        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build();
+        _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
         needsBuilder.Complete();
     }
 
