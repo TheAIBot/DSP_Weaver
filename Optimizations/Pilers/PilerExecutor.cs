@@ -17,7 +17,7 @@ internal sealed class PilerExecutor
     public int Count => _optimizedPilers.Length;
 
     public void GameTick(PlanetFactory planet,
-                         int[] pilerPowerConsumerIndexes,
+                         short[] pilerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          OptimizedCargoPath[] optimizedCargoPaths)
@@ -39,7 +39,7 @@ internal sealed class PilerExecutor
         }
     }
 
-    public void UpdatePower(int[] pilerPowerConsumerIndexes,
+    public void UpdatePower(short[] pilerPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -53,7 +53,7 @@ internal sealed class PilerExecutor
         }
     }
 
-    private static void UpdatePower(int[] pilerPowerConsumerIndexes,
+    private static void UpdatePower(short[] pilerPowerConsumerIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int pilerIndex,
@@ -65,7 +65,7 @@ internal sealed class PilerExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, timeSpend);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] pilerPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] pilerPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -88,7 +88,7 @@ internal sealed class PilerExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] pilerPowerConsumerIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] pilerPowerConsumerIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

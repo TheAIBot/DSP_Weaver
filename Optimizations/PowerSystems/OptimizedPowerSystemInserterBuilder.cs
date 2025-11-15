@@ -5,17 +5,14 @@ namespace Weaver.Optimizations.PowerSystems;
 
 internal sealed class OptimizedPowerSystemInserterBuilder
 {
-    private readonly PowerSystem _powerSystem;
     private readonly SubFactoryPowerSystemBuilder _subFactoryPowerSystemBuilder;
-    private readonly List<int> _inserterPowerConsumerTypeIndexes;
+    private readonly List<short> _inserterPowerConsumerTypeIndexes;
     private readonly Dictionary<int, OptimizedFuelGeneratorLocation> _fuelGeneratorIdToOptimizedLocation;
 
-    public OptimizedPowerSystemInserterBuilder(PowerSystem powerSystem,
-                                               SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
-                                               List<int> inserterPowerConsumerTypeIndexes,
+    public OptimizedPowerSystemInserterBuilder(SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
+                                               List<short> inserterPowerConsumerTypeIndexes,
                                                Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedLocation)
     {
-        _powerSystem = powerSystem;
         _subFactoryPowerSystemBuilder = subFactoryPowerSystemBuilder;
         _inserterPowerConsumerTypeIndexes = inserterPowerConsumerTypeIndexes;
         _fuelGeneratorIdToOptimizedLocation = fuelGeneratorIdToOptimizedLocation;

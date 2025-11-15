@@ -31,7 +31,7 @@ internal sealed class AssemblerExecutor
     public int Count => _optimizedAssemblers.Length;
 
     public void GameTick(PlanetFactory planet,
-                         int[] assemblerPowerConsumerTypeIndexes,
+                         short[] assemblerPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] networksPowerConsumption,
                          int[] productRegister,
@@ -109,7 +109,7 @@ internal sealed class AssemblerExecutor
         }
     }
 
-    public void UpdatePower(int[] assemblerPowerConsumerTypeIndexes,
+    public void UpdatePower(short[] assemblerPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] networksPowerConsumption)
     {
@@ -126,7 +126,7 @@ internal sealed class AssemblerExecutor
         }
     }
 
-    private static void UpdatePower(int[] assemblerPowerConsumerTypeIndexes,
+    private static void UpdatePower(short[] assemblerPowerConsumerTypeIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] networksPowerConsumption,
                                     int assemblerIndex,
@@ -139,7 +139,7 @@ internal sealed class AssemblerExecutor
         networksPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, replicating, extraPowerRatios);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] assemblerPowerConsumerTypeIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] assemblerPowerConsumerTypeIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -165,7 +165,7 @@ internal sealed class AssemblerExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] assemblerPowerConsumerTypeIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] assemblerPowerConsumerTypeIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

@@ -12,16 +12,19 @@ internal sealed class OptimizedPowerSystem
     private readonly OptimizedPowerNetwork[] _optimizedPowerNetworks;
     public readonly Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> _subFactoryToPowerConsumption;
     private readonly OptimizedProductionStatistics _optimizedProductionStatistics;
+    private readonly UniverseStaticData _universeStaticData;
 
     public OptimizedPowerSystem(DysonSphereManager dysonSphereManager,
                                 OptimizedPowerNetwork[] optimizedPowerNetworks,
                                 Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption,
-                                OptimizedProductionStatistics optimizedProductionStatistics)
+                                OptimizedProductionStatistics optimizedProductionStatistics,
+                                UniverseStaticData universeStaticData)
     {
         _dysonSphereManager = dysonSphereManager;
         _optimizedPowerNetworks = optimizedPowerNetworks;
         _subFactoryToPowerConsumption = subFactoryToPowerConsumption;
         _optimizedProductionStatistics = optimizedProductionStatistics;
+        _universeStaticData = universeStaticData;
     }
 
     public SubFactoryPowerConsumption GetSubFactoryPowerConsumption(OptimizedSubFactory subFactory)
@@ -69,8 +72,16 @@ internal sealed class OptimizedPowerSystem
         long[] networksPowerConsumption = subFactoryPowerConsumption.NetworksPowerConsumption;
         Array.Clear(networksPowerConsumption, 0, networksPowerConsumption.Length);
 
-        FactorySystemBeforePower(planet, subFactory, subFactoryPowerConsumption, networksPowerConsumption);
-        CargoTrafficBeforePower(subFactory, subFactoryPowerConsumption, networksPowerConsumption);
+        PowerConsumerType[] powerConsumerTypes = _universeStaticData.PowerConsumerTypes;
+        FactorySystemBeforePower(planet, 
+                                 subFactory, 
+                                 subFactoryPowerConsumption, 
+                                 networksPowerConsumption,
+                                 powerConsumerTypes);
+        CargoTrafficBeforePower(subFactory, 
+                                subFactoryPowerConsumption, 
+                                networksPowerConsumption,
+                                powerConsumerTypes);
         // Transport has to be done on a per planet basis due to dispenser logic execution order.
         // Might also be the case stations require it but i have not checked.
         // Same seems to be true for field generators so everything defense will also be handled
@@ -229,65 +240,67 @@ internal sealed class OptimizedPowerSystem
     private static void FactorySystemBeforePower(PlanetFactory planet,
                                                  OptimizedSubFactory subFactory,
                                                  SubFactoryPowerConsumption subFactoryPowerConsumption,
-                                                 long[] networksPowerConsumption)
+                                                 long[] networksPowerConsumption,
+                                                 PowerConsumerType[] powerConsumerTypes)
     {
         subFactory._beltVeinMinerExecutor.UpdatePower(subFactoryPowerConsumption.BeltVeinMinerPowerConsumerTypeIndexes,
-                                                      subFactoryPowerConsumption.PowerConsumerTypes,
+                                                      powerConsumerTypes,
                                                       networksPowerConsumption);
         subFactory._stationVeinMinerExecutor.UpdatePower(subFactoryPowerConsumption.StationVeinMinerPowerConsumerTypeIndexes,
-                                                         subFactoryPowerConsumption.PowerConsumerTypes,
+                                                         powerConsumerTypes,
                                                          networksPowerConsumption);
         subFactory._oilMinerExecutor.UpdatePower(subFactoryPowerConsumption.OilMinerPowerConsumerTypeIndexes,
-                                                 subFactoryPowerConsumption.PowerConsumerTypes,
+                                                 powerConsumerTypes,
                                                  networksPowerConsumption);
         subFactory._waterMinerExecutor.UpdatePower(subFactoryPowerConsumption.WaterMinerPowerConsumerTypeIndexes,
-                                                   subFactoryPowerConsumption.PowerConsumerTypes,
+                                                   powerConsumerTypes,
                                                    networksPowerConsumption);
 
         subFactory._assemblerExecutor.UpdatePower(subFactoryPowerConsumption.AssemblerPowerConsumerTypeIndexes,
-                                                  subFactoryPowerConsumption.PowerConsumerTypes,
+                                                  powerConsumerTypes,
                                                   networksPowerConsumption);
 
         subFactory._fractionatorExecutor.UpdatePower(subFactoryPowerConsumption.FractionatorPowerConsumerTypeIndexes,
-                                                     subFactoryPowerConsumption.PowerConsumerTypes,
+                                                     powerConsumerTypes,
                                                      networksPowerConsumption);
 
         subFactory._ejectorExecutor.UpdatePower(planet,
                                                 subFactoryPowerConsumption.EjectorPowerConsumerTypeIndexes,
-                                                subFactoryPowerConsumption.PowerConsumerTypes,
+                                                powerConsumerTypes,
                                                 networksPowerConsumption);
         subFactory._siloExecutor.UpdatePower(planet,
                                              subFactoryPowerConsumption.SiloPowerConsumerTypeIndexes,
-                                             subFactoryPowerConsumption.PowerConsumerTypes,
+                                             powerConsumerTypes,
                                              networksPowerConsumption);
 
         subFactory._producingLabExecutor.UpdatePower(subFactoryPowerConsumption.ProducingLabPowerConsumerTypeIndexes,
-                                                     subFactoryPowerConsumption.PowerConsumerTypes,
+                                                     powerConsumerTypes,
                                                      networksPowerConsumption);
         subFactory._researchingLabExecutor.UpdatePower(subFactoryPowerConsumption.ResearchingLabPowerConsumerTypeIndexes,
-                                                       subFactoryPowerConsumption.PowerConsumerTypes,
+                                                       powerConsumerTypes,
                                                        networksPowerConsumption);
 
         subFactory._optimizedBiInserterExecutor.UpdatePower(subFactoryPowerConsumption.InserterBiPowerConsumerTypeIndexes,
-                                                            subFactoryPowerConsumption.PowerConsumerTypes,
+                                                            powerConsumerTypes,
                                                             networksPowerConsumption);
         subFactory._optimizedInserterExecutor.UpdatePower(subFactoryPowerConsumption.InserterPowerConsumerTypeIndexes,
-                                                          subFactoryPowerConsumption.PowerConsumerTypes,
+                                                          powerConsumerTypes,
                                                           networksPowerConsumption);
     }
 
     private static void CargoTrafficBeforePower(OptimizedSubFactory subFactory,
                                                 SubFactoryPowerConsumption subFactoryPowerConsumption,
-                                                long[] networksPowerConsumption)
+                                                long[] networksPowerConsumption,
+                                                PowerConsumerType[] powerConsumerTypes)
     {
         subFactory._monitorExecutor.UpdatePower(subFactoryPowerConsumption.MonitorPowerConsumerTypeIndexes,
-                                                subFactoryPowerConsumption.PowerConsumerTypes,
+                                                powerConsumerTypes,
                                                 networksPowerConsumption);
         subFactory._spraycoaterExecutor.UpdatePower(subFactoryPowerConsumption.SpraycoaterPowerConsumerTypeIndexes,
-                                                    subFactoryPowerConsumption.PowerConsumerTypes,
+                                                    powerConsumerTypes,
                                                     networksPowerConsumption);
         subFactory._pilerExecutor.UpdatePower(subFactoryPowerConsumption.PilerPowerConsumerTypeIndexes,
-                                              subFactoryPowerConsumption.PowerConsumerTypes,
+                                              powerConsumerTypes,
                                               networksPowerConsumption);
     }
 }

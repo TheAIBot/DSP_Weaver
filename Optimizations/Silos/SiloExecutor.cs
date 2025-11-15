@@ -25,7 +25,7 @@ internal sealed class SiloExecutor
     }
 
     public void GameTick(PlanetFactory planet,
-                         int[] siloPowerConsumerTypeIndexes,
+                         short[] siloPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] consumeRegister,
@@ -56,7 +56,7 @@ internal sealed class SiloExecutor
     }
 
     public void UpdatePower(PlanetFactory planet,
-                            int[] siloPowerConsumerTypeIndexes,
+                            short[] siloPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -73,7 +73,7 @@ internal sealed class SiloExecutor
         }
     }
 
-    private static void UpdatePower(int[] siloPowerConsumerTypeIndexes,
+    private static void UpdatePower(short[] siloPowerConsumerTypeIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int siloIndexIndex,
@@ -86,7 +86,7 @@ internal sealed class SiloExecutor
     }
 
     public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(PlanetFactory planet,
-                                                                         int[] siloPowerConsumerTypeIndexes,
+                                                                         short[] siloPowerConsumerTypeIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -111,7 +111,7 @@ internal sealed class SiloExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] siloPowerConsumerTypeIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] siloPowerConsumerTypeIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

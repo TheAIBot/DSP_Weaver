@@ -20,7 +20,7 @@ internal sealed class SpraycoaterExecutor
 
     public int Count => _optimizedSpraycoaters.Length;
 
-    public void GameTick(int[] spraycoaterPowerConsumerTypeIndexes,
+    public void GameTick(short[] spraycoaterPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] consumeRegister,
@@ -43,7 +43,7 @@ internal sealed class SpraycoaterExecutor
         }
     }
 
-    public void UpdatePower(int[] spraycoaterPowerConsumerTypeIndexes,
+    public void UpdatePower(short[] spraycoaterPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -57,7 +57,7 @@ internal sealed class SpraycoaterExecutor
         }
     }
 
-    private static void UpdatePower(int[] spraycoaterPowerConsumerTypeIndexes,
+    private static void UpdatePower(short[] spraycoaterPowerConsumerTypeIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int spraycoaterIndex,
@@ -70,7 +70,7 @@ internal sealed class SpraycoaterExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItem, sprayTime);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] spraycoaterPowerConsumerTypeIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] spraycoaterPowerConsumerTypeIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -96,7 +96,7 @@ internal sealed class SpraycoaterExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] spraycoaterPowerConsumerTypeIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] spraycoaterPowerConsumerTypeIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

@@ -23,7 +23,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
     }
 
     public void GameTick(PlanetFactory planet,
-                         int[] veinMinerPowerConsumerIndexes,
+                         short[] veinMinerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
@@ -55,7 +55,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         }
     }
 
-    public void UpdatePower(int[] veinMinerPowerConsumerIndexes,
+    public void UpdatePower(short[] veinMinerPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -69,7 +69,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         }
     }
 
-    private static void UpdatePower(int[] veinMinerPowerConsumerIndexes,
+    private static void UpdatePower(short[] veinMinerPowerConsumerIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int minerIndex,
@@ -83,7 +83,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] veinMinerPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] veinMinerPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -106,7 +106,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] veinMinerPowerConsumerIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] veinMinerPowerConsumerIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

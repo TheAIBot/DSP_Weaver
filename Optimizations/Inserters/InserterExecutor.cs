@@ -148,7 +148,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     }
 
     public void GameTickInserters(PlanetFactory planet,
-                                  int[] inserterPowerConsumerIndexes,
+                                  short[] inserterPowerConsumerIndexes,
                                   PowerConsumerType[] powerConsumerTypes,
                                   long[] thisSubFactoryNetworkPowerConsumption,
                                   OptimizedCargoPath[] optimizedCargoPaths,
@@ -208,7 +208,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
     }
 
-    public void UpdatePower(int[] inserterPowerConsumerIndexes,
+    public void UpdatePower(short[] inserterPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -221,7 +221,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
     }
 
-    private static void UpdatePower(int[] inserterPowerConsumerIndexes,
+    private static void UpdatePower(short[] inserterPowerConsumerIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int inserterIndex,
@@ -233,7 +233,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, optimizedInserterStage);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] inserterPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] inserterPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -255,7 +255,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] inserterPowerConsumerIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] inserterPowerConsumerIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

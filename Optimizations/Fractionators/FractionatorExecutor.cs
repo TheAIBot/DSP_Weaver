@@ -19,7 +19,7 @@ internal sealed class FractionatorExecutor
     public int Count => _optimizedFractionators.Length;
 
     public void GameTick(PlanetFactory planet,
-                         int[] fractionatorPowerConsumerTypeIndexes,
+                         short[] fractionatorPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
@@ -59,7 +59,7 @@ internal sealed class FractionatorExecutor
         }
     }
 
-    public void UpdatePower(int[] fractionatorPowerConsumerTypeIndexes,
+    public void UpdatePower(short[] fractionatorPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -79,7 +79,7 @@ internal sealed class FractionatorExecutor
         }
     }
 
-    private static void UpdatePower(int[] fractionatorPowerConsumerTypeIndexes,
+    private static void UpdatePower(short[] fractionatorPowerConsumerTypeIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int fractionatorIndex,
@@ -91,7 +91,7 @@ internal sealed class FractionatorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorPowerFields);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] fractionatorPowerConsumerTypeIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] fractionatorPowerConsumerTypeIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -114,7 +114,7 @@ internal sealed class FractionatorExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] fractionatorPowerConsumerTypeIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] fractionatorPowerConsumerTypeIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

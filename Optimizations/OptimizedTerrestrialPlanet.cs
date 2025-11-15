@@ -76,7 +76,10 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         //WeaverFixes.Logger.LogMessage($"Sub Factory count: {subFactoryGraphs.Count}");
 
         var planetWideProductionRegisterBuilder = new PlanetWideProductionRegisterBuilder(_planet);
-        var optimizedPowerSystemBuilder = OptimizedPowerSystemBuilder.Create(_planet, planetWideProductionRegisterBuilder.GetSubFactoryBuilder(), out OptimizedItemId[]?[]? fuelNeeds);
+        var optimizedPowerSystemBuilder = OptimizedPowerSystemBuilder.Create(_planet, 
+                                                                             planetWideProductionRegisterBuilder.GetSubFactoryBuilder(), 
+                                                                             _universeStaticDataBuilder, 
+                                                                             out OptimizedItemId[]?[]? fuelNeeds);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
 

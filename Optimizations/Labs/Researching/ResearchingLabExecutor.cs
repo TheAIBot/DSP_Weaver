@@ -32,7 +32,7 @@ internal sealed class ResearchingLabExecutor
     }
 
     public void GameTickLabResearchMode(PlanetFactory planet,
-                                        int[] researchingLabPowerConsumerIndexes,
+                                        short[] researchingLabPowerConsumerIndexes,
                                         PowerConsumerType[] powerConsumerTypes,
                                         long[] thisSubFactoryNetworkPowerConsumption,
                                         int[] consumeRegister,
@@ -194,7 +194,7 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    public void UpdatePower(int[] researchingLabPowerConsumerIndexes,
+    public void UpdatePower(short[] researchingLabPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -208,19 +208,19 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    private static void UpdatePower(int[] researchingLabPowerConsumerIndexes,
-                                PowerConsumerType[] powerConsumerTypes,
-                                long[] thisSubFactoryNetworkPowerConsumption,
-                                int labIndex,
-                                int networkIndex,
-                                LabPowerFields labPowerFields)
+    private static void UpdatePower(short[] researchingLabPowerConsumerIndexes,
+                                    PowerConsumerType[] powerConsumerTypes,
+                                    long[] thisSubFactoryNetworkPowerConsumption,
+                                    int labIndex,
+                                    int networkIndex,
+                                    LabPowerFields labPowerFields)
     {
         int powerConsumerTypeIndex = researchingLabPowerConsumerIndexes[labIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labPowerFields);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] researchingLabPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] researchingLabPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -243,7 +243,7 @@ internal sealed class ResearchingLabExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] researchingLabPowerConsumerIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] researchingLabPowerConsumerIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

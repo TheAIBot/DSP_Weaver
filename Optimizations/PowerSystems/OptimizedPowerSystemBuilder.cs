@@ -1,4 +1,5 @@
 ﻿using PowerNetworkStructures;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Weaver.Optimizations.Belts;
@@ -11,21 +12,21 @@ internal sealed class SubFactoryPowerSystemBuilder
 {
     private readonly PlanetFactory _planet;
     private readonly OptimizedPowerSystemBuilder _optimizedPowerSystemBuilder;
-    private readonly List<int> _assemblerPowerConsumerTypeIndexes = [];
-    private readonly List<int> _inserterBiPowerConsumerTypeIndexes = [];
-    private readonly List<int> _inserterPowerConsumerTypeIndexes = [];
-    private readonly List<int> _producingLabPowerConsumerTypeIndexes = [];
-    private readonly List<int> _researchingLabPowerConsumerTypeIndexes = [];
-    private readonly List<int> _spraycoaterPowerConsumerTypeIndexes = [];
-    private readonly List<int> _fractionatorPowerConsumerTypeIndexes = [];
-    private readonly List<int> _ejectorPowerConsumerTypeIndexes = [];
-    private readonly List<int> _siloPowerConsumerTypeIndexes = [];
-    private readonly List<int> _pilerPowerConsumerTypeIndexes = [];
-    private readonly List<int> _monitorPowerConsumerTypeIndexes = [];
-    private readonly List<int> _waterMinerPowerConsumerTypeIndexes = [];
-    private readonly List<int> _oilMinerPowerConsumerTypeIndexes = [];
-    private readonly List<int> _beltVeinMinerPowerConsumerTypeIndexes = [];
-    private readonly List<int> _stationVeinMinerPowerConsumerTypeIndexes = [];
+    private readonly List<short> _assemblerPowerConsumerTypeIndexes = [];
+    private readonly List<short> _inserterBiPowerConsumerTypeIndexes = [];
+    private readonly List<short> _inserterPowerConsumerTypeIndexes = [];
+    private readonly List<short> _producingLabPowerConsumerTypeIndexes = [];
+    private readonly List<short> _researchingLabPowerConsumerTypeIndexes = [];
+    private readonly List<short> _spraycoaterPowerConsumerTypeIndexes = [];
+    private readonly List<short> _fractionatorPowerConsumerTypeIndexes = [];
+    private readonly List<short> _ejectorPowerConsumerTypeIndexes = [];
+    private readonly List<short> _siloPowerConsumerTypeIndexes = [];
+    private readonly List<short> _pilerPowerConsumerTypeIndexes = [];
+    private readonly List<short> _monitorPowerConsumerTypeIndexes = [];
+    private readonly List<short> _waterMinerPowerConsumerTypeIndexes = [];
+    private readonly List<short> _oilMinerPowerConsumerTypeIndexes = [];
+    private readonly List<short> _beltVeinMinerPowerConsumerTypeIndexes = [];
+    private readonly List<short> _stationVeinMinerPowerConsumerTypeIndexes = [];
     private readonly long[] _networksPowerConsumptions;
     private readonly Dictionary<int, OptimizedFuelGeneratorLocation> _fuelGeneratorIdToOptimizedFueldGeneratorLocation;
     public OptimizedFuelGenerator[][] FuelGeneratorSegments { get; }
@@ -50,12 +51,12 @@ internal sealed class SubFactoryPowerSystemBuilder
 
     public OptimizedPowerSystemInserterBuilder CreateBiInserterBuilder()
     {
-        return new OptimizedPowerSystemInserterBuilder(_planet.powerSystem, this, _inserterBiPowerConsumerTypeIndexes, _fuelGeneratorIdToOptimizedFueldGeneratorLocation);
+        return new OptimizedPowerSystemInserterBuilder(this, _inserterBiPowerConsumerTypeIndexes, _fuelGeneratorIdToOptimizedFueldGeneratorLocation);
     }
 
     public OptimizedPowerSystemInserterBuilder CreateInserterBuilder()
     {
-        return new OptimizedPowerSystemInserterBuilder(_planet.powerSystem, this, _inserterPowerConsumerTypeIndexes, _fuelGeneratorIdToOptimizedFueldGeneratorLocation);
+        return new OptimizedPowerSystemInserterBuilder(this, _inserterPowerConsumerTypeIndexes, _fuelGeneratorIdToOptimizedFueldGeneratorLocation);
     }
 
     public void AddProducingLab(ref readonly LabComponent lab, int networkIndex)
@@ -118,7 +119,7 @@ internal sealed class SubFactoryPowerSystemBuilder
         return new OptimizedPowerSystemVeinMinerBuilder(_planet.powerSystem, this, _stationVeinMinerPowerConsumerTypeIndexes);
     }
 
-    public void AddEntity(List<int> powerConsumerTypeIndexes, int powerConsumerIndex, int networkIndex)
+    public void AddEntity(List<short> powerConsumerTypeIndexes, int powerConsumerIndex, int networkIndex)
     {
         PowerConsumerComponent powerConsumerComponent = _planet.powerSystem.consumerPool[powerConsumerIndex];
         PowerConsumerType powerConsumerType = new PowerConsumerType(powerConsumerComponent.workEnergyPerTick, powerConsumerComponent.idleEnergyPerTick);
@@ -127,10 +128,9 @@ internal sealed class SubFactoryPowerSystemBuilder
         _optimizedPowerSystemBuilder.AddPowerConsumerIndexToNetwork(powerConsumerIndex, networkIndex);
     }
 
-    public SubFactoryPowerConsumption Build(PowerConsumerType[] powerConsumerTypes)
+    public SubFactoryPowerConsumption Build()
     {
-        return new SubFactoryPowerConsumption(powerConsumerTypes,
-                                              _assemblerPowerConsumerTypeIndexes.ToArray(),
+        return new SubFactoryPowerConsumption(_assemblerPowerConsumerTypeIndexes.ToArray(),
                                               _inserterBiPowerConsumerTypeIndexes.ToArray(),
                                               _inserterPowerConsumerTypeIndexes.ToArray(),
                                               _producingLabPowerConsumerTypeIndexes.ToArray(),
@@ -153,28 +153,32 @@ internal sealed class OptimizedPowerSystemBuilder
 {
     private readonly PlanetFactory _planet;
     private readonly SubFactoryProductionRegisterBuilder _subProductionRegisterBuilder;
-    private readonly List<PowerConsumerType> _powerConsumerTypes = [];
-    private readonly Dictionary<PowerConsumerType, int> _powerConsumerTypeToIndex = [];
     private readonly Dictionary<int, HashSet<int>> _networkIndexToOptimizedConsumerIndexes = [];
     private readonly Dictionary<OptimizedSubFactory, SubFactoryPowerSystemBuilder> _subFactoryToPowerSystemBuilder = [];
     private readonly Dictionary<int, FuelGeneratorExecutor> _networkIndexToFueldGeneratorExecutor;
     private readonly Dictionary<int, OptimizedFuelGeneratorLocation> _fuelGeneratorIdToOptimizedFueldGeneratorLocation;
     private readonly OptimizedFuelGenerator[][] _fuelGeneratorSegments;
+    private readonly UniverseStaticDataBuilder _universeStaticDataBuilder;
 
     private OptimizedPowerSystemBuilder(PlanetFactory planet,
                                         SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
                                         Dictionary<int, FuelGeneratorExecutor> networkIndexToFueldGeneratorExecutor,
                                         Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedFueldGeneratorLocation,
-                                        OptimizedFuelGenerator[][] fuelGeneratorSegments)
+                                        OptimizedFuelGenerator[][] fuelGeneratorSegments,
+                                        UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _planet = planet;
         _subProductionRegisterBuilder = subProductionRegisterBuilder;
         _networkIndexToFueldGeneratorExecutor = networkIndexToFueldGeneratorExecutor;
         _fuelGeneratorIdToOptimizedFueldGeneratorLocation = fuelGeneratorIdToOptimizedFueldGeneratorLocation;
         _fuelGeneratorSegments = fuelGeneratorSegments;
+        _universeStaticDataBuilder = universeStaticDataBuilder;
     }
 
-    public static OptimizedPowerSystemBuilder Create(PlanetFactory planet, SubFactoryProductionRegisterBuilder subProductionRegisterBuilder, out OptimizedItemId[]?[]? fuelNeeds)
+    public static OptimizedPowerSystemBuilder Create(PlanetFactory planet, 
+                                                     SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
+                                                     UniverseStaticDataBuilder universeStaticDataBuilder,
+                                                     out OptimizedItemId[]?[]? fuelNeeds)
     {
         Dictionary<int, FuelGeneratorExecutor> networkIndexToFueldGeneratorExecutor = [];
         Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedFueldGeneratorLocation = [];
@@ -205,7 +209,8 @@ internal sealed class OptimizedPowerSystemBuilder
                                                subProductionRegisterBuilder,
                                                networkIndexToFueldGeneratorExecutor,
                                                fuelGeneratorIdToOptimizedFueldGeneratorLocation,
-                                               fuelGeneratorSegments.ToArray());
+                                               fuelGeneratorSegments.ToArray(),
+                                               universeStaticDataBuilder);
     }
 
     public SubFactoryPowerSystemBuilder AddSubFactory(OptimizedSubFactory subFactory)
@@ -219,16 +224,15 @@ internal sealed class OptimizedPowerSystemBuilder
         return subFactoryPowerSystemBuilder;
     }
 
-    public int GetOrAddPowerConsumerType(PowerConsumerType powerConsumerType)
+    public short GetOrAddPowerConsumerType(PowerConsumerType powerConsumerType)
     {
-        if (!_powerConsumerTypeToIndex.TryGetValue(powerConsumerType, out int index))
+        int index = _universeStaticDataBuilder.AddPowerConsumerType(in powerConsumerType);
+        if (index > short.MaxValue)
         {
-            _powerConsumerTypeToIndex.Add(powerConsumerType, _powerConsumerTypes.Count);
-            index = _powerConsumerTypes.Count;
-            _powerConsumerTypes.Add(powerConsumerType);
+            throw new InvalidOperationException($"Assumption that there will exist a max of {short.MaxValue} different PowerConsumerTypes was incorrect.");
         }
 
-        return index;
+        return (short)index;
     }
 
     public void AddPowerConsumerIndexToNetwork(int powerConsumerIndex, int networkIndex)
@@ -256,14 +260,14 @@ internal sealed class OptimizedPowerSystemBuilder
             networkNonOptimizedPowerConsumerIndexes[i] = _planet.powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes).ToArray();
         }
 
-        PowerConsumerType[] powerConsumerTypes = _powerConsumerTypes.ToArray();
         OptimizedPowerNetwork[] optimizedPowerNetworks = GetOptimizedPowerNetworks(_planet, planetWideBeltExecutor, _networkIndexToOptimizedConsumerIndexes);
-        Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption = _subFactoryToPowerSystemBuilder.ToDictionary(x => x.Key, x => x.Value.Build(powerConsumerTypes));
+        Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption = _subFactoryToPowerSystemBuilder.ToDictionary(x => x.Key, x => x.Value.Build());
 
         return new OptimizedPowerSystem(dysonSphereManager,
                                         optimizedPowerNetworks,
                                         subFactoryToPowerConsumption,
-                                        _subProductionRegisterBuilder.Build());
+                                        _subProductionRegisterBuilder.Build(),
+                                        _universeStaticDataBuilder.UniverseStaticData);
     }
 
     private OptimizedPowerNetwork[] GetOptimizedPowerNetworks(PlanetFactory planet,

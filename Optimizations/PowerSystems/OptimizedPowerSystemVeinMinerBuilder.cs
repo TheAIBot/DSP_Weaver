@@ -5,9 +5,9 @@ namespace Weaver.Optimizations.PowerSystems;
 internal sealed class OptimizedPowerSystemVeinMinerBuilder
 {
     private readonly SubFactoryPowerSystemBuilder _subFactoryPowerSystemBuilder;
-    private readonly List<int> _veinMinerPowerConsumerTypeIndexes;
+    private readonly List<short> _veinMinerPowerConsumerTypeIndexes;
 
-    public OptimizedPowerSystemVeinMinerBuilder(PowerSystem powerSystem, SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, List<int> veinMinerPowerConsumerTypeIndexes)
+    public OptimizedPowerSystemVeinMinerBuilder(PowerSystem powerSystem, SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, List<short> veinMinerPowerConsumerTypeIndexes)
     {
         _subFactoryPowerSystemBuilder = subFactoryPowerSystemBuilder;
         _veinMinerPowerConsumerTypeIndexes = veinMinerPowerConsumerTypeIndexes;

@@ -27,7 +27,7 @@ internal sealed class ProducingLabExecutor
     public int Count => _optimizedLabs.Length;
 
     public void GameTickLabProduceMode(PlanetFactory planet,
-                                       int[] producingLabPowerConsumerIndexes,
+                                       short[] producingLabPowerConsumerIndexes,
                                        PowerConsumerType[] powerConsumerTypes,
                                        long[] thisSubFactoryNetworkPowerConsumption,
                                        int[] productRegister,
@@ -115,7 +115,7 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    public void UpdatePower(int[] producingLabPowerConsumerIndexes,
+    public void UpdatePower(short[] producingLabPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -129,7 +129,7 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    private static void UpdatePower(int[] producingLabPowerConsumerIndexes,
+    private static void UpdatePower(short[] producingLabPowerConsumerIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int labIndex,
@@ -141,7 +141,7 @@ internal sealed class ProducingLabExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labPowerFields);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] producingLabPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] producingLabPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -164,7 +164,7 @@ internal sealed class ProducingLabExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] producingLabPowerConsumerIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] producingLabPowerConsumerIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

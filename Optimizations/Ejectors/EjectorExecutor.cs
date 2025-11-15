@@ -361,7 +361,7 @@ internal sealed class EjectorExecutor
 
     public void GameTick(PlanetFactory planet,
                          long time,
-                         int[] ejectorPowerConsumerTypeIndexes,
+                         short[] ejectorPowerConsumerTypeIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] consumeRegister,
@@ -402,7 +402,7 @@ internal sealed class EjectorExecutor
     }
 
     public void UpdatePower(PlanetFactory planet,
-                            int[] ejectorPowerConsumerTypeIndexes,
+                            short[] ejectorPowerConsumerTypeIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -419,7 +419,7 @@ internal sealed class EjectorExecutor
         }
     }
 
-    private static void UpdatePower(int[] ejectorPowerConsumerTypeIndexes,
+    private static void UpdatePower(short[] ejectorPowerConsumerTypeIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int ejectorIndexIndex,
@@ -432,7 +432,7 @@ internal sealed class EjectorExecutor
     }
 
     public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(PlanetFactory planet,
-                                                                         int[] ejectorPowerConsumerTypeIndexes,
+                                                                         short[] ejectorPowerConsumerTypeIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -457,7 +457,7 @@ internal sealed class EjectorExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] ejectorPowerConsumerTypeIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] ejectorPowerConsumerTypeIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

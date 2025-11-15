@@ -2,43 +2,40 @@
 
 internal sealed class SubFactoryPowerConsumption
 {
-    public PowerConsumerType[] PowerConsumerTypes { get; }
-    public int[] AssemblerPowerConsumerTypeIndexes { get; }
-    public int[] InserterBiPowerConsumerTypeIndexes { get; }
-    public int[] InserterPowerConsumerTypeIndexes { get; }
-    public int[] ProducingLabPowerConsumerTypeIndexes { get; }
-    public int[] ResearchingLabPowerConsumerTypeIndexes { get; }
-    public int[] SpraycoaterPowerConsumerTypeIndexes { get; }
-    public int[] FractionatorPowerConsumerTypeIndexes { get; }
-    public int[] EjectorPowerConsumerTypeIndexes { get; }
-    public int[] SiloPowerConsumerTypeIndexes { get; }
-    public int[] PilerPowerConsumerTypeIndexes { get; }
-    public int[] MonitorPowerConsumerTypeIndexes { get; }
-    public int[] WaterMinerPowerConsumerTypeIndexes { get; }
-    public int[] OilMinerPowerConsumerTypeIndexes { get; }
-    public int[] BeltVeinMinerPowerConsumerTypeIndexes { get; }
-    public int[] StationVeinMinerPowerConsumerTypeIndexes { get; }
+    public short[] AssemblerPowerConsumerTypeIndexes { get; }
+    public short[] InserterBiPowerConsumerTypeIndexes { get; }
+    public short[] InserterPowerConsumerTypeIndexes { get; }
+    public short[] ProducingLabPowerConsumerTypeIndexes { get; }
+    public short[] ResearchingLabPowerConsumerTypeIndexes { get; }
+    public short[] SpraycoaterPowerConsumerTypeIndexes { get; }
+    public short[] FractionatorPowerConsumerTypeIndexes { get; }
+    public short[] EjectorPowerConsumerTypeIndexes { get; }
+    public short[] SiloPowerConsumerTypeIndexes { get; }
+    public short[] PilerPowerConsumerTypeIndexes { get; }
+    public short[] MonitorPowerConsumerTypeIndexes { get; }
+    public short[] WaterMinerPowerConsumerTypeIndexes { get; }
+    public short[] OilMinerPowerConsumerTypeIndexes { get; }
+    public short[] BeltVeinMinerPowerConsumerTypeIndexes { get; }
+    public short[] StationVeinMinerPowerConsumerTypeIndexes { get; }
     public long[] NetworksPowerConsumption { get; }
 
-    public SubFactoryPowerConsumption(PowerConsumerType[] powerConsumerTypes,
-                                      int[] assemblerPowerConsumerTypeIndexes,
-                                      int[] inserterBiPowerConsumerTypeIndexes,
-                                      int[] inserterPowerConsumerTypeIndexes,
-                                      int[] producingLabPowerConsumerTypeIndexes,
-                                      int[] researchingLabPowerConsumerTypeIndexes,
-                                      int[] spraycoaterPowerConsumerTypeIndexes,
-                                      int[] fractionatorPowerConsumerTypeIndexes,
-                                      int[] ejectorPowerConsumerTypeIndexes,
-                                      int[] siloPowerConsumerTypeIndexes,
-                                      int[] pilerPowerConsumerTypeIndexes,
-                                      int[] monitorPowerConsumerTypeIndexes,
-                                      int[] waterMinerPowerConsumerTypeIndexes,
-                                      int[] oilMinerPowerConsumerTypeIndexes,
-                                      int[] beltVeinMinerPowerConsumerTypeIndexes,
-                                      int[] stationVeinMinerPowerConsumerTypeIndexes,
+    public SubFactoryPowerConsumption(short[] assemblerPowerConsumerTypeIndexes,
+                                      short[] inserterBiPowerConsumerTypeIndexes,
+                                      short[] inserterPowerConsumerTypeIndexes,
+                                      short[] producingLabPowerConsumerTypeIndexes,
+                                      short[] researchingLabPowerConsumerTypeIndexes,
+                                      short[] spraycoaterPowerConsumerTypeIndexes,
+                                      short[] fractionatorPowerConsumerTypeIndexes,
+                                      short[] ejectorPowerConsumerTypeIndexes,
+                                      short[] siloPowerConsumerTypeIndexes,
+                                      short[] pilerPowerConsumerTypeIndexes,
+                                      short[] monitorPowerConsumerTypeIndexes,
+                                      short[] waterMinerPowerConsumerTypeIndexes,
+                                      short[] oilMinerPowerConsumerTypeIndexes,
+                                      short[] beltVeinMinerPowerConsumerTypeIndexes,
+                                      short[] stationVeinMinerPowerConsumerTypeIndexes,
                                       long[] networksPowerConsumption)
     {
-        PowerConsumerTypes = powerConsumerTypes;
         AssemblerPowerConsumerTypeIndexes = assemblerPowerConsumerTypeIndexes;
         InserterBiPowerConsumerTypeIndexes = inserterBiPowerConsumerTypeIndexes;
         InserterPowerConsumerTypeIndexes = inserterPowerConsumerTypeIndexes;

@@ -16,7 +16,7 @@ internal sealed class MonitorExecutor
     public int Count => _optimizedMonitors.Length;
 
     public void GameTick(PlanetFactory planet,
-                         int[] monitorPowerConsumerIndexes,
+                         short[] monitorPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          OptimizedCargoPath[] optimizedCargoPaths)
@@ -40,7 +40,7 @@ internal sealed class MonitorExecutor
         }
     }
 
-    public void UpdatePower(int[] monitorPowerConsumerIndexes,
+    public void UpdatePower(short[] monitorPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -53,7 +53,7 @@ internal sealed class MonitorExecutor
         }
     }
 
-    private static void UpdatePower(int[] monitorPowerConsumerIndexes,
+    private static void UpdatePower(short[] monitorPowerConsumerIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int monitorIndex,
@@ -64,7 +64,7 @@ internal sealed class MonitorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] monitorPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] monitorPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -84,7 +84,7 @@ internal sealed class MonitorExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] monitorPowerConsumerIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] monitorPowerConsumerIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

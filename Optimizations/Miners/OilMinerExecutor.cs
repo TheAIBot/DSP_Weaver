@@ -17,7 +17,7 @@ internal sealed class OilMinerExecutor
     public int Count => _optimizedMiners.Length;
 
     public void GameTick(PlanetFactory planet,
-                         int[] oilMinerPowerConsumerIndexes,
+                         short[] oilMinerPowerConsumerIndexes,
                          PowerConsumerType[] powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
@@ -53,7 +53,7 @@ internal sealed class OilMinerExecutor
         }
     }
 
-    public void UpdatePower(int[] oilMinerPowerConsumerIndexes,
+    public void UpdatePower(short[] oilMinerPowerConsumerIndexes,
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
@@ -67,7 +67,7 @@ internal sealed class OilMinerExecutor
         }
     }
 
-    private static void UpdatePower(int[] oilMinerPowerConsumerIndexes,
+    private static void UpdatePower(short[] oilMinerPowerConsumerIndexes,
                                     PowerConsumerType[] powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int minerIndex,
@@ -85,7 +85,7 @@ internal sealed class OilMinerExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(int[] oilMinerPowerConsumerIndexes,
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] oilMinerPowerConsumerIndexes,
                                                                          PowerConsumerType[] powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
@@ -108,7 +108,7 @@ internal sealed class OilMinerExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(int[] oilMinerPowerConsumerIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(short[] oilMinerPowerConsumerIndexes,
                                                            PowerConsumerType[] powerConsumerTypes,
                                                            int[] prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,

@@ -6,6 +6,7 @@ using Weaver.Optimizations.Fractionators;
 using Weaver.Optimizations.Inserters;
 using Weaver.Optimizations.Inserters.Types;
 using Weaver.Optimizations.Labs.Producing;
+using Weaver.Optimizations.PowerSystems;
 
 namespace Weaver.Optimizations;
 
@@ -83,6 +84,7 @@ internal sealed class UniverseStaticDataBuilder
     private readonly DataDeduplicator<AssemblerRecipe> _assemblerRecipes = new();
     private readonly DataDeduplicator<FractionatorConfiguration> _fractionatorConfigurations = new();
     private readonly DataDeduplicator<ProducingLabRecipe> _producingLabRecipes = new();
+    private readonly DataDeduplicator<PowerConsumerType> _powerConsumerTypes = new();
     public UniverseInserterStaticDataBuilder<BiInserterGrade> BiInserterGrades { get; } = new();
     public UniverseInserterStaticDataBuilder<InserterGrade> InserterGrades { get; } = new();
 
@@ -103,6 +105,11 @@ internal sealed class UniverseStaticDataBuilder
         return _producingLabRecipes.GetDeduplicatedValueIndex(in producingLabRecipe);
     }
 
+    public int AddPowerConsumerType(ref readonly PowerConsumerType powerConsumerType)
+    {
+        return _powerConsumerTypes.GetDeduplicatedValueIndex(in powerConsumerType);
+    }
+
     public void UpdateStaticDataIfRequired()
     {
         if (_assemblerRecipes.TryGetUpdatedData(out AssemblerRecipe[]? assemblerRecipes))
@@ -118,7 +125,12 @@ internal sealed class UniverseStaticDataBuilder
         if (_producingLabRecipes.TryGetUpdatedData(out ProducingLabRecipe[]? producingLabRecipe))
         {
             //WeaverFixes.Logger.LogMessage($"Producing lab recipe count: {producingLabRecipe.Length}");
-            UniverseStaticData.UpdateProducingLabRecipe(producingLabRecipe);
+            UniverseStaticData.UpdateProducingLabRecipes(producingLabRecipe);
+        }
+        if (_powerConsumerTypes.TryGetUpdatedData(out PowerConsumerType[]? powerConsumerTypes))
+        {
+            //WeaverFixes.Logger.LogMessage($"Power consumer type count: {powerConsumerTypes.Length}");
+            UniverseStaticData.UpdatePowerConsumerTypes(powerConsumerTypes);
         }
         if (BiInserterGrades.TryGetUpdatedData(out BiInserterGrade[]? biInserterGrades))
         {
@@ -149,6 +161,7 @@ internal sealed class UniverseStaticData
     public AssemblerRecipe[] AssemblerRecipes { get; private set; } = [];
     public FractionatorConfiguration[] FractionatorConfigurations { get; private set; } = [];
     public ProducingLabRecipe[] ProducingLabRecipes { get; private set; } = [];
+    public PowerConsumerType[] PowerConsumerTypes { get; private set; } = [];
     public BiInserterGrade[] BiInserterGrades { get; private set; } = [];
     public InserterGrade[] InserterGrades { get; private set; } = [];
 
@@ -162,9 +175,14 @@ internal sealed class UniverseStaticData
         FractionatorConfigurations = fractionatorConfigurations;
     }
 
-    public void UpdateProducingLabRecipe(ProducingLabRecipe[] producingLabRecipe)
+    public void UpdateProducingLabRecipes(ProducingLabRecipe[] producingLabRecipes)
     {
-        ProducingLabRecipes = producingLabRecipe;
+        ProducingLabRecipes = producingLabRecipes;
+    }
+
+    public void UpdatePowerConsumerTypes(PowerConsumerType[] powerConsumerTypes)
+    {
+        PowerConsumerTypes = powerConsumerTypes;
     }
 
     public void UpdateBiInserterGrades(BiInserterGrade[] biInserterGrades)
