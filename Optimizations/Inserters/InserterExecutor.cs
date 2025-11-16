@@ -1,6 +1,7 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Assemblers;
@@ -65,14 +66,15 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 {
     private TInserter[] _optimizedInserters = null!;
     private OptimizedInserterStage[] _optimizedInserterStages = null!;
-    public NetworkIdAndState<InserterState>[] _inserterNetworkIdAndStates = null!;
+    private int[] _inserterNetworkIds = null!;
+    public InserterState[] _inserterStates = null!;
     public InserterConnections[] _inserterConnections = null!;
     public Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
-    private readonly NetworkIdAndState<AssemblerState>[] _assemblerNetworkIdAndStates;
-    private readonly NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates;
-    private readonly NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates;
+    private readonly AssemblerState[] _assemblerStates;
+    private readonly LabState[] _producingLabStates;
+    private readonly LabState[] _researchingLabStates;
     private readonly OptimizedFuelGenerator[][] _generatorSegmentToOptimizedFuelGenerators;
     private readonly OptimizedItemId[]?[]? _fuelNeeds;
     private readonly SubFactoryNeeds _subFactoryNeeds;
@@ -100,9 +102,9 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 
     public int Count => _optimizedInserters.Length;
 
-    public InserterExecutor(NetworkIdAndState<AssemblerState>[] assemblerNetworkIdAndStates,
-                            NetworkIdAndState<LabState>[] producingLabNetworkIdAndStates,
-                            NetworkIdAndState<LabState>[] researchingLabNetworkIdAndStates,
+    public InserterExecutor(AssemblerState[] assemblerStates,
+                            LabState[] producingLabStates,
+                            LabState[] researchingLabStates,
                             OptimizedFuelGenerator[][] generatorSegmentToOptimizedFuelGenerators,
                             OptimizedItemId[]?[]? fuelNeeds,
                             SubFactoryNeeds subFactoryNeeds,
@@ -123,9 +125,9 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             int[] ejectorIndexes,
                             UniverseStaticData universeStaticData)
     {
-        _assemblerNetworkIdAndStates = assemblerNetworkIdAndStates;
-        _producingLabNetworkIdAndStates = producingLabNetworkIdAndStates;
-        _researchingLabNetworkIdAndStates = researchingLabNetworkIdAndStates;
+        _assemblerStates = assemblerStates;
+        _producingLabStates = producingLabStates;
+        _researchingLabStates = researchingLabStates;
         _generatorSegmentToOptimizedFuelGenerators = generatorSegmentToOptimizedFuelGenerators;
         _fuelNeeds = fuelNeeds;
         _subFactoryNeeds = subFactoryNeeds;
@@ -157,54 +159,55 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
-        NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = _inserterNetworkIdAndStates;
+        int[] inserterNetworkIds = _inserterNetworkIds;
+        InserterState[] inserterStates = _inserterStates;
         TInserter[] optimizedInserters = _optimizedInserters;
         TInserterGrade[] inserterGrades = default(TInserter).GetInserterGrades(universeStaticData);
 
-        for (int inserterIndex = 0; inserterIndex < inserterNetworkIdAndStates.Length; inserterIndex++)
+        for (int inserterIndex = 0; inserterIndex < optimizedInserterStages.Length; inserterIndex++)
         {
             ref OptimizedInserterStage optimizedInserterStage = ref optimizedInserterStages[inserterIndex];
-            ref NetworkIdAndState<InserterState> networkIdAndState = ref inserterNetworkIdAndStates[inserterIndex];
-            InserterState inserterState = (InserterState)networkIdAndState.State;
+            int networkIndex = inserterNetworkIds[inserterIndex];
+            ref InserterState inserterState = ref inserterStates[inserterIndex];
             if (inserterState != InserterState.Active)
             {
                 if (inserterState == InserterState.InactivePickFrom)
                 {
                     if (!IsObjectPickFromActive(inserterIndex))
                     {
-                        UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
+                        UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIndex, optimizedInserterStage);
                         continue;
                     }
 
-                    networkIdAndState.State = (int)InserterState.Active;
+                    inserterState = InserterState.Active;
                 }
                 else if (inserterState == InserterState.InactiveInsertInto)
                 {
                     if (!IsObjectInsertIntoActive(inserterIndex))
                     {
-                        UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
+                        UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIndex, optimizedInserterStage);
                         continue;
                     }
 
-                    networkIdAndState.State = (int)InserterState.Active;
+                    inserterState = InserterState.Active;
                 }
             }
 
-            float power2 = networkServes[networkIdAndState.Index];
+            float power2 = networkServes[networkIndex];
             ref TInserter optimizedInserter = ref optimizedInserters[inserterIndex];
             ref readonly TInserterGrade inserterGrade = ref inserterGrades[optimizedInserter.grade];
             optimizedInserter.Update(planet,
                                      this,
                                      power2,
                                      inserterIndex,
-                                     ref networkIdAndState,
+                                     ref inserterState,
                                      in inserterGrade,
                                      ref optimizedInserterStage,
                                      _inserterConnections,
                                      _subFactoryNeeds,
                                      optimizedCargoPaths);
 
-            UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIdAndState.Index, optimizedInserterStage);
+            UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, inserterIndex, networkIndex, optimizedInserterStage);
         }
     }
 
@@ -212,10 +215,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        NetworkIdAndState<InserterState>[] inserterNetworkIdAndStates = _inserterNetworkIdAndStates;
+        int[] inserterNetworkIds = _inserterNetworkIds;
         for (int j = 0; j < _optimizedInserters.Length; j++)
         {
-            int networkIndex = inserterNetworkIdAndStates[j].Index;
+            int networkIndex = inserterNetworkIds[j];
             OptimizedInserterStage optimizedInserterStage = _optimizedInserterStages[j];
             UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, j, networkIndex, optimizedInserterStage);
         }
@@ -277,11 +280,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         TypedObjectIndex objectIndex = _inserterConnections[inserterIndex].PickFrom;
         if (objectIndex.EntityType == EntityType.Assembler)
         {
-            return (AssemblerState)_assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
+            return _assemblerStates[objectIndex.Index] == AssemblerState.Active;
         }
         else if (objectIndex.EntityType == EntityType.ProducingLab)
         {
-            return (LabState)_producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+            return _producingLabStates[objectIndex.Index] == LabState.Active;
         }
         else
         {
@@ -294,15 +297,15 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         TypedObjectIndex objectIndex = _inserterConnections[inserterIndex].InsertInto;
         if (objectIndex.EntityType == EntityType.Assembler)
         {
-            return (AssemblerState)_assemblerNetworkIdAndStates[objectIndex.Index].State == AssemblerState.Active;
+            return _assemblerStates[objectIndex.Index] == AssemblerState.Active;
         }
         else if (objectIndex.EntityType == EntityType.ProducingLab)
         {
-            return (LabState)_producingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+            return _producingLabStates[objectIndex.Index] == LabState.Active;
         }
         else if (objectIndex.EntityType == EntityType.ResearchingLab)
         {
-            return (LabState)_researchingLabNetworkIdAndStates[objectIndex.Index].State == LabState.Active;
+            return _researchingLabStates[objectIndex.Index] == LabState.Active;
         }
         else
         {
@@ -333,7 +336,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     }
 
     public short PickFrom(PlanetFactory planet,
-                          ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                          ref InserterState inserterState,
                           int inserterIndex,
                           int offset,
                           int filter,
@@ -382,11 +385,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
-            AssemblerState assemblerState = (AssemblerState)_assemblerNetworkIdAndStates[objectIndex].State;
+            AssemblerState assemblerState = _assemblerStates[objectIndex];
             if (assemblerState != AssemblerState.Active &&
                 assemblerState != AssemblerState.InactiveOutputFull)
             {
-                inserterNetworkIdAndState.State = (int)InserterState.InactivePickFrom;
+                inserterState = InserterState.InactivePickFrom;
                 return 0;
             }
 
@@ -405,7 +408,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 if ((filter == productItemIndex || filter == 0) && produced[producedOffset + i] > 0 && productItemIndex > 0 && IsInNeed(productItemIndex, componentNeeds, needsPatterns, needsSize))
                 {
                     produced[producedOffset + i]--;
-                    _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                    _assemblerStates[objectIndex] = AssemblerState.Active;
                     return products[i].ItemIndex;
                 }
             }
@@ -502,11 +505,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
         {
-            LabState labState = (LabState)_producingLabNetworkIdAndStates[objectIndex].State;
+            LabState labState = _producingLabStates[objectIndex];
             if (labState != LabState.Active &&
                 labState != LabState.InactiveOutputFull)
             {
-                inserterNetworkIdAndState.State = (int)InserterState.InactivePickFrom;
+                inserterState = InserterState.InactivePickFrom;
                 return 0;
             }
 
@@ -525,7 +528,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 if (produced[producedOffset + j] > 0 && productItemIndex > 0 && (filter == 0 || filter == productItemIndex) && IsInNeed(productItemIndex, componentNeeds, needsPatterns, needsSize))
                 {
                     produced[producedOffset + j]--;
-                    _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
+                    _producingLabStates[objectIndex] = LabState.Active;
                     return products[j].ItemIndex;
                 }
             }
@@ -549,7 +552,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     }
 
     public short InsertInto(PlanetFactory planet,
-                            ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                            ref InserterState inserterState,
                             int inserterIndex,
                             InserterConnections inserterConnections,
                             GroupNeeds groupNeeds,
@@ -576,11 +579,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else if (typedObjectIndex.EntityType == EntityType.Assembler)
         {
-            AssemblerState assemblerState = (AssemblerState)_assemblerNetworkIdAndStates[objectIndex].State;
+            AssemblerState assemblerState = _assemblerStates[objectIndex];
             if (assemblerState != AssemblerState.Active &&
                 assemblerState != AssemblerState.InactiveInputMissing)
             {
-                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                inserterState = InserterState.InactiveInsertInto;
                 return 0;
             }
 
@@ -604,7 +607,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 assemblerServed[assemblerServedOffset + i] += itemCount;
                 assemblerIncServed[assemblerServedOffset + i] += itemInc;
                 remainInc = 0;
-                _assemblerNetworkIdAndStates[objectIndex].State = (int)AssemblerState.Active;
+                _assemblerStates[objectIndex] = AssemblerState.Active;
                 _assemblerNeedToUpdateNeeds[objectIndex] = true;
                 return itemCount;
             }
@@ -655,11 +658,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else if (typedObjectIndex.EntityType == EntityType.ProducingLab)
         {
-            LabState labState = (LabState)_producingLabNetworkIdAndStates[objectIndex].State;
+            LabState labState = _producingLabStates[objectIndex];
             if (labState != LabState.Active &&
                 labState != LabState.InactiveInputMissing)
             {
-                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                inserterState = InserterState.InactiveInsertInto;
                 return 0;
             }
 
@@ -680,7 +683,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                     served[servedOffset + i] += itemCount;
                     incServed[servedOffset + i] += itemInc;
                     remainInc = 0;
-                    _producingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
+                    _producingLabStates[objectIndex] = LabState.Active;
                     return itemCount;
                 }
             }
@@ -688,11 +691,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else if (typedObjectIndex.EntityType == EntityType.ResearchingLab)
         {
-            LabState labState = (LabState)_researchingLabNetworkIdAndStates[objectIndex].State;
+            LabState labState = _researchingLabStates[objectIndex];
             if (labState != LabState.Active &&
                 labState != LabState.InactiveInputMissing)
             {
-                inserterNetworkIdAndState.State = (int)InserterState.InactiveInsertInto;
+                inserterState = InserterState.InactiveInsertInto;
                 return 0;
             }
 
@@ -711,7 +714,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 matrixServed[matrixServedOffset + num2] += 3600 * itemCount;
                 matrixIncServed[matrixServedOffset + num2] += 3600 * itemInc;
                 remainInc = 0;
-                _researchingLabNetworkIdAndStates[objectIndex].State = (int)LabState.Active;
+                _researchingLabStates[objectIndex] = LabState.Active;
                 return itemCount;
             }
             return 0;
@@ -819,7 +822,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                            UniverseStaticDataBuilder universeStaticDataBuilder,
                            UniverseInserterStaticDataBuilder<TInserterGrade> universeInserterStaticDataBuilder)
     {
-        List<NetworkIdAndState<InserterState>> inserterNetworkIdAndStates = [];
+        List<int> inserterNetworkIds = [];
+        List<InserterState> inserterStates = [];
         List<InserterConnections> inserterConnections = [];
         List<TInserter> optimizedInserters = [];
         List<OptimizedInserterStage> optimizedInserterStages = [];
@@ -837,7 +841,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 continue;
             }
 
-            InserterState? inserterState = null;
             TypedObjectIndex pickFrom = new TypedObjectIndex(EntityType.None, 0);
             if (inserter.pickTarget != 0)
             {
@@ -849,8 +852,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
             else
             {
-                inserterState = InserterState.InactiveNotCompletelyConnected;
-
                 // Done in inserter update so doing it here for the same condition since
                 // inserter will not run when inactive
                 planet.entitySignPool[inserter.entityId].signType = 10u;
@@ -868,8 +869,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
             else
             {
-                inserterState = InserterState.InactiveNotCompletelyConnected;
-
                 // Done in inserter update so doing it here for the same condition since
                 // inserter will not run when inactive
                 planet.entitySignPool[inserter.entityId].signType = 10u;
@@ -901,7 +900,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 
             inserterIdToOptimizedIndex.Add(inserterIndex, optimizedInserters.Count);
             int networkIndex = planet.powerSystem.consumerPool[inserter.pcId].networkId;
-            inserterNetworkIdAndStates.Add(new NetworkIdAndState<InserterState>((int)(inserterState ?? InserterState.Active), networkIndex));
+            inserterNetworkIds.Add(networkIndex);
+            inserterStates.Add(InserterState.Active);
             optimizedPowerSystemInserterBuilder.AddInserter(ref inserter, networkIndex);
 
             TInserterGrade inserterGrade = default(TInserterGrade).Create(ref inserter);
@@ -963,12 +963,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             oldIndexToNewIndex[optimalInserterNeedsOrder[i]] = i;
         }
 
-        //if (inserterGrades.Count > 0)
-        //{
-        //    WeaverFixes.Logger.LogMessage($"Inserter grade count: {inserterGrades.Count}");
-        //}
-
-        _inserterNetworkIdAndStates = optimalInserterNeedsOrder.Select(x => inserterNetworkIdAndStates[x]).ToArray();
+        _inserterNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(optimalInserterNeedsOrder.Select(x => inserterNetworkIds[x]).ToArray());
+        _inserterStates = optimalInserterNeedsOrder.Select(x => inserterStates[x]).ToArray();
         _inserterConnections = universeStaticDataBuilder.DeduplicateArray(optimalInserterNeedsOrder.Select(x => inserterConnections[x]).ToArray());
         _optimizedInserters = optimalInserterNeedsOrder.Select(x => optimizedInserters[x]).ToArray();
         _optimizedInserterStages = optimalInserterNeedsOrder.Select(x => optimizedInserterStages[x]).ToArray();
@@ -979,7 +975,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private void Print(int inserterIndex)
     {
         WeaverFixes.Logger.LogMessage(_optimizedInserters[inserterIndex].ToString());
-        WeaverFixes.Logger.LogMessage(_inserterNetworkIdAndStates[inserterIndex].ToString());
+        WeaverFixes.Logger.LogMessage(_inserterNetworkIds[inserterIndex].ToString(CultureInfo.InvariantCulture));
+        WeaverFixes.Logger.LogMessage(_inserterStates[inserterIndex].ToString());
         WeaverFixes.Logger.LogMessage(_inserterConnections[inserterIndex].ToString());
     }
 

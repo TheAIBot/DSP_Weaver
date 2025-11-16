@@ -20,7 +20,7 @@ internal interface IInserter<TInserter, TInserterGrade>
                 InserterExecutor<TInserter, TInserterGrade> inserterExecutor,
                 float power,
                 int inserterIndex,
-                ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                ref InserterState inserterState,
                 ref readonly TInserterGrade inserterGrade,
                 ref OptimizedInserterStage stage,
                 InserterConnections[] insertersConnections,

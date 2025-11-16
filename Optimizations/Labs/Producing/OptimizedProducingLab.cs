@@ -169,7 +169,7 @@ internal struct OptimizedProducingLab
 
     public readonly void UpdateOutputToNext(int labIndex,
                                             OptimizedProducingLab[] labPool,
-                                            NetworkIdAndState<LabState>[] networkIdAndStates,
+                                            LabState[] labStates,
                                             ref readonly ProducingLabRecipe producingLabRecipe,
                                             GroupNeeds groupNeeds,
                                             ComponentNeeds[] componentsNeeds,
@@ -221,8 +221,8 @@ internal struct OptimizedProducingLab
 
         if (movedItems)
         {
-            networkIdAndStates[labIndex].State = (int)LabState.Active;
-            networkIdAndStates[nextLabIndex].State = (int)LabState.Active;
+            labStates[labIndex] = LabState.Active;
+            labStates[nextLabIndex] = LabState.Active;
         }
     }
 

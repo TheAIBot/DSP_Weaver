@@ -193,7 +193,7 @@ internal struct OptimizedResearchingLab
 
     public readonly void UpdateOutputToNext(int labIndex,
                                             OptimizedResearchingLab[] labPool,
-                                            NetworkIdAndState<LabState>[] networkIdAndStates,
+                                            LabState[] labStates,
                                             GroupNeeds groupNeeds,
                                             ComponentNeeds[] componentsNeeds,
                                             int[] matrixServed,
@@ -228,8 +228,8 @@ internal struct OptimizedResearchingLab
 
         if (movedItems)
         {
-            networkIdAndStates[labIndex].State = (int)LabState.Active;
-            networkIdAndStates[nextLabIndex].State = (int)LabState.Active;
+            labStates[labIndex] = LabState.Active;
+            labStates[nextLabIndex] = LabState.Active;
         }
     }
 

@@ -130,7 +130,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                        InserterExecutor<OptimizedInserter, InserterGrade> inserterExecutor,
                        float power,
                        int inserterIndex,
-                       ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                       ref InserterState inserterState,
                        ref readonly InserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        InserterConnections[] insertersConnections,
@@ -160,7 +160,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                                         out GroupNeeds groupNeeds))
                                 {
                                     short num = inserterExecutor.PickFrom(planet,
-                                                                          ref inserterNetworkIdAndState,
+                                                                          ref inserterState,
                                                                           inserterIndex,
                                                                           pickOffset,
                                                                           inserterGrade.Filter,
@@ -188,7 +188,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                         {
                             InserterConnections inserterConnections = insertersConnections[inserterIndex];
                             short num = inserterExecutor.PickFrom(planet,
-                                                                  ref inserterNetworkIdAndState,
+                                                                  ref inserterState,
                                                                   inserterIndex,
                                                                   pickOffset,
                                                                   inserterGrade.Filter,
@@ -220,7 +220,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                                         out GroupNeeds groupNeeds))
                                 {
                                     if (inserterExecutor.PickFrom(planet,
-                                                                  ref inserterNetworkIdAndState,
+                                                                  ref inserterState,
                                                                   inserterIndex,
                                                                   pickOffset,
                                                                   itemId,
@@ -246,7 +246,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                         {
                             InserterConnections inserterConnections = insertersConnections[inserterIndex];
                             if (inserterExecutor.PickFrom(planet,
-                                                           ref inserterNetworkIdAndState,
+                                                           ref inserterState,
                                                            inserterIndex,
                                                            pickOffset,
                                                            itemId,
@@ -344,7 +344,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                     int num6 = (int)(itemInc / (float)itemCount * num5 + 0.5f);
                     byte remainInc;
                     int num7 = inserterExecutor.InsertInto(planet,
-                                                           ref inserterNetworkIdAndState,
+                                                           ref inserterState,
                                                            inserterIndex,
                                                            inserterConnections,
                                                            groupNeeds,

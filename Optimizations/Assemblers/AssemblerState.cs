@@ -3,7 +3,7 @@
 namespace Weaver.Optimizations.Assemblers;
 
 [Flags]
-internal enum AssemblerState
+internal enum AssemblerState : byte
 {
     Active
         = 0b0000,

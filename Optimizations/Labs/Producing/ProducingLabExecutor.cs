@@ -10,7 +10,8 @@ namespace Weaver.Optimizations.Labs.Producing;
 
 internal sealed class ProducingLabExecutor
 {
-    public NetworkIdAndState<LabState>[] _networkIdAndStates = null!;
+    private int[] _labNetworkIds = null!;
+    public LabState[] _labStates = null!;
     public OptimizedProducingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
     public short[] _labRecipeIndexes = null!;
@@ -36,7 +37,8 @@ internal sealed class ProducingLabExecutor
                                        UniverseStaticData universeStaticData)
     {
         float[] networkServes = planet.powerSystem.networkServes;
-        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        int[] labNetworkIds = _labNetworkIds;
+        LabState[] labStates = _labStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         ProducingLabRecipe[] producingLabRecipes = universeStaticData.ProducingLabRecipes;
@@ -50,11 +52,12 @@ internal sealed class ProducingLabExecutor
 
         for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
         {
-            ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[labIndex];
+            int networkIndex = labNetworkIds[labIndex];
+            ref LabState labState = ref labStates[labIndex];
             ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
-            if ((LabState)networkIdAndState.State != LabState.Active)
+            if (labState != LabState.Active)
             {
-                UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIdAndState.Index, labPowerFields);
+                UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
                 continue;
             }
 
@@ -68,19 +71,19 @@ internal sealed class ProducingLabExecutor
 
             int servedOffset = labIndex * groupNeeds.GroupNeedsSize;
             int producedOffset = labIndex * producedSize;
-            float power = networkServes[networkIdAndState.Index];
-            networkIdAndState.State = (int)lab.InternalUpdateAssemble(power,
-                                                                      productRegister,
-                                                                      consumeRegister,
-                                                                      in producingLabRecipe,
-                                                                      ref labPowerFields,
-                                                                      servedOffset,
-                                                                      producedOffset,
-                                                                      served,
-                                                                      incServed,
-                                                                      produced);
+            float power = networkServes[networkIndex];
+            labState = lab.InternalUpdateAssemble(power,
+                                                  productRegister,
+                                                  consumeRegister,
+                                                  in producingLabRecipe,
+                                                  ref labPowerFields,
+                                                  servedOffset,
+                                                  producedOffset,
+                                                  served,
+                                                  incServed,
+                                                  produced);
 
-            UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIdAndState.Index, labPowerFields);
+            UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
     }
 
@@ -93,7 +96,7 @@ internal sealed class ProducingLabExecutor
         short[] incServed = _incServed;
         short[] produced = _produced;
         short[] labRecipeIndexes = _labRecipeIndexes;
-        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        LabState[] labStates = _labStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         ProducingLabRecipe[] producingLabRecipes = universeStaticData.ProducingLabRecipes;
         for (int labIndex = (int)(GameMain.gameTick % 5); labIndex < optimizedLabs.Length; labIndex += 5)
@@ -103,7 +106,7 @@ internal sealed class ProducingLabExecutor
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[labRecipeIndexes[labIndex]];
             lab.UpdateOutputToNext(labIndex,
                                    optimizedLabs,
-                                   networkIdAndStates,
+                                   labStates,
                                    in producingLabRecipe,
                                    groupNeeds,
                                    componentsNeeds,
@@ -119,11 +122,11 @@ internal sealed class ProducingLabExecutor
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        int[] labNetworkIds = _labNetworkIds;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         for (int labIndex = 0; labIndex < _optimizedLabs.Length; labIndex++)
         {
-            int networkIndex = networkIdAndStates[labIndex].Index;
+            int networkIndex = labNetworkIds[labIndex];
             LabPowerFields labPowerFields = labsPowerFields[labIndex];
             UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
@@ -216,7 +219,8 @@ internal sealed class ProducingLabExecutor
                            SubFactoryNeedsBuilder subFactoryNeedsBuilder,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<NetworkIdAndState<LabState>> networkIdAndStates = [];
+        List<int> labNetworkIds = [];
+        List<LabState> labStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
         List<LabPowerFields> labsPowerFields = [];
         HashSet<ProducingLabRecipe> producingLabRecipes = [];
@@ -232,7 +236,7 @@ internal sealed class ProducingLabExecutor
         GroupNeedsBuilder needsBuilder = subFactoryNeedsBuilder.CreateGroupNeedsBuilder(EntityType.ProducingLab);
 
         HashSet<int> labIndexesInSubFactory = new(subFactoryGraph.GetAllNodes()
-                                                .Where(x => x.EntityTypeIndex.EntityType == EntityType.ProducingLab)
+                                                                 .Where(x => x.EntityTypeIndex.EntityType == EntityType.ProducingLab)
                                                                  .Select(x => x.EntityTypeIndex.Index));
 
         // Order  descending because it resolves an issue where items moving between stacked
@@ -287,7 +291,8 @@ internal sealed class ProducingLabExecutor
             optimizedLabs.Add(new OptimizedProducingLab(nextLabIndex, ref lab));
             labsPowerFields.Add(new LabPowerFields(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
-            networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
+            labNetworkIds.Add(networkIndex);
+            labStates.Add(LabState.Active);
             entityIds.Add(lab.entityId);
             served.Add(lab.served);
             incServed.Add(lab.incServed);
@@ -351,7 +356,8 @@ internal sealed class ProducingLabExecutor
             _produced = producedFlat.ToArray();
         }
 
-        _networkIdAndStates = networkIdAndStates.ToArray();
+        _labNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(labNetworkIds);
+        _labStates = labStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
         _labsPowerFields = labsPowerFields.ToArray();
         _entityIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(entityIds);

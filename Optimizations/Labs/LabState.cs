@@ -3,7 +3,7 @@
 namespace Weaver.Optimizations.Labs;
 
 [Flags]
-internal enum LabState
+internal enum LabState : byte
 {
     Active
         = 0b00000,

@@ -49,12 +49,10 @@ internal sealed class OptimizedSubFactory
     public SiloExecutor _siloExecutor = null!;
 
     public ProducingLabExecutor _producingLabExecutor = null!;
-    public NetworkIdAndState<LabState>[] _producingLabNetworkIdAndStates = null!;
     public OptimizedProducingLab[] _optimizedProducingLabs = null!;
     public Dictionary<int, int> _producingLabIdToOptimizedIndex = null!;
 
     public ResearchingLabExecutor _researchingLabExecutor = null!;
-    public NetworkIdAndState<LabState>[] _researchingLabNetworkIdAndStates = null!;
     public OptimizedResearchingLab[] _optimizedResearchingLabs = null!;
     public Dictionary<int, int> _researchingLabIdToOptimizedIndex = null!;
 
@@ -146,9 +144,9 @@ internal sealed class OptimizedSubFactory
                                      SubFactoryNeeds subFactoryNeeds,
                                      UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter, BiInserterGrade>(_assemblerExecutor._assemblerNetworkIdAndStates,
-                                                                                                  _producingLabNetworkIdAndStates,
-                                                                                                  _researchingLabNetworkIdAndStates,
+        _optimizedBiInserterExecutor = new InserterExecutor<OptimizedBiInserter, BiInserterGrade>(_assemblerExecutor._assemblerStates,
+                                                                                                  _producingLabExecutor._labStates,
+                                                                                                  _researchingLabExecutor._labStates,
                                                                                                   subFactoryPowerSystemBuilder.FuelGeneratorSegments,
                                                                                                   fuelNeeds,
                                                                                                   subFactoryNeeds,
@@ -177,9 +175,9 @@ internal sealed class OptimizedSubFactory
                                                 universeStaticDataBuilder,
                                                 universeStaticDataBuilder.BiInserterGrades);
 
-        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter, InserterGrade>(_assemblerExecutor._assemblerNetworkIdAndStates,
-                                                                                            _producingLabNetworkIdAndStates,
-                                                                                            _researchingLabNetworkIdAndStates,
+        _optimizedInserterExecutor = new InserterExecutor<OptimizedInserter, InserterGrade>(_assemblerExecutor._assemblerStates,
+                                                                                            _producingLabExecutor._labStates,
+                                                                                            _researchingLabExecutor._labStates,
                                                                                             subFactoryPowerSystemBuilder.FuelGeneratorSegments,
                                                                                             fuelNeeds,
                                                                                             subFactoryNeeds,
@@ -306,7 +304,6 @@ internal sealed class OptimizedSubFactory
                                          subFactoryProductionRegisterBuilder, 
                                          subFactoryNeedsBuilder,
                                          universeStaticDataBuilder);
-        _producingLabNetworkIdAndStates = _producingLabExecutor._networkIdAndStates;
         _optimizedProducingLabs = _producingLabExecutor._optimizedLabs;
         _producingLabIdToOptimizedIndex = _producingLabExecutor._labIdToOptimizedLabIndex;
     }
@@ -324,7 +321,6 @@ internal sealed class OptimizedSubFactory
                                            subFactoryProductionRegisterBuilder, 
                                            subFactoryNeedsBuilder,
                                            universeStaticDataBuilder);
-        _researchingLabNetworkIdAndStates = _researchingLabExecutor._networkIdAndStates;
         _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
     }

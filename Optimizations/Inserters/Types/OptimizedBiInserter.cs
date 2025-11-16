@@ -151,7 +151,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                        InserterExecutor<OptimizedBiInserter, BiInserterGrade> inserterExecutor,
                        float power,
                        int inserterIndex,
-                       ref NetworkIdAndState<InserterState> inserterNetworkIdAndState,
+                       ref InserterState inserterState,
                        ref readonly BiInserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        InserterConnections[] insertersConnections,
@@ -161,7 +161,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
         if (power < 0.1f)
         {
             // Not sure it is worth optimizing low power since it should be a rare occurrence in a large factory
-            inserterNetworkIdAndState.State = (int)InserterState.Active;
+            inserterState = InserterState.Active;
             return;
         }
         bool flag = false;
@@ -183,7 +183,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                             out GroupNeeds groupNeeds))
                         {
                             short num2 = inserterExecutor.PickFrom(planet,
-                                                                   ref inserterNetworkIdAndState,
+                                                                   ref inserterState,
                                                                    inserterIndex,
                                                                    pickOffset,
                                                                    inserterGrade.Filter,
@@ -220,7 +220,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                 {
                     InserterConnections inserterConnections = insertersConnections[inserterIndex];
                     short num2 = inserterExecutor.PickFrom(planet,
-                                                           ref inserterNetworkIdAndState,
+                                                           ref inserterState,
                                                            inserterIndex,
                                                            pickOffset,
                                                            inserterGrade.Filter,
@@ -262,7 +262,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                                 out GroupNeeds groupNeeds))
                             {
                                 int num44 = inserterExecutor.PickFrom(planet,
-                                                                      ref inserterNetworkIdAndState,
+                                                                      ref inserterState,
                                                                       inserterIndex,
                                                                       pickOffset,
                                                                       itemId,
@@ -277,7 +277,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                     itemInc += inc;
                                     stackCount++;
                                     flag = true;
-                                    inserterNetworkIdAndState.State = (int)InserterState.Active;
+                                    inserterState = InserterState.Active;
                                 }
                                 else
                                 {
@@ -299,7 +299,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                     {
                         InserterConnections inserterConnections = insertersConnections[inserterIndex];
                         if (inserterExecutor.PickFrom(planet,
-                                                       ref inserterNetworkIdAndState,
+                                                       ref inserterState,
                                                        inserterIndex,
                                                        pickOffset,
                                                        itemId,
@@ -385,7 +385,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             int num8 = (int)(itemInc / (float)itemCount * num7 + 0.5f);
             byte remainInc;
             int num9 = inserterExecutor.InsertInto(planet,
-                                                   ref inserterNetworkIdAndState,
+                                                   ref inserterState,
                                                    inserterIndex,
                                                    inserterConnections,
                                                    groupNeeds,

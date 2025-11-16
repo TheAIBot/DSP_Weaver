@@ -13,7 +13,8 @@ internal sealed class ResearchingLabExecutor
     private readonly StarClusterResearchManager _starClusterResearchManager = null!;
     private int[] _matrixPoints = null!;
     private OptimizedItemId[]? _matrixIds = null!;
-    public NetworkIdAndState<LabState>[] _networkIdAndStates = null!;
+    private int[] _labNetworkIds = null!;
+    public LabState[] _labStates = null!;
     public OptimizedResearchingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
     public int[] _entityIds = null!;
@@ -47,7 +48,8 @@ internal sealed class ResearchingLabExecutor
             SignData[] entitySignPool = planet.entitySignPool;
             PowerSystem powerSystem = planet.powerSystem;
             float[] networkServes = powerSystem.networkServes;
-            NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+            int[] labNetworkIds = _labNetworkIds;
+            LabState[] labStates = _labStates;
             OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
             LabPowerFields[] labsPowerFields = _labsPowerFields;
             int num = history.currentTech;
@@ -119,11 +121,12 @@ internal sealed class ResearchingLabExecutor
 
             for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
             {
-                ref NetworkIdAndState<LabState> networkIdAndState = ref networkIdAndStates[labIndex];
+                int networkIndex = labNetworkIds[labIndex];
+                ref LabState labState = ref labStates[labIndex];
                 ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
-                if ((LabState)networkIdAndState.State != LabState.Active)
+                if (labState != LabState.Active)
                 {
-                    UpdatePower(researchingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIdAndState.Index, labPowerFields);
+                    UpdatePower(researchingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
                     continue;
                 }
 
@@ -132,22 +135,22 @@ internal sealed class ResearchingLabExecutor
                 if (flag2)
                 {
                     int curLevel = ts.curLevel;
-                    float power = networkServes[networkIdAndState.Index];
-                    networkIdAndState.State = (int)reference.InternalUpdateResearch(power,
-                                                                                    research_speed,
-                                                                                    factorySystem.researchTechId,
-                                                                                    _matrixPoints,
-                                                                                    _matrixIds,
-                                                                                    consumeRegister,
-                                                                                    ref ts,
-                                                                                    ref techHashedThisFrame,
-                                                                                    ref uMatrixPoint,
-                                                                                    ref hashRegister,
-                                                                                    ref labPowerFields,
-                                                                                    groupNeeds,
-                                                                                    matrixServed,
-                                                                                    matrixIncServed,
-                                                                                    labIndex);
+                    float power = networkServes[networkIndex];
+                    labState = reference.InternalUpdateResearch(power,
+                                                                research_speed,
+                                                                factorySystem.researchTechId,
+                                                                _matrixPoints,
+                                                                _matrixIds,
+                                                                consumeRegister,
+                                                                ref ts,
+                                                                ref techHashedThisFrame,
+                                                                ref uMatrixPoint,
+                                                                ref hashRegister,
+                                                                ref labPowerFields,
+                                                                groupNeeds,
+                                                                matrixServed,
+                                                                matrixIncServed,
+                                                                labIndex);
                     if (ts.unlocked)
                     {
                         history.techStates[factorySystem.researchTechId] = ts;
@@ -164,7 +167,7 @@ internal sealed class ResearchingLabExecutor
                     }
                 }
 
-                UpdatePower(researchingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIdAndState.Index, labPowerFields);
+                UpdatePower(researchingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
             }
 
             history.techStates[factorySystem.researchTechId] = ts;
@@ -180,13 +183,13 @@ internal sealed class ResearchingLabExecutor
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         int[] matrixServed = _matrixServed;
         int[] matrixIncServed = _matrixIncServed;
-        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        LabState[] labStates = _labStates;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
         for (int i = (int)(GameMain.gameTick % 5); i < optimizedLabs.Length; i += 5)
         {
             optimizedLabs[i].UpdateOutputToNext(i,
                                                 optimizedLabs,
-                                                networkIdAndStates,
+                                                labStates,
                                                 groupNeeds,
                                                 componentsNeeds,
                                                 matrixServed,
@@ -198,11 +201,11 @@ internal sealed class ResearchingLabExecutor
                             PowerConsumerType[] powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        NetworkIdAndState<LabState>[] networkIdAndStates = _networkIdAndStates;
+        int[] labNetworkIds = _labNetworkIds;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        for (int labIndex = 0; labIndex < networkIdAndStates.Length; labIndex++)
+        for (int labIndex = 0; labIndex < labNetworkIds.Length; labIndex++)
         {
-            int networkIndex = networkIdAndStates[labIndex].Index;
+            int networkIndex = labNetworkIds[labIndex];
             LabPowerFields labPowerFields = labsPowerFields[labIndex];
             UpdatePower(researchingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
@@ -300,7 +303,8 @@ internal sealed class ResearchingLabExecutor
     {
         int[] matrixPoints = new int[LabComponent.matrixIds.Length];
         bool copiedMatrixPoints = false;
-        List<NetworkIdAndState<LabState>> networkIdAndStates = [];
+        List<int> labNetworkIds = [];
+        List<LabState> labStates = [];
         List<OptimizedResearchingLab> optimizedLabs = [];
         List<LabPowerFields> labsPowerFields = [];
         List<int> entityIds = [];
@@ -335,7 +339,8 @@ internal sealed class ResearchingLabExecutor
             optimizedLabs.Add(new OptimizedResearchingLab(nextLabIndex, ref lab));
             labsPowerFields.Add(new LabPowerFields(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
-            networkIdAndStates.Add(new NetworkIdAndState<LabState>((int)LabState.Active, networkIndex));
+            labNetworkIds.Add(networkIndex);
+            labStates.Add(LabState.Active);
             entityIds.Add(lab.entityId);
             matrixServed.Add(lab.matrixServed);
             matrixIncServed.Add(lab.matrixIncServed);
@@ -389,7 +394,8 @@ internal sealed class ResearchingLabExecutor
         }
 
         _matrixPoints = matrixPoints.ToArray();
-        _networkIdAndStates = networkIdAndStates.ToArray();
+        _labNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(labNetworkIds);
+        _labStates = labStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
         _labsPowerFields = labsPowerFields.ToArray();
         _entityIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(entityIds);
