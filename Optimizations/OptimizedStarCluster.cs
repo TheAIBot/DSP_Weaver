@@ -219,13 +219,16 @@ internal static class OptimizedStarCluster
             // Avoid lag spike by spreading load over multiple ticks
             PlanetFactory planetToReOptimize = _planetsToReOptimize.Dequeue();
             IOptimizedPlanet optimizedPlanet = _planetToOptimizedPlanet[planetToReOptimize];
-            if (optimizedPlanet.Status == OptimizedPlanetStatus.Stopped)
+            if (optimizedPlanet.Status == OptimizedPlanetStatus.Running)
             {
-                return HarmonyConstants.SKIP_ORIGINAL_METHOD;
-            }
+                WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
+                optimizedPlanet.Save();
 
-            WeaverFixes.Logger.LogInfo($"DeOptimizing planet: {planetToReOptimize.planet.displayName}");
-            optimizedPlanet.Save();
+                if (_debugEnableHeavyReOptimization)
+                {
+                    optimizedPlanet.OptimizeDelayInTicks = 50;
+                }
+            }
         }
 
         if (_debugEnableHeavyReOptimization && GameMain.gameTick % 10 == 0)
