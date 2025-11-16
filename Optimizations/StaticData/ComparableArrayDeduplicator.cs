@@ -11,7 +11,7 @@ internal sealed class ComparableArrayDeduplicator<T> : IComparableArrayDeduplica
     public int TotalBytes { get; private set; }
     public int BytesDeduplicated { get; private set; }
 
-    public T[] Deduplicate(IList<T> toDeduplicate, int itemSize)
+    public ReadonlyArray<T> Deduplicate(IList<T> toDeduplicate, int itemSize)
     {
         int deduplicateSize = itemSize * toDeduplicate.Count;
         TotalBytes += deduplicateSize;
@@ -19,7 +19,7 @@ internal sealed class ComparableArrayDeduplicator<T> : IComparableArrayDeduplica
         if (_arrays.TryGetValue(toDeduplicate, out IList<T> deduplicated))
         {
             BytesDeduplicated += deduplicateSize;
-            return (T[])deduplicated;
+            return new ReadonlyArray<T>((T[])deduplicated);
         }
 
         T[] array;
@@ -33,7 +33,7 @@ internal sealed class ComparableArrayDeduplicator<T> : IComparableArrayDeduplica
         }
 
         _arrays.Add(array);
-        return array;
+        return new ReadonlyArray<T>(array);
     }
 
     public void Clear()

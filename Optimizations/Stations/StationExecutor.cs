@@ -12,7 +12,7 @@ namespace Weaver.Optimizations.Stations;
 internal sealed class StationExecutor
 {
     private OptimizedStation[] _optimizedStations = null!;
-    private int[] _networkIds = null!;
+    private ReadonlyArray<int> _networkIds = default;
 
     public int Count => _optimizedStations.Length;
 
@@ -54,7 +54,7 @@ internal sealed class StationExecutor
         bool starmap = UIGame.viewMode == EViewMode.Starmap;
         OptimizedVeinMiner<StationMinerOutput>[] stationMiners = stationVeinMinerExecutor._optimizedMiners;
         OptimizedStation[] optimizedStations = _optimizedStations;
-        int[] networkIds = _networkIds;
+        ReadonlyArray<int> networkIds = _networkIds;
         GameTick_SandboxMode();
         for (int i = 0; i < optimizedStations.Length; i++)
         {
@@ -121,11 +121,6 @@ internal sealed class StationExecutor
 
                     beltIndexes[i] = beltIndex;
                 }
-            }
-
-            if (beltIndexes != null)
-            {
-                beltIndexes = universeStaticDataBuilder.DeduplicateArray(beltIndexes);
             }
 
             int? optimizedMinerIndex = null;

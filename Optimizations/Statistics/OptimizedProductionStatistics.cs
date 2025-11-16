@@ -1,16 +1,17 @@
 ﻿using System;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Statistics;
 
 internal readonly struct OptimizedProductionStatistics
 {
-    private readonly int[] _planetWideOptimizedProductIndex;
-    private readonly int[] _planetWideOptimizedConsumeIndex;
+    private readonly ReadonlyArray<int> _planetWideOptimizedProductIndex;
+    private readonly ReadonlyArray<int> _planetWideOptimizedConsumeIndex;
     public readonly int[] ProductRegister;
     public readonly int[] ConsumeRegister;
 
-    public OptimizedProductionStatistics(int[] planetWideOptimizedProductIndex,
-                                         int[] planetWideOptimizedConsumeIndex)
+    public OptimizedProductionStatistics(ReadonlyArray<int> planetWideOptimizedProductIndex,
+                                         ReadonlyArray<int> planetWideOptimizedConsumeIndex)
     {
         _planetWideOptimizedProductIndex = planetWideOptimizedProductIndex;
         _planetWideOptimizedConsumeIndex = planetWideOptimizedConsumeIndex;
@@ -20,14 +21,14 @@ internal readonly struct OptimizedProductionStatistics
 
     public readonly void AddToPlanetWideProductionStatistics(int[] sumProductRegister, int[] sumConsumeRegister)
     {
-        int[] planetWideOptimizedProductIndex = _planetWideOptimizedProductIndex;
+        ReadonlyArray<int> planetWideOptimizedProductIndex = _planetWideOptimizedProductIndex;
         int[] productRegister = ProductRegister;
         for (int i = 0; i < planetWideOptimizedProductIndex.Length; i++)
         {
             sumProductRegister[planetWideOptimizedProductIndex[i]] += productRegister[i];
         }
 
-        int[] planetWideOptimizedConsumeIndex = _planetWideOptimizedConsumeIndex;
+        ReadonlyArray<int> planetWideOptimizedConsumeIndex = _planetWideOptimizedConsumeIndex;
         int[] consumeRegister = ConsumeRegister;
         for (int i = 0; i < planetWideOptimizedConsumeIndex.Length; i++)
         {

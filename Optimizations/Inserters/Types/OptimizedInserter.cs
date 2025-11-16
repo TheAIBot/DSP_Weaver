@@ -122,7 +122,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
         return new OptimizedInserter(in inserter, pickFromOffset, insertIntoOffset, grade);
     }
 
-    public readonly InserterGrade[] GetInserterGrades(UniverseStaticData universeStaticData)
+    public readonly ReadonlyArray<InserterGrade> GetInserterGrades(UniverseStaticData universeStaticData)
     {
         return universeStaticData.InserterGrades;
     }
@@ -134,7 +134,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                        ref InserterState inserterState,
                        ref readonly InserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
-                       InserterConnections[] insertersConnections,
+                       ReadonlyArray<InserterConnections> insertersConnections,
                        SubFactoryNeeds subFactoryNeeds, 
                        OptimizedCargoPath[] optimizedCargoPaths)
     {

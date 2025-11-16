@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Assemblers;
@@ -66,7 +67,7 @@ internal struct OptimizedAssembler
 
         int needsOffset = groupNeeds.GetObjectNeedsIndex(assemblerIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * assemblerIndex;
-        int[] requireCounts = assemblerRecipeData.RequireCounts;
+        ReadonlyArray<int> requireCounts = assemblerRecipeData.RequireCounts;
         byte needBits = 0;
         for (int i = 0; i < requireCounts.Length; i++)
         {

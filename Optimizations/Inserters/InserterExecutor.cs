@@ -67,10 +67,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 {
     private TInserter[] _optimizedInserters = null!;
     private OptimizedInserterStage[] _optimizedInserterStages = null!;
-    private int[] _inserterNetworkIds = null!;
-    public InserterState[] _inserterStates = null!;
-    public InserterConnections[] _inserterConnections = null!;
-    public Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
+    private ReadonlyArray<int> _inserterNetworkIds = default;
+    private InserterState[] _inserterStates = null!;
+    private ReadonlyArray<InserterConnections> _inserterConnections = default;
+    private Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     private readonly AssemblerState[] _assemblerStates;
@@ -84,20 +84,20 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly short[] _assemblerServed;
     private readonly short[] _assemblerIncServed;
     private readonly short[] _assemblerProduced;
-    private readonly short[] _assemblerRecipeIndexes;
+    private readonly ReadonlyArray<short> _assemblerRecipeIndexes;
     private readonly bool[] _assemblerNeedToUpdateNeeds;
 
     private readonly int _producingLabProducedSize;
     private readonly short[] _producingLabServed;
     private readonly short[] _producingLabIncServed;
     private readonly short[] _producingLabProduced;
-    private readonly short[] _producingLabRecipeIndexes;
+    private readonly ReadonlyArray<short> _producingLabRecipeIndexes;
 
     private readonly int[] _researchingLabMatrixServed = null!;
     private readonly int[] _researchingLabMatrixIncServed = null!;
 
-    private readonly int[] _siloIndexes;
-    private readonly int[] _ejectorIndexes;
+    private readonly ReadonlyArray<int> _siloIndexes;
+    private readonly ReadonlyArray<int> _ejectorIndexes;
 
     private readonly UniverseStaticData _universeStaticData;
 
@@ -113,17 +113,17 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             short[] assemblerServed,
                             short[] assemblerIncServed,
                             short[] assemblerProduced,
-                            short[] assemblerRecipeIndexes,
+                            ReadonlyArray<short> assemblerRecipeIndexes,
                             bool[] assemblerNeedToUpdateNeeds,
                             int producingLabProducedSize,
                             short[] producingLabServed,
                             short[] producingLabIncServed,
                             short[] producingLabProduced,
-                            short[] producingLabRecipeIndexes,
+                            ReadonlyArray<short> producingLabRecipeIndexes,
                             int[] researchingLabMatrixServed,
                             int[] researchingLabMatrixIncServed,
-                            int[] siloIndexes,
-                            int[] ejectorIndexes,
+                            ReadonlyArray<int> siloIndexes,
+                            ReadonlyArray<int> ejectorIndexes,
                             UniverseStaticData universeStaticData)
     {
         _assemblerStates = assemblerStates;
@@ -151,8 +151,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     }
 
     public void GameTickInserters(PlanetFactory planet,
-                                  short[] inserterPowerConsumerIndexes,
-                                  PowerConsumerType[] powerConsumerTypes,
+                                  ReadonlyArray<short> inserterPowerConsumerIndexes,
+                                  ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                   long[] thisSubFactoryNetworkPowerConsumption,
                                   OptimizedCargoPath[] optimizedCargoPaths,
                                   UniverseStaticData universeStaticData)
@@ -160,10 +160,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
-        int[] inserterNetworkIds = _inserterNetworkIds;
+        ReadonlyArray<int> inserterNetworkIds = _inserterNetworkIds;
         InserterState[] inserterStates = _inserterStates;
         TInserter[] optimizedInserters = _optimizedInserters;
-        TInserterGrade[] inserterGrades = default(TInserter).GetInserterGrades(universeStaticData);
+        ReadonlyArray<TInserterGrade> inserterGrades = default(TInserter).GetInserterGrades(universeStaticData);
 
         for (int inserterIndex = 0; inserterIndex < optimizedInserterStages.Length; inserterIndex++)
         {
@@ -212,11 +212,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
     }
 
-    public void UpdatePower(short[] inserterPowerConsumerIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> inserterPowerConsumerIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] inserterNetworkIds = _inserterNetworkIds;
+        ReadonlyArray<int> inserterNetworkIds = _inserterNetworkIds;
         for (int j = 0; j < _optimizedInserters.Length; j++)
         {
             int networkIndex = inserterNetworkIds[j];
@@ -225,8 +225,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
     }
 
-    private static void UpdatePower(short[] inserterPowerConsumerIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> inserterPowerConsumerIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int inserterIndex,
                                     int networkIndex,
@@ -237,13 +237,13 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, optimizedInserterStage);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] inserterPowerConsumerIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> inserterPowerConsumerIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int inserterIndex = 0; inserterIndex < _optimizedInserters.Length; inserterIndex++)
         {
@@ -259,9 +259,9 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] inserterPowerConsumerIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> inserterPowerConsumerIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int inserterIndex,
                                                            OptimizedInserterStage optimizedInserterStage)

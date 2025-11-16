@@ -48,18 +48,18 @@ internal sealed class UniverseStaticDataBuilder
         return _powerConsumerTypes.GetDeduplicatedValueIndex(in powerConsumerType);
     }
 
-    public T[] DeduplicateArrayUnmanaged<T>(IList<T> toDeduplicate)
+    public ReadonlyArray<T> DeduplicateArrayUnmanaged<T>(IList<T> toDeduplicate)
         where T : unmanaged, IEquatable<T>
     {
         return DeduplicateArray(toDeduplicate, Marshal.SizeOf<T>());
     }
 
-    public T[] DeduplicateArray<T>(IList<T> toDeduplicate)
+    public ReadonlyArray<T> DeduplicateArray<T>(IList<T> toDeduplicate)
         where T : IEquatable<T>, IMemorySize
     {
         if (toDeduplicate.Count == 0)
         {
-            return [];
+            return new ReadonlyArray<T>([]);
         }
 
         return DeduplicateArray(toDeduplicate, toDeduplicate[0].GetSize());
@@ -68,40 +68,40 @@ internal sealed class UniverseStaticDataBuilder
     public void UpdateStaticDataIfRequired()
     {
         bool dataUpdated = false;
-        if (_assemblerRecipes.TryGetUpdatedData(out AssemblerRecipe[]? assemblerRecipes))
+        if (_assemblerRecipes.TryGetUpdatedData(out ReadonlyArray<AssemblerRecipe>? assemblerRecipes))
         {
             //WeaverFixes.Logger.LogMessage($"Assembler recipe count: {assemblerRecipes.Length}");
-            UniverseStaticData.UpdateAssemblerRecipes(assemblerRecipes);
+            UniverseStaticData.UpdateAssemblerRecipes(assemblerRecipes.Value);
             dataUpdated = true;
         }
-        if (_fractionatorConfigurations.TryGetUpdatedData(out FractionatorConfiguration[]? fractionatorConfiguration))
+        if (_fractionatorConfigurations.TryGetUpdatedData(out ReadonlyArray<FractionatorConfiguration>? fractionatorConfiguration))
         {
             //WeaverFixes.Logger.LogMessage($"Fractionator configuration count: {fractionatorConfiguration.Length}");
-            UniverseStaticData.UpdateFractionatorConfigurations(fractionatorConfiguration);
+            UniverseStaticData.UpdateFractionatorConfigurations(fractionatorConfiguration.Value);
             dataUpdated = true;
         }
-        if (_producingLabRecipes.TryGetUpdatedData(out ProducingLabRecipe[]? producingLabRecipe))
+        if (_producingLabRecipes.TryGetUpdatedData(out ReadonlyArray<ProducingLabRecipe>? producingLabRecipe))
         {
             //WeaverFixes.Logger.LogMessage($"Producing lab recipe count: {producingLabRecipe.Length}");
-            UniverseStaticData.UpdateProducingLabRecipes(producingLabRecipe);
+            UniverseStaticData.UpdateProducingLabRecipes(producingLabRecipe.Value);
             dataUpdated = true;
         }
-        if (_powerConsumerTypes.TryGetUpdatedData(out PowerConsumerType[]? powerConsumerTypes))
+        if (_powerConsumerTypes.TryGetUpdatedData(out ReadonlyArray<PowerConsumerType>? powerConsumerTypes))
         {
             //WeaverFixes.Logger.LogMessage($"Power consumer type count: {powerConsumerTypes.Length}");
-            UniverseStaticData.UpdatePowerConsumerTypes(powerConsumerTypes);
+            UniverseStaticData.UpdatePowerConsumerTypes(powerConsumerTypes.Value);
             dataUpdated = true;
         }
-        if (BiInserterGrades.TryGetUpdatedData(out BiInserterGrade[]? biInserterGrades))
+        if (BiInserterGrades.TryGetUpdatedData(out ReadonlyArray<BiInserterGrade>? biInserterGrades))
         {
             //WeaverFixes.Logger.LogMessage($"Bi-inserter grade count: {biInserterGrades.Length}");
-            UniverseStaticData.UpdateBiInserterGrades(biInserterGrades);
+            UniverseStaticData.UpdateBiInserterGrades(biInserterGrades.Value);
             dataUpdated = true;
         }
-        if (InserterGrades.TryGetUpdatedData(out InserterGrade[]? inserterGrades))
+        if (InserterGrades.TryGetUpdatedData(out ReadonlyArray<InserterGrade>? inserterGrades))
         {
             //WeaverFixes.Logger.LogMessage($"Inserter grade count: {inserterGrades.Length}");
-            UniverseStaticData.UpdateInserterGrades(inserterGrades);
+            UniverseStaticData.UpdateInserterGrades(inserterGrades.Value);
             dataUpdated = true;
         }
 
@@ -127,8 +127,8 @@ internal sealed class UniverseStaticDataBuilder
         UpdateStaticDataIfRequired();
     }
 
-    private T[] DeduplicateArray<T>(IList<T> toDeduplicate, int itemSize)
-    where T : IEquatable<T>
+    private ReadonlyArray<T> DeduplicateArray<T>(IList<T> toDeduplicate, int itemSize)
+        where T : IEquatable<T>
     {
         if (!_typeToComparableArrayDeduplicator.TryGetValue(typeof(T), out IComparableArrayDeduplicator deduplicator))
         {

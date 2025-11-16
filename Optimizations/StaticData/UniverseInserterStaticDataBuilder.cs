@@ -16,7 +16,7 @@ internal sealed class UniverseInserterStaticDataBuilder<TInserterGrade>
         return _inserterGrades.GetDeduplicatedValueIndex(in inserterGrade);
     }
 
-    public bool TryGetUpdatedData([NotNullWhen(true)]  out TInserterGrade[]? updatedData)
+    public bool TryGetUpdatedData([NotNullWhen(true)]  out ReadonlyArray<TInserterGrade>? updatedData)
     {
         return _inserterGrades.TryGetUpdatedData(out updatedData);
     }

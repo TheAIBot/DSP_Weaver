@@ -9,16 +9,16 @@ namespace Weaver.Optimizations.Monitors;
 
 internal sealed class MonitorExecutor
 {
-    private int[] _monitorIndexes = null!;
-    private int[] _networkIds = null!;
+    private ReadonlyArray<int> _monitorIndexes = default;
+    private ReadonlyArray<int> _networkIds = default;
     private OptimizedMonitor[] _optimizedMonitors = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
     public int Count => _optimizedMonitors.Length;
 
     public void GameTick(PlanetFactory planet,
-                         short[] monitorPowerConsumerIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+                         ReadonlyArray<short> monitorPowerConsumerIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          OptimizedCargoPath[] optimizedCargoPaths)
     {
@@ -26,8 +26,8 @@ internal sealed class MonitorExecutor
         bool sandboxToolsEnabled = GameMain.sandboxToolsEnabled;
         float[] networkServes = planet.powerSystem.networkServes;
         MonitorComponent[] monitors = planet.cargoTraffic.monitorPool;
-        int[] monitorIndexes = _monitorIndexes;
-        int[] networkIds = _networkIds;
+        ReadonlyArray<int> monitorIndexes = _monitorIndexes;
+        ReadonlyArray<int> networkIds = _networkIds;
         OptimizedMonitor[] optimizedMonitors = _optimizedMonitors;
 
         for (int monitorIndexIndex = 0; monitorIndexIndex < _monitorIndexes.Length; monitorIndexIndex++)
@@ -41,11 +41,11 @@ internal sealed class MonitorExecutor
         }
     }
 
-    public void UpdatePower(short[] monitorPowerConsumerIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> monitorPowerConsumerIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] networkIds = _networkIds;
+        ReadonlyArray<int> networkIds = _networkIds;
 
         for (int monitorIndex = 0; monitorIndex < networkIds.Length; monitorIndex++)
         {
@@ -54,8 +54,8 @@ internal sealed class MonitorExecutor
         }
     }
 
-    private static void UpdatePower(short[] monitorPowerConsumerIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> monitorPowerConsumerIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int monitorIndex,
                                     int networkIndex)
@@ -65,13 +65,13 @@ internal sealed class MonitorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] monitorPowerConsumerIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> monitorPowerConsumerIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int monitorIndex = 0; monitorIndex < prototypeIdIndexes.Length; monitorIndex++)
         {
@@ -85,9 +85,9 @@ internal sealed class MonitorExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] monitorPowerConsumerIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> monitorPowerConsumerIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int monitorIndexIndex)
     {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Weaver.Optimizations.PowerSystems.Generators;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.PowerSystems;
 
@@ -7,7 +8,7 @@ internal sealed class OptimizedPowerNetwork
 {
     private readonly PowerNetwork _powerNetwork;
     private readonly int _networkIndex;
-    private readonly int[] _networkNonOptimizedPowerConsumerIndexes;
+    private readonly ReadonlyArray<int> _networkNonOptimizedPowerConsumerIndexes;
     private readonly WindGeneratorExecutor _windExecutor;
     private readonly SolarGeneratorExecutor _solarExecutor;
     private readonly GammaPowerGeneratorExecutor _gammaPowerGeneratorExecutor;
@@ -18,7 +19,7 @@ internal sealed class OptimizedPowerNetwork
 
     public OptimizedPowerNetwork(PowerNetwork powerNetwork,
                                  int networkIndex,
-                                 int[] networkNonOptimizedPowerConsumerIndexes,
+                                 ReadonlyArray<int> networkNonOptimizedPowerConsumerIndexes,
                                  WindGeneratorExecutor windExecutor,
                                  SolarGeneratorExecutor solarGeneratorExecutor,
                                  GammaPowerGeneratorExecutor gammaPowerGeneratorExecutor,
@@ -63,7 +64,7 @@ internal sealed class OptimizedPowerNetwork
     {
         PowerSystem powerSystem = planet.powerSystem;
         PowerNetwork powerNetwork = _powerNetwork;
-        int[] consumers = _networkNonOptimizedPowerConsumerIndexes;
+        ReadonlyArray<int> consumers = _networkNonOptimizedPowerConsumerIndexes;
         long totalEnergyDemand = 0L;
         if (consumers.Length > 0)
         {
@@ -294,7 +295,7 @@ internal sealed class OptimizedPowerNetwork
         PowerSystem powerSystem = planet.powerSystem;
         int[] powerConId2Index = ItemProto.powerConId2Index;
         PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
-        int[] leftoverConsumers = _networkNonOptimizedPowerConsumerIndexes;
+        ReadonlyArray<int> leftoverConsumers = _networkNonOptimizedPowerConsumerIndexes;
         for (int i = 0; i < leftoverConsumers.Length; i++)
         {
             int consumerIndex = leftoverConsumers[i];

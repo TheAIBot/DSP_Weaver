@@ -1,17 +1,18 @@
 ﻿using System;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.PowerSystems;
 
 internal readonly struct PrototypePowerConsumptionExecutor
 {
-    private readonly int[] _prototypeIds;
-    private readonly int[] _prototypeIdCounts;
-    public readonly int[] PrototypeIdIndexes;
+    private readonly ReadonlyArray<int> _prototypeIds;
+    private readonly ReadonlyArray<int> _prototypeIdCounts;
+    public readonly ReadonlyArray<int> PrototypeIdIndexes;
     public readonly long[] PrototypeIdPowerConsumption;
 
-    public PrototypePowerConsumptionExecutor(int[] prototypeIds,
-                                             int[] prototypeIdCounts,
-                                             int[] prototypeIdIndexes,
+    public PrototypePowerConsumptionExecutor(ReadonlyArray<int> prototypeIds,
+                                             ReadonlyArray<int> prototypeIdCounts,
+                                             ReadonlyArray<int> prototypeIdIndexes,
                                              long[] prototypeIdPowerConsumption)
     {
         _prototypeIds = prototypeIds;

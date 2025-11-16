@@ -10,7 +10,7 @@ namespace Weaver.Optimizations.Miners;
 
 internal sealed class WaterMinerExecutor
 {
-    private int[] _networkIds = null!;
+    private ReadonlyArray<int> _networkIds = default;
     private OptimizedWaterMiner[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -18,8 +18,8 @@ internal sealed class WaterMinerExecutor
     public int Count => _optimizedMiners.Length;
 
     public void GameTick(PlanetFactory planet,
-                         short[] waterMinerPowerConsumerIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+                         ReadonlyArray<short> waterMinerPowerConsumerIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
                          OptimizedCargoPath[] optimizedCargoPaths)
@@ -27,7 +27,7 @@ internal sealed class WaterMinerExecutor
         GameHistoryData history = GameMain.history;
         float[] networkServes = planet.powerSystem.networkServes;
         float miningSpeedScale = history.miningSpeedScale;
-        int[] networkIds = _networkIds;
+        ReadonlyArray<int> networkIds = _networkIds;
         OptimizedWaterMiner[] optimizedMiners = _optimizedMiners;
 
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
@@ -41,11 +41,11 @@ internal sealed class WaterMinerExecutor
         }
     }
 
-    public void UpdatePower(short[] waterMinerPowerConsumerIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> waterMinerPowerConsumerIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] networkIds = _networkIds;
+        ReadonlyArray<int> networkIds = _networkIds;
         OptimizedWaterMiner[] optimizedMiners = _optimizedMiners;
 
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
@@ -55,8 +55,8 @@ internal sealed class WaterMinerExecutor
         }
     }
 
-    private static void UpdatePower(short[] waterMinerPowerConsumerIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> waterMinerPowerConsumerIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int minerIndex,
                                     int networkIndex,
@@ -73,14 +73,14 @@ internal sealed class WaterMinerExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] waterMinerPowerConsumerIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> waterMinerPowerConsumerIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
         OptimizedWaterMiner[] optimizedMiners = _optimizedMiners;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
@@ -96,9 +96,9 @@ internal sealed class WaterMinerExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] waterMinerPowerConsumerIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> waterMinerPowerConsumerIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int minerIndex,
                                                            ref readonly OptimizedWaterMiner miner)

@@ -1,39 +1,41 @@
-﻿namespace Weaver.Optimizations.PowerSystems;
+﻿using Weaver.Optimizations.StaticData;
+
+namespace Weaver.Optimizations.PowerSystems;
 
 internal sealed class SubFactoryPowerConsumption
 {
-    public short[] AssemblerPowerConsumerTypeIndexes { get; }
-    public short[] InserterBiPowerConsumerTypeIndexes { get; }
-    public short[] InserterPowerConsumerTypeIndexes { get; }
-    public short[] ProducingLabPowerConsumerTypeIndexes { get; }
-    public short[] ResearchingLabPowerConsumerTypeIndexes { get; }
-    public short[] SpraycoaterPowerConsumerTypeIndexes { get; }
-    public short[] FractionatorPowerConsumerTypeIndexes { get; }
-    public short[] EjectorPowerConsumerTypeIndexes { get; }
-    public short[] SiloPowerConsumerTypeIndexes { get; }
-    public short[] PilerPowerConsumerTypeIndexes { get; }
-    public short[] MonitorPowerConsumerTypeIndexes { get; }
-    public short[] WaterMinerPowerConsumerTypeIndexes { get; }
-    public short[] OilMinerPowerConsumerTypeIndexes { get; }
-    public short[] BeltVeinMinerPowerConsumerTypeIndexes { get; }
-    public short[] StationVeinMinerPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> AssemblerPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> InserterBiPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> InserterPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> ProducingLabPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> ResearchingLabPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> SpraycoaterPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> FractionatorPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> EjectorPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> SiloPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> PilerPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> MonitorPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> WaterMinerPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> OilMinerPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> BeltVeinMinerPowerConsumerTypeIndexes { get; }
+    public ReadonlyArray<short> StationVeinMinerPowerConsumerTypeIndexes { get; }
     public long[] NetworksPowerConsumption { get; }
 
-    public SubFactoryPowerConsumption(short[] assemblerPowerConsumerTypeIndexes,
-                                      short[] inserterBiPowerConsumerTypeIndexes,
-                                      short[] inserterPowerConsumerTypeIndexes,
-                                      short[] producingLabPowerConsumerTypeIndexes,
-                                      short[] researchingLabPowerConsumerTypeIndexes,
-                                      short[] spraycoaterPowerConsumerTypeIndexes,
-                                      short[] fractionatorPowerConsumerTypeIndexes,
-                                      short[] ejectorPowerConsumerTypeIndexes,
-                                      short[] siloPowerConsumerTypeIndexes,
-                                      short[] pilerPowerConsumerTypeIndexes,
-                                      short[] monitorPowerConsumerTypeIndexes,
-                                      short[] waterMinerPowerConsumerTypeIndexes,
-                                      short[] oilMinerPowerConsumerTypeIndexes,
-                                      short[] beltVeinMinerPowerConsumerTypeIndexes,
-                                      short[] stationVeinMinerPowerConsumerTypeIndexes,
+    public SubFactoryPowerConsumption(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> inserterBiPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> inserterPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> producingLabPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> researchingLabPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> spraycoaterPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> fractionatorPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> ejectorPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> siloPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> pilerPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> monitorPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> waterMinerPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> oilMinerPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> beltVeinMinerPowerConsumerTypeIndexes,
+                                      ReadonlyArray<short> stationVeinMinerPowerConsumerTypeIndexes,
                                       long[] networksPowerConsumption)
     {
         AssemblerPowerConsumerTypeIndexes = assemblerPowerConsumerTypeIndexes;

@@ -9,7 +9,7 @@ namespace Weaver.Optimizations.Belts;
 internal struct OptimizedCargoPath
 {
     public readonly byte[] buffer;
-    private readonly int[] chunks;
+    private readonly ReadonlyArray<int> chunks;
     public readonly int outputIndex = -1;
     public readonly bool closed;
     public readonly int bufferLength;

@@ -11,7 +11,7 @@ namespace Weaver.Optimizations.Spraycoaters;
 
 internal sealed class SpraycoaterExecutor
 {
-    private int[] _spraycoaterNetworkIds = null!;
+    private ReadonlyArray<int> _spraycoaterNetworkIds = default;
     private OptimizedSpraycoater[] _optimizedSpraycoaters = null!;
     private bool[] _isSpraycoatingItems = null!;
     private int[] _sprayTimes = null!;
@@ -21,8 +21,8 @@ internal sealed class SpraycoaterExecutor
 
     public int Count => _optimizedSpraycoaters.Length;
 
-    public void GameTick(short[] spraycoaterPowerConsumerTypeIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+    public void GameTick(ReadonlyArray<short> spraycoaterPowerConsumerTypeIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] consumeRegister,
                          OptimizedCargoPath[] optimizedCargoPaths)
@@ -32,7 +32,7 @@ internal sealed class SpraycoaterExecutor
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
         OptimizedItemId[] incItemIds = _incItemIds;
-        int[] spraycoaterNetworkIds = _spraycoaterNetworkIds;
+        ReadonlyArray<int> spraycoaterNetworkIds = _spraycoaterNetworkIds;
         for (int spraycoaterIndex = 0; spraycoaterIndex < optimizedSpraycoaters.Length; spraycoaterIndex++)
         {
             ref bool isSpraycoatingItem = ref isSpraycoatingItems[spraycoaterIndex];
@@ -44,11 +44,11 @@ internal sealed class SpraycoaterExecutor
         }
     }
 
-    public void UpdatePower(short[] spraycoaterPowerConsumerTypeIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> spraycoaterPowerConsumerTypeIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] spraycoaterNetworkIds = _spraycoaterNetworkIds;
+        ReadonlyArray<int> spraycoaterNetworkIds = _spraycoaterNetworkIds;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
         for (int spraycoaterIndex = 0; spraycoaterIndex < spraycoaterNetworkIds.Length; spraycoaterIndex++)
@@ -58,8 +58,8 @@ internal sealed class SpraycoaterExecutor
         }
     }
 
-    private static void UpdatePower(short[] spraycoaterPowerConsumerTypeIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> spraycoaterPowerConsumerTypeIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int spraycoaterIndex,
                                     int networkIndex,
@@ -71,15 +71,15 @@ internal sealed class SpraycoaterExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, isSpraycoatingItem, sprayTime);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] spraycoaterPowerConsumerTypeIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> spraycoaterPowerConsumerTypeIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int spraycoaterIndex = 0; spraycoaterIndex < isSpraycoatingItems.Length; spraycoaterIndex++)
         {
@@ -97,9 +97,9 @@ internal sealed class SpraycoaterExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] spraycoaterPowerConsumerTypeIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> spraycoaterPowerConsumerTypeIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int spraycoaterIndex,
                                                            bool isSpraycoatingItem,

@@ -10,7 +10,7 @@ namespace Weaver.Optimizations.Miners;
 
 internal sealed class OilMinerExecutor
 {
-    private int[] _networkIds = null!;
+    private ReadonlyArray<int> _networkIds = default;
     private OptimizedOilMiner[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -18,8 +18,8 @@ internal sealed class OilMinerExecutor
     public int Count => _optimizedMiners.Length;
 
     public void GameTick(PlanetFactory planet,
-                         short[] oilMinerPowerConsumerIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+                         ReadonlyArray<short> oilMinerPowerConsumerIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
                          OptimizedCargoPath[] optimizedCargoPaths)
@@ -28,7 +28,7 @@ internal sealed class OilMinerExecutor
         float[] networkServes = planet.powerSystem.networkServes;
         float miningSpeedScale = history.miningSpeedScale;
         VeinData[] veinPool = planet.veinPool;
-        int[] networkIds = _networkIds;
+        ReadonlyArray<int> networkIds = _networkIds;
         OptimizedOilMiner[] optimizedMiners = _optimizedMiners;
 
         float num2;
@@ -54,11 +54,11 @@ internal sealed class OilMinerExecutor
         }
     }
 
-    public void UpdatePower(short[] oilMinerPowerConsumerIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> oilMinerPowerConsumerIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] networkIds = _networkIds;
+        ReadonlyArray<int> networkIds = _networkIds;
         OptimizedOilMiner[] optimizedMiners = _optimizedMiners;
 
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
@@ -68,8 +68,8 @@ internal sealed class OilMinerExecutor
         }
     }
 
-    private static void UpdatePower(short[] oilMinerPowerConsumerIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> oilMinerPowerConsumerIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int minerIndex,
                                     int networkIndex,
@@ -86,14 +86,14 @@ internal sealed class OilMinerExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, ref miner);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] oilMinerPowerConsumerIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> oilMinerPowerConsumerIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
         OptimizedOilMiner[] optimizedMiners = _optimizedMiners;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
@@ -109,9 +109,9 @@ internal sealed class OilMinerExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] oilMinerPowerConsumerIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> oilMinerPowerConsumerIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int minerIndex,
                                                            ref readonly OptimizedOilMiner miner)

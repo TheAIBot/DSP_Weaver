@@ -1,22 +1,23 @@
 ﻿using System;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Statistics;
 
 internal sealed class OptimizedPlanetWideProductionStatistics
 {
-    private readonly OptimizedItemId[] _productIndexes;
-    private readonly OptimizedItemId[] _consumeIndexes;
-    private readonly ItemIdWithOptimizedRegisterIndex[] _additionalProductsToWatch;
-    private readonly ItemIdWithOptimizedRegisterIndex[] _additionalConsumesToWatch;
+    private readonly ReadonlyArray<OptimizedItemId> _productIndexes;
+    private readonly ReadonlyArray<OptimizedItemId> _consumeIndexes;
+    private readonly ReadonlyArray<ItemIdWithOptimizedRegisterIndex> _additionalProductsToWatch;
+    private readonly ReadonlyArray<ItemIdWithOptimizedRegisterIndex> _additionalConsumesToWatch;
     private readonly OptimizedProductionStatistics[] _optimizedProductionStatistics = [];
     private readonly FactoryProductionStat _factoryProductionStat;
     private readonly int[] _sumProductRegister;
     private readonly int[] _sumConsumeRegister;
 
-    public OptimizedPlanetWideProductionStatistics(OptimizedItemId[] productIndexes,
-                                                   OptimizedItemId[] consumeIndexes,
-                                                   ItemIdWithOptimizedRegisterIndex[] additionalProductsToWatch,
-                                                   ItemIdWithOptimizedRegisterIndex[] additionalConsumesToWatch,
+    public OptimizedPlanetWideProductionStatistics(ReadonlyArray<OptimizedItemId> productIndexes,
+                                                   ReadonlyArray<OptimizedItemId> consumeIndexes,
+                                                   ReadonlyArray<ItemIdWithOptimizedRegisterIndex> additionalProductsToWatch,
+                                                   ReadonlyArray<ItemIdWithOptimizedRegisterIndex> additionalConsumesToWatch,
                                                    OptimizedProductionStatistics[] optimizedProductionStatistics,
                                                    FactoryProductionStat factoryProductionStat)
     {
@@ -68,7 +69,7 @@ internal sealed class OptimizedPlanetWideProductionStatistics
             int num6 = 4200;
 
             {
-                OptimizedItemId[] productIndexes = _productIndexes;
+                ReadonlyArray<OptimizedItemId> productIndexes = _productIndexes;
                 int[] sumProductRegister = _sumProductRegister;
                 for (int i = 0; i < productIndexes.Length; i++)
                 {
@@ -106,7 +107,7 @@ internal sealed class OptimizedPlanetWideProductionStatistics
             }
 
             {
-                OptimizedItemId[] consumeIndexes = _consumeIndexes;
+                ReadonlyArray<OptimizedItemId> consumeIndexes = _consumeIndexes;
                 int[] sumConsumeRegister = _sumConsumeRegister;
                 for (int i = 0; i < consumeIndexes.Length; i++)
                 {
@@ -206,7 +207,7 @@ internal sealed class OptimizedPlanetWideProductionStatistics
         }
     }
 
-    public static void AddItemsToWatch(int[] gameRegister, int[] optimizedRegister, ItemIdWithOptimizedRegisterIndex[] additionalItemsToWatch)
+    public static void AddItemsToWatch(int[] gameRegister, int[] optimizedRegister, ReadonlyArray<ItemIdWithOptimizedRegisterIndex> additionalItemsToWatch)
     {
         for (int i = 0; i < additionalItemsToWatch.Length; i++)
         {

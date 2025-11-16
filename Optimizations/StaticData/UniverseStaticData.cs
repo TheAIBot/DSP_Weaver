@@ -8,39 +8,39 @@ namespace Weaver.Optimizations.StaticData;
 
 internal sealed class UniverseStaticData
 {
-    public AssemblerRecipe[] AssemblerRecipes { get; private set; } = [];
-    public FractionatorConfiguration[] FractionatorConfigurations { get; private set; } = [];
-    public ProducingLabRecipe[] ProducingLabRecipes { get; private set; } = [];
-    public PowerConsumerType[] PowerConsumerTypes { get; private set; } = [];
-    public BiInserterGrade[] BiInserterGrades { get; private set; } = [];
-    public InserterGrade[] InserterGrades { get; private set; } = [];
+    public ReadonlyArray<AssemblerRecipe> AssemblerRecipes { get; private set; } = new ReadonlyArray<AssemblerRecipe>([]);
+    public ReadonlyArray<FractionatorConfiguration> FractionatorConfigurations { get; private set; } = new ReadonlyArray<FractionatorConfiguration>([]);
+    public ReadonlyArray<ProducingLabRecipe> ProducingLabRecipes { get; private set; } = new ReadonlyArray<ProducingLabRecipe>([]);
+    public ReadonlyArray<PowerConsumerType> PowerConsumerTypes { get; private set; } = new ReadonlyArray<PowerConsumerType>([]);
+    public ReadonlyArray<BiInserterGrade> BiInserterGrades { get; private set; } = new ReadonlyArray<BiInserterGrade>([]);
+    public ReadonlyArray<InserterGrade> InserterGrades { get; private set; } = new ReadonlyArray<InserterGrade>([]);
 
-    public void UpdateAssemblerRecipes(AssemblerRecipe[] assemblerRecipes)
+    public void UpdateAssemblerRecipes(ReadonlyArray<AssemblerRecipe> assemblerRecipes)
     {
         AssemblerRecipes = assemblerRecipes;
     }
 
-    public void UpdateFractionatorConfigurations(FractionatorConfiguration[] fractionatorConfigurations)
+    public void UpdateFractionatorConfigurations(ReadonlyArray<FractionatorConfiguration> fractionatorConfigurations)
     {
         FractionatorConfigurations = fractionatorConfigurations;
     }
 
-    public void UpdateProducingLabRecipes(ProducingLabRecipe[] producingLabRecipes)
+    public void UpdateProducingLabRecipes(ReadonlyArray<ProducingLabRecipe> producingLabRecipes)
     {
         ProducingLabRecipes = producingLabRecipes;
     }
 
-    public void UpdatePowerConsumerTypes(PowerConsumerType[] powerConsumerTypes)
+    public void UpdatePowerConsumerTypes(ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         PowerConsumerTypes = powerConsumerTypes;
     }
 
-    public void UpdateBiInserterGrades(BiInserterGrade[] biInserterGrades)
+    public void UpdateBiInserterGrades(ReadonlyArray<BiInserterGrade> biInserterGrades)
     {
         BiInserterGrades = biInserterGrades;
     }
 
-    public void UpdateInserterGrades(InserterGrade[] inserterGrades)
+    public void UpdateInserterGrades(ReadonlyArray<InserterGrade> inserterGrades)
     {
         InserterGrades = inserterGrades;
     }

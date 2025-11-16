@@ -1,3 +1,5 @@
-﻿namespace Weaver.Optimizations.PowerSystems;
+﻿using Weaver.Optimizations.StaticData;
 
-internal record struct PrototypePowerConsumptions(int[] PrototypeIds, int[] PrototypeIdCounts, long[] PrototypeIdPowerConsumption);
+namespace Weaver.Optimizations.PowerSystems;
+
+internal record struct PrototypePowerConsumptions(ReadonlyArray<int> PrototypeIds, ReadonlyArray<int> PrototypeIdCounts, long[] PrototypeIdPowerConsumption);

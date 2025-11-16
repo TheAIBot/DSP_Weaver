@@ -9,7 +9,7 @@ namespace Weaver.Optimizations.Pilers;
 
 internal sealed class PilerExecutor
 {
-    private int[] _networkIndices = null!;
+    private ReadonlyArray<int> _networkIndices = default;
     private OptimizedPiler[] _optimizedPilers = null!;
     private int[] _timeSpends = null!;
     private Dictionary<int, int> _pilerIdToOptimizedIndex = null!;
@@ -18,14 +18,14 @@ internal sealed class PilerExecutor
     public int Count => _optimizedPilers.Length;
 
     public void GameTick(PlanetFactory planet,
-                         short[] pilerPowerConsumerIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+                         ReadonlyArray<short> pilerPowerConsumerIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          OptimizedCargoPath[] optimizedCargoPaths)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        int[] networkIndices = _networkIndices;
+        ReadonlyArray<int> networkIndices = _networkIndices;
         OptimizedPiler[] optimizedPilers = _optimizedPilers;
         int[] timeSpends = _timeSpends;
 
@@ -40,11 +40,11 @@ internal sealed class PilerExecutor
         }
     }
 
-    public void UpdatePower(short[] pilerPowerConsumerIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> pilerPowerConsumerIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] networkIndices = _networkIndices;
+        ReadonlyArray<int> networkIndices = _networkIndices;
         int[] timeSpends = _timeSpends;
         for (int pilerIndex = 0; pilerIndex < timeSpends.Length; pilerIndex++)
         {
@@ -54,8 +54,8 @@ internal sealed class PilerExecutor
         }
     }
 
-    private static void UpdatePower(short[] pilerPowerConsumerIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> pilerPowerConsumerIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int pilerIndex,
                                     int networkIndex,
@@ -66,14 +66,14 @@ internal sealed class PilerExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, timeSpend);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] pilerPowerConsumerIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> pilerPowerConsumerIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
         int[] timeSpends = _timeSpends;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int pilerIndex = 0; pilerIndex < timeSpends.Length; pilerIndex++)
         {
@@ -89,9 +89,9 @@ internal sealed class PilerExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] pilerPowerConsumerIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> pilerPowerConsumerIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int pilerIndex,
                                                            int timeSpend)

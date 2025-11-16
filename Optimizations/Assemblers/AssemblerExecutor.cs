@@ -12,13 +12,13 @@ namespace Weaver.Optimizations.Assemblers;
 
 internal sealed class AssemblerExecutor
 {
-    private int[] _assemblerNetworkIds = null!;
+    private ReadonlyArray<int> _assemblerNetworkIds = default;
     public AssemblerState[] _assemblerStates = null!;
     public OptimizedAssembler[] _optimizedAssemblers = null!;
     private bool[] _assemblerReplicatings = null!;
     private int[] _assemblerExtraPowerRatios = null!;
     private AssemblerTimingData[] _assemblersTimingData = null!;
-    public short[] _assemblerRecipeIndexes = null!;
+    public ReadonlyArray<short> _assemblerRecipeIndexes = default;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex = null!;
     public HashSet<int> _unOptimizedAssemblerIds = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -33,8 +33,8 @@ internal sealed class AssemblerExecutor
     public int Count => _optimizedAssemblers.Length;
 
     public void GameTick(PlanetFactory planet,
-                         short[] assemblerPowerConsumerTypeIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+                         ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] networksPowerConsumption,
                          int[] productRegister,
                          int[] consumeRegister,
@@ -43,10 +43,10 @@ internal sealed class AssemblerExecutor
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        int[] assemblerNetworkIds = _assemblerNetworkIds;
+        ReadonlyArray<int> assemblerNetworkIds = _assemblerNetworkIds;
         AssemblerState[] assemblerStates = _assemblerStates;
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
-        AssemblerRecipe[] assemblerRecipes = universeStaticData.AssemblerRecipes;
+        ReadonlyArray<AssemblerRecipe> assemblerRecipes = universeStaticData.AssemblerRecipes;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         AssemblerTimingData[] assemblersTimingData = _assemblersTimingData;
@@ -56,7 +56,7 @@ internal sealed class AssemblerExecutor
         short[] served = _served;
         short[] incServed = _incServed;
         short[] produced = _produced;
-        short[] assemblerRecipeIndexes = _assemblerRecipeIndexes;
+        ReadonlyArray<short> assemblerRecipeIndexes = _assemblerRecipeIndexes;
         bool[] needToUpdateNeeds = _needToUpdateNeeds;
 
         for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
@@ -114,12 +114,12 @@ internal sealed class AssemblerExecutor
         }
     }
 
-    public void UpdatePower(short[] assemblerPowerConsumerTypeIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] networksPowerConsumption)
     {
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
-        int[] assemblerNetworkIds = _assemblerNetworkIds;
+        ReadonlyArray<int> assemblerNetworkIds = _assemblerNetworkIds;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
@@ -131,8 +131,8 @@ internal sealed class AssemblerExecutor
         }
     }
 
-    private static void UpdatePower(short[] assemblerPowerConsumerTypeIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] networksPowerConsumption,
                                     int assemblerIndex,
                                     int networkIndex,
@@ -144,15 +144,15 @@ internal sealed class AssemblerExecutor
         networksPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, replicating, extraPowerRatios);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] assemblerPowerConsumerTypeIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int assemblerIndex = 0; assemblerIndex < assemblerReplicatings.Length; assemblerIndex++)
         {
@@ -170,9 +170,9 @@ internal sealed class AssemblerExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] assemblerPowerConsumerTypeIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int assemblerIndex,
                                                            bool replicating,

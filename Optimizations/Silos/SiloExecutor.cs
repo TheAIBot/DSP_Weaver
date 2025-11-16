@@ -11,9 +11,9 @@ namespace Weaver.Optimizations.Silos;
 
 internal sealed class SiloExecutor
 {
-    public int[] _siloIndexes = null!;
-    private short[] _optimizedBulletItemId = null!;
-    private int[] _siloNetworkIds = null!;
+    public ReadonlyArray<int> _siloIndexes = default;
+    private ReadonlyArray<short> _optimizedBulletItemId = default;
+    private ReadonlyArray<int> _siloNetworkIds = default;
     private Dictionary<int, int> _siloIdToOptimizedSiloIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
     public const int SoleSiloNeedsIndex = 0;
@@ -26,18 +26,18 @@ internal sealed class SiloExecutor
     }
 
     public void GameTick(PlanetFactory planet,
-                         short[] siloPowerConsumerTypeIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+                         ReadonlyArray<short> siloPowerConsumerTypeIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] consumeRegister,
                          SubFactoryNeeds subFactoryNeeds)
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        int[] siloIndexes = _siloIndexes;
-        int[] siloNetworkIds = _siloNetworkIds;
+        ReadonlyArray<int> siloIndexes = _siloIndexes;
+        ReadonlyArray<int> siloNetworkIds = _siloNetworkIds;
         SiloComponent[] silos = planet.factorySystem.siloPool;
-        short[] optimizedBulletItemId = _optimizedBulletItemId;
+        ReadonlyArray<short> optimizedBulletItemId = _optimizedBulletItemId;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Silo);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
 
@@ -57,12 +57,12 @@ internal sealed class SiloExecutor
     }
 
     public void UpdatePower(PlanetFactory planet,
-                            short[] siloPowerConsumerTypeIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+                            ReadonlyArray<short> siloPowerConsumerTypeIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] siloIndexes = _siloIndexes;
-        int[] siloNetworkIds = _siloNetworkIds;
+        ReadonlyArray<int> siloIndexes = _siloIndexes;
+        ReadonlyArray<int> siloNetworkIds = _siloNetworkIds;
         SiloComponent[] silos = planet.factorySystem.siloPool;
 
         for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
@@ -74,8 +74,8 @@ internal sealed class SiloExecutor
         }
     }
 
-    private static void UpdatePower(short[] siloPowerConsumerTypeIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> siloPowerConsumerTypeIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int siloIndexIndex,
                                     int networkIndex,
@@ -87,15 +87,15 @@ internal sealed class SiloExecutor
     }
 
     public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(PlanetFactory planet,
-                                                                         short[] siloPowerConsumerTypeIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+                                                                         ReadonlyArray<short> siloPowerConsumerTypeIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
-        int[] siloIndexes = _siloIndexes;
+        ReadonlyArray<int> siloIndexes = _siloIndexes;
         SiloComponent[] silos = planet.factorySystem.siloPool;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
         {
@@ -112,9 +112,9 @@ internal sealed class SiloExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] siloPowerConsumerTypeIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> siloPowerConsumerTypeIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int siloIndexIndex,
                                                            ref readonly SiloComponent silo)
@@ -126,7 +126,7 @@ internal sealed class SiloExecutor
 
     public void Save(PlanetFactory planet, SubFactoryNeeds subFactoryNeeds)
     {
-        int[] siloIndexes = _siloIndexes;
+        ReadonlyArray<int> siloIndexes = _siloIndexes;
         SiloComponent[] silos = planet.factorySystem.siloPool;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Silo);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;

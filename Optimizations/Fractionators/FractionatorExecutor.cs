@@ -20,8 +20,8 @@ internal sealed class FractionatorExecutor
     public int Count => _optimizedFractionators.Length;
 
     public void GameTick(PlanetFactory planet,
-                         short[] fractionatorPowerConsumerTypeIndexes,
-                         PowerConsumerType[] powerConsumerTypes,
+                         ReadonlyArray<short> fractionatorPowerConsumerTypeIndexes,
+                         ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                          long[] thisSubFactoryNetworkPowerConsumption,
                          int[] productRegister,
                          int[] consumeRegister,
@@ -38,7 +38,7 @@ internal sealed class FractionatorExecutor
         int[] fractionatorNetworkId = _fractionatorNetworkId;
         OptimizedFractionator[] optimizedFractionators = _optimizedFractionators;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
-        FractionatorConfiguration[] fractionatorConfigurations = universeStaticData.FractionatorConfigurations;
+        ReadonlyArray<FractionatorConfiguration> fractionatorConfigurations = universeStaticData.FractionatorConfigurations;
         FractionatorRecipeProduct[] fractionatorRecipeProducts = _fractionatorRecipeProducts;
 
         for (int fractionatorIndex = 0; fractionatorIndex < optimizedFractionators.Length; fractionatorIndex++)
@@ -60,8 +60,8 @@ internal sealed class FractionatorExecutor
         }
     }
 
-    public void UpdatePower(short[] fractionatorPowerConsumerTypeIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> fractionatorPowerConsumerTypeIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
         if (_fractionatorNetworkId == null)
@@ -80,8 +80,8 @@ internal sealed class FractionatorExecutor
         }
     }
 
-    private static void UpdatePower(short[] fractionatorPowerConsumerTypeIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> fractionatorPowerConsumerTypeIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int fractionatorIndex,
                                     int networkIndex,
@@ -92,14 +92,14 @@ internal sealed class FractionatorExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, in fractionatorPowerFields);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] fractionatorPowerConsumerTypeIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> fractionatorPowerConsumerTypeIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int fractionatorIndex = 0; fractionatorIndex < fractionatorsPowerFields.Length; fractionatorIndex++)
         {
@@ -115,9 +115,9 @@ internal sealed class FractionatorExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] fractionatorPowerConsumerTypeIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> fractionatorPowerConsumerTypeIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int fractionatorIndex,
                                                            ref readonly FractionatorPowerFields fractionatorPowerFields)

@@ -14,11 +14,11 @@ internal sealed class ResearchingLabExecutor
     private readonly StarClusterResearchManager _starClusterResearchManager = null!;
     private int[] _matrixPoints = null!;
     private OptimizedItemId[]? _matrixIds = null!;
-    private int[] _labNetworkIds = null!;
+    private ReadonlyArray<int> _labNetworkIds = default;
     public LabState[] _labStates = null!;
     public OptimizedResearchingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
-    public int[] _entityIds = null!;
+    public ReadonlyArray<int> _entityIds = default;
     public Dictionary<int, int> _labIdToOptimizedLabIndex = null!;
     public HashSet<int> _unOptimizedLabIds = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -34,8 +34,8 @@ internal sealed class ResearchingLabExecutor
     }
 
     public void GameTickLabResearchMode(PlanetFactory planet,
-                                        short[] researchingLabPowerConsumerIndexes,
-                                        PowerConsumerType[] powerConsumerTypes,
+                                        ReadonlyArray<short> researchingLabPowerConsumerIndexes,
+                                        ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                         long[] thisSubFactoryNetworkPowerConsumption,
                                         int[] consumeRegister,
                                         SubFactoryNeeds subFactoryNeeds)
@@ -49,7 +49,7 @@ internal sealed class ResearchingLabExecutor
             SignData[] entitySignPool = planet.entitySignPool;
             PowerSystem powerSystem = planet.powerSystem;
             float[] networkServes = powerSystem.networkServes;
-            int[] labNetworkIds = _labNetworkIds;
+            ReadonlyArray<int> labNetworkIds = _labNetworkIds;
             LabState[] labStates = _labStates;
             OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
             LabPowerFields[] labsPowerFields = _labsPowerFields;
@@ -98,7 +98,7 @@ internal sealed class ResearchingLabExecutor
             {
                 factorySystem.researchTechId = num;
 
-                int[] entityIds = _entityIds;
+                ReadonlyArray<int> entityIds = _entityIds;
                 for (int i = 0; i < optimizedLabs.Length; i++)
                 {
                     optimizedLabs[i].SetFunction(entityIds[i],
@@ -198,11 +198,11 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    public void UpdatePower(short[] researchingLabPowerConsumerIndexes,
-                            PowerConsumerType[] powerConsumerTypes,
+    public void UpdatePower(ReadonlyArray<short> researchingLabPowerConsumerIndexes,
+                            ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        int[] labNetworkIds = _labNetworkIds;
+        ReadonlyArray<int> labNetworkIds = _labNetworkIds;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         for (int labIndex = 0; labIndex < labNetworkIds.Length; labIndex++)
         {
@@ -212,8 +212,8 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    private static void UpdatePower(short[] researchingLabPowerConsumerIndexes,
-                                    PowerConsumerType[] powerConsumerTypes,
+    private static void UpdatePower(ReadonlyArray<short> researchingLabPowerConsumerIndexes,
+                                    ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int labIndex,
                                     int networkIndex,
@@ -224,14 +224,14 @@ internal sealed class ResearchingLabExecutor
         thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labPowerFields);
     }
 
-    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(short[] researchingLabPowerConsumerIndexes,
-                                                                         PowerConsumerType[] powerConsumerTypes)
+    public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> researchingLabPowerConsumerIndexes,
+                                                                         ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         var prototypePowerConsumptionExecutor = _prototypePowerConsumptionExecutor;
         prototypePowerConsumptionExecutor.Clear();
 
         LabPowerFields[] labsPowerFields = _labsPowerFields;
-        int[] prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
+        ReadonlyArray<int> prototypeIdIndexes = prototypePowerConsumptionExecutor.PrototypeIdIndexes;
         long[] prototypeIdPowerConsumption = prototypePowerConsumptionExecutor.PrototypeIdPowerConsumption;
         for (int labIndex = 0; labIndex < labsPowerFields.Length; labIndex++)
         {
@@ -247,9 +247,9 @@ internal sealed class ResearchingLabExecutor
         return prototypePowerConsumptionExecutor.GetPowerConsumption();
     }
 
-    private static void UpdatePowerConsumptionPerPrototype(short[] researchingLabPowerConsumerIndexes,
-                                                           PowerConsumerType[] powerConsumerTypes,
-                                                           int[] prototypeIdIndexes,
+    private static void UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> researchingLabPowerConsumerIndexes,
+                                                           ReadonlyArray<PowerConsumerType> powerConsumerTypes,
+                                                           ReadonlyArray<int> prototypeIdIndexes,
                                                            long[] prototypeIdPowerConsumption,
                                                            int labIndex,
                                                            LabPowerFields labPowerFields)

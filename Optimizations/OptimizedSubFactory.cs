@@ -427,7 +427,7 @@ internal sealed class OptimizedSubFactory
 
         int[] productRegister = _optimizedProductionStatistics.ProductRegister;
         int[] consumeRegister = _optimizedProductionStatistics.ConsumeRegister;
-        PowerConsumerType[] powerConsumerTypes = _universeStaticData.PowerConsumerTypes;
+        ReadonlyArray<PowerConsumerType> powerConsumerTypes = _universeStaticData.PowerConsumerTypes;
 
         int minerCount = _beltVeinMinerExecutor.Count + _stationVeinMinerExecutor.Count + _oilMinerExecutor.Count + _waterMinerExecutor.Count;
         if (minerCount > 0)
@@ -599,7 +599,7 @@ internal sealed class OptimizedSubFactory
 
     public void RefreshPowerConsumptionDemands(ProductionStatistics statistics, SubFactoryPowerConsumption powerSystem)
     {
-        PowerConsumerType[] powerConsumerTypes = _universeStaticData.PowerConsumerTypes;
+        ReadonlyArray<PowerConsumerType> powerConsumerTypes = _universeStaticData.PowerConsumerTypes;
         RefreshPowerConsumptionDemands(statistics, _beltVeinMinerExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.BeltVeinMinerPowerConsumerTypeIndexes, powerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _stationVeinMinerExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.StationVeinMinerPowerConsumerTypeIndexes, powerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _oilMinerExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.OilMinerPowerConsumerTypeIndexes, powerConsumerTypes));

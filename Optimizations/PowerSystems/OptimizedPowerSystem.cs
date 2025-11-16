@@ -70,7 +70,7 @@ internal sealed class OptimizedPowerSystem
         long[] networksPowerConsumption = subFactoryPowerConsumption.NetworksPowerConsumption;
         Array.Clear(networksPowerConsumption, 0, networksPowerConsumption.Length);
 
-        PowerConsumerType[] powerConsumerTypes = _universeStaticData.PowerConsumerTypes;
+        ReadonlyArray<PowerConsumerType> powerConsumerTypes = _universeStaticData.PowerConsumerTypes;
         FactorySystemBeforePower(planet, 
                                  subFactory, 
                                  subFactoryPowerConsumption, 
@@ -239,7 +239,7 @@ internal sealed class OptimizedPowerSystem
                                                  OptimizedSubFactory subFactory,
                                                  SubFactoryPowerConsumption subFactoryPowerConsumption,
                                                  long[] networksPowerConsumption,
-                                                 PowerConsumerType[] powerConsumerTypes)
+                                                 ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         subFactory._beltVeinMinerExecutor.UpdatePower(subFactoryPowerConsumption.BeltVeinMinerPowerConsumerTypeIndexes,
                                                       powerConsumerTypes,
@@ -289,7 +289,7 @@ internal sealed class OptimizedPowerSystem
     private static void CargoTrafficBeforePower(OptimizedSubFactory subFactory,
                                                 SubFactoryPowerConsumption subFactoryPowerConsumption,
                                                 long[] networksPowerConsumption,
-                                                PowerConsumerType[] powerConsumerTypes)
+                                                ReadonlyArray<PowerConsumerType> powerConsumerTypes)
     {
         subFactory._monitorExecutor.UpdatePower(subFactoryPowerConsumption.MonitorPowerConsumerTypeIndexes,
                                                 powerConsumerTypes,

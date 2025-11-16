@@ -284,7 +284,7 @@ internal sealed class OptimizedPowerSystemBuilder
                 continue;
             }
 
-            int[] networkNonOptimizedPowerConsumerIndexes;
+            ReadonlyArray<int> networkNonOptimizedPowerConsumerIndexes;
             if (networkIndexToOptimizedConsumerIndexes.TryGetValue(i, out HashSet<int> optimizedConsumerIndexes))
             {
                 networkNonOptimizedPowerConsumerIndexes = _universeStaticDataBuilder.DeduplicateArrayUnmanaged(planet.powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes)

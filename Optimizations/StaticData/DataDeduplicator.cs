@@ -41,7 +41,7 @@ internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>, IMemo
         return deduplicatedIndex;
     }
 
-    public bool TryGetUpdatedData([NotNullWhen(true)] out T[]? updatedData)
+    public bool TryGetUpdatedData([NotNullWhen(true)] out ReadonlyArray<T>? updatedData)
     {
         if (!_dataUpdated)
         {
@@ -50,7 +50,7 @@ internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>, IMemo
         }
 
         _dataUpdated = false;
-        updatedData = _uniqueValues.ToArray();
+        updatedData = new ReadonlyArray<T>(_uniqueValues.ToArray());
         return true;
     }
 
