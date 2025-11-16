@@ -277,7 +277,6 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                     itemInc += inc;
                                     stackCount++;
                                     flag = true;
-                                    inserterState = InserterState.Active;
                                 }
                                 else
                                 {
