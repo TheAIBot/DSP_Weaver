@@ -10,6 +10,7 @@ using UnityEngine;
 
 
 using Weaver.Optimizations;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver;

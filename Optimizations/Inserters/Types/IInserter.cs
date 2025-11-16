@@ -1,6 +1,7 @@
 ﻿using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Inserters;
 using Weaver.Optimizations.NeedsSystem;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Inserters.Types;
 

@@ -5,6 +5,7 @@ using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Miners;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Stations;
 

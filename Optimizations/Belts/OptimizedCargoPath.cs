@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Belts;
 

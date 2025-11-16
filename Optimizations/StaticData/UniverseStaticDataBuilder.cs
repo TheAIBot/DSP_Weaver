@@ -1,179 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.Assemblers;
 using Weaver.Optimizations.Fractionators;
-using Weaver.Optimizations.Inserters;
 using Weaver.Optimizations.Inserters.Types;
 using Weaver.Optimizations.Labs.Producing;
 using Weaver.Optimizations.PowerSystems;
 
-namespace Weaver.Optimizations;
-
-internal interface IMemorySize
-{
-    int GetSize();
-}
-
-internal sealed class DataDeduplicator<T> where T : struct, IEquatable<T>, IMemorySize
-{
-    private readonly Dictionary<T, int> _uniqueValueToIndex;
-    private readonly List<T> _uniqueValues;
-    private bool _dataUpdated;
-
-    public int TotalBytes { get; private set; }
-    public int BytesDeduplicated { get; private set; }
-
-    public DataDeduplicator()
-    {
-        _uniqueValueToIndex = [];
-        _uniqueValues = [];
-        _dataUpdated = true;
-    }
-
-    public int GetDeduplicatedValueIndex(ref readonly T potentiallyDuplicatedValue)
-    {
-        int dataSize = potentiallyDuplicatedValue.GetSize();
-        TotalBytes += dataSize;
-
-        if (!_uniqueValueToIndex.TryGetValue(potentiallyDuplicatedValue, out int deduplicatedIndex))
-        {
-            _dataUpdated = true;
-            deduplicatedIndex = _uniqueValues.Count;
-            _uniqueValues.Add(potentiallyDuplicatedValue);
-            _uniqueValueToIndex.Add(potentiallyDuplicatedValue, deduplicatedIndex);
-        }
-        else
-        {
-            BytesDeduplicated += dataSize;
-        }
-
-
-        return deduplicatedIndex;
-    }
-
-    public bool TryGetUpdatedData([NotNullWhen(true)] out T[]? updatedData)
-    {
-        if (!_dataUpdated)
-        {
-            updatedData = null;
-            return false;
-        }
-
-        _dataUpdated = false;
-        updatedData = _uniqueValues.ToArray();
-        return true;
-    }
-
-    public void Clear()
-    {
-        _uniqueValueToIndex.Clear();
-        _uniqueValues.Clear();
-        _dataUpdated = true;
-        TotalBytes = 0;
-        BytesDeduplicated = 0;
-    }
-}
-
-internal sealed class UniverseInserterStaticDataBuilder<TInserterGrade>
-    where TInserterGrade : struct, IInserterGrade<TInserterGrade>, IMemorySize
-{
-    private readonly DataDeduplicator<TInserterGrade> _inserterGrades = new DataDeduplicator<TInserterGrade>();
-
-    public int TotalBytes => _inserterGrades.TotalBytes;
-    public int BytesDeduplicated => _inserterGrades.BytesDeduplicated;
-
-    public int AddInserterGrade(ref readonly TInserterGrade inserterGrade)
-    {
-        return _inserterGrades.GetDeduplicatedValueIndex(in inserterGrade);
-    }
-
-    public bool TryGetUpdatedData([NotNullWhen(true)]  out TInserterGrade[]? updatedData)
-    {
-        return _inserterGrades.TryGetUpdatedData(out updatedData);
-    }
-
-    public void Clear()
-    {
-        _inserterGrades.Clear();
-    }
-}
-
-internal sealed class CompareArrayCollections<T> : IEqualityComparer<IList<T>>
-    where T : IEquatable<T>
-{
-    public bool Equals(IList<T> x, IList<T> y)
-    {
-        if (x.Count != y.Count)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < x.Count; i++)
-        {
-            if (!x[i].Equals(y[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public int GetHashCode(IList<T> value)
-    {
-        var hashCode = new HashCode();
-        hashCode.Add(value.Count);
-        for (int i = 0; i < value.Count; i++)
-        {
-            hashCode.Add(value[i]);
-        }
-
-        return hashCode.ToHashCode();
-    }
-}
-
-internal interface IComparableArrayDeduplicator
-{
-    int TotalBytes { get; }
-    int BytesDeduplicated { get; }
-}
-
-internal sealed class ComparableArrayDeduplicator<T> : IComparableArrayDeduplicator
-    where T : IEquatable<T>
-{
-    private readonly HashSet<IList<T>> _arrays = new(new CompareArrayCollections<T>());
-
-    public int TotalBytes { get; private set; }
-    public int BytesDeduplicated { get; private set; }
-
-    public T[] Deduplicate(IList<T> toDeduplicate, int itemSize)
-    {
-        int deduplicateSize = itemSize * toDeduplicate.Count;
-        TotalBytes += deduplicateSize;
-
-        if (_arrays.TryGetValue(toDeduplicate, out IList<T> deduplicated))
-        {
-            BytesDeduplicated += deduplicateSize;
-            return (T[])deduplicated;
-        }
-
-        T[] array;
-        if (toDeduplicate is List<T> toDeduplicateList)
-        {
-            array = toDeduplicateList.ToArray();
-        }
-        else
-        {
-            array = (T[])toDeduplicate;
-        }
-
-        _arrays.Add(array);
-        return array;
-    }
-}
+namespace Weaver.Optimizations.StaticData;
 
 internal sealed class UniverseStaticDataBuilder
 {
@@ -284,6 +119,11 @@ internal sealed class UniverseStaticDataBuilder
         BiInserterGrades.Clear();
         InserterGrades.Clear();
 
+        foreach (IComparableArrayDeduplicator item in _typeToComparableArrayDeduplicator.Values)
+        {
+            item.Clear();
+        }
+
         UpdateStaticDataIfRequired();
     }
 
@@ -326,45 +166,5 @@ internal sealed class UniverseStaticDataBuilder
         WeaverFixes.Logger.LogMessage("Static data statistics:");
         WeaverFixes.Logger.LogMessage($"\tTotal:        {totalBytes,12:N0} bytes");
         WeaverFixes.Logger.LogMessage($"\tDeduplicated: {deduplicatedBytes,12:N0} bytes");
-    }
-}
-
-internal sealed class UniverseStaticData
-{
-    public AssemblerRecipe[] AssemblerRecipes { get; private set; } = [];
-    public FractionatorConfiguration[] FractionatorConfigurations { get; private set; } = [];
-    public ProducingLabRecipe[] ProducingLabRecipes { get; private set; } = [];
-    public PowerConsumerType[] PowerConsumerTypes { get; private set; } = [];
-    public BiInserterGrade[] BiInserterGrades { get; private set; } = [];
-    public InserterGrade[] InserterGrades { get; private set; } = [];
-
-    public void UpdateAssemblerRecipes(AssemblerRecipe[] assemblerRecipes)
-    {
-        AssemblerRecipes = assemblerRecipes;
-    }
-
-    public void UpdateFractionatorConfigurations(FractionatorConfiguration[] fractionatorConfigurations)
-    {
-        FractionatorConfigurations = fractionatorConfigurations;
-    }
-
-    public void UpdateProducingLabRecipes(ProducingLabRecipe[] producingLabRecipes)
-    {
-        ProducingLabRecipes = producingLabRecipes;
-    }
-
-    public void UpdatePowerConsumerTypes(PowerConsumerType[] powerConsumerTypes)
-    {
-        PowerConsumerTypes = powerConsumerTypes;
-    }
-
-    public void UpdateBiInserterGrades(BiInserterGrade[] biInserterGrades)
-    {
-        BiInserterGrades = biInserterGrades;
-    }
-
-    public void UpdateInserterGrades(InserterGrade[] inserterGrades)
-    {
-        InserterGrades = inserterGrades;
     }
 }

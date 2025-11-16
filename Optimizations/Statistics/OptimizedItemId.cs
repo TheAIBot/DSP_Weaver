@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.PowerSystems;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Statistics;
 

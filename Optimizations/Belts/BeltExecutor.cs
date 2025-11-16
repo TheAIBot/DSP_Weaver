@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Weaver.FatoryGraphs;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Belts;
 

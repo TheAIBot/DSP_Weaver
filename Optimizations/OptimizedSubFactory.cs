@@ -18,6 +18,7 @@ using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.Silos;
 using Weaver.Optimizations.Splitters;
 using Weaver.Optimizations.Spraycoaters;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Stations;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.Tanks;

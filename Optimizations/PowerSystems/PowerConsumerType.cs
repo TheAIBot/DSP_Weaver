@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.Inserters.Types;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.PowerSystems;
 

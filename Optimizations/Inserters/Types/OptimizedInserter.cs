@@ -4,6 +4,7 @@ using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using System.Runtime.CompilerServices;
 using Weaver.Optimizations.NeedsSystem;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Inserters.Types;
 

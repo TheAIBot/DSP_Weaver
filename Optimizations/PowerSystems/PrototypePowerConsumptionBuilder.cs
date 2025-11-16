@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.PowerSystems;
 

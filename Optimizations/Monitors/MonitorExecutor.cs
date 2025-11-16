@@ -3,6 +3,7 @@ using System.Linq;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.PowerSystems;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Monitors;
 

@@ -14,6 +14,7 @@ using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.PowerSystems.Generators;
 using Weaver.Optimizations.Silos;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.Storages;
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Weaver.Optimizations.Labs;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.WorkDistributors;
 

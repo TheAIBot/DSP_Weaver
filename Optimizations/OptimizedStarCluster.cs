@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection.Emit;
 using Weaver.Optimizations.Labs;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.WorkDistributors;
 

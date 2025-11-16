@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Weaver.Optimizations.Miners;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Stations;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.WorkDistributors;

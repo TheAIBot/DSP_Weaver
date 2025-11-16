@@ -7,6 +7,7 @@ using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.Miners;
 using Weaver.Optimizations.PowerSystems;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 using Weaver.Optimizations.Turrets;
 using Weaver.Optimizations.WorkDistributors;

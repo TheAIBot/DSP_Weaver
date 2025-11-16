@@ -1,4 +1,5 @@
-﻿using Weaver.Optimizations.WorkDistributors;
+﻿using Weaver.Optimizations.StaticData;
+using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations;
 
