@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
-using System.Runtime.CompilerServices;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.StaticData;
 
@@ -135,7 +134,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                        ref readonly InserterGrade inserterGrade,
                        ref OptimizedInserterStage stage,
                        ReadonlyArray<InserterConnections> insertersConnections,
-                       SubFactoryNeeds subFactoryNeeds, 
+                       SubFactoryNeeds subFactoryNeeds,
                        OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (power < 0.1f)
@@ -146,124 +145,79 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
         {
             case OptimizedInserterStage.Picking:
                 {
-                    byte stack;
-                    byte inc;
+                    int filter;
+                    InserterConnections inserterConnections = insertersConnections[inserterIndex];
+                    GroupNeeds groupNeeds = default;
                     if (itemId == 0)
                     {
                         if (inserterGrade.CareNeeds)
                         {
-                            if (idleTick-- < 1)
+                            if (idleTick-- > 0)
                             {
-                                if (OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
-                                                                        subFactoryNeeds,
-                                                                        inserterIndex,
-                                                                        out InserterConnections inserterConnections,
-                                                                        out GroupNeeds groupNeeds))
-                                {
-                                    short num = inserterExecutor.PickFrom(planet,
-                                                                          ref inserterState,
-                                                                          inserterIndex,
-                                                                          pickOffset,
-                                                                          inserterGrade.Filter,
-                                                                          inserterConnections,
-                                                                          groupNeeds,
-                                                                          out stack,
-                                                                          out inc,
-                                                                          optimizedCargoPaths);
-                                    if (num > 0)
-                                    {
-                                        itemId = num;
-                                        itemCount += stack;
-                                        itemInc += inc;
-                                        stackCount++;
-                                        time = 0;
-                                    }
-                                }
-                                else
-                                {
-                                    idleTick = 9;
-                                }
+                                goto doneThing;
+                            }
+
+                            if (!OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
+                                                                     subFactoryNeeds,
+                                                                     inserterIndex,
+                                                                     inserterConnections,
+                                                                     out groupNeeds))
+                            {
+                                idleTick = 9;
+                                goto doneThing;
                             }
                         }
-                        else
-                        {
-                            InserterConnections inserterConnections = insertersConnections[inserterIndex];
-                            short num = inserterExecutor.PickFrom(planet,
-                                                                  ref inserterState,
-                                                                  inserterIndex,
-                                                                  pickOffset,
-                                                                  inserterGrade.Filter,
-                                                                  inserterConnections,
-                                                                  default,
-                                                                  out stack,
-                                                                  out inc,
-                                                                  optimizedCargoPaths);
-                            if (num > 0)
-                            {
-                                itemId = num;
-                                itemCount += stack;
-                                itemInc += inc;
-                                stackCount++;
-                                time = 0;
-                            }
-                        }
+
+                        filter = inserterGrade.Filter;
                     }
                     else if (stackCount < inserterGrade.StackInput)
                     {
                         if (inserterGrade.CareNeeds)
                         {
-                            if (idleTick-- < 1)
+                            if (idleTick-- > 0)
                             {
-                                if (OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
-                                                                        subFactoryNeeds,
-                                                                        inserterIndex,
-                                                                        out InserterConnections inserterConnections,
-                                                                        out GroupNeeds groupNeeds))
-                                {
-                                    if (inserterExecutor.PickFrom(planet,
-                                                                  ref inserterState,
-                                                                  inserterIndex,
-                                                                  pickOffset,
-                                                                  itemId,
-                                                                  inserterConnections,
-                                                                  groupNeeds,
-                                                                  out stack,
-                                                                  out inc,
-                                                                  optimizedCargoPaths) > 0)
-                                    {
-                                        itemCount += stack;
-                                        itemInc += inc;
-                                        stackCount++;
-                                        time = 0;
-                                    }
-                                }
-                                else
-                                {
-                                    idleTick = 10;
-                                }
+                                goto doneThing;
+                            }
+
+                            if (!OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
+                                                                     subFactoryNeeds,
+                                                                     inserterIndex,
+                                                                     inserterConnections,
+                                                                     out groupNeeds))
+                            {
+                                idleTick = 10;
+                                goto doneThing;
                             }
                         }
-                        else
-                        {
-                            InserterConnections inserterConnections = insertersConnections[inserterIndex];
-                            if (inserterExecutor.PickFrom(planet,
-                                                           ref inserterState,
-                                                           inserterIndex,
-                                                           pickOffset,
-                                                           itemId,
-                                                           inserterConnections,
-                                                           default,
-                                                           out stack,
-                                                           out inc,
-                                                           optimizedCargoPaths) > 0)
-                            {
-                                itemCount += stack;
-                                itemInc += inc;
-                                stackCount++;
-                                time = 0;
-                            }
-                        }
+
+                        filter = itemId;
                     }
+                    else
+                    {
+                        goto doneThing;
+                    }
+
+                    short num = inserterExecutor.PickFrom(planet,
+                                                          ref inserterState,
+                                                          inserterIndex,
+                                                          pickOffset,
+                                                          filter,
+                                                          inserterConnections,
+                                                          groupNeeds,
+                                                          out byte stack,
+                                                          out byte inc,
+                                                          optimizedCargoPaths);
+                    if (num > 0)
+                    {
+                        itemId = num;
+                        itemCount += stack;
+                        itemInc += inc;
+                        stackCount++;
+                        time = 0;
+                    }
+
+                doneThing:
+
                     if (itemId > 0)
                     {
                         time += inserterGrade.Speed;
