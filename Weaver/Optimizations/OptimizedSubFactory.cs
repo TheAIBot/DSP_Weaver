@@ -556,7 +556,7 @@ internal sealed class OptimizedSubFactory
         if (_beltExecutor.Count > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Belt, workerIndex);
-            _beltExecutor.GameTick();
+            _beltExecutor.GameTick(time);
             DeepProfiler.EndMajorSample(DPEntry.Belt, workerIndex);
         }
 
