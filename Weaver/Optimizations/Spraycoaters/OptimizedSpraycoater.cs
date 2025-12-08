@@ -4,7 +4,7 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Spraycoaters;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedSpraycoater
 {
     public readonly int incommingBeltSegIndexPlusSegPivotOffset;
@@ -114,7 +114,7 @@ internal struct OptimizedSpraycoater
                 {
                     sprayTime -= 10000;
                     cargo2.Inc = (byte)(num5 * incAbility);
-                    outgoingBelt.SetCargoInBuffer(cargoBufferIndex, cargo2);
+                    outgoingBelt.buffer.SetCargo(cargoBufferIndex, cargo2);
                     extraIncCount -= num5;
                     if (extraIncCount < 0)
                     {

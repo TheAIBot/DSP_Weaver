@@ -9,7 +9,7 @@ namespace Weaver.Optimizations.Monitors;
 /// If i wanr to optimize this further then i also have to deal with the <see cref="WarningSystem"/>
 /// which i currently don't want to do.
 /// </summary>
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal readonly struct OptimizedMonitor
 {
     private readonly BeltIndex targetBeltIndex;
@@ -105,7 +105,7 @@ internal readonly struct OptimizedMonitor
                 {
                     int num12 = 0;
                     int index = num3 + 10;
-                    OptimizedCargo cargo1 = targetBelt.QueryItemAtIndex(index, out int cargoBufferIndex1);
+                    targetBelt.QueryItemAtIndex(index, out OptimizedCargo cargo1, out int actualCargoBufferIndex1);
                     if (cargo1.Item == monitor.cargoFilter)
                     {
                         int num13 = num10 - cargo1.Stack;
@@ -113,7 +113,7 @@ internal readonly struct OptimizedMonitor
                         {
                             num12 = num11 >= num13 ? num13 : num11;
                             cargo1.Stack += (byte)num12;
-                            targetBelt.SetCargoInBuffer(cargoBufferIndex1, cargo1);
+                            targetBelt.buffer.SetCargoFromActualIndex(actualCargoBufferIndex1, cargo1);
                         }
                     }
                     else if (targetBelt.TryInsertItem(index, monitor.cargoFilter, (byte)num11, 0))
@@ -126,7 +126,7 @@ internal readonly struct OptimizedMonitor
                 else if (monitor.spawnItemOperator == 2)
                 {
                     int index2 = num3 - 10;
-                    OptimizedCargo cargo1 = targetBelt.QueryItemAtIndex(index2, out int cargoBufferIndex1);
+                    targetBelt.QueryItemAtIndex(index2, out OptimizedCargo cargo1, out int actualCargoBufferIndex1);
                     if (monitor.cargoFilter == 0 || monitor.cargoFilter > 0 && cargo1.Item == monitor.cargoFilter)
                     {
                         int num14;
@@ -138,7 +138,7 @@ internal readonly struct OptimizedMonitor
                         else
                         {
                             cargo1.Stack -= (byte)num11;
-                            targetBelt.SetCargoInBuffer(cargoBufferIndex1, cargo1);
+                            targetBelt.buffer.SetCargoFromActualIndex(actualCargoBufferIndex1, cargo1);
                             num14 = num11;
                         }
                         monitor.spawnItemAccumulator -= num14;

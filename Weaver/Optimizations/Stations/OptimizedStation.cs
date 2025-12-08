@@ -60,7 +60,7 @@ internal readonly struct OptimizedStation
                         }
                         else
                         {
-                            if (belt.buffer[9] != 0)
+                            if (belt.buffer.GetBufferValue(9) != 0)
                             {
                                 continue;
                             }
