@@ -4,7 +4,7 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.PowerSystems.Generators;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedGammaPowerGenerator
 {
     private readonly OptimizedIndexedCargoPath slot0Belt;
@@ -215,7 +215,7 @@ internal struct OptimizedGammaPowerGenerator
         {
             if (flag4)
             {
-                OptimizedCargo optimizedCargo = PickFrom(ref slot0Belt.Belt, slot0BeltOffset, catalystId.ItemIndex, null);
+                PickFrom(ref slot0Belt.Belt, slot0BeltOffset, catalystId.ItemIndex, null, out OptimizedCargo optimizedCargo);
                 if (optimizedCargo.Item == catalystId.ItemIndex)
                 {
                     catalystPoint += 3600 * optimizedCargo.Stack;
@@ -225,7 +225,7 @@ internal struct OptimizedGammaPowerGenerator
 
             if (flag6)
             {
-                OptimizedCargo optimizedCargo = PickFrom(ref slot1Belt.Belt, slot1BeltOffset, catalystId.ItemIndex, null);
+                PickFrom(ref slot1Belt.Belt, slot1BeltOffset, catalystId.ItemIndex, null, out OptimizedCargo optimizedCargo);
                 if (optimizedCargo.Item == catalystId.ItemIndex)
                 {
                     catalystPoint += 3600 * optimizedCargo.Stack;
@@ -259,18 +259,19 @@ internal struct OptimizedGammaPowerGenerator
         return 0;
     }
 
-    private static OptimizedCargo PickFrom(ref OptimizedCargoPath belt, int offset, int filter, int[]? needs)
+    private static void PickFrom(ref OptimizedCargoPath belt, int offset, int filter, int[]? needs, out OptimizedCargo cargo)
     {
         if (needs == null)
         {
             if (filter != 0)
             {
-                belt.TryPickItem(offset - 2, 5, filter, out OptimizedCargo cargo);
-                return cargo;
+                belt.TryPickItem(offset - 2, 5, filter, out cargo);
+                return;
             }
-            return belt.TryPickItem(offset - 2, 5);
+            belt.TryPickItem(offset - 2, 5, out cargo);
+            return;
         }
 
-        return belt.TryPickItem(offset - 2, 5, filter, needs);
+        belt.TryPickItem(offset - 2, 5, filter, needs, out cargo);
     }
 }
