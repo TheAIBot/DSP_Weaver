@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="Weaver.Tests/Weaver.Tests.csproj" />
+  <Project Path="Weaver/Weaver.csproj" />
+</Solution>
