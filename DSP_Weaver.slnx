@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="../Dissasembled_Code/V0.10.34.28455/Assembly-CSharp.csproj" />
+  <Project Path="Weaver.FuzzyTests/Weaver.FuzzyTests.csproj" Id="460f29fa-9119-48ee-9a5b-4cfa2f2a7ccf" />
+  <Project Path="Weaver.Tests/Weaver.Tests.csproj" />
+  <Project Path="Weaver/Weaver.csproj" />
+</Solution>
