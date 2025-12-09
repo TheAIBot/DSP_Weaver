@@ -3,6 +3,8 @@
 namespace Weaver.Optimizations.Belts;
 
 /*
+ * Loosely inspired by this forum post
+ * https://forums.factorio.com/viewtopic.php?p=241825#p241825
  * 
  * Example
  * 
