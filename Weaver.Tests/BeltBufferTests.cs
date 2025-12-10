@@ -206,6 +206,64 @@ internal sealed class BeltBufferTests
     }
 
     [Test]
+    public async Task Update_ClearAfterTwoUpdatesAndThenUpdateEnoughToMakeItemsStopped_ExpectDataIsAvailableInStoppedIndexes()
+    {
+        byte[] existingData = [0, 3, 4, 7, 2, 8, 1, 9];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1, 10);
+        beltBuffer.Update();
+        byte[] actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 3, 4, 7, 2, 8, 1, 9 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 3, 4, 7, 2, 8, 1, 9 }, CollectionOrdering.Matching);
+
+        beltBuffer.Clear(6, 2);
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 3, 4, 7, 2, 8, 0, 0 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 3, 4, 7, 2, 8, 0 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 3, 4, 7, 2, 8 }, CollectionOrdering.Matching);
+
+        beltBuffer.Clear(6, 2);
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 3, 4, 7, 0, 0 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 0, 3, 4, 7, 0 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 0, 0, 3, 4, 7 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 0, 0, 3, 4, 7 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 0, 0, 3, 4, 7 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 0, 0, 3, 4, 7 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 0, 0, 3, 4, 7 }, CollectionOrdering.Matching);
+
+        beltBuffer.Update();
+        actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
+        await Assert.That(actualData).IsEquivalentTo(new byte[] { 0, 0, 0, 0, 0, 3, 4, 7 }, CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Update_WithItemsRemovedFromStoppedItemsWithSetBufferValueCausingOtherStoppedItemsToBeMovingItems_ExpectDataIsAvailableInCorrectIndexes()
     {
         byte[] existingData = [0, 3, 4, 7, 2];
@@ -337,6 +395,11 @@ internal sealed class BeltBufferTests
     [Arguments(new byte[] { 1, 0, 0, 0, 3, 0, 2, 0 }, new byte[] { 0, 0, 0, 0, 1, 0, 3, 2 })]
     [Arguments(new byte[] { 0, 1, 2, 3, 0, 0, 0, 0 }, new byte[] { 0, 0, 0, 0, 0, 1, 2, 3 })]
     [Arguments(new byte[] { 5, 0, 0, 2, 3, 0, 3, 2, 0 }, new byte[] { 0, 0, 0, 0, 5, 2, 3, 3, 2 })]
+    [Arguments(new byte[] { 8, 7, 6, 5, 4, 3, 2, 1, 0 }, new byte[] { 0, 8, 7, 6, 5, 4, 3, 2, 1 })]
+    [Arguments(new byte[] { 0, 7, 6, 5, 4, 3, 2, 1, 0 }, new byte[] { 0, 0, 7, 6, 5, 4, 3, 2, 1 })]
+    [Arguments(new byte[] { 7, 6, 5, 4, 3, 2, 1, 0, 0 }, new byte[] { 0, 0, 7, 6, 5, 4, 3, 2, 1 })]
+    [Arguments(new byte[] { 0, 6, 5, 4, 3, 2, 1, 0, 0 }, new byte[] { 0, 0, 0, 6, 5, 4, 3, 2, 1 })]
+    [Arguments(new byte[] { 0, 6, 5, 4, 3, 2, 1, 0, 0, 6, 5, 4, 3, 2, 1, 0, 0 }, new byte[] { 0, 0, 0, 0, 0, 6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1 })]
     public async Task Update_WithSpacedItemsAndSpeed4_ExpectDataIsAvailableInExpectedIndexes(byte[] existingData, byte[] expectedData)
     {
         var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 4);
@@ -530,5 +593,163 @@ internal sealed class BeltBufferTests
 
         byte[] actualData = Enumerable.Range(0, existingData.Length).Select(beltBuffer.GetBufferValue).ToArray();
         await Assert.That(actualData).IsEquivalentTo(expectedData, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Update_WithHoleCreatedInsideStoppedSection_ExpectMovingItemsToStoppedSection()
+    {
+        byte[] existingData = [1, 2, 3];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1);
+        beltBuffer.Update();
+        beltBuffer.SetBufferValue(1, 0);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(1);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task Update_WithFullBeltAndClearItemInMiddle_ExpectMovingItemsToFillGap()
+    {
+        byte[] existingData = [1, 2, 3];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1);
+        beltBuffer.Update();
+        beltBuffer.SetBufferValue(1, 0);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(1);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task Update_WithFullBeltAndClearLastItem_ExpectMovingItemsToStoppedSection()
+    {
+        byte[] existingData = [1, 2, 3];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1);
+        beltBuffer.Update();
+        beltBuffer.SetBufferValue(2, 0);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(1);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Update_WithClearAtExactBoundaryOfStoppedAndMoving_ExpectCorrectTransition()
+    {
+        byte[] existingData = [1, 0, 2, 3];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1);
+        beltBuffer.Update();
+        beltBuffer.SetBufferValue(2, 0);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(1);
+        await Assert.That((int)beltBuffer.GetBufferValue(3)).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task Update_WithTriggersMove_ExpectItemsMovedToEnd()
+    {
+        byte[] existingData = [1, 0, 0];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1, 2);
+
+        beltBuffer.Update();
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(1);
+
+        beltBuffer.Update();
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(1);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Update_WithTriggersMoveAndhItemsInMovingSection_ExpectItemsMovedToEnd()
+    {
+        byte[] existingData = [1, 0, 2, 0, 0];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1, 2);
+
+        beltBuffer.Update();
+        beltBuffer.Update();
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(3)).IsEqualTo(1);
+        await Assert.That((int)beltBuffer.GetBufferValue(4)).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Update_WithSpeedHigherThanGapSize_ExpectItemToFillGapAndStop()
+    {
+        byte[] existingData = [1, 0, 2];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 5);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(1);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Update_SpeedExceedsBeltLength_ExpectItemStopsAtEnd()
+    {
+        byte[] existingData = [1, 0, 0, 0, 0];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 10);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(3)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(4)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Update_WithClearAndAddInStoppedSection_ExpectCorrectGapFilling()
+    {
+        byte[] existingData = [1, 2, 3, 4];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1);
+        beltBuffer.Update();
+        beltBuffer.SetBufferValue(2, 0);
+        beltBuffer.SetBufferValue(3, 5);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(0);
+        await Assert.That((int)beltBuffer.GetBufferValue(1)).IsEqualTo(1);
+        await Assert.That((int)beltBuffer.GetBufferValue(2)).IsEqualTo(2);
+        await Assert.That((int)beltBuffer.GetBufferValue(3)).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task Update_WithHighestOffsetAndItemAtStartOfBuffer_ExpectItemToMoveWithoutReset()
+    {
+        byte[] existingData = [0];
+        var beltBuffer = BeltBuffer.CreateFromExistingBuffer(existingData, 1, 10);
+        for (int i = 0; i < 10; i++)
+        {
+            beltBuffer.Update();
+        }
+        beltBuffer.SetBufferValue(0, 1);
+
+        beltBuffer.Update();
+
+        await Assert.That((int)beltBuffer.GetBufferValue(0)).IsEqualTo(1);
     }
 }

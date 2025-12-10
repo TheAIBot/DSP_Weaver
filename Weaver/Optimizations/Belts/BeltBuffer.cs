@@ -52,7 +52,7 @@ internal struct BeltBuffer
         var buffer = new byte[copyFrom.Length + maxOffsetBeforeMove];
         Array.Copy(copyFrom, 0, buffer, maxOffsetBeforeMove, copyFrom.Length);
 
-        int stoppedItemsActualIndex = Array.LastIndexOf(buffer, (byte)0) + 1;
+        int stoppedItemsActualIndex = buffer.Length;//  Array.LastIndexOf(buffer, (byte)0) + 1;
 
         var beltBuffer = new BeltBuffer(buffer, beltSpeed, 0, stoppedItemsActualIndex, maxOffsetBeforeMove);
 
@@ -61,7 +61,23 @@ internal struct BeltBuffer
 
     public readonly byte GetBufferValue(int beltIndex)
     {
-        return _buffer[GetActualIndex(beltIndex)];
+        int actualIndex = GetActualIndex(beltIndex);
+        if (actualIndex < 0 || actualIndex >= _buffer.Length)
+        {
+            throw new InvalidOperationException($"""
+                Index out of range.
+                Belt index: {beltIndex}
+                Actual index: {actualIndex}
+                Buffer length: {_buffer.Length}
+                Belt Speed: {_beltSpeed}
+                Max Offset: {_maxOffsetBeforeMove}
+                Offset: {_offset}
+                Updated actual index: {_updatedActualIndex}
+                Stopped item actual index: {_stoppedItemsActualIndex}
+                """);
+        }
+
+        return _buffer[actualIndex];
     }
 
     public void SetBufferValue(int beltIndex, byte value)
@@ -94,7 +110,7 @@ internal struct BeltBuffer
 
     private void UpdateStoppedItems()
     {
-        if (_stoppedItemsActualIndex == _maxOffsetBeforeMove)
+        if (_stoppedItemsActualIndex == _maxOffsetBeforeMove && _updatedActualIndex < _stoppedItemsActualIndex)
         {
             return;
         }
@@ -105,7 +121,7 @@ internal struct BeltBuffer
         if (_updatedActualIndex >= _stoppedItemsActualIndex)
         {
             Array.Copy(_buffer, _stoppedItemsActualIndex, _buffer, _stoppedItemsActualIndex - _offset, _updatedActualIndex - _stoppedItemsActualIndex + 1);
-            Array.Clear(_buffer, _updatedActualIndex - _offset, _offset);
+            Array.Clear(_buffer, _updatedActualIndex - _offset + 1, _offset);
             _stoppedItemsActualIndex = _updatedActualIndex + 1;
         }
 
@@ -116,7 +132,7 @@ internal struct BeltBuffer
         while (movedCount < _beltSpeed)
         {
             int freeSpacesFound = 0;
-            for (int i = 0; i < endMovePosition; i++)
+            for (int i = 0; i <= endMovePosition; i++)
             {
                 if (_buffer[endMovePosition - i] != 0)
                 {
@@ -131,31 +147,31 @@ internal struct BeltBuffer
                 }
             }
 
-            int lengthToMove = 0;
-            for (int i = 0; i < endMovePosition - freeSpacesFound; i++)
+            int itemsToMoveCount = 0;
+            for (int i = 0; i <= endMovePosition - freeSpacesFound; i++)
             {
                 if (_buffer[endMovePosition - freeSpacesFound - i] == 0)
                 {
                     break;
                 }
 
-                lengthToMove++;
+                itemsToMoveCount++;
             }
 
-            if (lengthToMove == 0)
+            if (itemsToMoveCount == 0)
             {
                 break;
             }
             // endMovePosition can be further back than _stoppedItemsActualIndex if partial moves are done.
-            // This is because endMovePosition moves freeSpacesFound back on each partial move while 
+            // This is because endMovePosition moves freeSpacesFound + itemsToMoveCount back on each partial move while 
             // _stoppedItemsActualIndex represents where the items should be moved to.
-            Array.Copy(_buffer, endMovePosition - lengthToMove - freeSpacesFound + 1, _buffer, _stoppedItemsActualIndex - lengthToMove, lengthToMove);
-            Array.Clear(_buffer, endMovePosition - lengthToMove - freeSpacesFound + 1, movedCount + freeSpacesFound);
+            Array.Copy(_buffer, endMovePosition - itemsToMoveCount - freeSpacesFound + 1, _buffer, _stoppedItemsActualIndex - itemsToMoveCount, itemsToMoveCount);
+            Array.Clear(_buffer, endMovePosition - itemsToMoveCount - freeSpacesFound + 1, movedCount + freeSpacesFound + _offset);
 
             endMovePosition -= freeSpacesFound;
-            endMovePosition -= lengthToMove;
+            endMovePosition -= itemsToMoveCount;
             movedCount += freeSpacesFound;
-            _stoppedItemsActualIndex -= lengthToMove;
+            _stoppedItemsActualIndex -= itemsToMoveCount;
         }
     }
 
@@ -164,6 +180,14 @@ internal struct BeltBuffer
         if (_stoppedItemsActualIndex == _maxOffsetBeforeMove)
         {
             return;
+        }
+
+        for (int i = _stoppedItemsActualIndex - 1; i >= _stoppedItemsActualIndex - 1 - _offset; i--)
+        {
+            if (_buffer[i] != 0)
+            {
+                throw new InvalidOperationException("");
+            }
         }
 
         _offset += _beltSpeed;
