@@ -71,19 +71,19 @@ internal struct BeltBuffer
         _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex);
     }
 
-    public void Clear(int beltIndex, int length)
-    {
-        int actualIndex = GetActualIndex(beltIndex);
-        Array.Clear(_buffer, actualIndex, length);
-        _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex + length - 1);
-    }
-
     public void Copy(int sourceBeltIndex, int destinationBeltIndex, int length)
     {
         int actualSourceIndex = GetActualIndex(sourceBeltIndex);
         int actualDestinationIndex = GetActualIndex(destinationBeltIndex);
         Array.Copy(_buffer, actualSourceIndex, _buffer, actualDestinationIndex, length);
         _updatedActualIndex = Math.Max(_updatedActualIndex, Math.Max(actualSourceIndex, actualDestinationIndex) + length - 1);
+    }
+
+    public void Clear(int beltIndex, int length)
+    {
+        int actualIndex = GetActualIndex(beltIndex);
+        Array.Clear(_buffer, actualIndex, length);
+        _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex + length - 1);
     }
 
     public void Update()
@@ -111,7 +111,7 @@ internal struct BeltBuffer
 
         _updatedActualIndex = -1;
 
-        int endMovePosition = _stoppedItemsActualIndex - 1;
+        int endMovePosition = _stoppedItemsActualIndex - _offset - 1;
         int movedCount = 0;
         while (movedCount < _beltSpeed)
         {
@@ -173,6 +173,8 @@ internal struct BeltBuffer
             return;
         }
 
+        // UpdateStoppedItems have cleared a space of _maxOffsetBeforeMove between _stoppedItemsActualIndex
+        // and the nearest item
         Array.Copy(_buffer, 0, _buffer, _maxOffsetBeforeMove, _stoppedItemsActualIndex - _maxOffsetBeforeMove);
         Array.Clear(_buffer, 0, _maxOffsetBeforeMove);
 
