@@ -52,13 +52,36 @@ internal struct BeltBuffer
         return CreateFromExistingBuffer(copyFrom, copyFrom.Length, 1, beltSpeed, offsetUpdatesPerMove);
     }
 
-    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLenth, int chunkCount, int beltSpeed, int offsetUpdatesPerMove)
+    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLength, int chunkCount, int beltSpeed)
+    {
+        if (chunkCount == 1)
+        {
+            const int minOffsetUpdatesPerMove = 10;
+            const float maxBufferLengthRelativeToTotalBufferLength = 0.1f;
+            int maxUpdatesForBeltLength = (int)(bufferLength * maxBufferLengthRelativeToTotalBufferLength) / beltSpeed;
+            int offsetUpdatesPerMove = Math.Max(minOffsetUpdatesPerMove, maxUpdatesForBeltLength);
+
+            int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
+            byte[] buffer = new byte[bufferLength + maxOffsetBeforeMove];
+            Array.Copy(copyFrom, 0, buffer, maxOffsetBeforeMove, bufferLength);
+
+            return new BeltBuffer(buffer, beltSpeed, 0, buffer.Length, maxOffsetBeforeMove); ;
+        }
+        else
+        {
+            byte[] buffer = copyFrom.ToArray();
+
+            return new BeltBuffer(buffer, 0, 0, buffer.Length, 0);
+        }
+    }
+
+    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLength, int chunkCount, int beltSpeed, int offsetUpdatesPerMove)
     {
         if (chunkCount == 1)
         {
             int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
-            byte[] buffer = new byte[bufferLenth + maxOffsetBeforeMove];
-            Array.Copy(copyFrom, 0, buffer, maxOffsetBeforeMove, bufferLenth);
+            byte[] buffer = new byte[bufferLength + maxOffsetBeforeMove];
+            Array.Copy(copyFrom, 0, buffer, maxOffsetBeforeMove, bufferLength);
 
             return new BeltBuffer(buffer, beltSpeed, 0, buffer.Length, maxOffsetBeforeMove); ;
         }
@@ -230,13 +253,16 @@ internal struct BeltBuffer
             return;
         }
 
+#if DEBUG
+// This checks to too expensive to run in game
         for (int i = _stoppedItemsActualIndex - 1; i >= _stoppedItemsActualIndex - 1 - _offset; i--)
         {
             if (_buffer[i] != 0)
             {
-                throw new InvalidOperationException("");
+                throw new InvalidOperationException($"{nameof(_offset)} number of items before {nameof(_stoppedItemsActualIndex)} were not empty after {nameof(UpdateStoppedItems)} had executed.");
             }
         }
+#endif
 
         _offset += _beltSpeed;
 
