@@ -1431,13 +1431,7 @@ internal struct OptimizedCargoPath
 
     private void SetCargo(int index, OptimizedCargo optimizedCargo)
     {
-        buffer.SetBufferValue(index + 0, 246);
-        buffer.SetBufferValue(index + 1, 247);
-        buffer.SetBufferValue(index + 2, 248);
-        buffer.SetBufferValue(index + 3, 249);
-        buffer.SetBufferValue(index + 4, 250);
-        SetCargoInBuffer(index + 5, optimizedCargo);
-        buffer.SetBufferValue(index + 9, byte.MaxValue);
+        buffer.SetCargoWithPadding(index, optimizedCargo);
     }
 
     private static OptimizedCargo AddItemStackToCargo(OptimizedCargo cargo, int itemId, int maxStack, ref int count, ref int inc)

@@ -103,6 +103,38 @@ internal struct BeltBuffer
         _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex);
     }
 
+    public void SetCargo(int beltIndex, OptimizedCargo optimizedCargo)
+    {
+        int actualIndex = GetActualIndex(beltIndex + 3);
+        _buffer[actualIndex - 3] = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
+        _buffer[actualIndex - 2] = (byte)((optimizedCargo.Item >> 7) + 1);
+        _buffer[actualIndex - 1] = (byte)(optimizedCargo.Stack + 1);
+        _buffer[actualIndex - 0] = (byte)(optimizedCargo.Inc + 1);
+    }
+
+    public void SetCargoWithPadding(int beltIndex, OptimizedCargo optimizedCargo)
+    {
+        int actualIndex = GetActualIndex(beltIndex + 9);
+        _buffer[actualIndex - 9] = 246;
+        _buffer[actualIndex - 8] = 247;
+        _buffer[actualIndex - 7] = 248;
+        _buffer[actualIndex - 6] = 249;
+        _buffer[actualIndex - 5] = 250;
+        _buffer[actualIndex - 4] = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
+        _buffer[actualIndex - 3] = (byte)((optimizedCargo.Item >> 7) + 1);
+        _buffer[actualIndex - 2] = (byte)(optimizedCargo.Stack + 1);
+        _buffer[actualIndex - 1] = (byte)(optimizedCargo.Inc + 1);
+        _buffer[actualIndex - 0] = byte.MaxValue;
+    }
+
+    public OptimizedCargo GetCargo(int beltIndex)
+    {
+        int actualIndex = GetActualIndex(beltIndex + 3);
+        return new OptimizedCargo((short)(_buffer[actualIndex - 3] - 1 + (_buffer[actualIndex - 2] - 1 << 7)),
+                                  (byte)(_buffer[actualIndex - 1] - 1),
+                                  (byte)(_buffer[actualIndex - 0] - 1));
+    }
+
     public void Copy(int sourceBeltIndex, int destinationBeltIndex, int length)
     {
         int actualSourceIndex = GetActualIndex(sourceBeltIndex);

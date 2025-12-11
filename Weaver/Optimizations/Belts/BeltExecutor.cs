@@ -189,17 +189,12 @@ internal sealed class BeltExecutor
 
     internal static void SetCargoInBuffer(ref BeltBuffer buffer, int bufferIndex, OptimizedCargo optimizedCargo)
     {
-        buffer.SetBufferValue(bufferIndex + 0, (byte)((optimizedCargo.Item & 0b0111_1111) + 1));
-        buffer.SetBufferValue(bufferIndex + 1, (byte)((optimizedCargo.Item >> 7) + 1));
-        buffer.SetBufferValue(bufferIndex + 2, (byte)(optimizedCargo.Stack + 1));
-        buffer.SetBufferValue(bufferIndex + 3, (byte)(optimizedCargo.Inc + 1));
+        buffer.SetCargo(bufferIndex, optimizedCargo);
     }
 
     internal static OptimizedCargo GetCargo(ref BeltBuffer buffer, int index)
     {
-        return new OptimizedCargo((short)(buffer.GetBufferValue(index) - 1 + (buffer.GetBufferValue(index + 1) - 1 << 7)),
-                                  (byte)(buffer.GetBufferValue(index + 2) - 1),
-                                  (byte)(buffer.GetBufferValue(index + 3) - 1));
+        return buffer.GetCargo(index);
     }
 
     internal static void SetCargoIndexInBufferDefaultGameWay(byte[] buffer, int bufferIndex, int cargoIndex)
