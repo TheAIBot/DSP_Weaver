@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Weaver.FatoryGraphs;
@@ -45,7 +44,7 @@ internal sealed class BeltExecutor
         foreach (KeyValuePair<CargoPath, BeltIndex> cargoPathWithOptimizedCargoPathIndex in _cargoPathToOptimizedCargoPathIndex)
         {
             ref OptimizedCargoPath optimizedCargoPath = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBelt(optimizedCargoPaths);
-            CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key.buffer, ref optimizedCargoPath, cargoContainer);
+            CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key, ref optimizedCargoPath, cargoContainer);
             optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key);
         }
     }
@@ -93,7 +92,7 @@ internal sealed class BeltExecutor
     /// </summary>
     private static BeltBuffer GetBufferWithUpdatedCargoIndexes(CargoPath cargoPath)
     {
-        BeltBuffer bufferCopy = BeltBuffer.CreateFromExistingBuffer(cargoPath.buffer, cargoPath.chunks[2]);
+        BeltBuffer bufferCopy = BeltBuffer.CreateFromExistingBuffer(cargoPath.buffer, cargoPath.bufferLength, cargoPath.chunkCount, cargoPath.chunks[2], 10);
 
         Cargo[] oldCargoPool = cargoPath.cargoContainer.cargoPool;
         int num = 5;
@@ -143,16 +142,16 @@ internal sealed class BeltExecutor
     /// <summary>
     /// Modified <see cref="GetBufferWithUpdatedCargoIndexes"/>
     /// </summary>
-    private static void CopyToBufferWithUpdatedCargoIndexes(byte[] bufferCopy, ref OptimizedCargoPath optimizedCargoPath, CargoContainer cargoContainer)
+    private static void CopyToBufferWithUpdatedCargoIndexes(CargoPath cargoPath, ref OptimizedCargoPath optimizedCargoPath, CargoContainer cargoContainer)
     {
-        if (bufferCopy.Length != optimizedCargoPath.buffer.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(bufferCopy), $"{nameof(bufferCopy)} did not have the same length as {nameof(optimizedCargoPath)}.{nameof(optimizedCargoPath.buffer)}.");
-        }
+        //if (bufferCopy.Length != optimizedCargoPath.buffer.Length)
+        //{
+        //    throw new ArgumentOutOfRangeException(nameof(bufferCopy), $"{nameof(bufferCopy)} did not have the same length as {nameof(optimizedCargoPath)}.{nameof(optimizedCargoPath.buffer)}.");
+        //}
         //Array.Copy(optimizedCargoPath.buffer, bufferCopy, optimizedCargoPath.buffer.Length);
-        for (int i = 0; i < bufferCopy.Length; i++)
+        for (int i = 0; i < cargoPath.bufferLength; i++)
         {
-            bufferCopy[i] = optimizedCargoPath.buffer.GetBufferValue(i);
+            cargoPath.buffer[i] = optimizedCargoPath.buffer.GetBufferValue(i);
         }
 
         int num = 5;
@@ -169,7 +168,7 @@ internal sealed class BeltExecutor
             {
                 OptimizedCargo oldCargo = GetCargo(ref optimizedCargoPath.buffer, num3 + 1);
                 int newCargoIndex = cargoContainer.AddCargo(oldCargo.Item, oldCargo.Stack, oldCargo.Inc);
-                SetCargoIndexInBufferDefaultGameWay(bufferCopy, num3 + 1, newCargoIndex);
+                SetCargoIndexInBufferDefaultGameWay(cargoPath.buffer, num3 + 1, newCargoIndex);
                 num3 += num2;
                 continue;
             }
@@ -179,7 +178,7 @@ internal sealed class BeltExecutor
 
                 OptimizedCargo oldCargo = GetCargo(ref optimizedCargoPath.buffer, num3 + 1);
                 int newCargoIndex = cargoContainer.AddCargo(oldCargo.Item, oldCargo.Stack, oldCargo.Inc);
-                SetCargoIndexInBufferDefaultGameWay(bufferCopy, num3 + 1, newCargoIndex);
+                SetCargoIndexInBufferDefaultGameWay(cargoPath.buffer, num3 + 1, newCargoIndex);
                 num3 += num2;
                 continue;
             }

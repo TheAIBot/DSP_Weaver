@@ -1323,6 +1323,14 @@ internal struct OptimizedCargoPath
             return;
         }
         lastUpdateFrameOdd = (GameMain.gameTick & 1) == 1;
+
+        if (chunkCount == 1)
+        {
+            buffer.Update();
+            return;
+        }
+
+
         int num5 = updateLen - 1;
         while (num5 >= 0 && buffer.GetBufferValue(num5) != 0)
         {
@@ -1331,12 +1339,6 @@ internal struct OptimizedCargoPath
         }
         if (updateLen == 0)
         {
-            return;
-        }
-
-        if (chunkCount == 1)
-        {
-            buffer.Update();
             return;
         }
 

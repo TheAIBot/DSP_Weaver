@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace Weaver.Optimizations.Belts;
 
@@ -48,34 +49,44 @@ internal struct BeltBuffer
 
     public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int beltSpeed, int offsetUpdatesPerMove)
     {
-        int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
-        var buffer = new byte[copyFrom.Length + maxOffsetBeforeMove];
-        Array.Copy(copyFrom, 0, buffer, maxOffsetBeforeMove, copyFrom.Length);
+        return CreateFromExistingBuffer(copyFrom, copyFrom.Length, 1, beltSpeed, offsetUpdatesPerMove);
+    }
 
-        int stoppedItemsActualIndex = buffer.Length;//  Array.LastIndexOf(buffer, (byte)0) + 1;
+    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLenth, int chunkCount, int beltSpeed, int offsetUpdatesPerMove)
+    {
+        if (chunkCount == 1)
+        {
+            int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
+            byte[] buffer = new byte[bufferLenth + maxOffsetBeforeMove];
+            Array.Copy(copyFrom, 0, buffer, maxOffsetBeforeMove, bufferLenth);
 
-        var beltBuffer = new BeltBuffer(buffer, beltSpeed, 0, stoppedItemsActualIndex, maxOffsetBeforeMove);
+            return new BeltBuffer(buffer, beltSpeed, 0, buffer.Length, maxOffsetBeforeMove); ;
+        }
+        else
+        {
+            byte[] buffer = copyFrom.ToArray();
 
-        return beltBuffer;
+            return new BeltBuffer(buffer, 0, 0, buffer.Length, 0);
+        }
     }
 
     public readonly byte GetBufferValue(int beltIndex)
     {
         int actualIndex = GetActualIndex(beltIndex);
-        if (actualIndex < 0 || actualIndex >= _buffer.Length)
-        {
-            throw new InvalidOperationException($"""
-                Index out of range.
-                Belt index: {beltIndex}
-                Actual index: {actualIndex}
-                Buffer length: {_buffer.Length}
-                Belt Speed: {_beltSpeed}
-                Max Offset: {_maxOffsetBeforeMove}
-                Offset: {_offset}
-                Updated actual index: {_updatedActualIndex}
-                Stopped item actual index: {_stoppedItemsActualIndex}
-                """);
-        }
+        //if (actualIndex < 0 || actualIndex >= _buffer.Length)
+        //{
+        //    throw new InvalidOperationException($"""
+        //        Index out of range.
+        //        Belt index: {beltIndex}
+        //        Actual index: {actualIndex}
+        //        Buffer length: {_buffer.Length}
+        //        Belt Speed: {_beltSpeed}
+        //        Max Offset: {_maxOffsetBeforeMove}
+        //        Offset: {_offset}
+        //        Updated actual index: {_updatedActualIndex}
+        //        Stopped item actual index: {_stoppedItemsActualIndex}
+        //        """);
+        //}
 
         return _buffer[actualIndex];
     }
@@ -84,6 +95,11 @@ internal struct BeltBuffer
     {
         int actualIndex = GetActualIndex(beltIndex);
         _buffer[actualIndex] = value;
+        if (value > 0)
+        {
+            return;
+        }
+
         _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex);
     }
 
