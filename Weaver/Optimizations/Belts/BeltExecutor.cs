@@ -46,6 +46,7 @@ internal sealed class BeltExecutor
             ref OptimizedCargoPath optimizedCargoPath = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBelt(optimizedCargoPaths);
             CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key, ref optimizedCargoPath, cargoContainer);
             optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key);
+            optimizedCargoPath.buffer.Free();
         }
     }
 
