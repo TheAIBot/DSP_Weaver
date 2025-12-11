@@ -237,12 +237,16 @@ internal struct BeltBuffer
             // This is because endMovePosition moves freeSpacesFound + itemsToMoveCount back on each partial move while 
             // _stoppedItemsActualIndex represents where the items should be moved to.
             Array.Copy(_buffer, endMovePosition - itemsToMoveCount - freeSpacesFound + 1, _buffer, _stoppedItemsActualIndex - itemsToMoveCount, itemsToMoveCount);
-            Array.Clear(_buffer, endMovePosition - itemsToMoveCount - freeSpacesFound + 1, movedCount + freeSpacesFound + _offset);
 
             endMovePosition -= freeSpacesFound;
             endMovePosition -= itemsToMoveCount;
             movedCount += freeSpacesFound;
             _stoppedItemsActualIndex -= itemsToMoveCount;
+        }
+
+        if (movedCount > 0)
+        {
+            Array.Clear(_buffer, _stoppedItemsActualIndex - movedCount - 1, movedCount);
         }
     }
 
