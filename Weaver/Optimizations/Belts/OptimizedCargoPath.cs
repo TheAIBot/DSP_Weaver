@@ -80,25 +80,10 @@ internal struct OptimizedCargoPath
         }
         if (num + 6 < bufferLength)
         {
-            if (buffer.GetBufferValue(++num) != 0)
+            int nonZeroValueIndex = buffer.GetIndexOfNonZeroValue(num + 1, 5);
+            if (nonZeroValueIndex != -1)
             {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
+                index = nonZeroValueIndex - 1 - 5;
             }
         }
         if (index < 4)
@@ -242,25 +227,10 @@ internal struct OptimizedCargoPath
         }
         if (num + 6 < bufferLength)
         {
-            if (buffer.GetBufferValue(++num) != 0)
+            int nonZeroValueIndex = buffer.GetIndexOfNonZeroValue(num + 1, 5);
+            if (nonZeroValueIndex != -1)
             {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
+                index = nonZeroValueIndex - 1 - 5;
             }
         }
         if (index < 4)
@@ -386,14 +356,14 @@ internal struct OptimizedCargoPath
         int num = index + 5;
         if (num >= 0 && num < bufferLength)
         {
-            int num2 = buffer.GetBufferValue(num);
+            int num2 = buffer.GetBufferValue(num, out int actualIndex);
             if (num2 > 0)
             {
-                int num3 = num;
-                num3 = num2 < 246 ? num3 + (246 - buffer.GetBufferValue(num - 4)) : num3 + (250 - num2);
-                OptimizedCargo optimizedCargo = GetCargo(num3 + 1);
+                int offset = num2 < 246 ? (246 - buffer.GetBufferValueFromActualIndex(actualIndex - 4)) : (250 - num2);
+                actualIndex += offset;
+                OptimizedCargo optimizedCargo = buffer.GetCargoFromActualIndex(actualIndex + 1);
                 optimizedCargo = AddItemStackToCargo(optimizedCargo, itemId, maxStack, ref count, ref inc);
-                SetCargoInBuffer(num3 + 1, optimizedCargo);
+                buffer.SetCargoFromActualIndex(actualIndex + 1, optimizedCargo);
             }
         }
         if (count == 0)
@@ -403,14 +373,14 @@ internal struct OptimizedCargoPath
         int num4 = index - 4;
         if (num4 >= 0 && num4 < bufferLength)
         {
-            int num5 = buffer.GetBufferValue(num4);
+            int num5 = buffer.GetBufferValue(num4, out int actualIndex);
             if (num5 > 0)
             {
-                int num6 = num4;
-                num6 = num5 < 246 ? num6 + (246 - buffer.GetBufferValue(num4 - 4)) : num6 + (250 - num5);
-                OptimizedCargo optimizedCargo = GetCargo(num6 + 1);
+                int offset = num5 < 246 ? (246 - buffer.GetBufferValueFromActualIndex(actualIndex - 4)) : (250 - num5);
+                actualIndex += offset;
+                OptimizedCargo optimizedCargo = buffer.GetCargoFromActualIndex(actualIndex + 1);
                 optimizedCargo = AddItemStackToCargo(optimizedCargo, itemId, maxStack, ref count, ref inc);
-                SetCargoInBuffer(num6 + 1, optimizedCargo);
+                buffer.SetCargoFromActualIndex(actualIndex + 1, optimizedCargo);
             }
         }
         if (count == 0)
@@ -440,25 +410,10 @@ internal struct OptimizedCargoPath
         }
         if (num + 6 < bufferLength)
         {
-            if (buffer.GetBufferValue(++num) != 0)
+            int nonZeroValueIndex = buffer.GetIndexOfNonZeroValue(num + 1, 5);
+            if (nonZeroValueIndex != -1)
             {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
-            }
-            else if (buffer.GetBufferValue(++num) != 0)
-            {
-                index = num - 1 - 5;
+                index = nonZeroValueIndex - 1 - 5;
             }
         }
         if (index < 4)
@@ -661,44 +616,42 @@ internal struct OptimizedCargoPath
         }
         int num = index - 4;
         int num2 = index + 5;
-        for (int i = num; i < num2; i++)
+        int nonZeroValueIndex = buffer.GetIndexOfNonZeroValue(num, num2 - num);
+        if (nonZeroValueIndex != -1)
         {
-            if (buffer.GetBufferValue(i) != 0)
-            {
-                return false;
-            }
+            return false;
         }
         InsertCargoDirect(index, optimizedCargo);
         return true;
     }
 
-    public void InsertCargoAtHeadDirect(OptimizedCargo optimizedCargo, int headIndex)
+    public readonly void InsertCargoAtHeadDirect(OptimizedCargo optimizedCargo, int headIndex)
     {
-        SetCargo(headIndex, optimizedCargo);
+        buffer.SetCargoWithPadding(headIndex, optimizedCargo);
     }
 
-    private void InsertCargoDirect(int index, OptimizedCargo optimizedCargo)
+    private readonly void InsertCargoDirect(int index, OptimizedCargo optimizedCargo)
     {
-        SetCargo(index - 4, optimizedCargo);
+        buffer.SetCargoWithPadding(index - 4, optimizedCargo);
     }
 
-    public void InsertItemDirect(int index, int itemId, byte stack, byte inc)
+    public readonly void InsertItemDirect(int index, int itemId, byte stack, byte inc)
     {
-        SetCargo(index - 4, new OptimizedCargo((short)itemId, stack, inc));
+        buffer.SetCargoWithPadding(index - 4, new OptimizedCargo((short)itemId, stack, inc));
     }
 
-    public bool TryInsertItemAtHead(int itemId, byte stack, byte inc)
+    public readonly bool TryInsertItemAtHead(int itemId, byte stack, byte inc)
     {
-        if (buffer.GetBufferValue(0) != 0 || buffer.GetBufferValue(9) != 0)
+        if (buffer.GetBufferValue(0, out int actualIndex) != 0 || buffer.GetBufferValue(9) != 0)
         {
             return false;
         }
 
-        SetCargo(0, new OptimizedCargo((short)itemId, stack, inc));
+        buffer.SetCargoWithPaddingFromActualIndex(actualIndex, new OptimizedCargo((short)itemId, stack, inc));
         return true;
     }
 
-    public bool TryInsertItemAtHeadAndFillBlank(int itemId, byte stack, byte inc)
+    public readonly bool TryInsertItemAtHeadAndFillBlank(int itemId, byte stack, byte inc)
     {
         int num = TestBlankAtHead();
         if (num < 0)
@@ -711,7 +664,7 @@ internal struct OptimizedCargoPath
             return false;
         }
 
-        SetCargo(num, new OptimizedCargo((short)itemId, stack, inc));
+        buffer.SetCargoWithPadding(num, new OptimizedCargo((short)itemId, stack, inc));
         return true;
     }
 
@@ -720,7 +673,7 @@ internal struct OptimizedCargoPath
         int num = TestBlankAtHead();
         if (num < 0)
         {
-            if (!TryGetCargoIdAtIndex(0, 10, out OptimizedCargo cargo, out int cargoBufferIndex))
+            if (!TryGetCargoIdAtIndex(0, 10, out OptimizedCargo cargo, out int actualCargoBufferIndex))
             {
                 return false;
             }
@@ -729,7 +682,7 @@ internal struct OptimizedCargoPath
             {
                 cargo.Stack += stack;
                 cargo.Inc += inc;
-                SetCargoInBuffer(cargoBufferIndex, cargo);
+                buffer.SetCargoFromActualIndex(actualCargoBufferIndex, cargo);
                 return true;
             }
             return false;
@@ -740,25 +693,25 @@ internal struct OptimizedCargoPath
             return false;
         }
 
-        SetCargo(num, new OptimizedCargo((short)itemId, stack, inc));
+        buffer.SetCargoWithPadding(num, new OptimizedCargo((short)itemId, stack, inc));
         return true;
     }
 
-    public OptimizedCargo QueryItemAtIndex(int index, out int cargoBufferIndex)
+    public OptimizedCargo QueryItemAtIndex(int index, out int actualCargoBufferIndex)
     {
         if (index < 0)
         {
-            cargoBufferIndex = -1;
+            actualCargoBufferIndex = -1;
             return default;
         }
         if (index >= bufferLength)
         {
-            cargoBufferIndex = -1;
+            actualCargoBufferIndex = -1;
             return default;
         }
         if (buffer.GetBufferValue(index) == 0)
         {
-            cargoBufferIndex = -1;
+            actualCargoBufferIndex = -1;
             return default;
         }
         int num = index + 10 - 1;
@@ -766,17 +719,15 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength - 1;
         }
-        for (int i = index; i <= num; i++)
+
+        if (buffer.TryGetCargoWithinRange(index, num - index, out OptimizedCargo optimizedCargo, out _, out int actualIndex))
         {
-            if (buffer.GetBufferValue(i) >= 246)
-            {
-                i += 250 - buffer.GetBufferValue(i);
-                cargoBufferIndex = i + 1;
-                return GetCargo(i + 1);
-            }
+            actualCargoBufferIndex = actualIndex + 1;
+            return optimizedCargo;
         }
+
         Assert.CannotBeReached();
-        cargoBufferIndex = -1;
+        actualCargoBufferIndex = -1;
         return default;
     }
 
@@ -799,20 +750,18 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength - 1;
         }
-        for (int i = index; i <= num; i++)
+
+        if (buffer.TryGetCargoWithinRange(index, num - index + 1, out _, out int beltIndex, out int actualIndex))
         {
-            if (buffer.GetBufferValue(i) >= 246)
+            buffer.ClearFromActualIndex(actualIndex - 4, 10);
+            int num2 = beltIndex + 5 + 1;
+            if (updateLen < num2)
             {
-                i += 250 - buffer.GetBufferValue(i);
-                buffer.Clear(i - 4, 10);
-                int num2 = i + 5 + 1;
-                if (updateLen < num2)
-                {
-                    updateLen = num2;
-                }
-                return true;
+                updateLen = num2;
             }
+            return true;
         }
+
         Assert.CannotBeReached();
         return false;
     }
@@ -832,21 +781,18 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength;
         }
-        for (int i = index; i < num; i++)
+
+        if (buffer.TryGetCargoWithinRange(index, num - index, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex))
         {
-            if (buffer.GetBufferValue(i) >= 246)
+            buffer.ClearFromActualIndex(actualIndex - 4, 10);
+            int num3 = beltIndex + 5 + 1;
+            if (updateLen < num3)
             {
-                i += 250 - buffer.GetBufferValue(i);
-                OptimizedCargo optimizedCargo = GetCargo(i + 1);
-                buffer.Clear(i - 4, 10);
-                int num3 = i + 5 + 1;
-                if (updateLen < num3)
-                {
-                    updateLen = num3;
-                }
-                return optimizedCargo;
+                updateLen = num3;
             }
+            return optimizedCargo;
         }
+
         return default;
     }
 
@@ -865,18 +811,13 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength;
         }
-        for (int i = index; i < num; i++)
+
+        if (buffer.TryGetCargoWithinRange(index, num - index, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex))
         {
-            if (buffer.GetBufferValue(i) < 246)
-            {
-                continue;
-            }
-            i += 250 - buffer.GetBufferValue(i);
-            OptimizedCargo optimizedCargo = GetCargo(i + 1);
             if (filter == 0 || optimizedCargo.Item == filter)
             {
-                buffer.Clear(i - 4, 10);
-                int num3 = i + 5 + 1;
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
+                int num3 = beltIndex + 5 + 1;
                 if (updateLen < num3)
                 {
                     updateLen = num3;
@@ -884,9 +825,6 @@ internal struct OptimizedCargoPath
                 cargo = optimizedCargo;
                 return true;
             }
-
-            cargo = default;
-            return false;
         }
 
         cargo = default;
@@ -908,27 +846,22 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength;
         }
-        for (int i = index; i < num; i++)
+
+        if (buffer.TryGetCargoWithinRange(index, num - index, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex))
         {
-            if (buffer.GetBufferValue(i) < 246)
-            {
-                continue;
-            }
-            i += 250 - buffer.GetBufferValue(i);
-            OptimizedCargo optimizedCargo = GetCargo(i + 1);
             int item = optimizedCargo.Item;
             if ((filter == 0 || item == filter) && (item == needs[0] || item == needs[1] || item == needs[2] || item == needs[3] || item == needs[4] || item == needs[5]))
             {
-                buffer.Clear(i - 4, 10);
-                int num3 = i + 5 + 1;
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
+                int num3 = beltIndex + 5 + 1;
                 if (updateLen < num3)
                 {
                     updateLen = num3;
                 }
                 return optimizedCargo;
             }
-            return default;
         }
+
         return default;
     }
 
@@ -947,19 +880,14 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength;
         }
-        for (int i = index; i < num; i++)
+
+        if (buffer.TryGetCargoWithinRange(index, num - index, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex))
         {
-            if (buffer.GetBufferValue(i) < 246)
-            {
-                continue;
-            }
-            i += 250 - buffer.GetBufferValue(i);
-            OptimizedCargo optimizedCargo = GetCargo(i + 1);
             int item = optimizedCargo.Item;
             if ((filter == 0 || item == filter) && (item == needs[0] || item == needs[1] || item == needs[2] || item == needs[3] || item == needs[4] || item == needs[5]))
             {
-                buffer.Clear(i - 4, 10);
-                int num3 = i + 5 + 1;
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
+                int num3 = beltIndex + 5 + 1;
                 if (updateLen < num3)
                 {
                     updateLen = num3;
@@ -967,9 +895,6 @@ internal struct OptimizedCargoPath
                 cargo = optimizedCargo;
                 return true;
             }
-
-            cargo = default;
-            return false;
         }
 
         cargo = default;
@@ -991,36 +916,31 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength;
         }
-        for (int i = index; i < num; i++)
+
+        if (buffer.TryGetCargoWithinRange(index, num - index, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex))
         {
-            if (buffer.GetBufferValue(i) < 246)
-            {
-                continue;
-            }
-            i += 250 - buffer.GetBufferValue(i);
-            OptimizedCargo optimizedCargo = GetCargo(i + 1);
             int item = optimizedCargo.Item;
             if ((filter == 0 || item == filter) && AnyMatch(componentNeeds, needsPatterns, needsSize, item))
             {
-                buffer.Clear(i - 4, 10);
-                int num3 = i + 5 + 1;
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
+                int num3 = beltIndex + 5 + 1;
                 if (updateLen < num3)
                 {
                     updateLen = num3;
                 }
                 return optimizedCargo;
             }
-            return default;
         }
+
         return default;
     }
 
     public void TryRemoveItemAtRear()
     {
         int num = bufferLength - 5 - 1;
-        if (buffer.GetBufferValue(num) == 250)
+        if (buffer.GetBufferValue(num, out int actualIndex) == 250)
         {
-            buffer.Clear(num - 4, 10);
+            buffer.ClearFromActualIndex(actualIndex - 4, 10);
             int num2 = num + 5 + 1;
             if (updateLen < num2)
             {
@@ -1040,73 +960,32 @@ internal struct OptimizedCargoPath
         {
             return 0;
         }
-        if (buffer.GetBufferValue(++num) != 0)
+
+        int indexOfNonZeroValue = buffer.GetIndexOfNonZeroValue(num + 1, 10);
+        if (indexOfNonZeroValue == -1)
         {
             return 0;
         }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 1;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 2;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 3;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 4;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 5;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 6;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 7;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 8;
-        }
-        if (buffer.GetBufferValue(++num) != 0)
-        {
-            return 9;
-        }
-        return 0;
+
+        return indexOfNonZeroValue - num - 1;
     }
 
     public bool TryGetCargoIdAtRear(out OptimizedCargo cargo)
     {
         int num = bufferLength - 5 - 1;
-        if (buffer.GetBufferValue(num) == 250)
-        {
-            cargo = GetCargo(num + 1);
-            return true;
-        }
-
-        cargo = default;
-        return false;
+        return buffer.TryGetCargo(num, out cargo);
     }
 
     public OptimizedCargo TryPickItemAtRear(int[] needs, out int needIdx)
     {
         needIdx = -1;
-        if (buffer.GetBufferValue(bufferLength - 5 - 1) == 250)
+        int num = bufferLength - 5 - 1;
+        if (buffer.TryGetCargo(num, out OptimizedCargo optimizedCargo, out int actualIndex))
         {
-            int num = bufferLength - 5 - 1;
-            OptimizedCargo optimizedCargo = GetCargo(num + 1);
             int item = optimizedCargo.Item;
             if (item == needs[0])
             {
-                buffer.Clear(num - 4, 10);
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
                 int num3 = num + 5 + 1;
                 if (updateLen < num3)
                 {
@@ -1117,7 +996,7 @@ internal struct OptimizedCargoPath
             }
             if (item == needs[1])
             {
-                buffer.Clear(num - 4, 10);
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
                 int num4 = num + 5 + 1;
                 if (updateLen < num4)
                 {
@@ -1128,7 +1007,7 @@ internal struct OptimizedCargoPath
             }
             if (item == needs[2])
             {
-                buffer.Clear(num - 4, 10);
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
                 int num5 = num + 5 + 1;
                 if (updateLen < num5)
                 {
@@ -1139,7 +1018,7 @@ internal struct OptimizedCargoPath
             }
             if (item == needs[3])
             {
-                buffer.Clear(num - 4, 10);
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
                 int num6 = num + 5 + 1;
                 if (updateLen < num6)
                 {
@@ -1150,7 +1029,7 @@ internal struct OptimizedCargoPath
             }
             if (item == needs[4])
             {
-                buffer.Clear(num - 4, 10);
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
                 int num7 = num + 5 + 1;
                 if (updateLen < num7)
                 {
@@ -1161,7 +1040,7 @@ internal struct OptimizedCargoPath
             }
             if (item == needs[5])
             {
-                buffer.Clear(num - 4, 10);
+                buffer.ClearFromActualIndex(actualIndex - 4, 10);
                 int num8 = num + 5 + 1;
                 if (updateLen < num8)
                 {
@@ -1177,16 +1056,14 @@ internal struct OptimizedCargoPath
     public bool TryPickCargoAtEnd(out OptimizedCargo cargo)
     {
         int num = bufferLength - 5 - 1;
-        if (buffer.GetBufferValue(num) == 250)
+        if (buffer.TryGetCargo(num, out cargo, out int actualIndex))
         {
-            OptimizedCargo optimizedCargo = GetCargo(num + 1);
-            buffer.Clear(num - 4, 10);
+            buffer.ClearFromActualIndex(actualIndex - 4, 10);
             int num2 = num + 5 + 1;
             if (updateLen < num2)
             {
                 updateLen = num2;
             }
-            cargo = optimizedCargo;
             return true;
         }
 
@@ -1220,10 +1097,9 @@ internal struct OptimizedCargoPath
                 }
             }
         }
-        if (num >= 0 && buffer.GetBufferValue(num) == 250)
+        if (num >= 0 && buffer.TryGetCargo(num, out cargo))
         {
             cargoBufferIndex = num + 1;
-            cargo = GetCargo(num + 1);
             offset = index - num + 4;
             return true;
         }
@@ -1232,7 +1108,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public bool TryGetCargoIdAtIndex(int index, int length, out OptimizedCargo cargo, out int cargoBufferIndex)
+    private bool TryGetCargoIdAtIndex(int index, int length, out OptimizedCargo cargo, out int actualCargoBufferIndex)
     {
         if (index < 0)
         {
@@ -1247,20 +1123,10 @@ internal struct OptimizedCargoPath
         {
             num = bufferLength;
         }
-        for (int i = index; i < num; i++)
-        {
-            if (buffer.GetBufferValue(i) >= 246)
-            {
-                i += 250 - buffer.GetBufferValue(i);
-                cargo = GetCargo(i + 1);
-                cargoBufferIndex = i + 1;
-                return true;
-            }
-        }
 
-        cargo = default;
-        cargoBufferIndex = -1;
-        return false;
+        bool foundCargo = buffer.TryGetCargoWithinRange(index, num - index, out cargo, out _, out int actualIndex);
+        actualCargoBufferIndex = actualIndex + 1;
+        return foundCargo;
     }
 
     public void Update(OptimizedCargoPath[] optimizedCargoPaths)
@@ -1300,20 +1166,20 @@ internal struct OptimizedCargoPath
                 num = outputCargoPath.chunks[outputChunk * 3 + 2];
             }
             int num4 = bufferLength - 5 - 1;
-            if (buffer.GetBufferValue(num4) == 250)
+            if (buffer.GetBufferValue(num4, out int actualIndex) == 250)
             {
-                OptimizedCargo optimizedCargo = GetCargo(num4 + 1);
+                OptimizedCargo optimizedCargo = buffer.GetCargoFromActualIndex(actualIndex + 1);
                 if (closed)
                 {
                     if (outputCargoPath.TryInsertCargoNoSqueeze(outputIndex, optimizedCargo))
                     {
-                        buffer.Clear(num4 - 4, 10);
+                        buffer.ClearFromActualIndex(actualIndex - 4, 10);
                         updateLen = bufferLength;
                     }
                 }
                 else if (outputCargoPath.TryInsertCargo(lastUpdateFrameOdd == outputCargoPath.lastUpdateFrameOdd ? outputIndex : outputIndex + num > outputCargoPath.bufferLength - 6 ? outputCargoPath.bufferLength - 6 : outputIndex + num, optimizedCargo))
                 {
-                    buffer.Clear(num4 - 4, 10);
+                    buffer.ClearFromActualIndex(actualIndex - 4, 10);
                     updateLen = bufferLength;
                 }
             }
@@ -1412,26 +1278,6 @@ internal struct OptimizedCargoPath
         }
 
         return false;
-    }
-
-    internal void SetCargoInBuffer(int bufferIndex, OptimizedCargo optimizedCargo)
-    {
-        SetCargoInBuffer(ref buffer, bufferIndex, optimizedCargo);
-    }
-
-    internal static void SetCargoInBuffer(ref BeltBuffer buffer, int bufferIndex, OptimizedCargo optimizedCargo)
-    {
-        BeltExecutor.SetCargoInBuffer(ref buffer, bufferIndex, optimizedCargo);
-    }
-
-    private OptimizedCargo GetCargo(int index)
-    {
-        return BeltExecutor.GetCargo(ref buffer, index);
-    }
-
-    private void SetCargo(int index, OptimizedCargo optimizedCargo)
-    {
-        buffer.SetCargoWithPadding(index, optimizedCargo);
     }
 
     private static OptimizedCargo AddItemStackToCargo(OptimizedCargo cargo, int itemId, int maxStack, ref int count, ref int inc)

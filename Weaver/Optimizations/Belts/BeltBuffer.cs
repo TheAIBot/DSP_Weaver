@@ -112,6 +112,17 @@ internal unsafe struct BeltBuffer
     public readonly byte GetBufferValue(int beltIndex)
     {
         int actualIndex = GetActualIndex(beltIndex);
+        return GetBufferValueFromActualIndex(actualIndex);
+    }
+
+    public readonly byte GetBufferValue(int beltIndex, out int actualIndex)
+    {
+        actualIndex = GetActualIndex(beltIndex);
+        return GetBufferValueFromActualIndex(actualIndex);
+    }
+
+    public readonly byte GetBufferValueFromActualIndex(int actualIndex)
+    {
         //if (actualIndex < 0 || actualIndex >= _buffer.Length)
         //{
         //    throw new InvalidOperationException($"""
@@ -130,6 +141,95 @@ internal unsafe struct BeltBuffer
         return _buffer[actualIndex];
     }
 
+    public bool TryGetCargo(int beltIndex, out OptimizedCargo optimizedCargo)
+    {
+        return TryGetCargo(beltIndex, out optimizedCargo, out _);
+    }
+
+    public bool TryGetCargo(int beltIndex, out OptimizedCargo optimizedCargo, out int actualIndex)
+    {
+        byte* buffer = _buffer;
+        actualIndex = GetActualIndex(beltIndex);
+        if (buffer[actualIndex] != 250)
+        {
+            optimizedCargo = default;
+            return false;
+        }
+
+        optimizedCargo = GetCargoFromActualIndex(actualIndex + 1);
+        return true;
+    }
+
+    public int GetIndexOfNonZeroValue(int beltStartIndex, int length)
+    {
+        if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length - 1))
+        {
+            byte* buffer = _buffer;
+            int actualIndex = GetActualIndex(beltStartIndex);
+            for (int i = 0; i < length; i++)
+            {
+                if (*(buffer + actualIndex + i) != 0)
+                {
+                    return beltStartIndex + i;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < length; i++)
+            {
+                if (GetBufferValue(beltStartIndex + i) != 0)
+                {
+                    return beltStartIndex + i;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    public bool TryGetCargoWithinRange(int beltStartIndex, int length, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex)
+    {
+        if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length - 1))
+        {
+            actualIndex = GetActualIndex(beltStartIndex);
+            for (int i = 0; i < length; i++)
+            {
+                int bufferValue = GetBufferValueFromActualIndex(actualIndex + i);
+                if (bufferValue >= 246)
+                {
+                    int offset = 250 - bufferValue;
+                    beltIndex = beltStartIndex + i + offset;
+                    actualIndex = actualIndex + i + offset;
+                    optimizedCargo = GetCargoFromActualIndex(actualIndex + 1);
+
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            for (int i = beltStartIndex; i < beltStartIndex + length; i++)
+            {
+                int bufferValue = GetBufferValue(i, out actualIndex);
+                if (bufferValue >= 246)
+                {
+                    int offset = 250 - bufferValue;
+                    beltIndex = i + offset;
+                    actualIndex += offset;
+                    optimizedCargo = GetCargoFromActualIndex(actualIndex + 1);
+
+                    return true;
+                }
+            }
+        }
+
+        optimizedCargo = default;
+        beltIndex = -1;
+        actualIndex = -1;
+        return false;
+    }
+
     public void SetBufferValue(int beltIndex, byte value)
     {
         int actualIndex = GetActualIndex(beltIndex);
@@ -142,39 +242,54 @@ internal unsafe struct BeltBuffer
         _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex);
     }
 
-    public void SetCargo(int beltIndex, OptimizedCargo optimizedCargo)
+    public readonly void SetCargo(int beltIndex, OptimizedCargo optimizedCargo)
     {
-        int actualIndex = GetActualIndex(beltIndex + 3);
-        byte* buffer = _buffer;
-        *(buffer + actualIndex - 3) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
-        *(buffer + actualIndex - 2) = (byte)((optimizedCargo.Item >> 7) + 1);
-        *(buffer + actualIndex - 1) = (byte)(optimizedCargo.Stack + 1);
-        *(buffer + actualIndex - 0) = (byte)(optimizedCargo.Inc + 1);
+        int actualIndex = GetActualIndex(beltIndex);
+        SetCargoFromActualIndex(actualIndex, optimizedCargo);
     }
 
-    public void SetCargoWithPadding(int beltIndex, OptimizedCargo optimizedCargo)
+    public readonly void SetCargoFromActualIndex(int actualIndex, OptimizedCargo optimizedCargo)
     {
-        int actualIndex = GetActualIndex(beltIndex + 9);
         byte* buffer = _buffer;
-        *(buffer + actualIndex - 9) = 246;
-        *(buffer + actualIndex - 8) = 247;
-        *(buffer + actualIndex - 7) = 248;
-        *(buffer + actualIndex - 6) = 249;
-        *(buffer + actualIndex - 5) = 250;
-        *(buffer + actualIndex - 4) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
-        *(buffer + actualIndex - 3) = (byte)((optimizedCargo.Item >> 7) + 1);
-        *(buffer + actualIndex - 2) = (byte)(optimizedCargo.Stack + 1);
-        *(buffer + actualIndex - 1) = (byte)(optimizedCargo.Inc + 1);
-        *(buffer + actualIndex - 0) = byte.MaxValue;
+        *(buffer + actualIndex + 0) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
+        *(buffer + actualIndex + 1) = (byte)((optimizedCargo.Item >> 7) + 1);
+        *(buffer + actualIndex + 2) = (byte)(optimizedCargo.Stack + 1);
+        *(buffer + actualIndex + 3) = (byte)(optimizedCargo.Inc + 1);
+    }
+
+    public readonly void SetCargoWithPadding(int beltIndex, OptimizedCargo optimizedCargo)
+    {
+        int actualIndex = GetActualIndex(beltIndex);
+        SetCargoWithPaddingFromActualIndex(actualIndex, optimizedCargo);
+    }
+
+    public readonly void SetCargoWithPaddingFromActualIndex(int actualIndex, OptimizedCargo optimizedCargo)
+    {
+        byte* buffer = _buffer;
+        *(buffer + actualIndex + 0) = 246;
+        *(buffer + actualIndex + 1) = 247;
+        *(buffer + actualIndex + 2) = 248;
+        *(buffer + actualIndex + 3) = 249;
+        *(buffer + actualIndex + 4) = 250;
+        *(buffer + actualIndex + 5) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
+        *(buffer + actualIndex + 6) = (byte)((optimizedCargo.Item >> 7) + 1);
+        *(buffer + actualIndex + 7) = (byte)(optimizedCargo.Stack + 1);
+        *(buffer + actualIndex + 8) = (byte)(optimizedCargo.Inc + 1);
+        *(buffer + actualIndex + 9) = byte.MaxValue;
     }
 
     public OptimizedCargo GetCargo(int beltIndex)
     {
-        int actualIndex = GetActualIndex(beltIndex + 3);
+        int actualIndex = GetActualIndex(beltIndex);
+        return GetCargoFromActualIndex(actualIndex);
+    }
+
+    public OptimizedCargo GetCargoFromActualIndex(int actualIndex)
+    {
         byte* buffer = _buffer;
-        return new OptimizedCargo((short)(*(buffer + actualIndex - 3) - 1 + (*(buffer + actualIndex - 2) - 1 << 7)),
-                                  (byte)(*(buffer + actualIndex - 1) - 1),
-                                  (byte)(*(buffer + actualIndex - 0) - 1));
+        return new OptimizedCargo((short)(*(buffer + actualIndex + 0) - 1 + (*(buffer + actualIndex + 1) - 1 << 7)),
+                                  (byte)(*(buffer + actualIndex + 2) - 1),
+                                  (byte)(*(buffer + actualIndex + 3) - 1));
     }
 
     public void Copy(int sourceBeltIndex, int destinationBeltIndex, int length)
@@ -188,6 +303,11 @@ internal unsafe struct BeltBuffer
     public void Clear(int beltIndex, int length)
     {
         int actualIndex = GetActualIndex(beltIndex);
+        ClearFromActualIndex(actualIndex, length);
+    }
+
+    public void ClearFromActualIndex(int actualIndex, int length)
+    {
         Clear(_buffer, actualIndex, length);
         _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex + length - 1);
     }
@@ -309,7 +429,7 @@ internal unsafe struct BeltBuffer
         _offset = _beltSpeed;
     }
 
-    private readonly int GetActualIndex(int beltIndex)
+    public readonly int GetActualIndex(int beltIndex)
     {
         if (IsInStoppedRegion(beltIndex))
         {
