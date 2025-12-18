@@ -156,7 +156,7 @@ internal unsafe struct BeltBuffer
             return false;
         }
 
-        optimizedCargo = GetCargoFromActualIndex(actualIndex + 1);
+        GetCargoFromActualIndex(actualIndex + 1, out optimizedCargo);
         return true;
     }
 
@@ -201,7 +201,7 @@ internal unsafe struct BeltBuffer
                     int offset = 250 - bufferValue;
                     beltIndex = beltStartIndex + i + offset;
                     actualIndex = actualIndex + i + offset;
-                    optimizedCargo = GetCargoFromActualIndex(actualIndex + 1);
+                    GetCargoFromActualIndex(actualIndex + 1, out optimizedCargo);
 
                     return true;
                 }
@@ -217,7 +217,7 @@ internal unsafe struct BeltBuffer
                     int offset = 250 - bufferValue;
                     beltIndex = i + offset;
                     actualIndex += offset;
-                    optimizedCargo = GetCargoFromActualIndex(actualIndex + 1);
+                    GetCargoFromActualIndex(actualIndex + 1, out optimizedCargo);
 
                     return true;
                 }
@@ -250,11 +250,11 @@ internal unsafe struct BeltBuffer
 
     public readonly void SetCargoFromActualIndex(int actualIndex, OptimizedCargo optimizedCargo)
     {
-        byte* buffer = _buffer;
-        *(buffer + actualIndex + 0) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
-        *(buffer + actualIndex + 1) = (byte)((optimizedCargo.Item >> 7) + 1);
-        *(buffer + actualIndex + 2) = (byte)(optimizedCargo.Stack + 1);
-        *(buffer + actualIndex + 3) = (byte)(optimizedCargo.Inc + 1);
+        byte* buffer = _buffer + actualIndex;
+        *(buffer + 0) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
+        *(buffer + 1) = (byte)((optimizedCargo.Item >> 7) + 1);
+        *(buffer + 2) = (byte)(optimizedCargo.Stack + 1);
+        *(buffer + 3) = (byte)(optimizedCargo.Inc + 1);
     }
 
     public readonly void SetCargoWithPadding(int beltIndex, OptimizedCargo optimizedCargo)
@@ -265,31 +265,31 @@ internal unsafe struct BeltBuffer
 
     public readonly void SetCargoWithPaddingFromActualIndex(int actualIndex, OptimizedCargo optimizedCargo)
     {
-        byte* buffer = _buffer;
-        *(buffer + actualIndex + 0) = 246;
-        *(buffer + actualIndex + 1) = 247;
-        *(buffer + actualIndex + 2) = 248;
-        *(buffer + actualIndex + 3) = 249;
-        *(buffer + actualIndex + 4) = 250;
-        *(buffer + actualIndex + 5) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
-        *(buffer + actualIndex + 6) = (byte)((optimizedCargo.Item >> 7) + 1);
-        *(buffer + actualIndex + 7) = (byte)(optimizedCargo.Stack + 1);
-        *(buffer + actualIndex + 8) = (byte)(optimizedCargo.Inc + 1);
-        *(buffer + actualIndex + 9) = byte.MaxValue;
+        byte* buffer = _buffer + actualIndex;
+        *(buffer + 0) = 246;
+        *(buffer + 1) = 247;
+        *(buffer + 2) = 248;
+        *(buffer + 3) = 249;
+        *(buffer + 4) = 250;
+        *(buffer + 5) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
+        *(buffer + 6) = (byte)((optimizedCargo.Item >> 7) + 1);
+        *(buffer + 7) = (byte)(optimizedCargo.Stack + 1);
+        *(buffer + 8) = (byte)(optimizedCargo.Inc + 1);
+        *(buffer + 9) = byte.MaxValue;
     }
 
-    public OptimizedCargo GetCargo(int beltIndex)
+    public readonly void GetCargo(int beltIndex, out OptimizedCargo optimizedCargo)
     {
         int actualIndex = GetActualIndex(beltIndex);
-        return GetCargoFromActualIndex(actualIndex);
+        GetCargoFromActualIndex(actualIndex, out optimizedCargo);
     }
 
-    public OptimizedCargo GetCargoFromActualIndex(int actualIndex)
+    public readonly void GetCargoFromActualIndex(int actualIndex, out OptimizedCargo optimizedCargo)
     {
-        byte* buffer = _buffer;
-        return new OptimizedCargo((short)(*(buffer + actualIndex + 0) - 1 + (*(buffer + actualIndex + 1) - 1 << 7)),
-                                  (byte)(*(buffer + actualIndex + 2) - 1),
-                                  (byte)(*(buffer + actualIndex + 3) - 1));
+        byte* buffer = _buffer + actualIndex;
+        optimizedCargo = new OptimizedCargo((short)(*(buffer + 0) - 1 + (*(buffer + 1) - 1 << 7)),
+                                            (byte)(*(buffer + 2) - 1),
+                                            (byte)(*(buffer + 3) - 1));
     }
 
     public void Copy(int sourceBeltIndex, int destinationBeltIndex, int length)

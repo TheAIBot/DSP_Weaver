@@ -167,7 +167,7 @@ internal sealed class BeltExecutor
             }
             if (optimizedCargoPath.buffer.GetBufferValue(num3) == 250)
             {
-                OptimizedCargo oldCargo = GetCargo(ref optimizedCargoPath.buffer, num3 + 1);
+                GetCargo(ref optimizedCargoPath.buffer, num3 + 1, out OptimizedCargo oldCargo);
                 int newCargoIndex = cargoContainer.AddCargo(oldCargo.Item, oldCargo.Stack, oldCargo.Inc);
                 SetCargoIndexInBufferDefaultGameWay(cargoPath.buffer, num3 + 1, newCargoIndex);
                 num3 += num2;
@@ -177,7 +177,7 @@ internal sealed class BeltExecutor
             {
                 num3 += 250 - optimizedCargoPath.buffer.GetBufferValue(num3);
 
-                OptimizedCargo oldCargo = GetCargo(ref optimizedCargoPath.buffer, num3 + 1);
+                GetCargo(ref optimizedCargoPath.buffer, num3 + 1, out OptimizedCargo oldCargo);
                 int newCargoIndex = cargoContainer.AddCargo(oldCargo.Item, oldCargo.Stack, oldCargo.Inc);
                 SetCargoIndexInBufferDefaultGameWay(cargoPath.buffer, num3 + 1, newCargoIndex);
                 num3 += num2;
@@ -193,9 +193,9 @@ internal sealed class BeltExecutor
         buffer.SetCargo(bufferIndex, optimizedCargo);
     }
 
-    internal static OptimizedCargo GetCargo(ref BeltBuffer buffer, int index)
+    internal static void GetCargo(ref BeltBuffer buffer, int index, out OptimizedCargo optimizedCargo)
     {
-        return buffer.GetCargo(index);
+        buffer.GetCargo(index, out optimizedCargo);
     }
 
     internal static void SetCargoIndexInBufferDefaultGameWay(byte[] buffer, int bufferIndex, int cargoIndex)

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,7 +8,6 @@ using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Ejectors;
 using Weaver.Optimizations.Inserters.Types;
 using Weaver.Optimizations.Labs;
-using Weaver.Optimizations.Labs.Producing;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.PowerSystems.Generators;
@@ -365,7 +363,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                     return optimizedCargo.Item;
                 }
                 {
-                    OptimizedCargo optimizedCargo = pickFromBelt.TryPickItem(offset - 2, 5);
+                    pickFromBelt.TryPickItem(offset - 2, 5, out OptimizedCargo optimizedCargo);
                     stack = optimizedCargo.Stack;
                     inc = optimizedCargo.Inc;
                     return optimizedCargo.Item;
@@ -378,7 +376,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
                 short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
-                OptimizedCargo optimizedCargo = pickFromBelt.TryPickItem(offset - 2, 5, filter, componentNeeds, needsPatterns, needsSize);
+                pickFromBelt.TryPickItem(offset - 2, 5, filter, componentNeeds, needsPatterns, needsSize, out OptimizedCargo optimizedCargo);
                 stack = optimizedCargo.Stack;
                 inc = optimizedCargo.Inc;
                 return optimizedCargo.Item;
