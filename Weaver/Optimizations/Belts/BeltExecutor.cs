@@ -66,6 +66,18 @@ internal sealed class BeltExecutor
                 continue;
             }
 
+            if (cargoPath.chunkCount > 1)
+            {
+                WeaverFixes.Logger.LogMessage($"Chunk count: {cargoPath.chunkCount}");
+                for (int i = 0; i < cargoPath.chunkCount; i++)
+                {
+                    WeaverFixes.Logger.LogMessage($"\tChunk: {i}");
+                    WeaverFixes.Logger.LogMessage($"\t\tBegin: {cargoPath.chunks[i * 3 + 0]:N0}");
+                    WeaverFixes.Logger.LogMessage($"\t\tLength: {cargoPath.chunks[i * 3 + 1]:N0}");
+                    WeaverFixes.Logger.LogMessage($"\t\tSpeed: {cargoPath.chunks[i * 3 + 2]:N0}");
+                }
+            }
+
             BeltBuffer updatedBuffer = GetBufferWithUpdatedCargoIndexes(cargoPath);
             var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath, universeStaticDataBuilder);
             cargoPathToOptimizedCargoPath.Add(cargoPath, new BeltIndex(optimizedCargoPaths.Count));

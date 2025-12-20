@@ -141,12 +141,12 @@ internal unsafe struct BeltBuffer
         return _buffer[actualIndex];
     }
 
-    public bool TryGetCargo(int beltIndex, out OptimizedCargo optimizedCargo)
+    public readonly bool TryGetCargo(int beltIndex, out OptimizedCargo optimizedCargo)
     {
         return TryGetCargo(beltIndex, out optimizedCargo, out _);
     }
 
-    public bool TryGetCargo(int beltIndex, out OptimizedCargo optimizedCargo, out int actualIndex)
+    public readonly bool TryGetCargo(int beltIndex, out OptimizedCargo optimizedCargo, out int actualIndex)
     {
         byte* buffer = _buffer;
         actualIndex = GetActualIndex(beltIndex);
@@ -160,7 +160,7 @@ internal unsafe struct BeltBuffer
         return true;
     }
 
-    public int GetIndexOfNonZeroValue(int beltStartIndex, int length)
+    public readonly int GetIndexOfNonZeroValue(int beltStartIndex, int length)
     {
         if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length - 1))
         {
@@ -188,7 +188,7 @@ internal unsafe struct BeltBuffer
         return -1;
     }
 
-    public bool TryGetCargoWithinRange(int beltStartIndex, int length, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex)
+    public readonly bool TryGetCargoWithinRange(int beltStartIndex, int length, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex)
     {
         if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length - 1))
         {
@@ -230,6 +230,42 @@ internal unsafe struct BeltBuffer
         return false;
     }
 
+    public readonly bool TryFindIndexOfFirstPreviousZeroValue(ref int index, ref int num, int num2)
+    {
+        int beltStartIndex = num2 + 1;
+        int length = index - num2;
+        if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length))
+        {
+            int actualIndex = GetActualIndex(num);
+            while (index > num2)
+            {
+                if (GetBufferValueFromActualIndex(actualIndex) != 0)
+                {
+                    index--;
+                    num--;
+                    actualIndex--;
+                    continue;
+                }
+                return true;
+            }
+        }
+        else
+        {
+            while (index > num2)
+            {
+                if (GetBufferValue(num) != 0)
+                {
+                    index--;
+                    num--;
+                    continue;
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void SetBufferValue(int beltIndex, byte value)
     {
         int actualIndex = GetActualIndex(beltIndex);
@@ -260,10 +296,16 @@ internal unsafe struct BeltBuffer
     public readonly void SetCargoWithPadding(int beltIndex, OptimizedCargo optimizedCargo)
     {
         int actualIndex = GetActualIndex(beltIndex);
-        SetCargoWithPaddingFromActualIndex(actualIndex, optimizedCargo);
+        SetCargoWithPaddingFromActualIndex(actualIndex, optimizedCargo.Item, optimizedCargo.Stack, optimizedCargo.Inc);
     }
 
-    public readonly void SetCargoWithPaddingFromActualIndex(int actualIndex, OptimizedCargo optimizedCargo)
+    public readonly void SetCargoWithPadding(int beltIndex, int itemId, byte stack, byte inc)
+    {
+        int actualIndex = GetActualIndex(beltIndex);
+        SetCargoWithPaddingFromActualIndex(actualIndex, itemId, stack, inc);
+    }
+
+    public readonly void SetCargoWithPaddingFromActualIndex(int actualIndex, int itemId, byte stack, byte inc)
     {
         byte* buffer = _buffer + actualIndex;
         *(buffer + 0) = 246;
@@ -271,10 +313,10 @@ internal unsafe struct BeltBuffer
         *(buffer + 2) = 248;
         *(buffer + 3) = 249;
         *(buffer + 4) = 250;
-        *(buffer + 5) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
-        *(buffer + 6) = (byte)((optimizedCargo.Item >> 7) + 1);
-        *(buffer + 7) = (byte)(optimizedCargo.Stack + 1);
-        *(buffer + 8) = (byte)(optimizedCargo.Inc + 1);
+        *(buffer + 5) = (byte)((itemId & 0b0111_1111) + 1);
+        *(buffer + 6) = (byte)((itemId >> 7) + 1);
+        *(buffer + 7) = (byte)(stack + 1);
+        *(buffer + 8) = (byte)(inc + 1);
         *(buffer + 9) = byte.MaxValue;
     }
 

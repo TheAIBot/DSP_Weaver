@@ -50,153 +50,6 @@ internal struct OptimizedCargoPath
         outputCargoPathIndex = cargoPathIndex;
     }
 
-    public bool TryInsertCargo(int index, OptimizedCargo optimizedCargo)
-    {
-        int num = index + 5;
-        int num2 = index - 5;
-        if (index < 4)
-        {
-            return false;
-        }
-        if (num >= bufferLength)
-        {
-            return false;
-        }
-        bool flag = false;
-        while (index > num2)
-        {
-            if (buffer.GetBufferValue(num) != 0)
-            {
-                index--;
-                num--;
-                continue;
-            }
-            flag = true;
-            break;
-        }
-        if (!flag)
-        {
-            return false;
-        }
-        if (num + 6 < bufferLength)
-        {
-            int nonZeroValueIndex = buffer.GetIndexOfNonZeroValue(num + 1, 5);
-            if (nonZeroValueIndex != -1)
-            {
-                index = nonZeroValueIndex - 1 - 5;
-            }
-        }
-        if (index < 4)
-        {
-            return false;
-        }
-        int num3 = index + 5;
-        int num4 = 0;
-        int num5 = 0;
-        bool flag2 = false;
-        bool flag3 = false;
-        int num6 = num3;
-        while (num6 >= num3 - 2880 && num6 >= 0)
-        {
-            if (buffer.GetBufferValue(num6) == 0)
-            {
-                num5++;
-                if (!flag2)
-                {
-                    num4++;
-                }
-                if (num4 == 10 && (!closed || num6 >= 10))
-                {
-                    InsertCargoDirect(index, optimizedCargo);
-                    return true;
-                }
-                if (num5 == 10 && (!closed || num6 >= 10))
-                {
-                    flag3 = true;
-                    break;
-                }
-            }
-            else
-            {
-                flag2 = true;
-                if (num4 < 1)
-                {
-                    return false;
-                }
-                if (buffer.GetBufferValue(num6) == byte.MaxValue)
-                {
-                    num6 -= 9;
-                }
-            }
-            num6--;
-        }
-        if (closed && !flag3 && num5 >= 10 && num5 < 20 && num3 < 2880)
-        {
-            num5 -= 10;
-            if (num4 > 10)
-            {
-                num4 = 10;
-            }
-            int num7 = bufferLength - 1;
-            while (num7 > num3 && num7 > bufferLength + num3 - 2880)
-            {
-                if (buffer.GetBufferValue(num7) == 0)
-                {
-                    num5++;
-                }
-                else if (buffer.GetBufferValue(num7) == byte.MaxValue)
-                {
-                    num7 -= 9;
-                }
-                if (num5 >= 10)
-                {
-                    if (num4 == 10)
-                    {
-                        InsertCargoDirect(index, optimizedCargo);
-                        return true;
-                    }
-                    flag3 = true;
-                    break;
-                }
-                num7--;
-            }
-        }
-        if (flag3)
-        {
-            int num8 = 10 - num4;
-            int num9 = num3 - num4 + 1;
-            int num10 = index - 4;
-            while (num10 >= num3 - 2880 && num10 >= 0)
-            {
-                if (buffer.GetBufferValue(num10) == 246)
-                {
-                    int num11 = 0;
-                    int num12 = num10 - 1;
-                    while (num12 >= num3 - 2880 && num12 >= 0 && num11 < num8 && buffer.GetBufferValue(num12) == 0)
-                    {
-                        num11++;
-                        num12--;
-                    }
-                    if (num11 > 0)
-                    {
-                        buffer.Copy(num10, num10 - num11, num9 - num10);
-                        num8 -= num11;
-                        num9 -= num11;
-                        num10 -= num11;
-                    }
-                }
-                num10--;
-            }
-            if (num8 == 0)
-            {
-                InsertCargoDirect(index, optimizedCargo);
-                return true;
-            }
-            Assert.CannotBeReached("断言失败：插入货物逻辑有误");
-        }
-        return false;
-    }
-
     public bool TryInsertItem(int index, int itemId, byte stack, byte inc)
     {
         int num = index + 5;
@@ -209,19 +62,7 @@ internal struct OptimizedCargoPath
         {
             return false;
         }
-        bool flag = false;
-        while (index > num2)
-        {
-            if (buffer.GetBufferValue(num) != 0)
-            {
-                index--;
-                num--;
-                continue;
-            }
-            flag = true;
-            break;
-        }
-        if (!flag)
+        if (!buffer.TryFindIndexOfFirstPreviousZeroValue(ref index, ref num, num2))
         {
             return false;
         }
@@ -239,9 +80,9 @@ internal struct OptimizedCargoPath
         }
         int num3 = index + 5;
         int num4 = index - 4;
-        if (buffer.GetBufferValue(num4) == 0 && (!closed || num4 >= 10))
+        if (buffer.GetBufferValue(num4, out int actualIndex) == 0 && (!closed || num4 >= 10))
         {
-            InsertItemDirect(index, itemId, stack, inc);
+            buffer.SetCargoWithPaddingFromActualIndex(actualIndex, itemId, stack, inc);
             return true;
         }
         int num5 = num3 - 2880;
@@ -264,7 +105,7 @@ internal struct OptimizedCargoPath
                 }
                 if (num6 == 10 && (!closed || num8 >= 10))
                 {
-                    InsertItemDirect(index, itemId, stack, inc);
+                    buffer.SetCargoWithPadding(index - 4, itemId, stack, inc);
                     return true;
                 }
                 if (num7 == 10 && (!closed || num8 >= 10))
@@ -308,7 +149,7 @@ internal struct OptimizedCargoPath
                 {
                     if (num6 == 10)
                     {
-                        InsertItemDirect(index, itemId, stack, inc);
+                        buffer.SetCargoWithPadding(index - 4, itemId, stack, inc);
                         return true;
                     }
                     flag3 = true;
@@ -343,7 +184,7 @@ internal struct OptimizedCargoPath
             }
             if (num10 == 0)
             {
-                InsertItemDirect(index, itemId, stack, inc);
+                buffer.SetCargoWithPadding(index - 4, itemId, stack, inc);
                 return true;
             }
             Assert.CannotBeReached("断言失败：插入货物逻辑有误");
@@ -392,19 +233,7 @@ internal struct OptimizedCargoPath
         {
             return;
         }
-        bool flag = false;
-        while (index > num7)
-        {
-            if (buffer.GetBufferValue(num) != 0)
-            {
-                index--;
-                num--;
-                continue;
-            }
-            flag = true;
-            break;
-        }
-        if (!flag)
+        if (!buffer.TryFindIndexOfFirstPreviousZeroValue(ref index, ref num, num7))
         {
             return;
         }
@@ -422,7 +251,7 @@ internal struct OptimizedCargoPath
         }
         int num8 = index + 5;
         int num9 = index - 4;
-        if (buffer.GetBufferValue(num9) == 0 && (!closed || num9 >= 10))
+        if (buffer.GetBufferValue(num9, out int actualIndex2) == 0 && (!closed || num9 >= 10))
         {
             int num10 = count;
             int num11 = inc;
@@ -441,7 +270,7 @@ internal struct OptimizedCargoPath
                 count = 0;
                 inc = 0;
             }
-            InsertItemDirect(index, itemId, (byte)num10, (byte)num11);
+            buffer.SetCargoWithPaddingFromActualIndex(actualIndex2, itemId, (byte)num10, (byte)num11);
             return;
         }
         int num13 = num8 - 2880;
@@ -481,7 +310,7 @@ internal struct OptimizedCargoPath
                         count = 0;
                         inc = 0;
                     }
-                    InsertItemDirect(index, itemId, (byte)num17, (byte)num18);
+                    buffer.SetCargoWithPadding(index - 4, itemId, (byte)num17, (byte)num18);
                     return;
                 }
                 if (num15 == 10 && (!closed || num16 >= 10))
@@ -542,7 +371,7 @@ internal struct OptimizedCargoPath
                             count = 0;
                             inc = 0;
                         }
-                        InsertItemDirect(index, itemId, (byte)num21, (byte)num22);
+                        buffer.SetCargoWithPadding(index - 4, itemId, (byte)num21, (byte)num22);
                         return;
                     }
                     flag3 = true;
@@ -596,7 +425,7 @@ internal struct OptimizedCargoPath
                 count = 0;
                 inc = 0;
             }
-            InsertItemDirect(index, itemId, (byte)num29, (byte)num30);
+            buffer.SetCargoWithPadding(index - 4, itemId, (byte)num29, (byte)num30);
         }
         else
         {
@@ -604,7 +433,7 @@ internal struct OptimizedCargoPath
         }
     }
 
-    public bool TryInsertCargoNoSqueeze(int index, OptimizedCargo optimizedCargo)
+    public readonly bool TryInsertCargoNoSqueeze(int index, OptimizedCargo optimizedCargo)
     {
         if (index < 4 || index + 5 >= bufferLength)
         {
@@ -621,23 +450,13 @@ internal struct OptimizedCargoPath
         {
             return false;
         }
-        InsertCargoDirect(index, optimizedCargo);
+        buffer.SetCargoWithPadding(index - 4, optimizedCargo);
         return true;
     }
 
     public readonly void InsertCargoAtHeadDirect(OptimizedCargo optimizedCargo, int headIndex)
     {
         buffer.SetCargoWithPadding(headIndex, optimizedCargo);
-    }
-
-    private readonly void InsertCargoDirect(int index, OptimizedCargo optimizedCargo)
-    {
-        buffer.SetCargoWithPadding(index - 4, optimizedCargo);
-    }
-
-    public readonly void InsertItemDirect(int index, int itemId, byte stack, byte inc)
-    {
-        buffer.SetCargoWithPadding(index - 4, new OptimizedCargo((short)itemId, stack, inc));
     }
 
     public readonly bool TryInsertItemAtHead(int itemId, byte stack, byte inc)
@@ -647,7 +466,7 @@ internal struct OptimizedCargoPath
             return false;
         }
 
-        buffer.SetCargoWithPaddingFromActualIndex(actualIndex, new OptimizedCargo((short)itemId, stack, inc));
+        buffer.SetCargoWithPaddingFromActualIndex(actualIndex, itemId, stack, inc);
         return true;
     }
 
@@ -664,11 +483,11 @@ internal struct OptimizedCargoPath
             return false;
         }
 
-        buffer.SetCargoWithPadding(num, new OptimizedCargo((short)itemId, stack, inc));
+        buffer.SetCargoWithPadding(num, itemId, stack, inc);
         return true;
     }
 
-    public bool TryUpdateItemAtHeadAndFillBlank(int itemId, int maxStack, byte stack, byte inc)
+    public readonly bool TryUpdateItemAtHeadAndFillBlank(int itemId, int maxStack, byte stack, byte inc)
     {
         int num = TestBlankAtHead();
         if (num < 0)
@@ -693,11 +512,11 @@ internal struct OptimizedCargoPath
             return false;
         }
 
-        buffer.SetCargoWithPadding(num, new OptimizedCargo((short)itemId, stack, inc));
+        buffer.SetCargoWithPadding(num, itemId, stack, inc);
         return true;
     }
 
-    public bool QueryItemAtIndex(int index, out OptimizedCargo optimizedCargo, out int actualCargoBufferIndex)
+    public readonly bool QueryItemAtIndex(int index, out OptimizedCargo optimizedCargo, out int actualCargoBufferIndex)
     {
         if (index < 0)
         {
@@ -918,6 +737,17 @@ internal struct OptimizedCargoPath
         }
     }
 
+    /// <summary>
+    /// This method return -1 if there is an item in the first 10 fields.
+    /// If there is no item in the first 10 fields but one in the first 20
+    /// then it return the index to insert the item at so it's placed right behind the
+    /// found item. Essentially an item can be placed forward so there is no holes in the
+    /// item spacing.
+    /// 
+    /// Return -1 if the first 10 fields are not empty.
+    /// Returns 0 if there is no items in the first 20 fields.
+    /// Returns "index - 10" of the closest non 0 field within the first 20.
+    /// </summary>
     public readonly int TestBlankAtHead()
     {
         int num = 9;
@@ -939,7 +769,7 @@ internal struct OptimizedCargoPath
         return indexOfNonZeroValue - num - 1;
     }
 
-    public bool TryGetCargoIdAtRear(out OptimizedCargo cargo)
+    public readonly bool TryGetCargoIdAtRear(out OptimizedCargo cargo)
     {
         int num = bufferLength - 5 - 1;
         return buffer.TryGetCargo(num, out cargo);
@@ -1040,7 +870,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public bool GetCargoAtIndex(int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
+    public readonly bool GetCargoAtIndex(int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
     {
         cargo = new OptimizedCargo(0, 1, 0);
         offset = -1;
@@ -1077,7 +907,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    private bool TryGetCargoIdAtIndex(int index, int length, out OptimizedCargo cargo, out int actualCargoBufferIndex)
+    private readonly bool TryGetCargoIdAtIndex(int index, int length, out OptimizedCargo cargo, out int actualCargoBufferIndex)
     {
         if (index < 0)
         {
@@ -1146,7 +976,10 @@ internal struct OptimizedCargoPath
                         updateLen = bufferLength;
                     }
                 }
-                else if (outputCargoPath.TryInsertCargo(lastUpdateFrameOdd == outputCargoPath.lastUpdateFrameOdd ? outputIndex : outputIndex + num > outputCargoPath.bufferLength - 6 ? outputCargoPath.bufferLength - 6 : outputIndex + num, optimizedCargo))
+                else if (outputCargoPath.TryInsertItem(lastUpdateFrameOdd == outputCargoPath.lastUpdateFrameOdd ? outputIndex : outputIndex + num > outputCargoPath.bufferLength - 6 ? outputCargoPath.bufferLength - 6 : outputIndex + num,
+                                                       optimizedCargo.Item,
+                                                       optimizedCargo.Stack,
+                                                       optimizedCargo.Inc))
                 {
                     buffer.ClearFromActualIndex(actualIndex - 4, 10);
                     updateLen = bufferLength;
