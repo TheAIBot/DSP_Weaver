@@ -29,12 +29,12 @@ internal sealed class BeltExecutor
         return true;
     }
 
-    public void GameTick()
+    public void GameTick(long time)
     {
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
         for (int i = 0; i < optimizedCargoPaths.Length; i++)
         {
-            optimizedCargoPaths[i].Update(optimizedCargoPaths);
+            optimizedCargoPaths[i].Update(optimizedCargoPaths, time);
         }
     }
 

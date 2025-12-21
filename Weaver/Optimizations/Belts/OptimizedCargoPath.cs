@@ -863,7 +863,7 @@ internal struct OptimizedCargoPath
         return foundCargo;
     }
 
-    public void Update(OptimizedCargoPath[] optimizedCargoPaths)
+    public void Update(OptimizedCargoPath[] optimizedCargoPaths, long time)
     {
         if (outputCargoPathIndex.HasValue)
         {
@@ -923,7 +923,7 @@ internal struct OptimizedCargoPath
         {
             return;
         }
-        lastUpdateFrameOdd = (GameMain.gameTick & 1) == 1;
+        lastUpdateFrameOdd = (time & 1) == 1;
 
         buffer.Update(chunkCount, chunks);
     }
