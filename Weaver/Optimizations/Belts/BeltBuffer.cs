@@ -396,61 +396,91 @@ internal unsafe struct BeltBuffer
             }
             else
             {
-                while (buffer[chunkEndActualIndex] != 0 && buffer[chunkEndActualIndex] != 255)
+                // An item may start at the end of this chunk and cross over onto the next chunk.
+                // This here ensures that the entirety of the last items is moved.
+                while (buffer[chunkEndActualIndex] != 0 && buffer[chunkEndActualIndex] != CargoPath.kCargoRear)
                 {
                     chunkEndActualIndex++;
                 }
             }
             int chunkUpdateLength = chunkEndActualIndex - chunkStartActualIndex + 1;
 
-            int startSearchEmptySpacesActualIndex = chunkStartActualIndex - 1;
-            int searchActualIndex = startSearchEmptySpacesActualIndex;
             int emptySpacesFound = 0;
-            int nonEmptySpacesFound = 0;
-            while (searchActualIndex >= 0)
-            {
-                if (buffer[searchActualIndex] != 0)
-                {
-                    nonEmptySpacesFound++;
-                    searchActualIndex--;
-                    continue;
-                }
 
-                emptySpacesFound++;
-                if (emptySpacesFound == speedDifference)
+            // Attempt to find the free spaces required to move the chunk back
+            // by checking forward in the chunk.
+            bool foundAllRequiredFreeSpaces = true;
+            for (int x = 0; x < speedDifference; x++)
+            {
+                if (buffer[chunkStartActualIndex] != 0)
                 {
+                    foundAllRequiredFreeSpaces = false;
                     break;
                 }
 
-                searchActualIndex--;
+                chunkStartActualIndex++;
             }
 
-            if (nonEmptySpacesFound > 0)
+            // If the free spaces could not be found by looking forward in the chunk then
+            // the free spaces must be found in the previous spaces. If any items are found
+            // before all free spaces are found then those items will have to be moved back
+            // As well. If the items on the backwards belts are slower then they would've
+            // been moved as well by this method so only items on a faster chunk than the
+            // current chunk would be able to stay close to items in this chunk. Those
+            // faster moving items will collide and be slowed down by the items moving in
+            // the slow chunk. This is why it makes sense to move items in the backwards
+            // belts.
+            if (!foundAllRequiredFreeSpaces)
             {
-                int copyToActualIndex = searchActualIndex;
-                int copyFromActualIndex = copyToActualIndex;
-                int targetIndex = startSearchEmptySpacesActualIndex - emptySpacesFound;
-                while (copyToActualIndex < targetIndex)
+                int startBackwardsSearchEmptySpacesActualIndex = chunkStartActualIndex - 1;
+                int backwardsSearchActualIndex = startBackwardsSearchEmptySpacesActualIndex;
+
+                int nonEmptySpacesFound = 0;
+                while (backwardsSearchActualIndex >= 0)
                 {
-
-                    while (buffer[copyFromActualIndex] == 0 && copyFromActualIndex <= startSearchEmptySpacesActualIndex)
+                    if (buffer[backwardsSearchActualIndex] != 0)
                     {
-                        copyFromActualIndex++;
+                        nonEmptySpacesFound++;
+                        backwardsSearchActualIndex--;
+                        continue;
                     }
 
-                    int copyLength = 0;
-                    while (buffer[copyFromActualIndex + copyLength] != 0 && copyFromActualIndex + copyLength <= startSearchEmptySpacesActualIndex)
+                    emptySpacesFound++;
+                    if (emptySpacesFound == speedDifference)
                     {
-                        copyLength++;
+                        break;
                     }
 
-                    MemoryMove(buffer,
-                               copyFromActualIndex,
-                               buffer,
-                               copyToActualIndex,
-                               copyLength);
-                    copyToActualIndex += copyLength;
-                    copyFromActualIndex += copyLength;
+                    backwardsSearchActualIndex--;
+                }
+
+                if (nonEmptySpacesFound > 0)
+                {
+                    int copyToActualIndex = backwardsSearchActualIndex;
+                    int copyFromActualIndex = copyToActualIndex;
+                    int targetIndex = startBackwardsSearchEmptySpacesActualIndex - emptySpacesFound;
+                    while (copyToActualIndex < targetIndex)
+                    {
+
+                        while (buffer[copyFromActualIndex] == 0 && copyFromActualIndex <= startBackwardsSearchEmptySpacesActualIndex)
+                        {
+                            copyFromActualIndex++;
+                        }
+
+                        int copyLength = 0;
+                        while (buffer[copyFromActualIndex + copyLength] != 0 && copyFromActualIndex + copyLength <= startBackwardsSearchEmptySpacesActualIndex)
+                        {
+                            copyLength++;
+                        }
+
+                        MemoryMove(buffer,
+                                   copyFromActualIndex,
+                                   buffer,
+                                   copyToActualIndex,
+                                   copyLength);
+                        copyToActualIndex += copyLength;
+                        copyFromActualIndex += copyLength;
+                    }
                 }
             }
 
