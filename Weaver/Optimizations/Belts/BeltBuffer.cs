@@ -143,7 +143,7 @@ internal unsafe struct BeltBuffer
         return -1;
     }
 
-    public readonly bool TryGetCargoWithinRange(int beltStartIndex, int length, out OptimizedCargo optimizedCargo, out int beltIndex, out int actualIndex)
+    public readonly bool TryGetCargoWithinRange(int beltStartIndex, int length, out OptimizedCargo optimizedCargo, out int actualIndex)
     {
         if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length - 1))
         {
@@ -154,7 +154,6 @@ internal unsafe struct BeltBuffer
                 if (bufferValue >= 246)
                 {
                     int offset = 250 - bufferValue;
-                    beltIndex = beltStartIndex + i + offset;
                     actualIndex = actualIndex + i + offset;
                     GetCargoFromActualIndex(actualIndex + 1, out optimizedCargo);
 
@@ -170,7 +169,6 @@ internal unsafe struct BeltBuffer
                 if (bufferValue >= 246)
                 {
                     int offset = 250 - bufferValue;
-                    beltIndex = i + offset;
                     actualIndex += offset;
                     GetCargoFromActualIndex(actualIndex + 1, out optimizedCargo);
 
@@ -180,7 +178,6 @@ internal unsafe struct BeltBuffer
         }
 
         optimizedCargo = default;
-        beltIndex = -1;
         actualIndex = -1;
         return false;
     }
