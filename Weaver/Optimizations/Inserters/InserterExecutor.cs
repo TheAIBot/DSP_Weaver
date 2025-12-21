@@ -357,13 +357,13 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             {
                 if (filter != 0)
                 {
-                    pickFromBelt.TryPickItem(offset - 2, 5, filter, out OptimizedCargo optimizedCargo);
+                    pickFromBelt.TryPickItemWithoutBoundsChecks(offset, 5, filter, out OptimizedCargo optimizedCargo);
                     stack = optimizedCargo.Stack;
                     inc = optimizedCargo.Inc;
                     return optimizedCargo.Item;
                 }
                 {
-                    pickFromBelt.TryPickItem(offset - 2, 5, out OptimizedCargo optimizedCargo);
+                    pickFromBelt.TryPickItemWithoutBoundsChecks(offset, 5, out OptimizedCargo optimizedCargo);
                     stack = optimizedCargo.Stack;
                     inc = optimizedCargo.Inc;
                     return optimizedCargo.Item;
@@ -376,7 +376,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
                 short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
-                pickFromBelt.TryPickItem(offset - 2, 5, filter, componentNeeds, needsPatterns, needsSize, out OptimizedCargo optimizedCargo);
+                pickFromBelt.TryPickItemWithoutBoundsChecks(offset, 5, filter, componentNeeds, needsPatterns, needsSize, out OptimizedCargo optimizedCargo);
                 stack = optimizedCargo.Stack;
                 inc = optimizedCargo.Inc;
                 return optimizedCargo.Item;
@@ -912,10 +912,17 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 BeltComponent belt = planet.cargoTraffic.beltPool[pickFrom.Index];
                 if (beltExecutor.TryGetOptimizedCargoPathIndex(planet, pickFrom.Index, out BeltIndex pickFromBeltIndex))
                 {
-                    pickFromOffset = GetCorrectedPickOffset(inserter.pickOffset, ref belt, in pickFromBeltIndex.GetBelt(beltExecutor.OptimizedCargoPaths));
+                    ref readonly OptimizedCargoPath optimizedCargoPath = ref pickFromBeltIndex.GetBelt(beltExecutor.OptimizedCargoPaths);
+                    pickFromOffset = GetCorrectedPickOffset(inserter.pickOffset, ref belt, in optimizedCargoPath);
+                    pickFromOffset += belt.pivotOnPath;
+                    pickFromOffset = PrecomputeBeltOffset(pickFromOffset, in pickFromBeltIndex.GetBelt(beltExecutor.OptimizedCargoPaths));
+
                     pickFrom = new TypedObjectIndex(pickFrom.EntityType, pickFromBeltIndex.GetIndex());
                 }
-                pickFromOffset += belt.pivotOnPath;
+                else
+                {
+                    pickFromOffset += belt.pivotOnPath;
+                }
             }
             else if (pickFrom.EntityType == EntityType.FuelPowerGenerator)
             {
@@ -1025,5 +1032,20 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             num4 = cargoPath.pathLength - 5 - 1;
         }
         return (short)(num4 - num3);
+    }
+
+    private static int PrecomputeBeltOffset(int pickOffset, ref readonly OptimizedCargoPath optimizedCargoPath)
+    {
+        pickOffset -= 2;
+        if (pickOffset < 0)
+        {
+            pickOffset = 0;
+        }
+        else if (pickOffset >= optimizedCargoPath.bufferLength)
+        {
+            pickOffset = optimizedCargoPath.bufferLength - 1;
+        }
+
+        return pickOffset;
     }
 }

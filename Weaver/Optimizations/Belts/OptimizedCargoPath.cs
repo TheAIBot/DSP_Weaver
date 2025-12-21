@@ -590,6 +590,12 @@ internal struct OptimizedCargoPath
         {
             index = bufferLength - 1;
         }
+
+        TryPickItem(index, length, out optimizedCargo);
+    }
+
+    public void TryPickItemWithoutBoundsChecks(int index, int length, out OptimizedCargo optimizedCargo)
+    {
         int num = index + length;
         if (num > bufferLength)
         {
@@ -615,6 +621,12 @@ internal struct OptimizedCargoPath
         {
             index = bufferLength - 1;
         }
+
+        return TryPickItemWithoutBoundsChecks(index, length, filter, out cargo);
+    }
+
+    public bool TryPickItemWithoutBoundsChecks(int index, int length, int filter, out OptimizedCargo cargo)
+    {
         int num = index + length;
         if (num > bufferLength)
         {
@@ -665,16 +677,8 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public void TryPickItem(int index, int length, int filter, ComponentNeeds componentNeeds, short[] needsPatterns, int needsSize, out OptimizedCargo optimizedCargo)
+    public void TryPickItemWithoutBoundsChecks(int index, int length, int filter, ComponentNeeds componentNeeds, short[] needsPatterns, int needsSize, out OptimizedCargo optimizedCargo)
     {
-        if (index < 0)
-        {
-            index = 0;
-        }
-        else if (index >= bufferLength)
-        {
-            index = bufferLength - 1;
-        }
         int num = index + length;
         if (num > bufferLength)
         {
