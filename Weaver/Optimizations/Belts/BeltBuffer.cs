@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Belts;
 
@@ -47,66 +48,20 @@ internal unsafe struct BeltBuffer
 
     public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int beltSpeed, int offsetUpdatesPerMove)
     {
-        return CreateFromExistingBuffer(copyFrom, copyFrom.Length, 1, beltSpeed, offsetUpdatesPerMove);
+        return CreateFromExistingBuffer(copyFrom, copyFrom.Length, beltSpeed, offsetUpdatesPerMove);
     }
 
-    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLength, int chunkCount, int beltSpeed)
+    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLength, int beltSpeed, int offsetUpdatesPerMove)
     {
-        if (chunkCount == 1)
+        int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
+        byte* buffer = (byte*)Marshal.AllocCoTaskMem(bufferLength + maxOffsetBeforeMove);
+        Clear(buffer, 0, bufferLength + maxOffsetBeforeMove);
+        for (int i = 0; i < bufferLength; i++)
         {
-            const int minOffsetUpdatesPerMove = 10;
-            const float maxBufferLengthRelativeToTotalBufferLength = 0.1f;
-            int maxUpdatesForBeltLength = (int)(bufferLength * maxBufferLengthRelativeToTotalBufferLength) / beltSpeed;
-            int offsetUpdatesPerMove = Math.Max(minOffsetUpdatesPerMove, maxUpdatesForBeltLength);
-
-            int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
-            byte* buffer = (byte*)Marshal.AllocCoTaskMem(bufferLength + maxOffsetBeforeMove);
-            Clear(buffer, 0, bufferLength + maxOffsetBeforeMove);
-            for (int i = 0; i < bufferLength; i++)
-            {
-                *(buffer + i + maxOffsetBeforeMove) = copyFrom[i];
-            }
-
-            return new BeltBuffer(buffer, beltSpeed, 0, bufferLength + maxOffsetBeforeMove, maxOffsetBeforeMove); ;
+            *(buffer + i + maxOffsetBeforeMove) = copyFrom[i];
         }
-        else
-        {
-            byte* buffer = (byte*)Marshal.AllocCoTaskMem(copyFrom.Length);
-            Clear(buffer, 0, copyFrom.Length);
-            for (int i = 0; i < bufferLength; i++)
-            {
-                *(buffer + i) = copyFrom[i];
-            }
 
-            return new BeltBuffer(buffer, 0, 0, copyFrom.Length, 0);
-        }
-    }
-
-    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLength, int chunkCount, int beltSpeed, int offsetUpdatesPerMove)
-    {
-        if (chunkCount == 1)
-        {
-            int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
-            byte* buffer = (byte*)Marshal.AllocCoTaskMem(bufferLength + maxOffsetBeforeMove);
-            Clear(buffer, 0, bufferLength + maxOffsetBeforeMove);
-            for (int i = 0; i < bufferLength; i++)
-            {
-                *(buffer + i + maxOffsetBeforeMove) = copyFrom[i];
-            }
-
-            return new BeltBuffer(buffer, beltSpeed, 0, bufferLength + maxOffsetBeforeMove, maxOffsetBeforeMove); ;
-        }
-        else
-        {
-            byte* buffer = (byte*)Marshal.AllocCoTaskMem(copyFrom.Length);
-            Clear(buffer, 0, copyFrom.Length);
-            for (int i = 0; i < bufferLength; i++)
-            {
-                *(buffer + i) = copyFrom[i];
-            }
-
-            return new BeltBuffer(buffer, 0, 0, copyFrom.Length, 0);
-        }
+        return new BeltBuffer(buffer, beltSpeed, 0, bufferLength + maxOffsetBeforeMove, maxOffsetBeforeMove);
     }
 
     public readonly byte GetBufferValue(int beltIndex)
@@ -356,6 +311,14 @@ internal unsafe struct BeltBuffer
 
     public void Update()
     {
+
+        UpdateStoppedItems();
+        MoveItemsAndResetOffset();
+    }
+
+    public void Update(int chunkCount, ReadonlyArray<int> chunks)
+    {
+        MoveItemsOnBeltsWithLowerSpeed(chunkCount, chunks);
         UpdateStoppedItems();
         MoveItemsAndResetOffset();
     }
@@ -363,6 +326,140 @@ internal unsafe struct BeltBuffer
     public void Free()
     {
         Marshal.FreeCoTaskMem(new IntPtr(_buffer));
+    }
+
+    /// <summary>
+    /// The speed of belts is not necessarily the same
+    /// in a belt buffer. The speed of different belts are represented
+    /// as belt chunks.
+    /// Chunks are ordered from lowest to highest start index.
+    /// Chunks can't overlap.
+    /// 
+    /// Changing the offset will "move" all items in the buffer at the
+    /// same speed. This method moves items in chunks with a lower speed
+    /// so items on those chunks move at the correct speed.
+    /// </summary>
+    private void MoveItemsOnBeltsWithLowerSpeed(int chunkCount, ReadonlyArray<int> chunks)
+    {
+        if (chunkCount == 1)
+        {
+            return;
+        }
+
+        /*
+        Speed: 5,  5,  5,  5,  5,  5,  5,  2,  2,  2,  2
+        Items: 0,  0,  0,  1,  1,  1,  0,  1,  1,  1,  0
+        Index: 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10
+
+        |
+        Move items on slower belt back
+        |
+        v
+
+        Speed: 5,  5,  2,  2,  2,  2,  2,  2,  2,  2,  2
+        Items: 0,  1,  1,  1,  1,  1,  1,  0,  0,  0,  0
+        Index: 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10
+
+        |
+        Update offset(Done in another method)
+        |
+        v
+
+        Speed: 5,  5,  2,  2,  2,  2,  2,  2,  2,  2,  2
+        Items: 0,  1,  1,  1,  1,  1,  1,  0,  0,  0,  0
+        Index: 5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15
+         */
+
+        byte* buffer = _buffer;
+        for (int i = 0; i < chunkCount; i++)
+        {
+            int chunkStartIndex = chunks[i * 3];
+            int chunkLength = chunks[i * 3 + 1];
+            int chunkSpeed = chunks[i * 3 + 2];
+
+            if (chunkSpeed == _beltSpeed)
+            {
+                continue;
+            }
+
+            // No need to move items if all items on the belt are stopped
+            int chunkStartActualIndex = chunkStartIndex + _maxOffsetBeforeMove - _offset;
+            if (chunkStartActualIndex >= _stoppedItemsActualIndex)
+            {
+                break;
+            }
+
+            int speedDifference = _beltSpeed - chunkSpeed;
+            int chunkEndActualIndex = chunkStartActualIndex + chunkLength - 1;
+            // Stopped items are not moving forward and should therefore not be
+            // moved back to compensate for the offset being too high.
+            if (chunkEndActualIndex >= _stoppedItemsActualIndex)
+            {
+                chunkEndActualIndex = _stoppedItemsActualIndex - 1;
+            }
+            else
+            {
+                while (buffer[chunkEndActualIndex] != 0 && buffer[chunkEndActualIndex] != 255)
+                {
+                    chunkEndActualIndex++;
+                }
+            }
+            int chunkUpdateLength = chunkEndActualIndex - chunkStartActualIndex + 1;
+
+            int startSearchEmptySpacesActualIndex = chunkStartActualIndex - 1;
+            int searchActualIndex = startSearchEmptySpacesActualIndex;
+            int emptySpacesFound = 0;
+            int nonEmptySpacesFound = 0;
+            while (searchActualIndex >= 0)
+            {
+                if (buffer[searchActualIndex] != 0)
+                {
+                    nonEmptySpacesFound++;
+                    searchActualIndex--;
+                    continue;
+                }
+
+                emptySpacesFound++;
+                if (emptySpacesFound == speedDifference)
+                {
+                    break;
+                }
+
+                searchActualIndex--;
+            }
+
+            if (nonEmptySpacesFound > 0)
+            {
+                int copyToActualIndex = searchActualIndex;
+                int copyFromActualIndex = copyToActualIndex;
+                int targetIndex = startSearchEmptySpacesActualIndex - emptySpacesFound;
+                while (copyToActualIndex < targetIndex)
+                {
+
+                    while (buffer[copyFromActualIndex] == 0 && copyFromActualIndex <= startSearchEmptySpacesActualIndex)
+                    {
+                        copyFromActualIndex++;
+                    }
+
+                    int copyLength = 0;
+                    while (buffer[copyFromActualIndex + copyLength] != 0 && copyFromActualIndex + copyLength <= startSearchEmptySpacesActualIndex)
+                    {
+                        copyLength++;
+                    }
+
+                    MemoryMove(buffer,
+                               copyFromActualIndex,
+                               buffer,
+                               copyToActualIndex,
+                               copyLength);
+                    copyToActualIndex += copyLength;
+                    copyFromActualIndex += copyLength;
+                }
+            }
+
+            MemoryMove(buffer, chunkStartActualIndex, buffer, chunkStartActualIndex - emptySpacesFound, chunkUpdateLength);
+            ClearFromActualIndex(chunkStartActualIndex - emptySpacesFound + chunkUpdateLength, emptySpacesFound);
+        }
     }
 
     private void UpdateStoppedItems()

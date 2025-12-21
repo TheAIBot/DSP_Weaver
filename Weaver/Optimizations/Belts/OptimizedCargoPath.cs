@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.StaticData;
 
@@ -992,81 +991,7 @@ internal struct OptimizedCargoPath
         }
         lastUpdateFrameOdd = (GameMain.gameTick & 1) == 1;
 
-        if (chunkCount == 1)
-        {
-            buffer.Update();
-            return;
-        }
-
-
-        int num5 = updateLen - 1;
-        while (num5 >= 0 && buffer.GetBufferValue(num5) != 0)
-        {
-            updateLen--;
-            num5--;
-        }
-        if (updateLen == 0)
-        {
-            return;
-        }
-
-        int maxIndexToUpdate = updateLen;
-        for (int chunkIndex = chunkCount - 1; chunkIndex >= 0; chunkIndex--)
-        {
-            int chunkStartIndex = chunks[chunkIndex * 3];
-            int chunkSpeed = chunks[chunkIndex * 3 + 2];
-            if (chunkStartIndex < maxIndexToUpdate)
-            {
-                if (buffer.GetBufferValue(chunkStartIndex) != 0)
-                {
-                    for (int i = chunkStartIndex - 5; i < chunkStartIndex + 4; i++)
-                    {
-                        if (i >= 0 && buffer.GetBufferValue(i) == 250)
-                        {
-                            chunkStartIndex = i >= chunkStartIndex ? i - 4 : i + 5 + 1;
-                            break;
-                        }
-                    }
-                }
-                int num10 = 0;
-                while (num10 < chunkSpeed)
-                {
-                    int chunkMaxUpdateLength = maxIndexToUpdate - chunkStartIndex;
-                    if (chunkMaxUpdateLength < 10)
-                    {
-                        num10 = Math.Min(chunkSpeed, chunkMaxUpdateLength);
-                        break;
-                    }
-                    int distanceToMoveItems = 0;
-                    for (int j = 0; j < chunkSpeed - num10; j++)
-                    {
-                        int num13 = maxIndexToUpdate - 1 - j;
-                        if (buffer.GetBufferValue(num13) != 0)
-                        {
-                            break;
-                        }
-                        distanceToMoveItems++;
-                    }
-                    if (distanceToMoveItems > 0)
-                    {
-                        buffer.Copy(chunkStartIndex, chunkStartIndex + distanceToMoveItems, chunkMaxUpdateLength - distanceToMoveItems);
-                        buffer.Clear(chunkStartIndex, distanceToMoveItems);
-                        num10 += distanceToMoveItems;
-                    }
-                    int num14 = maxIndexToUpdate - 1;
-                    while (num14 >= 0 && buffer.GetBufferValue(num14) != 0)
-                    {
-                        maxIndexToUpdate--;
-                        num14--;
-                    }
-                }
-                int num15 = chunkStartIndex + (num10 == 0 ? 1 : num10);
-                if (maxIndexToUpdate > num15)
-                {
-                    maxIndexToUpdate = num15;
-                }
-            }
-        }
+        buffer.Update(chunkCount, chunks);
     }
 
     private static bool AnyMatch(ComponentNeeds componentNeeds, short[] needsPatterns, int needsSize, int match)

@@ -100,12 +100,28 @@ internal sealed class BeltExecutor
         _cargoPathToOptimizedCargoPathIndex = cargoPathToOptimizedCargoPath;
     }
 
+    private static int GetMaxChunkSpeed(int chunkCount, int[] chunks)
+    {
+        int maxChunkSpeed = -1;
+        for (int i = 0; i < chunkCount; i++)
+        {
+            int chunkSpeed = chunks[i * 3 + 2];
+            if (chunkSpeed > maxChunkSpeed)
+            {
+                maxChunkSpeed = chunkSpeed;
+            }
+        }
+
+        return maxChunkSpeed;
+    }
+
     /// <summary>
     /// Modified <see cref="CargoPath.PresentCargos"/>
     /// </summary>
     private static BeltBuffer GetBufferWithUpdatedCargoIndexes(CargoPath cargoPath)
     {
-        BeltBuffer bufferCopy = BeltBuffer.CreateFromExistingBuffer(cargoPath.buffer, cargoPath.bufferLength, cargoPath.chunkCount, cargoPath.chunks[2], 10);
+        int maxChunkSpeed = GetMaxChunkSpeed(cargoPath.chunkCount, cargoPath.chunks);
+        BeltBuffer bufferCopy = BeltBuffer.CreateFromExistingBuffer(cargoPath.buffer, cargoPath.bufferLength, maxChunkSpeed, 10);
 
         Cargo[] oldCargoPool = cargoPath.cargoContainer.cargoPool;
         int num = 5;
