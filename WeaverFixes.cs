@@ -1,8 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -19,7 +17,7 @@ internal static class ModInfo
 {
     public const string Guid = "Weaver";
     public const string Name = "Weaver";
-    public const string Version = "2.1.3";
+    public const string Version = "2.2.0";
 }
 
 [BepInPlugin(ModInfo.Guid, ModInfo.Name, ModInfo.Version)]
@@ -34,7 +32,7 @@ public class WeaverFixes : BaseUnityPlugin
     private static readonly ModIncompatibility[] _incompatibleMods = [
         // https://thunderstore.io/c/dyson-sphere-program/p/HiddenCirno/GenesisBook/
         new ModIncompatibility("GenesisBook",
-                               "org.LoShin.GenesisBook", 
+                               "org.LoShin.GenesisBook",
                                IncompatibilityDegree.CompletelyIncompatible,
                                null,
                                "Patches base game code which Weaver never calls."),
@@ -239,8 +237,8 @@ public class WeaverFixes : BaseUnityPlugin
 
     private record struct ModIncompatibility(string ModName,
                                              string ModGuid,
-                                             IncompatibilityDegree IncompatibilityDegree, 
-                                             string? IncompatibilityDescription, 
+                                             IncompatibilityDegree IncompatibilityDegree,
+                                             string? IncompatibilityDescription,
                                              string TechnicalIncompatibilityDescription);
 
     private enum IncompatibilityDegree
