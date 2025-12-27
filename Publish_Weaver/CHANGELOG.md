@@ -1,3 +1,9 @@
+## 2.2.0
+* Deduplicate data
+	* An entitys missing items now reference patterns instead of storing duplicate data.
+	* Deduplicate static data across all entities.
+* Invalid entities are now ignored when loading a save instead of crashing the game.
+
 ## 2.1.3
 * Fix fractionators could use optimized item ids from other sub factories in the star cluster.
 * Add SmartTank and PlanetwideSpray to list of incompatible mods.
