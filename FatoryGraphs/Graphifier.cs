@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -133,21 +132,30 @@ internal static class Graphifier
 
             if (inserter.pickTarget != 0)
             {
-                EntityTypeIndex pickEntityTypeIndex = GetEntityTypeIndex(inserter.pickTarget, planet.factorySystem);
-                if (pickEntityTypeIndex.EntityType != EntityType.FuelPowerGenerator)
+                if (!TryGetEntityTypeIndex(inserter.pickTarget, planet.factorySystem, out EntityTypeIndex? pickEntityTypeIndex))
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, pickEntityTypeIndex);
+                    entityTypeIndexToNode.Remove(inserterNode.EntityTypeIndex);
+                    continue;
+                }
+
+                if (pickEntityTypeIndex.Value.EntityType != EntityType.FuelPowerGenerator)
+                {
+                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, pickEntityTypeIndex.Value);
                 }
                 else
                 {
-                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, new EntityTypeIndex(pickEntityTypeIndex.EntityType, inserter.pickOffset));
+                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, new EntityTypeIndex(pickEntityTypeIndex.Value.EntityType, inserter.pickOffset));
                 }
             }
 
             if (inserter.insertTarget != 0)
             {
-                EntityTypeIndex targetEntityTypeIndex = GetEntityTypeIndex(inserter.insertTarget, planet.factorySystem);
-                ConnectSendTo(entityTypeIndexToNode, inserterNode, targetEntityTypeIndex);
+                if (!TryGetEntityTypeIndex(inserter.insertTarget, planet.factorySystem, out EntityTypeIndex? targetEntityTypeIndex))
+                {
+                    entityTypeIndexToNode.Remove(inserterNode.EntityTypeIndex);
+                    continue;
+                }
+                ConnectSendTo(entityTypeIndexToNode, inserterNode, targetEntityTypeIndex.Value);
             }
         }
     }
@@ -247,8 +255,12 @@ internal static class Graphifier
 
             if (component.insertTarget > 0)
             {
-                EntityTypeIndex connectedEntityIndex = GetEntityTypeIndex(component.insertTarget, planet.factorySystem);
-                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex);
+                if (!TryGetEntityTypeIndex(component.insertTarget, planet.factorySystem, out EntityTypeIndex? connectedEntityIndex))
+                {
+                    entityTypeIndexToNode.Remove(node.EntityTypeIndex);
+                    continue;
+                }
+                ConnectSendTo(entityTypeIndexToNode, node, connectedEntityIndex.Value);
             }
 
             // It is weird but the miner entity contains the station id it sends its mined ore to.
@@ -737,54 +749,70 @@ internal static class Graphifier
         return node;
     }
 
-    public static EntityTypeIndex GetEntityTypeIndex(int index, FactorySystem factory)
+    /// <summary>
+    /// Not all mods seems to play nice with the data stored in <see cref="EntityData"/>
+    /// so this here will return false if the data in EntityData is in an invalid state.
+    /// This allows weaver to just ignore entities that are left in an invalid state.
+    /// </summary>
+    public static bool TryGetEntityTypeIndex(int index, FactorySystem factory, [NotNullWhen(true)] out EntityTypeIndex? entityTypeIndex)
     {
         ref readonly EntityData entity = ref factory.factory.entityPool[index];
         if (TryGetBeltSegmentTypeIndex(entity.beltId, factory.factory, out EntityTypeIndex? beltEntityTypeIndex))
         {
-            return beltEntityTypeIndex.Value;
+            entityTypeIndex = beltEntityTypeIndex.Value;
+            return true;
         }
         else if (entity.assemblerId != 0)
         {
-            return new EntityTypeIndex(EntityType.Assembler, entity.assemblerId);
+            entityTypeIndex = new EntityTypeIndex(EntityType.Assembler, entity.assemblerId);
+            return true;
         }
         else if (entity.ejectorId != 0)
         {
-            return new EntityTypeIndex(EntityType.Ejector, entity.ejectorId);
+            entityTypeIndex = new EntityTypeIndex(EntityType.Ejector, entity.ejectorId);
+            return true;
         }
         else if (entity.siloId != 0)
         {
-            return new EntityTypeIndex(EntityType.Silo, entity.siloId);
+            entityTypeIndex = new EntityTypeIndex(EntityType.Silo, entity.siloId);
+            return true;
         }
         else if (entity.labId != 0)
         {
-            return new EntityTypeIndex(factory.labPool[entity.labId].researchMode ? EntityType.ResearchingLab : EntityType.ProducingLab, entity.labId);
+            entityTypeIndex = new EntityTypeIndex(factory.labPool[entity.labId].researchMode ? EntityType.ResearchingLab : EntityType.ProducingLab, entity.labId);
+            return true;
         }
         else if (entity.storageId != 0)
         {
-            return new EntityTypeIndex(EntityType.Storage, entity.storageId);
+            entityTypeIndex = new EntityTypeIndex(EntityType.Storage, entity.storageId);
+            return true;
         }
         else if (entity.stationId != 0)
         {
-            return new EntityTypeIndex(EntityType.Station, entity.stationId);
+            entityTypeIndex = new EntityTypeIndex(EntityType.Station, entity.stationId);
+            return true;
         }
         else if (entity.powerGenId != 0)
         {
             ref readonly PowerGeneratorComponent component = ref factory.factory.powerSystem.genPool[entity.powerGenId];
             bool isFuelGenerator = !component.wind && !component.photovoltaic && !component.gamma && !component.geothermal;
             EntityType powerGeneratorType = isFuelGenerator ? EntityType.FuelPowerGenerator : EntityType.PowerGenerator;
-            return new EntityTypeIndex(powerGeneratorType, entity.powerGenId);
+            entityTypeIndex = new EntityTypeIndex(powerGeneratorType, entity.powerGenId);
+            return true;
         }
         else if (entity.splitterId != 0)
         {
-            return new EntityTypeIndex(EntityType.Splitter, entity.splitterId);
+            entityTypeIndex = new EntityTypeIndex(EntityType.Splitter, entity.splitterId);
+            return true;
         }
         else if (entity.inserterId != 0)
         {
-            return new EntityTypeIndex(EntityType.Inserter, entity.inserterId);
+            entityTypeIndex = new EntityTypeIndex(EntityType.Inserter, entity.inserterId);
+            return true;
         }
 
-        throw new InvalidOperationException("Unknown entity type.");
+        entityTypeIndex = default;
+        return false;
     }
 
     private static bool TryGetBeltSegmentTypeIndex(int beltId, PlanetFactory planet, [NotNullWhen(true)] out EntityTypeIndex? entityTypeIndex)
