@@ -73,8 +73,8 @@ internal readonly struct BiInserterGrade : IInserterGrade<BiInserterGrade>, IMem
 internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterGrade>
 {
     public short grade { get; }
-    public short pickOffset { get; }
-    public short insertOffset { get; }
+    public int pickOffset { get; }
+    public int insertOffset { get; }
     private short itemId;
     private short itemCount;
     private short itemInc;
@@ -93,19 +93,9 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             throw new ArgumentOutOfRangeException(nameof(inserter.itemId), $"{nameof(inserter.itemId)} was not within the bounds of a short. Value: {inserter.itemId}");
         }
 
-        if (pickFromOffset < short.MinValue || pickFromOffset > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pickFromOffset), $"{nameof(pickFromOffset)} was not within the bounds of a short. Value: {pickFromOffset}");
-        }
-
-        if (insertIntoOffset < short.MinValue || insertIntoOffset > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(insertIntoOffset), $"{nameof(insertIntoOffset)} was not within the bounds of a short. Value: {insertIntoOffset}");
-        }
-
         this.grade = (short)grade;
-        pickOffset = (short)pickFromOffset;
-        insertOffset = (short)insertIntoOffset;
+        pickOffset = pickFromOffset;
+        insertOffset = insertIntoOffset;
         itemId = (short)inserter.itemId;
         itemCount = inserter.itemCount;
         itemInc = inserter.itemInc;

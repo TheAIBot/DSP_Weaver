@@ -9,8 +9,8 @@ internal interface IInserter<TInserter, TInserterGrade>
     where TInserterGrade : struct, IInserterGrade<TInserterGrade>, IMemorySize
 {
     short grade { get; }
-    short pickOffset { get; }
-    short insertOffset { get; }
+    int pickOffset { get; }
+    int insertOffset { get; }
 
     TInserter Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
 

@@ -193,6 +193,12 @@ internal static class OptimizedStarCluster
                     planetToOptimizedPlanet.Value.Initialize(_universeStaticDataBuilder);
                 }
 
+                if (ForceOptimizeLocalPlanet &&
+                    GameMain.localPlanet?.factory == planetToOptimizedPlanet.Key)
+                {
+                    planetToOptimizedPlanet.Value.Save();
+                }
+
                 continue;
             }
 

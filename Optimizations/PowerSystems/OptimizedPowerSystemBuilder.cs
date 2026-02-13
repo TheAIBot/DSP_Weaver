@@ -176,7 +176,7 @@ internal sealed class OptimizedPowerSystemBuilder
         _universeStaticDataBuilder = universeStaticDataBuilder;
     }
 
-    public static OptimizedPowerSystemBuilder Create(PlanetFactory planet, 
+    public static OptimizedPowerSystemBuilder Create(PlanetFactory planet,
                                                      SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
                                                      UniverseStaticDataBuilder universeStaticDataBuilder,
                                                      out OptimizedItemId[]?[]? fuelNeeds)
@@ -293,7 +293,7 @@ internal sealed class OptimizedPowerSystemBuilder
             }
             else
             {
-                 networkNonOptimizedPowerConsumerIndexes = _universeStaticDataBuilder.DeduplicateArrayUnmanaged(planet.powerSystem.netPool[i].consumers);
+                networkNonOptimizedPowerConsumerIndexes = _universeStaticDataBuilder.DeduplicateArrayUnmanaged(planet.powerSystem.netPool[i].consumers);
             }
 
             var windExecutor = new WindGeneratorExecutor();

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.Extensions;
 using Weaver.FatoryGraphs;
@@ -42,6 +41,7 @@ internal sealed class StationExecutor
         FactoryProductionStat factoryProductionStat = GameMain.statistics.production.factoryStatPool[transport.factory.index];
         int[] consumeRegister = factoryProductionStat.consumeRegister;
         float[] networkServes = transport.powerSystem.networkServes;
+        PowerConsumerComponent[] consumerPool = transport.powerSystem.consumerPool;
         float logisticDroneSpeedModified = history.logisticDroneSpeedModified;
         int logisticDroneCarries = history.logisticDroneCarries;
         float logisticShipSailSpeedModified = history.logisticShipSailSpeedModified;
@@ -69,6 +69,11 @@ internal sealed class StationExecutor
             if (station.stationComponent.isStellar)
             {
                 station.stationComponent.InternalTickRemote(transport.factory, num2, logisticShipSailSpeedModified, shipWarpSpeed, logisticShipCarries, gStationPool, astrosData, ref relativePos, ref relativeRot, starmap, consumeRegister);
+            }
+
+            if (!station.stationComponent.isCollector && !station.stationComponent.isVeinCollector)
+            {
+                station.stationComponent.SetPCState(consumerPool);
             }
         }
 

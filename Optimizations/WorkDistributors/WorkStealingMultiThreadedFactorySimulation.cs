@@ -1,10 +1,7 @@
 ﻿using System;
-using System.CodeDom;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.StaticData;
 
@@ -340,6 +337,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         gameLogic.StatisticsPrepare();
         gameLogic.SpaceSectorPrepare();
         gameLogic.LocalFactoryPrepare();
+        gameLogic.DigitalSystemPrepare();
 
         // 501
         gameLogic.LocalPlanetPhysics();

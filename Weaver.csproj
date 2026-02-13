@@ -23,7 +23,7 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
-    <PackageReference Include="DysonSphereProgram.GameLibs" Version="0.10.34.28289-r.0" />
+    <PackageReference Include="DysonSphereProgram.GameLibs" Version="0.10.34.28470-r.0" />
     <PackageReference Include="ErrorProne.NET.Structs" Version="0.3.0-beta.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

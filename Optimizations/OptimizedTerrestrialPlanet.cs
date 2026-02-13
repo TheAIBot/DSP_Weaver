@@ -219,6 +219,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
             {
                 float power2 = networkServes[consumerPool[transport.dispenserPool[k].pcId].networkId];
                 transport.dispenserPool[k].InternalTick(transport.factory, transport.factory.entityPool, transport.dispenserPool, playerPos, time, power2, history.logisticCourierSpeedModified, history.logisticCourierCarries, num5);
+                transport.dispenserPool[k].SetPCState(consumerPool);
             }
         }
         DeepProfiler.EndSample(DPEntry.Dispensor, workerIndex);

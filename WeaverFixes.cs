@@ -4,9 +4,6 @@ using HarmonyLib;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-
-
-
 using Weaver.Optimizations;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
@@ -93,6 +90,8 @@ public class WeaverFixes : BaseUnityPlugin
 
 
         OptimizedStarCluster.EnableOptimization(harmony);
+        //OptimizedStarCluster.ForceOptimizeLocalPlanet = true;
+        //OptimizedTerrestrialPlanet.ViewBeltsOnLocalOptimizedPlanet = true;
         //OptimizedStarCluster.DebugEnableHeavyReOptimization();
         //OptimizedStarCluster.EnableStatistics();
         //GraphStatistics.Enable(harmony);

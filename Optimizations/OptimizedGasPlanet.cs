@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Weaver.Optimizations.Miners;
+﻿using Weaver.Optimizations.Miners;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Stations;
 using Weaver.Optimizations.Statistics;
@@ -58,7 +57,6 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
     public void TransportGameTick(int workerIndex, long time, UnityEngine.Vector3 playerPos)
     {
         var miningFlags = new MiningFlags();
-        _planetWideStationExecutor.StationGameTick(_planet, time, ref miningFlags);
 
         if (_planetWideStationExecutor.Count > 0)
         {
