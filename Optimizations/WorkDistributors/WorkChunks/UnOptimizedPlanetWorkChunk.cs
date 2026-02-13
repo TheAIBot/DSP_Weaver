@@ -36,9 +36,6 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             DeepProfiler.BeginSample(DPEntry.PowerSystem, workerIndex);
             {
                 DeepProfiler.BeginSample(DPEntry.PowerConsumer, workerIndex);
-                _planet.factorySystem?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 4);
-                _planet.cargoTraffic?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 4);
-                _planet.transport?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 2);
                 _planet.defenseSystem?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 2);
                 _planet.digitalSystem?.ParallelGameTickBeforePower(time, _maxWorkCount, _workIndex, 2);
                 DeepProfiler.EndSample(DPEntry.PowerConsumer, workerIndex);
@@ -96,7 +93,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.TransportData && _planet.transport != null)
         {
-            DeepProfiler.BeginSample(DPEntry.Transport, workerIndex);
+            DeepProfiler.BeginSample(DPEntry.Transport, workerIndex, 99L);
             _planet.transport.GameTick(time, isActive, multithreaded: false, -1);
             DeepProfiler.EndSample(DPEntry.Transport, workerIndex); ;
         }

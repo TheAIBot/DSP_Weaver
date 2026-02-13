@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.Statistics;
 
@@ -192,9 +191,10 @@ internal struct OptimizedProducingLab
         ComponentNeeds nextLabNeeds = componentsNeeds[nextLabNeedsOffset];
         for (int i = 0; i < recipeRequireCountLength; i++)
         {
-            if (nextLabNeeds.GetNeeds(i) && served[serveOffset + i] >= producingLabRecipe.RequireCounts[i] + num14)
+            int num115 = producingLabRecipe.RequireCounts[i] + num14;
+            if (nextLabNeeds.GetNeeds(i) && served[serveOffset + i] >= num115)
             {
-                int num15 = served[serveOffset + i] - producingLabRecipe.RequireCounts[i] - num14;
+                int num15 = served[serveOffset + i] - num115;
                 if (num15 > 5)
                 {
                     num15 = 5;

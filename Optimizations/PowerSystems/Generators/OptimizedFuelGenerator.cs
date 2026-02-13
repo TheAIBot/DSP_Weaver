@@ -3,7 +3,7 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.PowerSystems.Generators;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedFuelGenerator
 {
     public int id;
@@ -150,6 +150,28 @@ internal struct OptimizedFuelGenerator
             fuelInc -= (short)inc;
             fuelCount--;
             return fuelId;
+        }
+        return default;
+    }
+
+    public OptimizedItemId PickFuelFrom(int filter, OptimizedItemId[]? fuels, out int inc)
+    {
+        inc = 0;
+        if (fuelId.ItemIndex > 0 && fuelCount > 5 && (filter == 0 || filter == fuelId.ItemIndex))
+        {
+            for (int i = 0; i < fuels.Length; i++)
+            {
+                if (fuels[i].ItemIndex == fuelId.ItemIndex)
+                {
+                    if (fuelInc > 0)
+                    {
+                        inc = fuelInc / fuelCount;
+                    }
+                    fuelInc -= (short)inc;
+                    fuelCount--;
+                    return fuelId;
+                }
+            }
         }
         return default;
     }

@@ -73,8 +73,8 @@ internal readonly struct BiInserterGrade : IInserterGrade<BiInserterGrade>, IMem
 internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterGrade>
 {
     public short grade { get; }
-    public int pickOffset { get; }
-    public int insertOffset { get; }
+    public short pickOffset { get; }
+    public short insertOffset { get; }
     private short itemId;
     private short itemCount;
     private short itemInc;
@@ -93,9 +93,19 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             throw new ArgumentOutOfRangeException(nameof(inserter.itemId), $"{nameof(inserter.itemId)} was not within the bounds of a short. Value: {inserter.itemId}");
         }
 
+        if (pickFromOffset < short.MinValue || pickFromOffset > short.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pickFromOffset), $"{nameof(pickFromOffset)} was not within the bounds of a short. Value: {pickFromOffset}");
+        }
+
+        if (insertIntoOffset < short.MinValue || insertIntoOffset > short.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(insertIntoOffset), $"{nameof(insertIntoOffset)} was not within the bounds of a short. Value: {insertIntoOffset}");
+        }
+
         this.grade = (short)grade;
-        pickOffset = pickFromOffset;
-        insertOffset = insertIntoOffset;
+        pickOffset = (short)pickFromOffset;
+        insertOffset = (short)insertIntoOffset;
         itemId = (short)inserter.itemId;
         itemCount = inserter.itemCount;
         itemInc = inserter.itemInc;
@@ -141,7 +151,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
         // Object index for fuel power generators  does not represent the fuel generators index
         if (groupNeeds.GroupNeedsSize == 0 || inserterConnections.InsertInto.EntityType == EntityType.FuelPowerGenerator)
         {
-            return true;
+            return false;
         }
 
         int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
@@ -176,18 +186,51 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             {
                 if (inserterGrade.CareNeeds)
                 {
-                    if (idleTick-- > 0)
+                    if (idleTick-- >= 1)
                     {
                         break;
                     }
 
                     if (!IsNeedsNotEmpty(insertersConnections,
-                                        subFactoryNeeds,
-                                        inserterIndex,
-                                        inserterConnections,
-                                        out groupNeeds))
+                                         subFactoryNeeds,
+                                         inserterIndex,
+                                         inserterConnections,
+                                         out groupNeeds))
                     {
                         idleTick = 9;
+                        break;
+                    }
+                }
+                else if (inserterConnections.InsertInto.EntityType == EntityType.FuelPowerGenerator)
+                {
+                    if (idleTick-- >= 1)
+                    {
+                        continue;
+                    }
+                    short num332 = inserterExecutor.PickFuelForPowerGenFrom(planet,
+                                                                            ref inserterState,
+                                                                            pickOffset,
+                                                                            insertOffset,
+                                                                            inserterGrade.Filter,
+                                                                            inserterConnections,
+                                                                            out byte stack22,
+                                                                            out byte inc22,
+                                                                            out bool fuelFull,
+                                                                            optimizedCargoPaths);
+                    if (num332 > 0)
+                    {
+                        itemId = num332;
+                        itemCount += stack22;
+                        itemInc += inc22;
+                        stackCount++;
+                        flag = true;
+                    }
+                    else
+                    {
+                        if (fuelFull)
+                        {
+                            idleTick = 9;
+                        }
                         break;
                     }
                 }
@@ -205,15 +248,15 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                 {
                     if (inserterGrade.CareNeeds)
                     {
-                        if (idleTick-- > 0)
+                        if (idleTick-- >= 1)
                         {
                             break;
                         }
                         if (!IsNeedsNotEmpty(insertersConnections,
-                                            subFactoryNeeds,
-                                            inserterIndex,
-                                            inserterConnections,
-                                            out groupNeeds))
+                                             subFactoryNeeds,
+                                             inserterIndex,
+                                             inserterConnections,
+                                             out groupNeeds))
                         {
                             idleTick = 10;
                             break;
@@ -320,6 +363,12 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                                                    (byte)num8,
                                                    out remainInc,
                                                    optimizedCargoPaths);
+            if (inserterConnections.InsertInto.EntityType == EntityType.FuelPowerGenerator &&
+                num9 == 0)
+            {
+                idleTick = 10;
+                break;
+            }
             if (num9 <= 0)
             {
                 break;

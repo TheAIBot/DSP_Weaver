@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.StaticData;
+using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Belts;
 
@@ -810,6 +811,54 @@ internal struct OptimizedCargoPath
             }
         }
         Assert.CannotBeReached();
+        return false;
+    }
+
+    public bool TryPickFuel(int index, int length, int filter, OptimizedItemId[]? fuelMask, out OptimizedCargo optimizedCargo)
+    {
+        if (index < 0)
+        {
+            index = 0;
+        }
+        else if (index >= bufferLength)
+        {
+            index = bufferLength - 1;
+        }
+        int num = index + length;
+        if (num > bufferLength)
+        {
+            num = bufferLength;
+        }
+        for (int i = index; i < num; i++)
+        {
+            if (buffer[i] < 246)
+            {
+                continue;
+            }
+            i += 250 - buffer[i];
+            optimizedCargo = GetCargo(i + 1);
+            if (filter == 0 || optimizedCargo.Item == filter)
+            {
+                for (int j = 0; j < fuelMask.Length; j++)
+                {
+                    if (fuelMask[j].ItemIndex == optimizedCargo.Item)
+                    {
+                        Array.Clear(buffer, i - 4, 10);
+                        int num3 = i + 5 + 1;
+                        if (updateLen < num3)
+                        {
+                            updateLen = num3;
+                        }
+                        return true;
+                    }
+                }
+            }
+
+            optimizedCargo = default;
+            return false;
+        }
+
+        optimizedCargo = default;
         return false;
     }
 

@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.Statistics;
 
@@ -76,7 +75,6 @@ internal struct OptimizedResearchingLab
     public LabState InternalUpdateResearch(float power,
                                            float research_speed,
                                            int techId,
-                                           int[] matrixPoints,
                                            OptimizedItemId[] matrixIds,
                                            int[] consumeRegister,
                                            ref TechState ts,
@@ -99,12 +97,12 @@ internal struct OptimizedResearchingLab
         int matrixServedOffset = groupNeeds.GroupNeedsSize * labIndex;
         for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
-            if (matrixPoints[i] <= 0)
+            if (LabComponent.matrixPoints[i] <= 0)
             {
                 continue;
             }
 
-            int num2 = matrixServed[matrixServedOffset + i] / matrixPoints[i];
+            int num2 = matrixServed[matrixServedOffset + i] / LabComponent.matrixPoints[i];
             if (num2 < num)
             {
                 num = num2;
@@ -132,10 +130,10 @@ internal struct OptimizedResearchingLab
             int num8 = num7 != 0 ? 10 : 0;
             for (int i = 0; i < num7; i++)
             {
-                if (matrixPoints[i] > 0)
+                if (LabComponent.matrixPoints[i] > 0)
                 {
                     int num9 = matrixServed[matrixServedOffset + i] / 3600;
-                    int num10 = split_inc_level(ref matrixServed[matrixServedOffset + i], ref matrixIncServed[matrixServedOffset + i], matrixPoints[i] * num6);
+                    int num10 = split_inc_level(ref matrixServed[matrixServedOffset + i], ref matrixIncServed[matrixServedOffset + i], LabComponent.matrixPoints[i] * num6);
                     num8 = num8 < num10 ? num8 : num10;
                     int num11 = matrixServed[matrixServedOffset + i] / 3600;
                     if (matrixServed[matrixServedOffset + i] <= 0 || matrixIncServed[matrixServedOffset + i] < 0)
@@ -235,7 +233,6 @@ internal struct OptimizedResearchingLab
 
     public readonly void Save(ref LabComponent lab,
                               LabPowerFields labPowerFields,
-                              int[] matrixPoints,
                               int researchTechId,
                               GroupNeeds groupNeeds,
                               ComponentNeeds[] componentsNeeds,
@@ -259,7 +256,6 @@ internal struct OptimizedResearchingLab
         lab.hashBytes = hashBytes;
         lab.extraHashBytes = extraHashBytes;
         lab.extraPowerRatio = labPowerFields.extraPowerRatio;
-        lab.matrixPoints = matrixPoints;
         lab.techId = researchTechId;
     }
 

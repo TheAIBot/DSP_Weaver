@@ -11,14 +11,13 @@ namespace Weaver.Optimizations.Inserters.Types;
 internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemorySize
 {
     public readonly int Delay;
-    public readonly int Speed;
     public readonly int Stt;
     public readonly short Filter;
     public readonly byte StackInput;
     public readonly byte StackOutput;
     public readonly bool CareNeeds;
 
-    public InserterGrade(int delay, byte stackInput, byte stackOutput, bool careNeeds, int filter, int speed, int stt)
+    public InserterGrade(int delay, byte stackInput, byte stackOutput, bool careNeeds, int filter, int stt)
     {
         if (filter < 0 || filter > short.MaxValue)
         {
@@ -30,7 +29,6 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemoryS
         StackOutput = stackOutput;
         CareNeeds = careNeeds;
         Filter = (short)filter;
-        Speed = speed;
         Stt = stt;
     }
 
@@ -44,15 +42,15 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemoryS
 
         if (inserter.grade == 3)
         {
-            return new InserterGrade(delay, b, 1, inserter.careNeeds, inserter.filter, inserter.speed, inserter.stt);
+            return new InserterGrade(delay, b, 1, inserter.careNeeds, inserter.filter, inserter.stt);
         }
         else if (inserter.grade == 4)
         {
-            return new InserterGrade(delay2, b2, stackOutput, inserter.careNeeds, inserter.filter, inserter.speed, inserter.stt);
+            return new InserterGrade(delay2, b2, stackOutput, inserter.careNeeds, inserter.filter, inserter.stt);
         }
         else
         {
-            return new InserterGrade(0, 1, 1, inserter.careNeeds, inserter.filter, inserter.speed, inserter.stt);
+            return new InserterGrade(0, 1, 1, inserter.careNeeds, inserter.filter, inserter.stt);
         }
     }
 
@@ -65,7 +63,6 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemoryS
                StackOutput == other.StackOutput &&
                CareNeeds == other.CareNeeds &&
                Filter == other.Filter &&
-               Speed == other.Speed &&
                Stt == other.Stt;
     }
 
@@ -76,7 +73,7 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemoryS
 
     public override readonly int GetHashCode()
     {
-        return HashCode.Combine(Delay, StackInput, StackOutput, CareNeeds, Filter, Speed, Stt);
+        return HashCode.Combine(Delay, StackInput, StackOutput, CareNeeds, Filter, Stt);
     }
 }
 
@@ -84,8 +81,8 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemoryS
 internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
 {
     public short grade { get; }
-    public int pickOffset { get; }
-    public int insertOffset { get; }
+    public short pickOffset { get; }
+    public short insertOffset { get; }
     private int time;
     private short itemId;
     private short itemCount;
@@ -105,9 +102,19 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
             throw new ArgumentOutOfRangeException(nameof(inserter.itemId), $"{nameof(inserter.itemId)} was not within the bounds of a short. Value: {inserter.itemId}");
         }
 
+        if (pickFromOffset < short.MinValue || pickFromOffset > short.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pickFromOffset), $"{nameof(pickFromOffset)} was not within the bounds of a short. Value: {pickFromOffset}");
+        }
+
+        if (insertIntoOffset < short.MinValue || insertIntoOffset > short.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(insertIntoOffset), $"{nameof(insertIntoOffset)} was not within the bounds of a short. Value: {insertIntoOffset}");
+        }
+
         this.grade = (short)grade;
-        pickOffset = pickFromOffset;
-        insertOffset = insertIntoOffset;
+        pickOffset = (short)pickFromOffset;
+        insertOffset = (short)insertIntoOffset;
         time = inserter.time;
         itemId = (short)inserter.itemId;
         itemCount = inserter.itemCount;
@@ -167,6 +174,38 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                 goto doneThing;
                             }
                         }
+                        else if (inserterConnections.InsertInto.EntityType == EntityType.FuelPowerGenerator)
+                        {
+                            if (idleTick-- > 0)
+                            {
+                                goto doneThing;
+                            }
+
+                            short num77 = inserterExecutor.PickFuelForPowerGenFrom(planet,
+                                                                                   ref inserterState,
+                                                                                   pickOffset,
+                                                                                   insertOffset,
+                                                                                   inserterGrade.Filter,
+                                                                                   inserterConnections,
+                                                                                   out byte stack11,
+                                                                                   out byte inc11,
+                                                                                   out bool fuelFull,
+                                                                                   optimizedCargoPaths);
+                            if (num77 > 0)
+                            {
+                                itemId = num77;
+                                itemCount += stack11;
+                                itemInc += inc11;
+                                stackCount++;
+                                time = 0;
+                            }
+                            else if (fuelFull)
+                            {
+                                idleTick = 9;
+                            }
+
+                            goto doneThing;
+                        }
 
                         filter = inserterGrade.Filter;
                     }
@@ -220,10 +259,10 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
 
                     if (itemId > 0)
                     {
-                        time += inserterGrade.Speed;
+                        time += InserterComponent.speed;
                         if (stackCount == inserterGrade.StackInput || time >= inserterGrade.Delay)
                         {
-                            time = (int)(power * inserterGrade.Speed);
+                            time = (int)(power * InserterComponent.speed);
                             stage = OptimizedInserterStage.Sending;
                         }
                     }
@@ -234,7 +273,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                     break;
                 }
             case OptimizedInserterStage.Sending:
-                time += (int)(power * inserterGrade.Speed);
+                time += (int)(power * InserterComponent.speed);
                 if (time >= inserterGrade.Stt)
                 {
                     stage = OptimizedInserterStage.Inserting;
@@ -253,7 +292,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                     stackCount = 0;
                     itemCount = 0;
                     itemInc = 0;
-                    time += (int)(power * inserterGrade.Speed);
+                    time += (int)(power * InserterComponent.speed);
                     stage = OptimizedInserterStage.Returning;
                 }
                 else
@@ -276,7 +315,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                         if (stackCount == 0)
                         {
                             itemId = 0;
-                            time += (int)(power * inserterGrade.Speed);
+                            time += (int)(power * InserterComponent.speed);
                             stage = OptimizedInserterStage.Returning;
                             itemCount = 0;
                             itemInc = 0;
@@ -309,7 +348,12 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                                            (byte)num6,
                                                            out remainInc,
                                                            optimizedCargoPaths);
-                    if (num7 > 0)
+                    if (inserterConnections.InsertInto.EntityType == EntityType.FuelPowerGenerator &&
+                        num7 == 0)
+                    {
+                        idleTick = 10;
+                    }
+                    else if (num7 > 0)
                     {
                         if (remainInc == 0 && num7 == num5)
                         {
@@ -320,7 +364,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                         if (stackCount == 0)
                         {
                             itemId = 0;
-                            time += (int)(power * inserterGrade.Speed);
+                            time += (int)(power * InserterComponent.speed);
                             stage = OptimizedInserterStage.Returning;
                             itemCount = 0;
                             itemInc = 0;
@@ -329,7 +373,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                 }
                 break;
             case OptimizedInserterStage.Returning:
-                time += (int)(power * inserterGrade.Speed);
+                time += (int)(power * InserterComponent.speed);
                 if (time >= inserterGrade.Stt)
                 {
                     stage = OptimizedInserterStage.Picking;

@@ -72,8 +72,8 @@ internal sealed class OptimizedSubFactory
 
     public bool HasCalculatedPowerConsumption = false;
 
-    public OptimizedSubFactory(PlanetFactory planet, 
-                               OptimizedTerrestrialPlanet optimizedTerrestrialPlanet, 
+    public OptimizedSubFactory(PlanetFactory planet,
+                               OptimizedTerrestrialPlanet optimizedTerrestrialPlanet,
                                StarClusterResearchManager starClusterResearchManager,
                                UniverseStaticData universeStaticData)
     {
@@ -167,11 +167,11 @@ internal sealed class OptimizedSubFactory
                                                                                                   _siloExecutor._siloIndexes,
                                                                                                   _ejectorExecutor._ejectorIndexes,
                                                                                                   universeStaticDataBuilder.UniverseStaticData);
-        _optimizedBiInserterExecutor.Initialize(_planet, 
-                                                this, 
-                                                subFactoryGraph, 
-                                                x => x.bidirectional, 
-                                                subFactoryPowerSystemBuilder.CreateBiInserterBuilder(), 
+        _optimizedBiInserterExecutor.Initialize(_planet,
+                                                this,
+                                                subFactoryGraph,
+                                                x => x.bidirectional,
+                                                subFactoryPowerSystemBuilder.CreateBiInserterBuilder(),
                                                 beltExecutor,
                                                 universeStaticDataBuilder,
                                                 universeStaticDataBuilder.BiInserterGrades);
@@ -198,11 +198,11 @@ internal sealed class OptimizedSubFactory
                                                                                             _siloExecutor._siloIndexes,
                                                                                             _ejectorExecutor._ejectorIndexes,
                                                                                             universeStaticDataBuilder.UniverseStaticData);
-        _optimizedInserterExecutor.Initialize(_planet, 
-                                              this, 
-                                              subFactoryGraph, 
-                                              x => !x.bidirectional, 
-                                              subFactoryPowerSystemBuilder.CreateInserterBuilder(), 
+        _optimizedInserterExecutor.Initialize(_planet,
+                                              this,
+                                              subFactoryGraph,
+                                              x => !x.bidirectional,
+                                              subFactoryPowerSystemBuilder.CreateInserterBuilder(),
                                               beltExecutor,
                                               universeStaticDataBuilder,
                                               universeStaticDataBuilder.InserterGrades);
@@ -269,10 +269,10 @@ internal sealed class OptimizedSubFactory
                                     UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _ejectorExecutor = new EjectorExecutor();
-        _ejectorExecutor.Initialize(_planet, 
-                                    subFactoryGraph, 
-                                    subFactoryPowerSystemBuilder, 
-                                    subFactoryProductionRegisterBuilder, 
+        _ejectorExecutor.Initialize(_planet,
+                                    subFactoryGraph,
+                                    subFactoryPowerSystemBuilder,
+                                    subFactoryProductionRegisterBuilder,
                                     subFactoryNeedsBuilder,
                                     universeStaticDataBuilder);
     }
@@ -284,10 +284,10 @@ internal sealed class OptimizedSubFactory
                                  UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _siloExecutor = new SiloExecutor();
-        _siloExecutor.Initialize(_planet, 
-                                 subFactoryGraph, 
-                                 subFactoryPowerSystemBuilder, 
-                                 subFactoryProductionRegisterBuilder, 
+        _siloExecutor.Initialize(_planet,
+                                 subFactoryGraph,
+                                 subFactoryPowerSystemBuilder,
+                                 subFactoryProductionRegisterBuilder,
                                  subFactoryNeedsBuilder,
                                  universeStaticDataBuilder);
     }
@@ -299,10 +299,10 @@ internal sealed class OptimizedSubFactory
                                          UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _producingLabExecutor = new ProducingLabExecutor();
-        _producingLabExecutor.Initialize(_planet, 
-                                         subFactoryGraph, 
-                                         subFactoryPowerSystemBuilder, 
-                                         subFactoryProductionRegisterBuilder, 
+        _producingLabExecutor.Initialize(_planet,
+                                         subFactoryGraph,
+                                         subFactoryPowerSystemBuilder,
+                                         subFactoryProductionRegisterBuilder,
                                          subFactoryNeedsBuilder,
                                          universeStaticDataBuilder);
         _optimizedProducingLabs = _producingLabExecutor._optimizedLabs;
@@ -316,68 +316,68 @@ internal sealed class OptimizedSubFactory
                                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _researchingLabExecutor = new ResearchingLabExecutor(_starClusterResearchManager);
-        _researchingLabExecutor.Initialize(_planet, 
-                                           subFactoryGraph, 
-                                           subFactoryPowerSystemBuilder, 
-                                           subFactoryProductionRegisterBuilder, 
+        _researchingLabExecutor.Initialize(_planet,
+                                           subFactoryGraph,
+                                           subFactoryPowerSystemBuilder,
+                                           subFactoryProductionRegisterBuilder,
                                            subFactoryNeedsBuilder,
                                            universeStaticDataBuilder);
         _optimizedResearchingLabs = _researchingLabExecutor._optimizedLabs;
         _researchingLabIdToOptimizedIndex = _researchingLabExecutor._labIdToOptimizedLabIndex;
     }
 
-    private void InitializeMonitors(Graph subFactoryGraph, 
-                                    SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, 
+    private void InitializeMonitors(Graph subFactoryGraph,
+                                    SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                                     BeltExecutor beltExecutor,
                                     UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _monitorExecutor = new MonitorExecutor();
-        _monitorExecutor.Initialize(_planet, 
-                                    subFactoryGraph, 
-                                    subFactoryPowerSystemBuilder, 
+        _monitorExecutor.Initialize(_planet,
+                                    subFactoryGraph,
+                                    subFactoryPowerSystemBuilder,
                                     beltExecutor,
                                     universeStaticDataBuilder);
     }
 
-    private void InitializeSpraycoaters(Graph subFactoryGraph, 
-                                        SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, 
-                                        SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder, 
+    private void InitializeSpraycoaters(Graph subFactoryGraph,
+                                        SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
+                                        SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
                                         BeltExecutor beltExecutor,
                                         UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _spraycoaterExecutor = new SpraycoaterExecutor();
-        _spraycoaterExecutor.Initialize(_planet, 
-                                        subFactoryGraph, 
-                                        subFactoryPowerSystemBuilder, 
-                                        subFactoryProductionRegisterBuilder, 
+        _spraycoaterExecutor.Initialize(_planet,
+                                        subFactoryGraph,
+                                        subFactoryPowerSystemBuilder,
+                                        subFactoryProductionRegisterBuilder,
                                         beltExecutor,
                                         universeStaticDataBuilder);
     }
 
-    private void InitializePilers(Graph subFactoryGraph, 
-                                  SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, 
+    private void InitializePilers(Graph subFactoryGraph,
+                                  SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                                   BeltExecutor beltExecutor,
                                   UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _pilerExecutor = new PilerExecutor();
-        _pilerExecutor.Initialize(_planet, 
-                                  subFactoryGraph, 
-                                  subFactoryPowerSystemBuilder, 
+        _pilerExecutor.Initialize(_planet,
+                                  subFactoryGraph,
+                                  subFactoryPowerSystemBuilder,
                                   beltExecutor,
                                   universeStaticDataBuilder);
     }
 
-    private void InitializeFractionators(Graph subFactoryGraph, 
-                                         SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder, 
-                                         SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder, 
+    private void InitializeFractionators(Graph subFactoryGraph,
+                                         SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
+                                         SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
                                          BeltExecutor beltExecutor,
                                          UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _fractionatorExecutor = new FractionatorExecutor();
-        _fractionatorExecutor.Initialize(_planet, 
-                                         subFactoryGraph, 
-                                         subFactoryPowerSystemBuilder, 
-                                         subFactoryProductionRegisterBuilder, 
+        _fractionatorExecutor.Initialize(_planet,
+                                         subFactoryGraph,
+                                         subFactoryPowerSystemBuilder,
+                                         subFactoryProductionRegisterBuilder,
                                          beltExecutor,
                                          universeStaticDataBuilder);
     }
@@ -401,12 +401,12 @@ internal sealed class OptimizedSubFactory
         _tankExecutor.Initialize(_planet, subFactoryGraph, beltExecutor);
     }
 
-    private void InitializeBelts(Graph subFactoryGraph, 
-                                 PlanetWideBeltExecutor planetWideBeltExecutor, 
+    private void InitializeBelts(Graph subFactoryGraph,
+                                 PlanetWideBeltExecutor planetWideBeltExecutor,
                                  UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         _beltExecutor = new BeltExecutor();
-        _beltExecutor.Initialize(_planet, 
+        _beltExecutor.Initialize(_planet,
                                  subFactoryGraph,
                                  universeStaticDataBuilder);
 
@@ -443,13 +443,13 @@ internal sealed class OptimizedSubFactory
         if (_assemblerExecutor.Count > 0)
         {
             DeepProfiler.BeginSample(DPEntry.Assembler, workerIndex);
-            _assemblerExecutor.GameTick(_planet, 
+            _assemblerExecutor.GameTick(_planet,
                                         powerSystem.AssemblerPowerConsumerTypeIndexes,
-                                        powerConsumerTypes, 
-                                        networkPowerConsumptions, 
-                                        productRegister, 
-                                        consumeRegister, 
-                                        _subFactoryNeeds, 
+                                        powerConsumerTypes,
+                                        networkPowerConsumptions,
+                                        productRegister,
+                                        consumeRegister,
+                                        _subFactoryNeeds,
                                         _universeStaticData);
             DeepProfiler.EndSample(DPEntry.Assembler, workerIndex);
         }
@@ -457,13 +457,13 @@ internal sealed class OptimizedSubFactory
         if (_fractionatorExecutor.Count > 0)
         {
             DeepProfiler.BeginSample(DPEntry.Fractionator, workerIndex);
-            _fractionatorExecutor.GameTick(_planet, 
+            _fractionatorExecutor.GameTick(_planet,
                                            powerSystem.FractionatorPowerConsumerTypeIndexes,
-                                           powerConsumerTypes, 
-                                           networkPowerConsumptions, 
-                                           productRegister, 
-                                           consumeRegister, 
-                                           _beltExecutor.OptimizedCargoPaths, 
+                                           powerConsumerTypes,
+                                           networkPowerConsumptions,
+                                           productRegister,
+                                           consumeRegister,
+                                           _beltExecutor.OptimizedCargoPaths,
                                            _universeStaticData);
             DeepProfiler.EndSample(DPEntry.Fractionator, workerIndex);
         }
@@ -488,21 +488,22 @@ internal sealed class OptimizedSubFactory
             DeepProfiler.BeginMajorSample(DPEntry.Lab, workerIndex);
             if (_producingLabExecutor.Count > 0)
             {
-                _producingLabExecutor.GameTickLabProduceMode(_planet, 
+                _producingLabExecutor.GameTickLabProduceMode(_planet,
                                                              powerSystem.ProducingLabPowerConsumerTypeIndexes,
-                                                             powerConsumerTypes, 
-                                                             networkPowerConsumptions, 
-                                                             productRegister, 
-                                                             consumeRegister, 
+                                                             powerConsumerTypes,
+                                                             networkPowerConsumptions,
+                                                             productRegister,
+                                                             consumeRegister,
                                                              _subFactoryNeeds,
                                                              _universeStaticData);
-                _producingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds,
+                _producingLabExecutor.GameTickLabOutputToNext(time,
+                                                              _subFactoryNeeds,
                                                               _universeStaticData);
             }
             if (_researchingLabExecutor.Count > 0)
             {
                 _researchingLabExecutor.GameTickLabResearchMode(_planet, powerSystem.ResearchingLabPowerConsumerTypeIndexes, powerConsumerTypes, networkPowerConsumptions, consumeRegister, _subFactoryNeeds);
-                _researchingLabExecutor.GameTickLabOutputToNext(_subFactoryNeeds);
+                _researchingLabExecutor.GameTickLabOutputToNext(time, _subFactoryNeeds);
             }
             DeepProfiler.EndMajorSample(DPEntry.Lab, workerIndex);
         }
@@ -527,17 +528,17 @@ internal sealed class OptimizedSubFactory
         if (inserterCount > 0)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Inserter, workerIndex);
-            _optimizedBiInserterExecutor.GameTickInserters(_planet, 
+            _optimizedBiInserterExecutor.GameTickInserters(_planet,
                                                            powerSystem.InserterBiPowerConsumerTypeIndexes,
-                                                           powerConsumerTypes, 
-                                                           networkPowerConsumptions, 
-                                                           _beltExecutor.OptimizedCargoPaths, 
+                                                           powerConsumerTypes,
+                                                           networkPowerConsumptions,
+                                                           _beltExecutor.OptimizedCargoPaths,
                                                            _universeStaticData);
-            _optimizedInserterExecutor.GameTickInserters(_planet, 
+            _optimizedInserterExecutor.GameTickInserters(_planet,
                                                          powerSystem.InserterPowerConsumerTypeIndexes,
-                                                         powerConsumerTypes, 
-                                                         networkPowerConsumptions, 
-                                                         _beltExecutor.OptimizedCargoPaths, 
+                                                         powerConsumerTypes,
+                                                         networkPowerConsumptions,
+                                                         _beltExecutor.OptimizedCargoPaths,
                                                          _universeStaticData);
             DeepProfiler.EndMajorSample(DPEntry.Inserter, workerIndex);
         }
@@ -807,11 +808,11 @@ internal sealed class OptimizedSubFactory
                 return false;
             }
         }
-		bool result = false;
-		bool flag2 = false;
-		int num = 0;
-		int num2 = (useBan ? (storage.size - storage.bans) : storage.size);
-		ref byte stack = ref cargo.Stack;
+        bool result = false;
+        bool flag2 = false;
+        int num = 0;
+        int num2 = (useBan ? (storage.size - storage.bans) : storage.size);
+        ref byte stack = ref cargo.Stack;
         for (int i = 0; i < num2; i++)
         {
             if (storage.grids[i].itemId == 0)

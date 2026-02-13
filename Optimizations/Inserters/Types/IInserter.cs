@@ -1,5 +1,4 @@
 ﻿using Weaver.Optimizations.Belts;
-using Weaver.Optimizations.Inserters;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.StaticData;
 
@@ -10,8 +9,8 @@ internal interface IInserter<TInserter, TInserterGrade>
     where TInserterGrade : struct, IInserterGrade<TInserterGrade>, IMemorySize
 {
     short grade { get; }
-    int pickOffset { get; }
-    int insertOffset { get; }
+    short pickOffset { get; }
+    short insertOffset { get; }
 
     TInserter Create(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade);
 

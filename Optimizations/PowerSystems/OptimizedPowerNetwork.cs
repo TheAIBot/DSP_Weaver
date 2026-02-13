@@ -117,17 +117,19 @@ internal sealed class OptimizedPowerNetwork
 
         num += totalEnergyProduction - num26;
         long totalEnergyOverProduction = totalEnergyProduction - totalEnergyDemand;
+        long num3334 = 0L;
         if (totalEnergyOverProduction > 0 && powerNetwork.exportDemandRatio > 0.0)
         {
             if (powerNetwork.exportDemandRatio > 1.0)
             {
                 powerNetwork.exportDemandRatio = 1.0;
             }
-            num7 = (long)(totalEnergyOverProduction * powerNetwork.exportDemandRatio + 0.5);
-            totalEnergyOverProduction -= num7;
-            totalEnergyDemand += num7;
+            num3334 = (long)(totalEnergyOverProduction * powerNetwork.exportDemandRatio + 0.5);
+            totalEnergyOverProduction -= num3334;
+            totalEnergyDemand += num3334;
         }
         powerNetwork.exportDemandRatio = 0.0;
+        num7 += num3334;
         powerNetwork.energyStored = 0L;
         List<int> accumulators = powerNetwork.accumulators;
         int count4 = accumulators.Count;
@@ -185,22 +187,22 @@ internal sealed class OptimizedPowerNetwork
         _powerExchangerExecutor.UpdateOutput(productRegister, consumeRegister, num45, ref num44, ref num24, ref num3, workerIndex);
 
         powerNetwork.energyCapacity = totalEnergyProduction - num26;
-        powerNetwork.energyRequired = totalEnergyDemand - num7;
-        powerNetwork.energyExport = num7;
+        powerNetwork.energyRequired = totalEnergyDemand - num3334;
+        powerNetwork.energyExport = num3334;
         powerNetwork.energyServed = totalEnergyProduction + num35 < totalEnergyDemand ? totalEnergyProduction + num35 : totalEnergyDemand;
         powerNetwork.energyAccumulated = num34 - num35;
         powerNetwork.energyExchanged = num23 - num24;
         powerNetwork.energyExchangedInputTotal = num23;
         powerNetwork.energyExchangedOutputTotal = num24;
-        if (num7 > 0)
+        if (num3334 > 0)
         {
             PlanetATField planetATField = powerSystem.factory.planetATField;
-            planetATField.energy += num7;
-            planetATField.atFieldRechargeCurrent = num7 * 60;
+            planetATField.energy += num3334;
+            planetATField.atFieldRechargeCurrent = num3334 * 60;
         }
         totalEnergyProduction += num35;
         totalEnergyDemand += num34;
-        num5 += totalEnergyProduction >= totalEnergyDemand ? num2 + num7 : totalEnergyProduction;
+        num5 += totalEnergyProduction >= totalEnergyDemand ? num2 + num3334 : totalEnergyProduction;
         long num49 = num24 - totalEnergyDemand > 0 ? num24 - totalEnergyDemand : 0;
         double num50 = totalEnergyProduction >= totalEnergyDemand ? 1.0 : totalEnergyProduction / (double)totalEnergyDemand;
         totalEnergyDemand += num23 - num49;

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Weaver.Extensions;
 using Weaver.FatoryGraphs;
@@ -280,13 +279,13 @@ internal sealed class AssemblerExecutor
 
             AssemblerRecipe assemblerRecipe = new AssemblerRecipe(assembler.recipeId,
                                                                   assembler.recipeType,
-                                                                  assembler.timeSpend,
-                                                                  assembler.extraTimeSpend,
-                                                                  assembler.productive,
-                                                                  subFactoryProductionRegisterBuilder.AddConsume(assembler.requires),
-                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.requireCounts),
-                                                                  subFactoryProductionRegisterBuilder.AddProduct(assembler.products),
-                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.productCounts));
+                                                                  assembler.recipeExecuteData.timeSpend,
+                                                                  assembler.recipeExecuteData.extraTimeSpend,
+                                                                  assembler.recipeExecuteData.productive,
+                                                                  subFactoryProductionRegisterBuilder.AddConsume(assembler.recipeExecuteData.requires),
+                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.recipeExecuteData.requireCounts),
+                                                                  subFactoryProductionRegisterBuilder.AddProduct(assembler.recipeExecuteData.products),
+                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.recipeExecuteData.productCounts));
             assemblerRecipes.Add(assemblerRecipe);
             int assemblerRecipeIndex = universeStaticDataBuilder.AddAssemblerRecipe(in assemblerRecipe);
 
@@ -308,7 +307,7 @@ internal sealed class AssemblerExecutor
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[assembler.entityId] = assembler.needs;
-            needsBuilder.AddNeeds(assembler.needs, assembler.requires);
+            needsBuilder.AddNeeds(assembler.needs, assembler.recipeExecuteData.requires);
         }
 
         if (assemblerRecipes.Count > 0)

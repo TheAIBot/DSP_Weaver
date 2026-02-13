@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
@@ -24,14 +22,14 @@ internal readonly struct ProducingLabRecipe : IEquatable<ProducingLabRecipe>, IM
     public ProducingLabRecipe(ref readonly LabComponent lab, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
     {
         RecipeId = lab.recipeId;
-        TimeSpend = lab.timeSpend;
-        ExtraTimeSpend = lab.extraTimeSpend;
+        TimeSpend = lab.recipeExecuteData.timeSpend;
+        ExtraTimeSpend = lab.recipeExecuteData.extraTimeSpend;
         Speed = lab.speed;
-        Productive = lab.productive;
-        Requires = subFactoryProductionRegisterBuilder.AddConsume(lab.requires);
-        RequireCounts = lab.requireCounts;
-        Products = subFactoryProductionRegisterBuilder.AddProduct(lab.products);
-        ProductCounts = lab.productCounts;
+        Productive = lab.recipeExecuteData.productive;
+        Requires = subFactoryProductionRegisterBuilder.AddConsume(lab.recipeExecuteData.requires);
+        RequireCounts = lab.recipeExecuteData.requireCounts;
+        Products = subFactoryProductionRegisterBuilder.AddProduct(lab.recipeExecuteData.products);
+        ProductCounts = lab.recipeExecuteData.productCounts;
     }
 
     public int GetSize()

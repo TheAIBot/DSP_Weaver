@@ -88,7 +88,7 @@ internal sealed class ProducingLabExecutor
         }
     }
 
-    public void GameTickLabOutputToNext(SubFactoryNeeds subFactoryNeeds, UniverseStaticData universeStaticData)
+    public void GameTickLabOutputToNext(long time, SubFactoryNeeds subFactoryNeeds, UniverseStaticData universeStaticData)
     {
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
@@ -100,22 +100,28 @@ internal sealed class ProducingLabExecutor
         LabState[] labStates = _labStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         ReadonlyArray<ProducingLabRecipe> producingLabRecipes = universeStaticData.ProducingLabRecipes;
-        for (int labIndex = (int)(GameMain.gameTick % 5); labIndex < optimizedLabs.Length; labIndex += 5)
+
+        int num = (int)(time & 3);
+        for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
         {
-            int servedOffset = labIndex * groupNeeds.GroupNeedsSize;
-            ref OptimizedProducingLab lab = ref optimizedLabs[labIndex];
-            ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[labRecipeIndexes[labIndex]];
-            lab.UpdateOutputToNext(labIndex,
-                                   optimizedLabs,
-                                   labStates,
-                                   in producingLabRecipe,
-                                   groupNeeds,
-                                   componentsNeeds,
-                                   servedOffset,
-                                   producedSize,
-                                   served,
-                                   incServed,
-                                   produced);
+            if ((labIndex & 3) == num)
+            {
+                int servedOffset = labIndex * groupNeeds.GroupNeedsSize;
+                ref OptimizedProducingLab lab = ref optimizedLabs[labIndex];
+                ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[labRecipeIndexes[labIndex]];
+
+                lab.UpdateOutputToNext(labIndex,
+                                       optimizedLabs,
+                                       labStates,
+                                       in producingLabRecipe,
+                                       groupNeeds,
+                                       componentsNeeds,
+                                       servedOffset,
+                                       producedSize,
+                                       served,
+                                       incServed,
+                                       produced);
+            }
         }
     }
 
@@ -304,7 +310,7 @@ internal sealed class ProducingLabExecutor
 
             // set it here so we don't have to set it in the update loop.
             planet.entityNeeds[lab.entityId] = lab.needs;
-            needsBuilder.AddNeeds(lab.needs, lab.requires);
+            needsBuilder.AddNeeds(lab.needs, lab.recipeExecuteData.requires);
         }
 
         for (int i = 0; i < optimizedLabs.Count; i++)

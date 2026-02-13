@@ -1,5 +1,4 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,7 +8,6 @@ using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Ejectors;
 using Weaver.Optimizations.Inserters.Types;
 using Weaver.Optimizations.Labs;
-using Weaver.Optimizations.Labs.Producing;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
 using Weaver.Optimizations.PowerSystems.Generators;
@@ -334,6 +332,176 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
 
         return false;
+    }
+
+    public short PickFuelForPowerGenFrom(PlanetFactory planet,
+                                         ref InserterState inserterState,
+                                         int pickOffset,
+                                         int insertOffset,
+                                         int filter,
+                                         InserterConnections inserterConnections,
+                                         out byte stack,
+                                         out byte inc,
+                                         out bool fuelFull,
+                                         OptimizedCargoPath[] optimizedCargoPaths)
+    {
+        stack = 1;
+        inc = 0;
+        fuelFull = false;
+
+        TypedObjectIndex typedObjectIndex = inserterConnections.PickFrom;
+        int objectIndex = typedObjectIndex.Index;
+        ref OptimizedFuelGenerator insertIntoFuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[insertOffset][inserterConnections.InsertInto.Index];
+        if (_fuelNeeds == null)
+        {
+            throw new InvalidOperationException($"{nameof(_fuelNeeds)} was null when inserter attempted to insert into {nameof(EntityType.FuelPowerGenerator)}.");
+        }
+
+        OptimizedItemId fuelId = insertIntoFuelGenerator.fuelId;
+        if (fuelId.ItemIndex > 0 && filter > 0 && fuelId.ItemIndex != filter)
+        {
+            return 0;
+        }
+
+        OptimizedItemId[]? insertIntoFuels = _fuelNeeds[insertIntoFuelGenerator.fuelMask];
+        if (typedObjectIndex.EntityType == EntityType.Belt)
+        {
+            ref OptimizedCargoPath pickFromBelt = ref optimizedCargoPaths[objectIndex];
+            if (fuelId.ItemIndex > 0)
+            {
+                pickFromBelt.TryPickItem(pickOffset - 2, 5, fuelId.ItemIndex, out OptimizedCargo optimizedCargo);
+                stack = optimizedCargo.Stack;
+                inc = optimizedCargo.Inc;
+                return optimizedCargo.Item;
+            }
+
+            {
+                pickFromBelt.TryPickFuel(pickOffset - 2, 5, filter, insertIntoFuels, out OptimizedCargo optimizedCargo);
+                stack = optimizedCargo.Stack;
+                inc = optimizedCargo.Inc;
+                return optimizedCargo.Item;
+            }
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Assembler)
+        {
+            AssemblerState assemblerState = _assemblerStates[objectIndex];
+            if (assemblerState != AssemblerState.Active &&
+                assemblerState != AssemblerState.InactiveOutputFull)
+            {
+                inserterState = InserterState.InactivePickFrom;
+                return 0;
+            }
+
+            OptimizedItemId[] products = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Products;
+            short[] produced = _assemblerProduced;
+            int producedOffset = _assemblerProducedSize * objectIndex;
+
+            if (fuelId.ItemIndex > 0)
+            {
+                for (int i = 0; i < products.Length; i++)
+                {
+                    short productItemIndex = products[i].ItemIndex;
+                    if (produced[producedOffset + i] > 0 && productItemIndex > 0 && productItemIndex == fuelId.ItemIndex)
+                    {
+                        produced[producedOffset + i]--;
+                        _assemblerStates[objectIndex] = AssemblerState.Active;
+                        return productItemIndex;
+                    }
+                }
+            }
+            else
+            {
+                for (int j = 0; j < products.Length; j++)
+                {
+                    short productItemIndex = products[j].ItemIndex;
+                    if (produced[producedOffset + j] <= 0 || productItemIndex <= 0 || (filter != 0 && filter != productItemIndex))
+                    {
+                        continue;
+                    }
+
+                    for (int k = 0; k < insertIntoFuels.Length; k++)
+                    {
+                        if (insertIntoFuels[k].ItemIndex == productItemIndex)
+                        {
+                            produced[producedOffset + j]--;
+                            _assemblerStates[objectIndex] = AssemblerState.Active;
+                            return productItemIndex;
+                        }
+                    }
+                }
+            }
+
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.Storage)
+        {
+            int inc2;
+            StorageComponent storageComponent = planet.factoryStorage.storagePool[objectIndex];
+            StorageComponent storageComponent2 = storageComponent;
+            if (storageComponent != null)
+            {
+                storageComponent = storageComponent.topStorage;
+                while (storageComponent != null)
+                {
+                    if (storageComponent.lastEmptyItem != 0 && storageComponent.lastEmptyItem != filter)
+                    {
+                        int itemId = ((fuelId.ItemIndex > 0) ? fuelId.ItemIndex : filter);
+                        int count = 1;
+                        bool flag;
+                        if (fuelId.ItemIndex > 0)
+                        {
+                            storageComponent.TakeTailItems(ref itemId, ref count, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                            inc = (byte)inc2;
+                            flag = count == 1;
+                        }
+                        else
+                        {
+                            bool flag2 = OptimizedStorage.TakeTailFuel(storageComponent, ref itemId, ref count, insertIntoFuels, out inc2, planet.entityPool[storageComponent.entityId].battleBaseId > 0);
+                            inc = (byte)inc2;
+                            flag = count == 1 || flag2;
+                        }
+                        if (count == 1)
+                        {
+                            storageComponent.lastEmptyItem = -1;
+                            return (short)itemId;
+                        }
+                        if (!flag)
+                        {
+                            storageComponent.lastEmptyItem = filter;
+                        }
+                    }
+                    if (storageComponent == storageComponent2)
+                    {
+                        break;
+                    }
+                    storageComponent = storageComponent.previousStorage;
+                    continue;
+                }
+            }
+            return 0;
+        }
+        else if (typedObjectIndex.EntityType == EntityType.FuelPowerGenerator)
+        {
+            if (insertIntoFuelGenerator.fuelCount <= 8)
+            {
+                ref OptimizedFuelGenerator pickFromFuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[pickOffset][objectIndex];
+                int inc2;
+                short result;
+                if (fuelId.ItemIndex > 0)
+                {
+                    result = pickFromFuelGenerator.PickFuelFrom(fuelId.ItemIndex, out inc2).ItemIndex;
+                }
+                else
+                {
+                    result = (((pickFromFuelGenerator.fuelMask & insertIntoFuelGenerator.fuelMask) != pickFromFuelGenerator.fuelMask) ? pickFromFuelGenerator.PickFuelFrom(filter, insertIntoFuels, out inc2) : pickFromFuelGenerator.PickFuelFrom(filter, out inc2)).ItemIndex;
+                }
+                inc = (byte)inc2;
+                return result;
+            }
+
+            fuelFull = true;
+        }
+        return 0;
     }
 
     public short PickFrom(PlanetFactory planet,
@@ -882,20 +1050,26 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
 
             // Inserters can only move items from a fuel generator if the destination is another fuel generator
-            if (pickFrom.EntityType == EntityType.FuelPowerGenerator && insertInto.EntityType != EntityType.FuelPowerGenerator)
+            //if (pickFrom.EntityType == EntityType.FuelPowerGenerator && insertInto.EntityType != EntityType.FuelPowerGenerator)
+            //{
+            //    continue;
+            //}
+            //// Other generator must exist
+            //else 
+
+            if (pickFrom.EntityType == EntityType.FuelPowerGenerator &&
+                 insertInto.EntityType == EntityType.FuelPowerGenerator &&
+                 planet.powerSystem.genPool[insertInto.Index].id != insertInto.Index)
             {
+                WeaverFixes.Logger.LogMessage("Power generator did not exist.");
                 continue;
             }
+            // The two generators fuel must overlap
             else if (pickFrom.EntityType == EntityType.FuelPowerGenerator &&
                      insertInto.EntityType == EntityType.FuelPowerGenerator &&
-                     (inserter.pickOffset <= 0 || planet.powerSystem.genPool[inserter.pickOffset].id != inserter.pickOffset))
+                     (planet.powerSystem.genPool[pickFrom.Index].fuelMask & planet.powerSystem.genPool[insertInto.Index].fuelMask) == 0)
             {
-                continue;
-            }
-            else if (pickFrom.EntityType == EntityType.FuelPowerGenerator &&
-                     insertInto.EntityType == EntityType.FuelPowerGenerator &&
-                     planet.powerSystem.genPool[insertInto.Index].id != insertInto.Index)
-            {
+                WeaverFixes.Logger.LogMessage("Power generator masks did not match at all.");
                 continue;
             }
 
@@ -1011,7 +1185,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         {
             num2 = cargoPath.pathLength - 5 - 1;
         }
-        return (short)(num2 - num);
+        return num2 - num;
     }
 
     private static int GetCorrectedInsertOffset(int insertOffset, ref readonly BeltComponent belt, ref readonly OptimizedCargoPath cargoPath)
@@ -1026,6 +1200,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         {
             num4 = cargoPath.pathLength - 5 - 1;
         }
-        return (short)(num4 - num3);
+        return num4 - num3;
     }
 }

@@ -12,7 +12,6 @@ namespace Weaver.Optimizations.Labs.Researching;
 internal sealed class ResearchingLabExecutor
 {
     private readonly StarClusterResearchManager _starClusterResearchManager = null!;
-    private int[] _matrixPoints = null!;
     private OptimizedItemId[]? _matrixIds = null!;
     private ReadonlyArray<int> _labNetworkIds = default;
     public LabState[] _labStates = null!;
@@ -75,17 +74,18 @@ internal sealed class ResearchingLabExecutor
             // matrix points to be set incorrectly while researching
             // technology. This could cause labs to not consume 
             // anything while still adding hashes to the research.
-            if (flag2 && optimizedLabs.Length > 0)
+            if (flag2 && optimizedLabs.Length > 0 ||
+                factorySystem.researchTechId != num /*Also update if tech changed*/)
             {
-                Array.Clear(_matrixPoints, 0, _matrixPoints.Length);
+                Array.Clear(LabComponent.matrixPoints, 0, LabComponent.matrixPoints.Length);
                 if (techProto != null && techProto.IsLabTech)
                 {
                     for (int i = 0; i < techProto.Items.Length; i++)
                     {
                         int num46779 = techProto.Items[i] - LabComponent.matrixIds[0];
-                        if (num46779 >= 0 && num46779 < _matrixPoints.Length)
+                        if (num46779 >= 0 && num46779 < LabComponent.matrixPoints.Length)
                         {
-                            _matrixPoints[num46779] = techProto.ItemPoints[i];
+                            LabComponent.matrixPoints[num46779] = techProto.ItemPoints[i];
                         }
                     }
                 }
@@ -140,7 +140,6 @@ internal sealed class ResearchingLabExecutor
                     labState = reference.InternalUpdateResearch(power,
                                                                 research_speed,
                                                                 factorySystem.researchTechId,
-                                                                _matrixPoints,
                                                                 _matrixIds,
                                                                 consumeRegister,
                                                                 ref ts,
@@ -178,7 +177,7 @@ internal sealed class ResearchingLabExecutor
         }
     }
 
-    public void GameTickLabOutputToNext(SubFactoryNeeds subFactoryNeeds)
+    public void GameTickLabOutputToNext(long time, SubFactoryNeeds subFactoryNeeds)
     {
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ResearchingLab);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
@@ -186,15 +185,19 @@ internal sealed class ResearchingLabExecutor
         int[] matrixIncServed = _matrixIncServed;
         LabState[] labStates = _labStates;
         OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
-        for (int i = (int)(GameMain.gameTick % 5); i < optimizedLabs.Length; i += 5)
+        int num = (int)(time & 3);
+        for (int i = 0; i < optimizedLabs.Length; i++)
         {
-            optimizedLabs[i].UpdateOutputToNext(i,
-                                                optimizedLabs,
-                                                labStates,
-                                                groupNeeds,
-                                                componentsNeeds,
-                                                matrixServed,
-                                                matrixIncServed);
+            if ((i & 3) == num)
+            {
+                optimizedLabs[i].UpdateOutputToNext(i,
+                                                    optimizedLabs,
+                                                    labStates,
+                                                    groupNeeds,
+                                                    componentsNeeds,
+                                                    matrixServed,
+                                                    matrixIncServed);
+            }
         }
     }
 
@@ -281,7 +284,6 @@ internal sealed class ResearchingLabExecutor
             ref LabComponent unoptimizedLab = ref labComponents[i];
             optimizedLabs[optimizedIndex].Save(ref unoptimizedLab,
                                                labsPowerFields[optimizedIndex],
-                                               _matrixPoints,
                                                researchTechId,
                                                groupNeeds,
                                                componentsNeeds,
@@ -302,8 +304,6 @@ internal sealed class ResearchingLabExecutor
                            SubFactoryNeedsBuilder subFactoryNeedsBuilder,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        int[] matrixPoints = new int[LabComponent.matrixIds.Length];
-        bool copiedMatrixPoints = false;
         List<int> labNetworkIds = [];
         List<LabState> labStates = [];
         List<OptimizedResearchingLab> optimizedLabs = [];
@@ -322,12 +322,6 @@ internal sealed class ResearchingLabExecutor
                                                 .OrderBy(x => x))
         {
             ref LabComponent lab = ref planet.factorySystem.labPool[labIndex];
-
-            if (!copiedMatrixPoints && lab.matrixPoints != null)
-            {
-                Array.Copy(lab.matrixPoints, matrixPoints, matrixPoints.Length);
-                copiedMatrixPoints = true;
-            }
 
             int? nextLabIndex = null;
             if (planet.factorySystem.labPool[lab.nextLabId].id != 0 &&
@@ -394,7 +388,6 @@ internal sealed class ResearchingLabExecutor
             _matrixIncServed = matrixIncServedFlat.ToArray();
         }
 
-        _matrixPoints = matrixPoints.ToArray();
         _labNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(labNetworkIds);
         _labStates = labStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
