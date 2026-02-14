@@ -287,6 +287,34 @@ internal static class OptimizedStarCluster
         DeOptimizeDueToNonPlayerAction(__instance);
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(GameLogic), nameof(GameLogic.FactorySystemLabResearchGameTick))]
+    public static bool GameLogic_FactorySystemLabResearchGameTick(GameLogic __instance)
+    {
+        DeepProfiler.BeginSample(DPEntry.Lab, -1, 2L);
+        for (int i = 0; i < __instance.factoryCount; i++)
+        {
+            PlanetFactory planetFactory = __instance.factories[i];
+            bool isActive = __instance.localLoadedFactory == planetFactory;
+
+            ThreadSafeGameTickLabResearchMode(planetFactory, __instance.timei, isActive);
+        }
+        DeepProfiler.EndSample();
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    public static void ThreadSafeGameTickLabResearchMode(PlanetFactory planetFactory, long time, bool isActive)
+    {
+        // Code in GameTickLabResearchMode must not run concurrently
+        // with weavers optimized lab research code so the lock here
+        // is added to ensure that can not happen.
+        lock (_starClusterResearchManager)
+        {
+            planetFactory.factorySystem.GameTickLabResearchMode(time, isActive);
+        }
+    }
+
     [HarmonyTranspiler, HarmonyPatch(typeof(FactorySystem), nameof(FactorySystem.GameTickLabResearchMode))]
     static IEnumerable<CodeInstruction> DeferResearchUnlockToStarClusterResearchManager(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
     {
@@ -313,7 +341,7 @@ internal static class OptimizedStarCluster
             new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(OptimizedStarCluster), nameof(_starClusterResearchManager))),
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(FactorySystem), nameof(FactorySystem.researchTechId))),
-            new CodeInstruction(OpCodes.Ldloc_S, 29), // curLevel
+            new CodeInstruction(OpCodes.Ldloc_S, 34), // curLevel
             new CodeInstruction(OpCodes.Ldloc_S, 13), // ts
             new CodeInstruction(OpCodes.Ldloc_S, 12), // techProto
             new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(StarClusterResearchManager), nameof(StarClusterResearchManager.AddResearchedTech)))

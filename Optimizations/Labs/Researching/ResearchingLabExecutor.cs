@@ -11,7 +11,7 @@ namespace Weaver.Optimizations.Labs.Researching;
 
 internal sealed class ResearchingLabExecutor
 {
-    private readonly StarClusterResearchManager _starClusterResearchManager = null!;
+    private readonly StarClusterResearchManager _starClusterResearchManager;
     private OptimizedItemId[]? _matrixIds = null!;
     private ReadonlyArray<int> _labNetworkIds = default;
     public LabState[] _labStates = null!;

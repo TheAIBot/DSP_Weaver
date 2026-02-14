@@ -74,10 +74,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         else if (_workType == WorkType.LabResearchMode)
         {
             DeepProfiler.BeginMajorSample(DPEntry.Lab, workerIndex);
-            lock (singleThreadedCodeLock)
-            {
-                _planet.factorySystem!.GameTickLabResearchMode(time, isActive);
-            }
+            OptimizedStarCluster.ThreadSafeGameTickLabResearchMode(_planet, time, isActive);
             DeepProfiler.EndMajorSample(DPEntry.Lab, workerIndex);
         }
         else if (_workType == WorkType.LabOutput2NextData)
