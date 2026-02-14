@@ -1,3 +1,7 @@
+## 2.2.1
+* Updated to DSP version 0.10.34.28455
+* Fix orbital collectors were updated twice instead of once.
+
 ## 2.2.0
 * Deduplicate data
 	* An entitys missing items now reference patterns instead of storing duplicate data.
