@@ -388,22 +388,23 @@ internal unsafe struct BeltBuffer
 
             int speedDifference = _beltSpeed - chunkSpeed;
             int chunkEndActualIndex = chunkStartActualIndex + chunkLength - 1;
+
+            // An item may start at the end of this chunk and cross over onto the next chunk.
+            // This here ensures that the entirety of the last items is moved.
+            // An item is 10 indexes wide and always ends with CargoPath.kCargoRear.
+            while (chunkEndActualIndex < _stoppedItemsActualIndex &&
+                   buffer[chunkEndActualIndex] != 0 &&
+                   buffer[chunkEndActualIndex] != CargoPath.kCargoRear)
+            {
+                chunkEndActualIndex++;
+            }
+
             // Stopped items are not moving forward and should therefore not be
             // moved back to compensate for the offset being too high.
             if (chunkEndActualIndex >= _stoppedItemsActualIndex)
             {
                 chunkEndActualIndex = _stoppedItemsActualIndex - 1;
             }
-            else
-            {
-                // An item may start at the end of this chunk and cross over onto the next chunk.
-                // This here ensures that the entirety of the last items is moved.
-                while (buffer[chunkEndActualIndex] != 0 && buffer[chunkEndActualIndex] != CargoPath.kCargoRear)
-                {
-                    chunkEndActualIndex++;
-                }
-            }
-            int chunkUpdateLength = chunkEndActualIndex - chunkStartActualIndex + 1;
 
             int emptySpacesFound = 0;
 
@@ -484,6 +485,7 @@ internal unsafe struct BeltBuffer
                 }
             }
 
+            int chunkUpdateLength = chunkEndActualIndex - chunkStartActualIndex + 1;
             MemoryMove(buffer, chunkStartActualIndex, buffer, chunkStartActualIndex - emptySpacesFound, chunkUpdateLength);
             ClearFromActualIndex(chunkStartActualIndex - emptySpacesFound + chunkUpdateLength, emptySpacesFound);
         }
@@ -568,7 +570,7 @@ internal unsafe struct BeltBuffer
         }
 
 #if DEBUG
-// This checks to too expensive to run in game
+        // This checks to too expensive to run in game
         for (int i = _stoppedItemsActualIndex - 1; i >= _stoppedItemsActualIndex - 1 - _offset; i--)
         {
             if (_buffer[i] != 0)
