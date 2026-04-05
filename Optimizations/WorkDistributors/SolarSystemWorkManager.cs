@@ -28,7 +28,7 @@ internal sealed class SolarSystemWorkManager
             throw new InvalidOperationException("Attempted to add dyson sphere but solar system already has a dyson sphere.");
         }
 
-        _dysonWorkNode = new WorkLeaf([ new SolarSystemDysonSphereWorkChunk(dysonSphere)]);
+        _dysonWorkNode = new SingleWorkLeaf(new SolarSystemDysonSphereWorkChunk(dysonSphere));
         _solarSystemWorkNode?.Dispose();
         _solarSystemWorkNode = null;
     }

@@ -98,7 +98,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
 
         if (_planetWideStationExecutor.Count > 0)
         {
-            return new WorkLeaf([new PlanetWideTransport(this)]);
+            return new SingleWorkLeaf(new PlanetWideTransport(this));
         }
 
         return new NoWorkNode();
@@ -108,7 +108,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
     {
         if (_planet.transport.stationCursor > 0)
         {
-            return new WorkLeaf(UnOptimizedPlanetWorkChunk.CreateDuplicateChunks(_planet, WorkType.TransportData, 1));
+            return UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.TransportData, 1)[0];
         }
 
         return new NoWorkNode();

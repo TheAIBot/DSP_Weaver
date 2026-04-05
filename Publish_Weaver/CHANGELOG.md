@@ -1,3 +1,6 @@
+## 2.3.0
+* Parallelized sorters, spray coaters, pilers, monitors and belts when player is on/near a planet.
+
 ## 2.2.1
 * Updated to DSP version 0.10.34.28455
 * Fix orbital collectors were updated twice instead of once.

@@ -62,9 +62,9 @@ internal sealed class WorkNode : IWorkNode
                 startWorkStepIndex = 0;
             }
 
-            if (waitForWork)
+            if (waitForWork && !searchAllWork)
             {
-                (bool isNodeComplete, bool didAnyWork) = TryFindWorkToWaitFor(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, workStepIndex);
+                (bool isNodeComplete, bool didAnyWork) = TryFindWorkToWaitFor(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, workStepIndex, false);
                 if (didAnyWork)
                 {
                     return (isNodeComplete, didAnyWork);
@@ -72,6 +72,7 @@ internal sealed class WorkNode : IWorkNode
             }
 
 
+            bool didAnyWorkInThisStep = false;
             for (int i = startWorkStepIndex; i < workNodeCount; i++)
             {
                 IWorkNode? workNode = _actualWorkNodes[workStepIndex][i];
@@ -87,18 +88,33 @@ internal sealed class WorkNode : IWorkNode
                 }
 
                 hasDoneAnyWork |= didAnyWork;
+                didAnyWorkInThisStep |= didAnyWork;
+            }
+
+            // When searchAllWork=true, _scheduledWorkIndex is not incremented so the
+            // guard check in TryFindWorkToWaitFor would incorrectly block look-ahead.
+            // At this point the for loop has confirmed that every node in the current
+            // step is either null (completed) or internally claimed (returned false),
+            // so another thread WILL finish this step and the barrier will fire.
+            if (waitForWork && searchAllWork && !didAnyWorkInThisStep)
+            {
+                (bool isNodeComplete, bool didAnyWork) = TryFindWorkToWaitFor(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, workStepIndex, true);
+                if (didAnyWork)
+                {
+                    return (isNodeComplete, didAnyWork);
+                }
             }
         } while (workStepIndex != _workStepIndex);
 
         return (false, hasDoneAnyWork);
     }
 
-    private (bool isNodeComplete, bool didAnyWork) TryFindWorkToWaitFor(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition, int workStepIndex)
+    private (bool isNodeComplete, bool didAnyWork) TryFindWorkToWaitFor(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition, int workStepIndex, bool justWaitForWork)
     {
         // Can only wait for work in next work step if all work in current work step has been scheduled.
         // This is to ensure that there is another thread that will unblock this thread once the entire
         // current work step is over.
-        if (_scheduledWorkIndex[workStepIndex] < _actualWorkNodes[workStepIndex].Length)
+        if (_scheduledWorkIndex[workStepIndex] < _actualWorkNodes[workStepIndex].Length && !justWaitForWork)
         {
             return (false, false);
         }
@@ -106,49 +122,69 @@ internal sealed class WorkNode : IWorkNode
         // All work in current work step has been completed. Now check if there is any valid work to
         // do in next work step.
         int nextWorkStepIndex = workStepIndex + 1;
-        if (nextWorkStepIndex >= _actualWorkNodes.Length)
+        while (nextWorkStepIndex < _actualWorkNodes.Length)
         {
-            return (false, false);
+            // While this does not garuantee that all nodes are leafs then this is good enough for now... probably
+            if (_preservedWorkNodes[nextWorkStepIndex][0].IsLeaf != true)
+            {
+                if (waitForWork)
+                {
+                    nextWorkStepIndex++;
+                    continue;
+                }
+                return (false, false);
+            }
+
+            if (_scheduledWorkIndex[nextWorkStepIndex] > _actualWorkNodes[nextWorkStepIndex].Length)
+            {
+                if (waitForWork)
+                {
+                    nextWorkStepIndex++;
+                    continue;
+                }
+                return (false, false);
+            }
+
+            int scheduleFutureWork = Interlocked.Increment(ref _scheduledWorkIndex[nextWorkStepIndex]) - 1;
+            int nextWorkNodeCount = _actualWorkNodes[nextWorkStepIndex].Length;
+            if (scheduleFutureWork >= nextWorkNodeCount)
+            {
+                if (waitForWork)
+                {
+                    nextWorkStepIndex++;
+                    continue;
+                }
+                return (false, false);
+            }
+
+            IWorkNode? workNode = _actualWorkNodes[nextWorkStepIndex][scheduleFutureWork];
+            if (workNode == null)
+            {
+                if (waitForWork)
+                {
+                    nextWorkStepIndex++;
+                    continue;
+                }
+                return (false, false);
+            }
+
+            //WeaverFixes.Logger.LogMessage("Thread waiting for ongoing work to complete.");
+            _workNodeBarriers[nextWorkStepIndex - 1].WaitOne();
+            return TryDoWorkInNode(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, nextWorkStepIndex, scheduleFutureWork, workNode);
         }
 
-        // While this does not garuantee that all nodes are leafs then this is good enough for now... probably
-        if (_actualWorkNodes[nextWorkStepIndex][0]?.IsLeaf != true)
-        {
-            return (false, false);
-        }
-
-        if (_scheduledWorkIndex[nextWorkStepIndex] > _actualWorkNodes[nextWorkStepIndex].Length)
-        {
-            return (false, false);
-        }
-
-        int scheduleFutureWork = Interlocked.Increment(ref _scheduledWorkIndex[nextWorkStepIndex]) - 1;
-        int nextWorkNodeCount = _actualWorkNodes[nextWorkStepIndex].Length;
-        if (scheduleFutureWork >= nextWorkNodeCount)
-        {
-            return (false, false);
-        }
-
-        IWorkNode? workNode = _actualWorkNodes[nextWorkStepIndex][scheduleFutureWork];
-        if (workNode == null)
-        {
-            return (false, false);
-        }
-
-        //WeaverFixes.Logger.LogMessage("Thread waiting for ongoing work to complete.");
-        _workNodeBarriers[workStepIndex].WaitOne();
-        return TryDoWorkInNode(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition, nextWorkStepIndex, scheduleFutureWork, workNode);
+        return (false, false);
     }
 
-    private (bool isNodeComplete, bool didAnyWork) TryDoWorkInNode(bool waitForWork, 
+    private (bool isNodeComplete, bool didAnyWork) TryDoWorkInNode(bool waitForWork,
                                                                    bool searchAllWork,
-                                                                   int workerIndex, 
-                                                                   object singleThreadedCodeLock, 
-                                                                   PlanetData localPlanet, 
-                                                                   long time, 
-                                                                   UnityEngine.Vector3 playerPosition, 
-                                                                   int workStepIndex, 
-                                                                   int nodeIndex,  
+                                                                   int workerIndex,
+                                                                   object singleThreadedCodeLock,
+                                                                   PlanetData localPlanet,
+                                                                   long time,
+                                                                   UnityEngine.Vector3 playerPosition,
+                                                                   int workStepIndex,
+                                                                   int nodeIndex,
                                                                    IWorkNode workNode)
     {
         (bool isNodeComplete, bool hasDoneWorkInChildNode) = workNode.TryDoWork(waitForWork, searchAllWork, workerIndex, singleThreadedCodeLock, localPlanet, time, playerPosition);

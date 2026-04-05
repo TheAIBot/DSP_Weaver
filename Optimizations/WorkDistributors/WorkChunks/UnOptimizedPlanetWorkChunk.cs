@@ -17,15 +17,15 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         _maxWorkCount = maxWorkCount;
     }
 
-    public static UnOptimizedPlanetWorkChunk[] CreateDuplicateChunks(PlanetFactory planet, WorkType workType, int count)
+    public static SingleWorkLeaf[] CreateDuplicateChunksInWorkLeafs(PlanetFactory planet, WorkType workType, int count)
     {
-        UnOptimizedPlanetWorkChunk[] workChunks = new UnOptimizedPlanetWorkChunk[count];
-        for (int i = 0; i < workChunks.Length; i++)
+        SingleWorkLeaf[] workLeafs = new SingleWorkLeaf[count];
+        for (int i = 0; i < workLeafs.Length; i++)
         {
-            workChunks[i] = new UnOptimizedPlanetWorkChunk(planet, workType, i, count);
+            workLeafs[i] = new SingleWorkLeaf(new UnOptimizedPlanetWorkChunk(planet, workType, i, count));
         }
 
-        return workChunks;
+        return workLeafs;
     }
 
     public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
@@ -107,9 +107,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
                 throw new InvalidOperationException($"Attempted to execute {WorkType.InserterData} work on a null planet.");
             }
 
-            DeepProfiler.BeginSample(DPEntry.Inserter, workerIndex);
-            _planet.factorySystem.GameTickInserters(time, isActive);
-            DeepProfiler.EndSample(DPEntry.Inserter, workerIndex);
+            ParallelInserterGameTick(workerIndex, time, isActive);
         }
         else if (_workType == WorkType.Storage && _planet.factoryStorage != null)
         {
@@ -123,9 +121,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.CargoPathsData)
         {
-            DeepProfiler.BeginSample(DPEntry.Belt, workerIndex);
-            _planet.cargoTraffic.CargoPathsGameTickSync();
-            DeepProfiler.EndSample(DPEntry.Belt, workerIndex);
+            ParallelCargoPathsGameTick(workerIndex);
         }
         else if (_workType == WorkType.Splitter && _planet.cargoTraffic != null)
         {
@@ -133,23 +129,9 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             _planet.cargoTraffic.SplitterGameTick(time);
             DeepProfiler.EndSample(DPEntry.Splitter, workerIndex);
         }
-        else if (_workType == WorkType.Monitor && _planet.cargoTraffic != null)
+        else if (_workType == WorkType.CargoTrafficMisc && _planet.cargoTraffic != null)
         {
-            DeepProfiler.BeginSample(DPEntry.Monitor, workerIndex);
-            _planet.cargoTraffic.MonitorGameTick();
-            DeepProfiler.EndSample(DPEntry.Monitor, workerIndex);
-        }
-        else if (_workType == WorkType.Spraycoater && _planet.cargoTraffic != null)
-        {
-            DeepProfiler.BeginSample(DPEntry.Spraycoater, workerIndex);
-            _planet.cargoTraffic.SpraycoaterGameTick();
-            DeepProfiler.EndSample(DPEntry.Spraycoater, workerIndex);
-        }
-        else if (_workType == WorkType.Piler && _planet.cargoTraffic != null)
-        {
-            DeepProfiler.BeginSample(DPEntry.Piler, workerIndex);
-            _planet.cargoTraffic.PilerGameTick();
-            DeepProfiler.EndSample(DPEntry.Piler, workerIndex);
+            ParallelCargoTrafficMiscGameTick(workerIndex);
         }
         else if (_workType == WorkType.OutputToBelt && _planet.transport != null)
         {
@@ -169,9 +151,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
         else if (_workType == WorkType.PresentCargoPathsData && _planet.cargoTraffic != null)
         {
-            DeepProfiler.BeginSample(DPEntry.CargoPresent, workerIndex);
-            _planet.cargoTraffic.PresentCargoPathsSync();
-            DeepProfiler.EndSample(DPEntry.CargoPresent, workerIndex);
+            ParallelPresentCargoPathsGameTick(workerIndex);
         }
         else if (_workType == WorkType.Digital && _planet.digitalSystem != null)
         {
@@ -179,5 +159,182 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             _planet.digitalSystem.GameTick(isActive);
             DeepProfiler.EndSample(DPEntry.DigitalSystem, workerIndex);
         }
+    }
+
+    private void ParallelInserterGameTick(int workerIndex, long time, bool isActive)
+    {
+        InserterComponent[] inserterPool = _planet.factorySystem.inserterPool;
+        PowerSystem powerSystem = _planet.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        CargoTraffic cargoTraffic = _planet.cargoTraffic;
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        int[][] entityNeeds = _planet.entityNeeds;
+        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+        EntityData[] entityPool = _planet.entityPool;
+        BeltComponent[] beltPool = _planet.cargoTraffic.beltPool;
+        bool isTimeForOffsetCorrection = time % 60 == 0;
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.factorySystem.inserterCursor, _maxWorkCount, _workIndex);
+        if (workLength == 0)
+        {
+            return;
+        }
+
+        DeepProfiler.BeginSample(DPEntry.Inserter, workerIndex);
+        for (int i = startIndex; i < startIndex + workLength; i++)
+        {
+            ref InserterComponent component = ref inserterPool[i];
+            if (component.id != i)
+            {
+                continue;
+            }
+
+            float power = networkServes[consumerPool[component.pcId].networkId];
+            if (isTimeForOffsetCorrection)
+            {
+                component.InternalOffsetCorrection(entityPool, cargoTraffic, beltPool);
+            }
+            if (component.bidirectional)
+            {
+                component.InternalUpdate_Bidirectional(_planet, entityNeeds, entityAnimPool, power, isActive);
+            }
+            else if (isActive)
+            {
+                component.InternalUpdate(_planet, entityNeeds, entityAnimPool, power);
+            }
+            else
+            {
+                component.InternalUpdateNoAnim(_planet, entityNeeds, power);
+            }
+            component.SetPCState(consumerPool);
+        }
+        DeepProfiler.EndSample(DPEntry.Inserter, workerIndex);
+    }
+
+    private void ParallelCargoPathsGameTick(int workerIndex)
+    {
+        CargoPath[] pathPool = _planet.cargoTraffic.pathPool;
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.cargoTraffic.pathCursor, _maxWorkCount, _workIndex);
+        if (workLength == 0)
+        {
+            return;
+        }
+
+        DeepProfiler.BeginSample(DPEntry.Belt, workerIndex);
+        for (int i = startIndex; i < startIndex + workLength; i++)
+        {
+            CargoPath cargoPath = pathPool[i];
+            if (cargoPath == null ||
+                cargoPath.id != i)
+            {
+                continue;
+            }
+
+            cargoPath.Update();
+        }
+        DeepProfiler.EndSample(DPEntry.Belt, workerIndex);
+    }
+
+    private void ParallelCargoTrafficMiscGameTick(int workerIndex)
+    {
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        DigitalSystem digitalSystem = _planet.digitalSystem;
+        EntityData[] entityPool = _planet.entityPool;
+        PowerConsumerComponent[] consumerPool = _planet.powerSystem.consumerPool;
+        CargoTraffic cargoTraffic = _planet.cargoTraffic;
+        bool sandboxToolsEnabled = GameMain.sandboxToolsEnabled;
+
+        if (cargoTraffic.monitorCursor > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Monitor, workerIndex);
+            (int startIndex, int workLength) = GetWorkChunkIndices(cargoTraffic.monitorCursor, _maxWorkCount, _workIndex);
+            MonitorComponent[] monitorPool = cargoTraffic.monitorPool;
+            for (int i = startIndex; i < startIndex + workLength; i++)
+            {
+                ref MonitorComponent component = ref monitorPool[i];
+                if (component.id != i)
+                {
+                    continue;
+                }
+
+                component.InternalUpdate(cargoTraffic, sandboxToolsEnabled, entityPool, digitalSystem, entityAnimPool);
+                component.SetPCState(consumerPool);
+            }
+            DeepProfiler.EndSample(DPEntry.Monitor, workerIndex);
+        }
+
+        if (cargoTraffic.spraycoaterCursor > 0)
+        {
+            int[] consumeRegister = GameMain.statistics.production.factoryStatPool[_planet.index].consumeRegister;
+            DeepProfiler.BeginSample(DPEntry.Spraycoater, workerIndex);
+            (int startIndex, int workLength) = GetWorkChunkIndices(cargoTraffic.spraycoaterCursor, _maxWorkCount, _workIndex);
+            SpraycoaterComponent[] spraycoaterPool = cargoTraffic.spraycoaterPool;
+            for (int i = startIndex; i < startIndex + workLength; i++)
+            {
+                ref SpraycoaterComponent component = ref spraycoaterPool[i];
+                if (component.id != i)
+                {
+                    continue;
+                }
+
+                component.InternalUpdate(cargoTraffic, entityAnimPool, consumeRegister);
+                component.SetPCState(consumerPool);
+            }
+            DeepProfiler.EndSample(DPEntry.Spraycoater, workerIndex);
+        }
+
+        if (cargoTraffic.pilerCursor > 0)
+        {
+            DeepProfiler.BeginSample(DPEntry.Piler, workerIndex);
+            (int startIndex, int workLength) = GetWorkChunkIndices(cargoTraffic.pilerCursor, _maxWorkCount, _workIndex);
+            PilerComponent[] pilerPool = cargoTraffic.pilerPool;
+            for (int i = startIndex; i < startIndex + workLength; i++)
+            {
+                ref PilerComponent component = ref pilerPool[i];
+                if (component.id != i)
+                {
+                    continue;
+                }
+
+                pilerPool[i].InternalUpdate(cargoTraffic, entityAnimPool);
+                pilerPool[i].SetPCState(consumerPool);
+            }
+            DeepProfiler.EndSample(DPEntry.Piler, workerIndex);
+        }
+    }
+
+    private void ParallelPresentCargoPathsGameTick(int workerIndex)
+    {
+        CargoPath[] pathPool = _planet.cargoTraffic.pathPool;
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.cargoTraffic.pathCursor, _maxWorkCount, _workIndex);
+        if (workLength == 0)
+        {
+            return;
+        }
+
+        DeepProfiler.BeginSample(DPEntry.CargoPresent, workerIndex);
+        for (int i = startIndex; i < startIndex + workLength; i++)
+        {
+            CargoPath cargoPath = pathPool[i];
+            if (cargoPath == null ||
+                cargoPath.id != i)
+            {
+                continue;
+            }
+
+            cargoPath.PresentCargos();
+        }
+        DeepProfiler.EndSample(DPEntry.CargoPresent, workerIndex);
+    }
+
+    private static (int startIndex, int workLength) GetWorkChunkIndices(int totalLength, int maxWorkCount, int workIndex)
+    {
+        int workChunkLength = ((totalLength + maxWorkCount - 1) / maxWorkCount);
+        int startIndex = workChunkLength * workIndex;
+        int workLength = Math.Min(workChunkLength, totalLength - startIndex);
+        if (workLength <= 0)
+        {
+            return (0, 0);
+        }
+        return (startIndex, workLength);
     }
 }

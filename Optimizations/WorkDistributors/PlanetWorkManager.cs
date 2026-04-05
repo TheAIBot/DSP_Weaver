@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.WorkDistributors;
@@ -16,7 +15,7 @@ internal sealed class PlanetWorkManager
     public PlanetWorkManager(GameLogic gameLogic, PlanetFactory planet, IOptimizedPlanet optimizedPlanet)
     {
         _optimizedPlanet = optimizedPlanet;
-        _prePlanetFactoryWork = new WorkLeaf([new PrePlanetFactorySteps(gameLogic, planet)]);
+        _prePlanetFactoryWork = new SingleWorkLeaf(new PrePlanetFactorySteps(gameLogic, planet));
     }
 
     public bool UpdatePlanetWork(int parallelism)
