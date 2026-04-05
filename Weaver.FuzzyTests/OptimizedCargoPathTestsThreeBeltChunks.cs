@@ -6,6 +6,8 @@ namespace Weaver.FuzzyTests;
 
 public sealed class OptimizedCargoPathTestsThreeBeltChunks
 {
+    private const int _updateCount = 200;
+
     public static IEnumerable<(int speed1, int speed2, int speed3)> AllSpeeds()
     {
         for (int speed1 = 1; speed1 <= 5; speed1++)
@@ -54,12 +56,12 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
                     }
                 }
             }
-
         }
     }
 
-    public static IEnumerable<(int index, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3)> InsertIndexSingleSpeedBeltRandomPermutations()
+    public static IEnumerable<(int index, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int addRate)> InsertIndexSingleSpeedBeltRandomPermutations()
     {
+        HashSet<(int index, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int addRate)> uniqueTestCases = [];
         var random = new Random(1);
         int testCount = 10_000;
         for (int i = 0; i < testCount; i++)
@@ -76,66 +78,18 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             {
                 continue;
             }
+            int addRate = random.Next(1, 20);
 
-            yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3);
+            if (uniqueTestCases.Add((insertIndex, beltChunk1, beltChunk2, beltChunk3, addRate)))
+            {
+                yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3, addRate);
+            }
         }
     }
 
-    public static IEnumerable<(int insertIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex)> InsertIndexSingleSpeedBeltRandomPermutationsWithGetIndex()
+    public static IEnumerable<(int insertIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int addRate, int removeRate)> InsertIndexSingleSpeedBeltRandomPermutationsWithGetIndex()
     {
-        var random = new Random(1);
-        int testCount = 10_000;
-        for (int i = 0; i < testCount; i++)
-        {
-            int insertIndex = random.Next(0, 30);
-            var beltChunk1 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
-            var beltChunk2 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
-            if (beltChunk1 == beltChunk2)
-            {
-                continue;
-            }
-            var beltChunk3 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
-            if (beltChunk2 == beltChunk3)
-            {
-                continue;
-            }
-            int minGetIndex = Math.Max(insertIndex - CargoPath.kCargoLength, 0);
-            if (minGetIndex > 20)
-            {
-                continue;
-            }
-            int getIndex = random.Next(minGetIndex, 20);
-
-            yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3, getIndex);
-        }
-    }
-
-    public static IEnumerable<(int index, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int maxStacks)> InsertIndexSingleSpeedBeltRandomPermutationsMaxStacks()
-    {
-        var random = new Random(1);
-        int testCount = 10_000;
-        for (int i = 0; i < testCount; i++)
-        {
-            int insertIndex = random.Next(0, 30);
-            var beltChunk1 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
-            var beltChunk2 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
-            if (beltChunk1 == beltChunk2)
-            {
-                continue;
-            }
-            var beltChunk3 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
-            if (beltChunk2 == beltChunk3)
-            {
-                continue;
-            }
-            int maxStack = random.Next(1, 5);
-
-            yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3, maxStack);
-        }
-    }
-
-    public static IEnumerable<(int insertIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int maxStacks)> InsertIndexSingleSpeedBeltRandomPermutationsWithGetIndexMaxStacks()
-    {
+        HashSet<(int insertIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int addRate, int removeRate)> uniqueTestCases = [];
         var random = new Random(1);
         int testCount = 10_000;
         for (int i = 0; i < testCount; i++)
@@ -158,32 +112,93 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
                 continue;
             }
             int getIndex = random.Next(minGetIndex, 20);
-            int maxStack = random.Next(1, 5);
+            int addRate = random.Next(1, 20);
+            int removeRate = random.Next(1, 20);
 
-            yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3, getIndex, maxStack);
+            if (uniqueTestCases.Add((insertIndex, beltChunk1, beltChunk2, beltChunk3, getIndex, addRate, removeRate)))
+            {
+                yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3, getIndex, addRate, removeRate);
+            }
+        }
+    }
+
+    public static IEnumerable<(int index, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int maxStacks, int addRate)> InsertIndexSingleSpeedBeltRandomPermutationsMaxStacks()
+    {
+        HashSet<(int index, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int maxStacks, int addRate)> uniqueTestCases = [];
+        var random = new Random(1);
+        int testCount = 10_000;
+        for (int i = 0; i < testCount; i++)
+        {
+            int insertIndex = random.Next(0, 30);
+            var beltChunk1 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
+            var beltChunk2 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
+            if (beltChunk1 == beltChunk2)
+            {
+                continue;
+            }
+            var beltChunk3 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
+            if (beltChunk2 == beltChunk3)
+            {
+                continue;
+            }
+            int maxStack = random.Next(1, 5);
+            int addRate = random.Next(1, 20);
+
+            if (uniqueTestCases.Add((insertIndex, beltChunk1, beltChunk2, beltChunk3, maxStack, addRate)))
+            {
+                yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3, maxStack, addRate);
+            }
+        }
+    }
+
+    public static IEnumerable<(int insertIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int maxStacks, int addRate, int removeRate)> InsertIndexSingleSpeedBeltRandomPermutationsWithGetIndexMaxStacks()
+    {
+        HashSet<(int insertIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int maxStacks, int addRate, int removeRate)> uniqueTestCases = [];
+        var random = new Random(1);
+        int testCount = 10_000;
+        for (int i = 0; i < testCount; i++)
+        {
+            int insertIndex = random.Next(0, 30);
+            var beltChunk1 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
+            var beltChunk2 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
+            if (beltChunk1 == beltChunk2)
+            {
+                continue;
+            }
+            var beltChunk3 = new BeltChunk(random.Next(1, 6), random.Next(20, 50));
+            if (beltChunk2 == beltChunk3)
+            {
+                continue;
+            }
+            int minGetIndex = Math.Max(insertIndex - CargoPath.kCargoLength, 0);
+            if (minGetIndex > 20)
+            {
+                continue;
+            }
+            int getIndex = random.Next(minGetIndex, 20);
+            int maxStack = random.Next(1, 5);
+            int addRate = random.Next(1, 20);
+            int removeRate = random.Next(1, 20);
+
+            if (uniqueTestCases.Add((insertIndex, beltChunk1, beltChunk2, beltChunk3, getIndex, maxStack, addRate, removeRate)))
+            {
+                yield return (insertIndex, beltChunk1, beltChunk2, beltChunk3, getIndex, maxStack, addRate, removeRate);
+            }
         }
     }
 
     [Test]
     [MethodDataSource(nameof(InsertIndexSingleSpeedBeltRandomPermutations))]
-    public async Task TryInsertItem_WithDifferentBeltIndex_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3)
+    public async Task TryInsertItem_WithBeltComparerPermutationOverTime_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int addRate)
     {
         var comparer = new BeltComparer([beltChunk1, beltChunk2, beltChunk3], 0);
 
-        await TUnit.Assertions.Assert.That(comparer.TryInsertItem(insertionIndex, new TestCargo(3, 2, 1))).IsTrue();
-
-        await comparer.AssertEqualAsync();
-    }
-
-    [Test]
-    [MethodDataSource(nameof(InsertIndexSingleSpeedBeltRandomPermutations))]
-    public async Task TryInsertItem_WithBeltComparerPermutationOverTime_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3)
-    {
-        var comparer = new BeltComparer([beltChunk1, beltChunk2, beltChunk3], 0);
-
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < _updateCount; i++)
         {
-            await TUnit.Assertions.Assert.That(comparer.TryInsertItem(insertionIndex, new TestCargo(3, 2, 1))).IsTrue();
+            if (i % addRate == 0)
+            {
+                await TUnit.Assertions.Assert.That(comparer.TryInsertItem(insertionIndex, new TestCargo(3, 2, 1))).IsTrue();
+            }
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
@@ -191,14 +206,20 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
 
     [Test]
     [MethodDataSource(nameof(InsertIndexSingleSpeedBeltRandomPermutationsWithGetIndex))]
-    public async Task TryInsertItem_WithBeltComparerPermutationOverTimeAndTakeItem_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex)
+    public async Task TryInsertItem_WithBeltComparerPermutationOverTimeAndTakeItem_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int addRate, int removeRate)
     {
         var comparer = new BeltComparer([beltChunk1, beltChunk2, beltChunk3], 0);
 
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < _updateCount; i++)
         {
-            await TUnit.Assertions.Assert.That(comparer.TryInsertItem(insertionIndex, new TestCargo(3, 2, 1))).IsTrue();
-            await TUnit.Assertions.Assert.That(comparer.TryGetItem(getIndex)).IsTrue();
+            if (i % addRate == 0)
+            {
+                await TUnit.Assertions.Assert.That(comparer.TryInsertItem(insertionIndex, new TestCargo(3, 2, 1))).IsTrue();
+            }
+            if (i % removeRate == 0)
+            {
+                await TUnit.Assertions.Assert.That(comparer.TryGetItem(getIndex)).IsTrue();
+            }
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
@@ -206,24 +227,16 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
 
     [Test]
     [MethodDataSource(nameof(InsertIndexSingleSpeedBeltRandomPermutationsMaxStacks))]
-    public async Task TryInsertItemWithStackIncreasement_WithDifferentBeltIndex_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int maxStacks)
+    public async Task TryInsertItemWithStackIncreasement_WithBeltComparerPermutationOverTime_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int maxStacks, int addRate)
     {
         var comparer = new BeltComparer([beltChunk1, beltChunk2, beltChunk3], 0);
 
-        await TUnit.Assertions.Assert.That(comparer.TryInsertItemWithStackIncreasement(insertionIndex, maxStacks, new TestCargo(3, 2, 1))).IsTrue();
-
-        await comparer.AssertEqualAsync();
-    }
-
-    [Test]
-    [MethodDataSource(nameof(InsertIndexSingleSpeedBeltRandomPermutationsMaxStacks))]
-    public async Task TryInsertItemWithStackIncreasement_WithBeltComparerPermutationOverTime_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int maxStacks)
-    {
-        var comparer = new BeltComparer([beltChunk1, beltChunk2, beltChunk3], 0);
-
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < _updateCount; i++)
         {
-            await TUnit.Assertions.Assert.That(comparer.TryInsertItemWithStackIncreasement(insertionIndex, maxStacks, new TestCargo(3, 2, 1))).IsTrue();
+            if (i % addRate == 0)
+            {
+                await TUnit.Assertions.Assert.That(comparer.TryInsertItemWithStackIncreasement(insertionIndex, maxStacks, new TestCargo(3, 2, 1))).IsTrue();
+            }
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
@@ -231,14 +244,20 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
 
     [Test]
     [MethodDataSource(nameof(InsertIndexSingleSpeedBeltRandomPermutationsWithGetIndexMaxStacks))]
-    public async Task TryInsertItemWithStackIncreasement_WithBeltComparerPermutationOverTimeAndTakeItem_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int maxStacks)
+    public async Task TryInsertItemWithStackIncreasement_WithBeltComparerPermutationOverTimeAndTakeItem_ExpectBeltsAreEqual(int insertionIndex, BeltChunk beltChunk1, BeltChunk beltChunk2, BeltChunk beltChunk3, int getIndex, int maxStacks, int addRate, int removeRate)
     {
         var comparer = new BeltComparer([beltChunk1, beltChunk2, beltChunk3], 0);
 
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < _updateCount; i++)
         {
-            await TUnit.Assertions.Assert.That(comparer.TryInsertItemWithStackIncreasement(insertionIndex, maxStacks, new TestCargo(3, 2, 1))).IsTrue();
-            await TUnit.Assertions.Assert.That(comparer.TryGetItem(getIndex)).IsTrue();
+            if (i % addRate == 0)
+            {
+                await TUnit.Assertions.Assert.That(comparer.TryInsertItemWithStackIncreasement(insertionIndex, maxStacks, new TestCargo(3, 2, 1))).IsTrue();
+            }
+            if (i % removeRate == 0)
+            {
+                await TUnit.Assertions.Assert.That(comparer.TryGetItem(getIndex)).IsTrue();
+            }
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
@@ -250,7 +269,7 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
     {
         var comparer = new BeltComparer([new BeltChunk(speed1, 30), new BeltChunk(speed2, 30), new BeltChunk(speed3, 30)], 0);
 
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < _updateCount; i++)
         {
             await TUnit.Assertions.Assert.That(comparer.TryInsertAtHeadFillBlank(new TestCargo(3, 2, 1))).IsTrue();
             await comparer.AssertEqualAsync();
@@ -264,7 +283,7 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
     {
         var comparer = new BeltComparer([new BeltChunk(speed1, 30), new BeltChunk(speed2, 30), new BeltChunk(speed3, 30)], 0);
 
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < _updateCount; i++)
         {
             await TUnit.Assertions.Assert.That(comparer.TryInsertItemAtHead(new TestCargo(3, 2, 1))).IsTrue();
             await comparer.AssertEqualAsync();
@@ -278,7 +297,7 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
     {
         var comparer = new BeltComparer([new BeltChunk(speed1, 30), new BeltChunk(speed2, 30), new BeltChunk(speed3, 30)], 0);
 
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < _updateCount; i++)
         {
             await TUnit.Assertions.Assert.That(comparer.TryUpdateItemAtHeadAndFillBlank(maxStack, new TestCargo(3, 2, 1))).IsTrue();
             await comparer.AssertEqualAsync();
