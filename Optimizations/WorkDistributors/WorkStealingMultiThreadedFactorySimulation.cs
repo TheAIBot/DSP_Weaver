@@ -102,6 +102,9 @@ internal sealed class WeaverThread : IDisposable
                     case WorkTaskType.DefenseSystemTurret:
                         _workExecutor.ExecuteDefenseSystemTurret(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
                         break;
+                    case WorkTaskType.DysonSphereAttach:
+                        _workExecutor.ExecuteDysonSphereAttachUpdate(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
+                        break;
                     default:
                         throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
                 }
@@ -141,7 +144,8 @@ internal sealed class WeaverThread : IDisposable
 internal enum WorkTaskType
 {
     FactorySimulation,
-    DefenseSystemTurret
+    DefenseSystemTurret,
+    DysonSphereAttach
 }
 
 internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
@@ -470,7 +474,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         DeepProfiler.EndSample(DPEntry.GroundDefenseSystem);
 
         // 3151
-        // Parallelize here DefenseSystemTurretGameTick_Parallel
         ExecuteParallel(targetThreadCount, WorkTaskType.DefenseSystemTurret);
         gameLogic.OnFactoryEndProfiler();
 
@@ -481,15 +484,27 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         gameLogic.DysonSphereGameTick();
 
         // 3320
-        // Parallelize here DysonSwarmGameTick_Parallel
-        gameLogic.DysonSwarmGameTick();
+        ExecuteParallel(targetThreadCount, WorkTaskType.DysonSphereAttach);
+        DysonSphere[]? dysonSpheres = gameLogic.data.dysonSpheres;
+        if (dysonSpheres != null)
+        {
+            for (int i = 0; i < dysonSpheres.Length; i++)
+            {
+                DysonSwarm? dysonSwarm = dysonSpheres[i]?.swarm;
+                if (dysonSwarm != null)
+                {
+                    DeepProfiler.BeginSample(DPEntry.DysonSwarm, -1, dysonSwarm.starData.id);
+                    dysonSwarm.GameTick(time);
+                    DeepProfiler.EndSample(-1, -2L);
+                }
+            }
+        }
 
         // 3321
         gameLogic.DysonSwarmGameTickPost();
 
         // 3351
-        // Parallelize here DysonSphereRocketGameTick_Parallel
-        gameLogic.DysonSphereRocketGameTick();
+        // Parallelized in 3320
 
         // 3401
         gameLogic.SpaceSectorGameTick();

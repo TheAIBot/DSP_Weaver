@@ -1,5 +1,4 @@
 ﻿using System;
-using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.WorkDistributors;
 
@@ -39,6 +38,21 @@ internal sealed class WorkExecutor
         try
         {
             RootWorkNode rootWorkNode = _starClusterWorkManager.GetDefenseSystemTurretRootWorkNode();
+            rootWorkNode.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
+        }
+        catch (Exception e)
+        {
+            WeaverFixes.Logger.LogError(e.Message);
+            WeaverFixes.Logger.LogError(e.StackTrace);
+            throw;
+        }
+    }
+
+    public void ExecuteDysonSphereAttachUpdate(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    {
+        try
+        {
+            RootWorkNode rootWorkNode = _starClusterWorkManager.GetDysonSphereAttachRootWorkNode();
             rootWorkNode.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
         }
         catch (Exception e)

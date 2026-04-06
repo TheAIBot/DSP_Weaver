@@ -326,7 +326,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         DeepProfiler.EndSample(DPEntry.CargoPresent, workerIndex);
     }
 
-    private static (int startIndex, int workLength) GetWorkChunkIndices(int totalLength, int maxWorkCount, int workIndex)
+    internal static (int startIndex, int workLength) GetWorkChunkIndices(int totalLength, int maxWorkCount, int workIndex)
     {
         int workChunkLength = ((totalLength + maxWorkCount - 1) / maxWorkCount);
         int startIndex = workChunkLength * workIndex;
