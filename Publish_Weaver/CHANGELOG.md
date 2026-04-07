@@ -1,5 +1,6 @@
 ## 2.3.0
 * Parallelized sorters, spray coaters, pilers, monitors and belts when player is on/near a planet.
+* Parallelized dyson sphere sails and rocket updates.
 
 ## 2.2.1
 * Updated to DSP version 0.10.34.28455
