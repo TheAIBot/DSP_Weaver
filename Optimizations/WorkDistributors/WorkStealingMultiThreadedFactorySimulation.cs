@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using UnityEngine;
 using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.StaticData;
 
@@ -102,9 +103,6 @@ internal sealed class WeaverThread : IDisposable
                     case WorkTaskType.DefenseSystemTurret:
                         _workExecutor.ExecuteDefenseSystemTurret(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
                         break;
-                    case WorkTaskType.DysonSphereAttach:
-                        _workExecutor.ExecuteDysonSphereAttachUpdate(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
-                        break;
                     default:
                         throw new InvalidOperationException($"Unknown work type: {_workTaskType}");
                 }
@@ -144,8 +142,7 @@ internal sealed class WeaverThread : IDisposable
 internal enum WorkTaskType
 {
     FactorySimulation,
-    DefenseSystemTurret,
-    DysonSphereAttach
+    DefenseSystemTurret
 }
 
 internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
@@ -405,6 +402,30 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
             planetFactory.constructionSystem.ExcuteDeferredTargetChange();
             DeepProfiler.EndSample(DPEntry.Construction);
         }
+
+        DysonSphere?[]? dysonSpheres = gameLogic.data.dysonSpheres;
+        if (dysonSpheres != null)
+        {
+            for (int i = 0; i < dysonSpheres.Length; i++)
+            {
+                DysonSphere? dysonSphere = dysonSpheres[i];
+                if (dysonSphere == null)
+                {
+                    continue;
+                }
+
+                DeepProfiler.BeginSample(DPEntry.DysonShell, -1, dysonSphere.starData.id);
+                // Auto construction is part of DysonSphere.GameTick but it runs here
+                // because the result of the method is running in the solar system update work
+                GameData data = GameMain.data;
+                if (data != null && GameMain.sandboxToolsEnabled && data.history.HasFeatureKey(1100002))
+                {
+                    dysonSphere.AutoConstruct();
+                }
+                DeepProfiler.EndSample(DPEntry.DysonShell, -1);
+            }
+        }
+        OptimizedStarCluster.EWEA(dysonSpheres);
     }
 
     private void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int targetThreadCount)
@@ -481,11 +502,41 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         gameLogic.TrashSystemGameTick();
 
         // 3301
-        gameLogic.DysonSphereGameTick();
+        // Last part of DysonSphere.GameTick that  must run on the main thread due to graphics updates.
+        // First part is done in as part of the solar systems update work.
+        OptimizedStarCluster.DoThing();
+        DysonSphere?[]? dysonSpheres = gameLogic.data.dysonSpheres;
+        if (dysonSpheres != null)
+        {
+            for (int i = 0; i < dysonSpheres.Length; i++)
+            {
+                DysonSphere? dysonSphere = dysonSpheres[i];
+                if (dysonSphere == null)
+                {
+                    continue;
+                }
+
+                DeepProfiler.BeginSample(DPEntry.DysonShell, -1, dysonSphere.starData.id);
+                for (int j = 1; j < dysonSphere.nrdCursor; j++)
+                {
+                    DysonSphereLayer dysonSphereLayer = dysonSphere.layersIdBased[dysonSphere.nrdPool[j].layerId];
+                    if (dysonSphereLayer != null)
+                    {
+                        dysonSphere.nrdPool[j].layerRot = dysonSphereLayer.currentRotation;
+                    }
+                    else
+                    {
+                        dysonSphere.nrdPool[j].layerRot = Quaternion.identity;
+                    }
+                }
+                dysonSphere.nrdBuffer.SetData(dysonSphere.nrdPool);
+                DeepProfiler.EndSample(DPEntry.DysonShell, -1);
+            }
+        }
+
 
         // 3320
-        ExecuteParallel(targetThreadCount, WorkTaskType.DysonSphereAttach);
-        DysonSphere[]? dysonSpheres = gameLogic.data.dysonSpheres;
+        // Main thread work from DysonSwarmGameTick_Parallel
         if (dysonSpheres != null)
         {
             for (int i = 0; i < dysonSpheres.Length; i++)
@@ -504,7 +555,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         gameLogic.DysonSwarmGameTickPost();
 
         // 3351
-        // Parallelized in 3320
+        // Parallelized in solar system update work
 
         // 3401
         gameLogic.SpaceSectorGameTick();

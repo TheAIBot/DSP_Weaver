@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Weaver.Optimizations.WorkDistributors.WorkChunks;
 
 namespace Weaver.Optimizations.WorkDistributors;
@@ -10,8 +11,9 @@ internal sealed class SolarSystemWorkManager
     private readonly List<PlanetWorkManager> _planetWorkManager = [];
     private readonly List<IWorkNode> _planetWorkNodes = [];
     private readonly List<IWorkChunk> _planetRayReceiverEnergyRequests = [];
-    private IWorkNode? _dysonWorkNode = null;
-    private IWorkNode? _planetRayReceiverEnergyRequestsWorkNode = null;
+    private DysonSphere? _dysonSphere;
+    private List<DysonSphereAttach> _dysonSphereAttachChunks = [];
+    private IWorkNode? _dysonWorkNode;
     private IWorkNode? _solarSystemWorkNode = null;
 
     public void AddPlanet(PlanetWorkManager planetWorkManager)
@@ -28,6 +30,7 @@ internal sealed class SolarSystemWorkManager
             throw new InvalidOperationException("Attempted to add dyson sphere but solar system already has a dyson sphere.");
         }
 
+        _dysonSphere = dysonSphere;
         _dysonWorkNode = new SingleWorkLeaf(new SolarSystemDysonSphereWorkChunk(dysonSphere));
         _solarSystemWorkNode?.Dispose();
         _solarSystemWorkNode = null;
@@ -63,6 +66,19 @@ internal sealed class SolarSystemWorkManager
             }
         }
 
+        if (_dysonSphere != null)
+        {
+            int dysonSphereAttachChunkCount = GetWorkChunkCountForDysonSphereAttach(_dysonSphere, parallelism);
+            if (dysonSphereAttachChunkCount != _dysonSphereAttachChunks.Count)
+            {
+                _solarSystemWorkNode?.Dispose();
+                _solarSystemWorkNode = null;
+                _dysonSphereAttachChunks.Clear();
+                _dysonSphereAttachChunks.AddRange(GetWorkChunksForDysonSphereAttach(_dysonSphere, parallelism));
+            }
+        }
+
+
         if (_solarSystemWorkNode == null)
         {
             List<IWorkNode[]> solarSystemWork = [];
@@ -73,14 +89,18 @@ internal sealed class SolarSystemWorkManager
 
             if (_planetRayReceiverEnergyRequests.Count > 0)
             {
-                _planetRayReceiverEnergyRequestsWorkNode?.Dispose();
-                _planetRayReceiverEnergyRequestsWorkNode = new WorkLeaf(_planetRayReceiverEnergyRequests.ToArray());
-                solarSystemWork.Add([_planetRayReceiverEnergyRequestsWorkNode]);
+                solarSystemWork.Add(_planetRayReceiverEnergyRequests.Select(x => new SingleWorkLeaf(x)).ToArray());
             }
 
             if (_planetWorkNodes.Count > 0)
             {
                 solarSystemWork.Add(_planetWorkNodes.ToArray());
+            }
+
+            if (_dysonSphere != null)
+            {
+                solarSystemWork.Add([new SingleWorkLeaf(new DysonSphereGameUpdate(_dysonSphere))]);
+                solarSystemWork.Add(_dysonSphereAttachChunks.Select(x => new SingleWorkLeaf(x)).ToArray());
             }
 
             if (solarSystemWork.Count == 0)
@@ -127,5 +147,23 @@ internal sealed class SolarSystemWorkManager
 
             yield return planetStatistics.Value;
         }
+    }
+
+    private static IEnumerable<DysonSphereAttach> GetWorkChunksForDysonSphereAttach(DysonSphere dysonSphere, int maxParallelism)
+    {
+        int workChunkCount = GetWorkChunkCountForDysonSphereAttach(dysonSphere, maxParallelism);
+        for (int i = 0; i < workChunkCount; i++)
+        {
+            yield return new DysonSphereAttach(dysonSphere, i, workChunkCount);
+        }
+    }
+
+    private static int GetWorkChunkCountForDysonSphereAttach(DysonSphere dysonSphere, int maxParallelism)
+    {
+        const int minimumWorkPerCore = 2_000;
+        int workChunkCount = (Math.Max(dysonSphere.swarm.bulletCursor, dysonSphere.rocketCursor) + (minimumWorkPerCore - 1)) / minimumWorkPerCore;
+        workChunkCount = Math.Min(workChunkCount, maxParallelism);
+        workChunkCount = Math.Max(workChunkCount, 1); // Always at least one work chunk for any recently launched sails/rockets
+        return workChunkCount;
     }
 }

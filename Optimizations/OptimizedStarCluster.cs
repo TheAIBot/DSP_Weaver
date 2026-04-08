@@ -478,6 +478,99 @@ internal static class OptimizedStarCluster
         UpdateThreadIndexIfRequired(ref thread);
     }
 
+    private static Dictionary<DysonSwarm, List<(int Index, DysonSailInfo SailInfo)>> _dysonSwarmToSailGpuUpdates = [];
+
+    public static void EWEA(DysonSphere?[]? dysonSpheres)
+    {
+        if (dysonSpheres == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < dysonSpheres.Length; i++)
+        {
+            DysonSphere? dysonSphere = dysonSpheres[i];
+            if (dysonSphere == null)
+            {
+                continue;
+            }
+
+            DysonSwarm? dysonSwarm = dysonSphere.swarm;
+            if (dysonSwarm == null)
+            {
+                continue;
+            }
+
+            if (_dysonSwarmToSailGpuUpdates.ContainsKey(dysonSwarm))
+            {
+                continue;
+            }
+
+            _dysonSwarmToSailGpuUpdates.Add(dysonSwarm, []);
+        }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(DysonSwarm), nameof(DysonSwarm.AbsorbSail))]
+    public static bool AbsorbSail(DysonSwarm __instance, DysonNode node, long gameTick)
+    {
+        if (__instance.expiryCursor == __instance.expiryEnding)
+        {
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+        int num = __instance.expiryCursor++;
+        if (__instance.expiryCursor >= __instance.sailCapacity)
+        {
+            __instance.expiryCursor = 0;
+        }
+        int index = __instance.expiryOrder[num].index;
+        if (__instance.expiryOrder[num].time == 0L)
+        {
+            Assert.CannotBeReached();
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+        __instance.expiryOrder[num].time = 0L;
+        __instance.expiryOrder[num].index = 0;
+        int num2 = __instance.absorbEnding++;
+        if (__instance.absorbEnding == __instance.sailCapacity)
+        {
+            __instance.absorbEnding = 0;
+        }
+        Assert.True(__instance.absorbEnding != __instance.absorbCursor);
+        __instance.absorbOrder[num2].time = gameTick + 14400;
+        __instance.absorbOrder[num2].index = index;
+        __instance.absorbOrder[num2].layer = node.layerId;
+        __instance.absorbOrder[num2].node = node.id;
+
+        var sailInfo = new DysonSailInfo
+        {
+#pragma warning disable Harmony003 // False positive
+            node = (uint)node.rid,
+#pragma warning restore Harmony003 // Harmony non-ref patch parameters modified
+            kill = (uint)(__instance.absorbOrder[num2].time & 0xFFFFFFFFu),
+            posr = UnityEngine.Vector3.zero
+        };
+
+        List<(int Index, DysonSailInfo SailInfo)> gpuUpdates = _dysonSwarmToSailGpuUpdates[__instance];
+        gpuUpdates.Add((index, sailInfo));
+
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+    }
+
+    public static void DoThing()
+    {
+        foreach (KeyValuePair<DysonSwarm, List<(int Index, DysonSailInfo SailInfo)>> dysonSwarmWithGpuUpdates in _dysonSwarmToSailGpuUpdates)
+        {
+            for (int i = 0; i < dysonSwarmWithGpuUpdates.Value.Count; i++)
+            {
+                int index = dysonSwarmWithGpuUpdates.Value[i].Index;
+                dysonSwarmWithGpuUpdates.Key.sailInfos[index] = dysonSwarmWithGpuUpdates.Value[i].SailInfo;
+                dysonSwarmWithGpuUpdates.Key.swarmInfoBuffer.SetData(dysonSwarmWithGpuUpdates.Key.sailInfos, index, index, 1);
+            }
+            dysonSwarmWithGpuUpdates.Value.Clear();
+        }
+    }
+
     public static void ReOptimizeAllPlanets()
     {
         lock (_planetsToReOptimize)
