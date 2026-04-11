@@ -423,37 +423,40 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     private IWorkNode CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
     {
         List<IWorkNode[]> work = [];
+        // -1 because cursor skip index 0 as that index is used
+        // to represent an invalid entity
+        int minerCount = _planet.factorySystem.minerCursor - 1;
+        int assemblerCount = _planet.factorySystem.assemblerCursor - 1;
+        int fractionatorCount = _planet.factorySystem.fractionatorCursor - 1;
+        int ejectorCount = _planet.factorySystem.ejectorCursor - 1;
+        int siloCount = _planet.factorySystem.siloCursor - 1;
 
-        int minerCount = _planet.factorySystem.minerCursor;
-        int assemblerCount = _planet.factorySystem.assemblerCursor;
-        int fractionatorCount = _planet.factorySystem.fractionatorCursor;
-        int ejectorCount = _planet.factorySystem.ejectorCursor;
-        int siloCount = _planet.factorySystem.siloCursor;
+        int monitorCount = _planet.cargoTraffic.monitorCursor - 1;
+        int spraycoaterCount = _planet.cargoTraffic.spraycoaterCursor - 1;
+        int pilerCount = _planet.cargoTraffic.pilerCursor - 1;
+        int splitterCount = _planet.cargoTraffic.splitterCursor - 1;
+        int cargoPathCount = _planet.cargoTraffic.pathCursor - 1;
 
-        int monitorCount = _planet.cargoTraffic.monitorCursor;
-        int spraycoaterCount = _planet.cargoTraffic.spraycoaterCursor;
-        int pilerCount = _planet.cargoTraffic.pilerCursor;
-        int splitterCount = _planet.cargoTraffic.splitterCursor;
-        int cargoPathCount = _planet.cargoTraffic.pathCursor;
+        int stationCount = _planet.transport.stationCursor - 1;
+        int dispenserCount = _planet.transport.dispenserCursor - 1;
+        int transportEntities = stationCount + dispenserCount - 1;
 
-        int stationCount = _planet.transport.stationCursor;
-        int dispenserCount = _planet.transport.dispenserCursor;
-        int transportEntities = stationCount + dispenserCount;
+        int turretCount = _planet.defenseSystem.turrets.cursor - 1;
+        int fieldGeneratorCount = _planet.defenseSystem.fieldGenerators.cursor - 1;
+        int battleBaseCount = _planet.defenseSystem.battleBases.cursor - 1;
 
-        int turretCount = _planet.defenseSystem.turrets.cursor;
-        int fieldGeneratorCount = _planet.defenseSystem.fieldGenerators.cursor;
-        int battleBaseCount = _planet.defenseSystem.battleBases.cursor;
+        int markerCount = _planet.digitalSystem.markers.cursor - 1;
 
-        int markerCount = _planet.digitalSystem.markers.cursor;
+        int inserterCount = _planet.factorySystem.inserterCursor - 1;
 
-        int inserterCount = _planet.factorySystem.inserterCursor;
+        int producingLabCount = _planet.factorySystem.labCursor - 1;
+        int researchingLabCount = _planet.factorySystem.labCursor - 1;
+        int labCount = _planet.factorySystem.labCursor - 1;
 
-        int producingLabCount = _planet.factorySystem.labCursor;
-        int researchingLabCount = _planet.factorySystem.labCursor;
-        int labCount = _planet.factorySystem.labCursor;
+        int storageCount = _planet.factoryStorage.storageCursor - 1;
+        int tankCount = _planet.factoryStorage.tankCursor - 1;
 
-        int storageCount = _planet.factoryStorage.storageCursor;
-        int tankCount = _planet.factoryStorage.tankCursor;
+        int powerNetworkCount = _planet.powerSystem.netCursor - 1;
 
         int totalEntities = minerCount +
                             assemblerCount +
@@ -478,44 +481,30 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
             work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.BeforePower, beforePowerWorkCount));
         }
 
-        int powerNetworkCount = _planet.powerSystem.netCursor;
         if (powerNetworkCount > 0)
         {
             work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Power, 1));
         }
 
-        int assemblerStepEntityCount = minerCount +
-                                       assemblerCount +
-                                       fractionatorCount +
-                                       ejectorCount +
-                                       siloCount +
-                                       producingLabCount;
-        int assemblerWorkCount = (assemblerStepEntityCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore;
-        assemblerWorkCount = Math.Min(assemblerWorkCount, maxParallelism);
-        if (assemblerWorkCount > 0)
+        List<SingleWorkLeaf> factoryWorkLeafs = [];
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(maxParallelism, minimumWorkPerCore, minerCount, WorkType.Miner));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(maxParallelism, minimumWorkPerCore, assemblerCount, WorkType.Assembler));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(maxParallelism, minimumWorkPerCore, fractionatorCount, WorkType.Fractionator));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(maxParallelism, minimumWorkPerCore, ejectorCount, WorkType.Ejector));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(maxParallelism, minimumWorkPerCore, siloCount, WorkType.Silo));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(maxParallelism, minimumWorkPerCore, producingLabCount, WorkType.LabProduce));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(1, minimumWorkPerCore, researchingLabCount, WorkType.LabResearchMode));
+        if (factoryWorkLeafs.Count > 0)
         {
-            // For now this is not multithreaded
-            assemblerWorkCount = 1;
-            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Assembler, assemblerWorkCount));
+            work.Add(factoryWorkLeafs.ToArray());
         }
 
-        if (researchingLabCount > 0)
+        factoryWorkLeafs.Clear();
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(1, minimumWorkPerCore, labCount, WorkType.LabOutput2NextData));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(1, minimumWorkPerCore, transportEntities, WorkType.TransportData));
+        if (factoryWorkLeafs.Count > 0)
         {
-            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabResearchMode, 1));
-        }
-
-        int labOutput2NextWorkCount = (labCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore;
-        labOutput2NextWorkCount = Math.Min(labOutput2NextWorkCount, maxParallelism);
-        if (labOutput2NextWorkCount > 0)
-        {
-            // For now this is not multithreaded
-            labOutput2NextWorkCount = 1;
-            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabOutput2NextData, labOutput2NextWorkCount));
-        }
-
-        if (transportEntities > 0)
-        {
-            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.TransportData, 1));
+            work.Add(factoryWorkLeafs.ToArray());
         }
 
         if (stationCount > 0)
@@ -569,16 +558,12 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
 
         const int minimumWorkPerPresentCargoCore = 100;
-        int presentCargoPathsWorkCount = (cargoPathCount + (minimumWorkPerPresentCargoCore - 1)) / minimumWorkPerPresentCargoCore;
-        presentCargoPathsWorkCount = Math.Min(presentCargoPathsWorkCount, maxParallelism);
-        if (presentCargoPathsWorkCount > 0)
+        factoryWorkLeafs.Clear();
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(minimumWorkPerPresentCargoCore, minimumWorkPerCore, cargoPathCount, WorkType.PresentCargoPathsData));
+        factoryWorkLeafs.AddRange(GetComponentWorkLeafs(1, minimumWorkPerCore, markerCount, WorkType.Digital));
+        if (factoryWorkLeafs.Count > 0)
         {
-            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.PresentCargoPathsData, presentCargoPathsWorkCount));
-        }
-
-        if (markerCount > 0)
-        {
-            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Digital, 1));
+            work.Add(factoryWorkLeafs.ToArray());
         }
 
         if (work.Count == 0)
@@ -587,6 +572,18 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         }
 
         return new WorkNode(work.ToArray());
+    }
+
+    private SingleWorkLeaf[] GetComponentWorkLeafs(int maxParallelism, int minimumWorkPerCore, int componentCount, WorkType workType)
+    {
+        int componentWorkCount = (componentCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore;
+        componentWorkCount = Math.Min(componentWorkCount, maxParallelism);
+        if (componentWorkCount > 0)
+        {
+            return UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, workType, componentWorkCount);
+        }
+
+        return Array.Empty<SingleWorkLeaf>();
     }
 
 

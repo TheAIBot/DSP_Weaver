@@ -70,7 +70,7 @@ internal sealed class DysonSphereAttach : IWorkChunk
         ref int randSeed = ref swarm.randSeed;
 
         (int startIndex, int workLength) = UnOptimizedPlanetWorkChunk.GetWorkChunkIndices(swarm.bulletCursor, _maxWorkCount, _workIndex);
-        for (int i = startIndex; i < startIndex + workLength; i++)
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
         {
             ref SailBullet sailBullet = ref bulletPool[i];
             if (sailBullet.id != i)
@@ -145,7 +145,7 @@ internal sealed class DysonSphereAttach : IWorkChunk
         VectorLF3 vectorLF = starData.uPosition;
 
         (int startIndex, int workLength) = UnOptimizedPlanetWorkChunk.GetWorkChunkIndices(dysonSphere.rocketCursor, _maxWorkCount, _workIndex);
-        for (int i = startIndex; i < startIndex + workLength; i++)
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
         {
             ref DysonRocket reference2 = ref rocketPool[i];
             if (reference2.id != i)

@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
 
@@ -57,6 +58,42 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             throw new InvalidOperationException($"The work type {nameof(WorkType.CheckBefore)} is not thread safe.");
         }
+        else if (_workType == WorkType.Miner)
+        {
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Miner} work on a null planet.");
+            }
+
+            ParallelMinerGameTick(workerIndex, time, isActive);
+        }
+        else if (_workType == WorkType.Fractionator)
+        {
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Fractionator} work on a null planet.");
+            }
+
+            ParallelFractionatorGameTick(workerIndex, time, isActive);
+        }
+        else if (_workType == WorkType.Ejector)
+        {
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Ejector} work on a null planet.");
+            }
+
+            ParallelEjectorGameTick(workerIndex, time, isActive);
+        }
+        else if (_workType == WorkType.Silo)
+        {
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Silo} work on a null planet.");
+            }
+
+            ParallelSiloGameTick(workerIndex, time, isActive);
+        }
         else if (_workType == WorkType.Assembler)
         {
             if (_planet.factorySystem == null)
@@ -64,12 +101,16 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
                 throw new InvalidOperationException($"Attempted to execute {WorkType.Assembler} work on a null planet.");
             }
 
-            DeepProfiler.BeginSample(DPEntry.Assembler, workerIndex);
-            _planet.factorySystem.GameTick(time, isActive);
-            DeepProfiler.EndSample(DPEntry.Assembler, workerIndex);
-            DeepProfiler.BeginSample(DPEntry.Lab, workerIndex);
-            _planet.factorySystem.GameTickLabProduceMode(time, isActive);
-            DeepProfiler.EndSample(DPEntry.Lab, workerIndex);
+            ParallelAssemblerGameTick(workerIndex, time, isActive);
+        }
+        else if (_workType == WorkType.LabProduce)
+        {
+            if (_planet.factorySystem == null)
+            {
+                throw new InvalidOperationException($"Attempted to execute {WorkType.LabProduce} work on a null planet.");
+            }
+
+            ParallelLabProduceGameTick(workerIndex, time, isActive);
         }
         else if (_workType == WorkType.LabResearchMode)
         {
@@ -161,6 +202,348 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
     }
 
+    private void ParallelMinerGameTick(int workerIndex, long time, bool isActive)
+    {
+        DeepProfiler.BeginSample(DPEntry.Miner, workerIndex);
+        GameHistoryData history = GameMain.history;
+        FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[_planet.index];
+        int[] productRegister = obj.productRegister;
+        PowerSystem powerSystem = _planet.powerSystem;
+        float[] networkServes = powerSystem.networkServes;
+        EntityData[] entityPool = _planet.entityPool;
+        VeinData[] veinPool = _planet.veinPool;
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        SignData[] entitySignPool = _planet.entitySignPool;
+        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
+        StationComponent[] stationPool = _planet.transport.stationPool;
+        MinerComponent[] minerPool = _planet.factorySystem.minerPool;
+        float num = 1f / 60f;
+        float num3;
+        float num2 = (num3 = _planet.gameData.gameDesc.resourceMultiplier);
+        if (num3 < 5f / 12f)
+        {
+            num3 = 5f / 12f;
+        }
+        float num4 = history.miningCostRate;
+        float miningSpeedScale = history.miningSpeedScale;
+        float num5 = history.miningCostRate * 0.40111667f / num3;
+        if (num2 > 99.5f)
+        {
+            num4 = 0f;
+            num5 = 0f;
+        }
+        bool flag2 = isActive && num4 > 0f;
+        int num6 = MinerComponent.InsufficientWarningThresAmount(num2, num4);
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.factorySystem.minerCursor, _maxWorkCount, _workIndex);
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
+        {
+            if (minerPool[i].id != i)
+            {
+                continue;
+            }
+            int entityId = minerPool[i].entityId;
+            int stationId = entityPool[entityId].stationId;
+            float num7 = networkServes[consumerPool[minerPool[i].pcId].networkId];
+            uint num8 = minerPool[i].InternalUpdate(_planet, veinPool, num7, (minerPool[i].type == EMinerType.Oil) ? num5 : num4, miningSpeedScale, productRegister);
+            int num9 = (int)Mathf.Floor(entityAnimPool[entityId].time / 10f);
+            entityAnimPool[entityId].time = entityAnimPool[entityId].time % 10f;
+            entityAnimPool[entityId].Step(num8, num * num7);
+            entityAnimPool[entityId].power = num7;
+            if (stationId > 0)
+            {
+                if (minerPool[i].veinCount > 0)
+                {
+                    EVeinType veinTypeByItemId = LDB.veins.GetVeinTypeByItemId(veinPool[minerPool[i].veins[0]].productId);
+                    entityAnimPool[entityId].state += (uint)((int)veinTypeByItemId * 100);
+                }
+                entityAnimPool[entityId].power += 10f;
+                entityAnimPool[entityId].power += minerPool[i].speed;
+                if (num8 == 1)
+                {
+                    num9 = 3000;
+                }
+                else
+                {
+                    num9 -= (int)(num * 1000f);
+                    if (num9 < 0)
+                    {
+                        num9 = 0;
+                    }
+                }
+                entityAnimPool[entityId].time += num9 * 10;
+            }
+            if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+            {
+                entitySignPool[entityId].signType = ((minerPool[i].minimumVeinAmount < num6) ? 7u : 0u);
+            }
+            if (flag2 && minerPool[i].type == EMinerType.Vein)
+            {
+                if ((long)i % 30L == time % 30)
+                {
+                    minerPool[i].GetTotalVeinAmount(veinPool);
+                }
+                entitySignPool[entityId].count0 = minerPool[i].totalVeinAmount;
+            }
+            else
+            {
+                entitySignPool[entityId].count0 = 0f;
+            }
+            if (stationId > 0)
+            {
+                StationStore[] array2 = stationPool[stationId].storage;
+                int num10 = array2[0].count;
+                if (array2[0].localOrder < -4000)
+                {
+                    num10 += array2[0].localOrder + 4000;
+                }
+                int max = array2[0].max;
+                max = ((max < 3000) ? 3000 : max);
+                float num11 = (float)num10 / (float)max;
+                num11 = ((num11 > 1f) ? 1f : num11);
+                float num12 = -2.45f * num11 + 2.47f;
+                num12 = ((num12 > 1f) ? 1f : num12);
+                minerPool[i].speedDamper = num12;
+            }
+            else
+            {
+                float num13 = (float)minerPool[i].productCount / 50f;
+                num13 = ((num13 > 1f) ? 1f : num13);
+                float num14 = -2.45f * num13 + 2.47f;
+                num14 = ((num14 > 1f) ? 1f : num14);
+                minerPool[i].speedDamper = num14;
+            }
+            minerPool[i].SetPCState(consumerPool);
+        }
+        DeepProfiler.EndSample(DPEntry.Miner, workerIndex);
+    }
+
+    private void ParallelFractionatorGameTick(int workerIndex, long time, bool isActive)
+    {
+        DeepProfiler.BeginSample(DPEntry.Assembler, workerIndex);
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        SignData[] entitySignPool = _planet.entitySignPool;
+        FractionatorComponent[] fractionatorPool = _planet.factorySystem.fractionatorPool;
+        PowerConsumerComponent[] consumerPool = _planet.powerSystem.consumerPool;
+        float[] networkServes = _planet.powerSystem.networkServes;
+        FactoryProductionStat obj = _planet.gameData.statistics.production.factoryStatPool[_planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.factorySystem.fractionatorCursor, _maxWorkCount, _workIndex);
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
+        {
+            ref FractionatorComponent reference2 = ref fractionatorPool[i];
+            if (reference2.id == i)
+            {
+                int entityId = reference2.entityId;
+                float power = networkServes[consumerPool[reference2.pcId].networkId];
+                uint state = reference2.InternalUpdate(_planet, power, entitySignPool, productRegister, consumeRegister);
+                if (isActive)
+                {
+                    entityAnimPool[entityId].time = Mathf.Sqrt((float)reference2.fluidInputCount * 0.025f);
+                    entityAnimPool[entityId].state = state;
+                    entityAnimPool[entityId].power = power;
+                }
+                reference2.SetPCState(consumerPool);
+            }
+        }
+        DeepProfiler.EndSample(DPEntry.Assembler, workerIndex);
+    }
+
+    private void ParallelEjectorGameTick(int workerIndex, long time, bool isActive)
+    {
+        DeepProfiler.BeginSample(DPEntry.Ejector, workerIndex);
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        SignData[] entitySignPool = _planet.entitySignPool;
+        int[][] entityNeeds = _planet.entityNeeds;
+        EjectorComponent[] ejectorPool = _planet.factorySystem.ejectorPool;
+        PowerConsumerComponent[] consumerPool = _planet.powerSystem.consumerPool;
+        float[] networkServes = _planet.powerSystem.networkServes;
+        int[] consumeRegister = _planet.gameData.statistics.production.factoryStatPool[_planet.index].consumeRegister;
+        AstroData[]? astroPoses = null;
+        lock (ejectorPool)
+        {
+            if (_planet.factorySystem.ejectorCount > 0)
+            {
+                astroPoses = _planet.planet.galaxy.astrosData;
+            }
+        }
+        DysonSwarm? swarm = null;
+        if (_planet.dysonSphere != null)
+        {
+            swarm = _planet.dysonSphere.swarm;
+        }
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.factorySystem.ejectorCursor, _maxWorkCount, _workIndex);
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
+        {
+            ref EjectorComponent reference2 = ref ejectorPool[i];
+            if (reference2.id != i)
+            {
+                continue;
+            }
+            int entityId = reference2.entityId;
+            float power = networkServes[consumerPool[reference2.pcId].networkId];
+            uint num5 = reference2.InternalUpdate(power, time, swarm, astroPoses, entityAnimPool, consumeRegister);
+            entityNeeds[entityId] = reference2.needs;
+            if (isActive)
+            {
+                entityAnimPool[entityId].state = num5;
+                if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+                {
+                    entitySignPool[entityId].signType = ((reference2.orbitId <= 0 && !reference2.autoOrbit) ? 5u : 0u);
+                }
+            }
+            reference2.SetPCState(consumerPool);
+        }
+        DeepProfiler.EndSample(DPEntry.Ejector, workerIndex);
+    }
+
+    private void ParallelSiloGameTick(int workerIndex, long time, bool isActive)
+    {
+        DeepProfiler.BeginSample(DPEntry.Silo, workerIndex);
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        SignData[] entitySignPool = _planet.entitySignPool;
+        int[][] entityNeeds = _planet.entityNeeds;
+        SiloComponent[] siloPool = _planet.factorySystem.siloPool;
+        PowerConsumerComponent[] consumerPool = _planet.powerSystem.consumerPool;
+        float[] networkServes = _planet.powerSystem.networkServes;
+        int[] consumeRegister = _planet.gameData.statistics.production.factoryStatPool[_planet.index].consumeRegister;
+        DysonSphere dysonSphere = _planet.dysonSphere;
+        bool flag4 = dysonSphere != null && dysonSphere.autoNodeCount > 0;
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.factorySystem.siloCursor, _maxWorkCount, _workIndex);
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
+        {
+            ref SiloComponent reference2 = ref siloPool[i];
+            if (reference2.id != i)
+            {
+                continue;
+            }
+            int entityId = reference2.entityId;
+            float power = networkServes[consumerPool[reference2.pcId].networkId];
+            uint num5 = reference2.InternalUpdate(power, dysonSphere, entityAnimPool, consumeRegister);
+            entityNeeds[entityId] = reference2.needs;
+            if (isActive)
+            {
+                entityAnimPool[entityId].state = num5;
+                if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+                {
+                    entitySignPool[entityId].signType = ((!flag4) ? 9u : 0u);
+                }
+            }
+            reference2.SetPCState(consumerPool);
+        }
+        DeepProfiler.EndSample(DPEntry.Silo, workerIndex);
+    }
+
+    private void ParallelAssemblerGameTick(int workerIndex, long time, bool isActive)
+    {
+        DeepProfiler.BeginSample(DPEntry.Assembler, workerIndex);
+        GameLogic gameLogic = GameMain.logic;
+        bool flag3 = isActive || (time + _planet.index) % 15 == 0;
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        SignData[] entitySignPool = _planet.entitySignPool;
+        int[][] entityNeeds = _planet.entityNeeds;
+        AssemblerComponent[] assemblerPool = _planet.factorySystem.assemblerPool;
+        PowerConsumerComponent[] consumerPool = _planet.powerSystem.consumerPool;
+        float[] networkServes = _planet.powerSystem.networkServes;
+        FactoryProductionStat obj = _planet.gameData.statistics.production.factoryStatPool[_planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.factorySystem.assemblerCursor, _maxWorkCount, _workIndex);
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
+        {
+            ref AssemblerComponent reference2 = ref assemblerPool[i];
+            if (reference2.id != i)
+            {
+                continue;
+            }
+            int entityId = reference2.entityId;
+            if (flag3)
+            {
+                uint num5 = 0u;
+                float num6 = networkServes[consumerPool[reference2.pcId].networkId];
+                if (reference2.recipeId != 0)
+                {
+                    reference2.UpdateNeeds();
+                    num5 = reference2.InternalUpdate(num6, productRegister, consumeRegister);
+                }
+                if (reference2.recipeType == ERecipeType.Chemical)
+                {
+                    entityAnimPool[entityId].working_length = 2f;
+                    entityAnimPool[entityId].Step(num5, gameLogic.deltaTime * num6);
+                    entityAnimPool[entityId].power = num6;
+                    entityAnimPool[entityId].working_length = reference2.recipeId;
+                }
+                else
+                {
+                    entityAnimPool[entityId].Step(num5, gameLogic.deltaTime * num6);
+                    entityAnimPool[entityId].power = num6;
+                }
+                entityNeeds[entityId] = reference2.needs;
+                if (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3)
+                {
+                    entitySignPool[entityId].signType = ((reference2.recipeId == 0) ? 4u : ((num5 == 0) ? 6u : 0u));
+                }
+            }
+            else
+            {
+                float power = networkServes[consumerPool[reference2.pcId].networkId];
+                if (reference2.recipeId != 0)
+                {
+                    reference2.UpdateNeeds();
+                    reference2.InternalUpdate(power, productRegister, consumeRegister);
+                }
+                entityNeeds[entityId] = reference2.needs;
+            }
+            reference2.SetPCState(consumerPool);
+        }
+        DeepProfiler.EndSample(DPEntry.Assembler, workerIndex);
+    }
+
+    private void ParallelLabProduceGameTick(int workerIndex, long time, bool isActive)
+    {
+        DeepProfiler.BeginSample(DPEntry.Lab, workerIndex);
+        GameLogic gameLogic = GameMain.logic;
+        bool flag4 = isActive || (time + _planet.index) % 15 == 0;
+        AnimData[] entityAnimPool = _planet.entityAnimPool;
+        SignData[] entitySignPool = _planet.entitySignPool;
+        int[][] entityNeeds = _planet.entityNeeds;
+        LabComponent[] labPool = _planet.factorySystem.labPool;
+        PowerConsumerComponent[] consumerPool = _planet.powerSystem.consumerPool;
+        float[] networkServes = _planet.powerSystem.networkServes;
+        FactoryProductionStat obj = _planet.gameData.statistics.production.factoryStatPool[_planet.index];
+        int[] productRegister = obj.productRegister;
+        int[] consumeRegister = obj.consumeRegister;
+        (int startIndex, int workLength) = GetWorkChunkIndices(_planet.factorySystem.labCursor, _maxWorkCount, _workIndex);
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
+        {
+            ref LabComponent reference2 = ref labPool[i];
+            if (reference2.id != i || reference2.researchMode)
+            {
+                continue;
+            }
+            int entityId = reference2.entityId;
+            float power = networkServes[consumerPool[reference2.pcId].networkId];
+            if (reference2.recipeId > 0)
+            {
+                reference2.UpdateNeedsAssemble();
+                uint num5 = reference2.InternalUpdateAssemble(power, productRegister, consumeRegister);
+                if (isActive)
+                {
+                    entityAnimPool[entityId].working_length = LabComponent.matrixShaderStates[num5];
+                    entityAnimPool[entityId].prepare_length = 0f;
+                    entityAnimPool[entityId].power = power;
+                    entityAnimPool[entityId].Step01(num5, gameLogic.deltaTime);
+                    if (flag4 && (entitySignPool[entityId].signType == 0 || entitySignPool[entityId].signType > 3))
+                    {
+                        entitySignPool[entityId].signType = ((!reference2.researchMode) ? ((reference2.recipeId == 0) ? 4u : ((num5 == 0) ? 6u : 0u)) : ((num5 == 0) ? 6u : 0u));
+                    }
+                }
+            }
+            entityNeeds[entityId] = reference2.needs;
+        }
+        DeepProfiler.EndSample(DPEntry.Lab, workerIndex);
+    }
+
     private void ParallelInserterGameTick(int workerIndex, long time, bool isActive)
     {
         InserterComponent[] inserterPool = _planet.factorySystem.inserterPool;
@@ -180,7 +563,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
 
         DeepProfiler.BeginSample(DPEntry.Inserter, workerIndex);
-        for (int i = startIndex; i < startIndex + workLength; i++)
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
         {
             ref InserterComponent component = ref inserterPool[i];
             if (component.id != i)
@@ -220,7 +603,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
 
         DeepProfiler.BeginSample(DPEntry.Belt, workerIndex);
-        for (int i = startIndex; i < startIndex + workLength; i++)
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
         {
             CargoPath cargoPath = pathPool[i];
             if (cargoPath == null ||
@@ -248,7 +631,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             DeepProfiler.BeginSample(DPEntry.Monitor, workerIndex);
             (int startIndex, int workLength) = GetWorkChunkIndices(cargoTraffic.monitorCursor, _maxWorkCount, _workIndex);
             MonitorComponent[] monitorPool = cargoTraffic.monitorPool;
-            for (int i = startIndex; i < startIndex + workLength; i++)
+            for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
             {
                 ref MonitorComponent component = ref monitorPool[i];
                 if (component.id != i)
@@ -268,7 +651,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             DeepProfiler.BeginSample(DPEntry.Spraycoater, workerIndex);
             (int startIndex, int workLength) = GetWorkChunkIndices(cargoTraffic.spraycoaterCursor, _maxWorkCount, _workIndex);
             SpraycoaterComponent[] spraycoaterPool = cargoTraffic.spraycoaterPool;
-            for (int i = startIndex; i < startIndex + workLength; i++)
+            for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
             {
                 ref SpraycoaterComponent component = ref spraycoaterPool[i];
                 if (component.id != i)
@@ -287,7 +670,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             DeepProfiler.BeginSample(DPEntry.Piler, workerIndex);
             (int startIndex, int workLength) = GetWorkChunkIndices(cargoTraffic.pilerCursor, _maxWorkCount, _workIndex);
             PilerComponent[] pilerPool = cargoTraffic.pilerPool;
-            for (int i = startIndex; i < startIndex + workLength; i++)
+            for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
             {
                 ref PilerComponent component = ref pilerPool[i];
                 if (component.id != i)
@@ -312,7 +695,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         }
 
         DeepProfiler.BeginSample(DPEntry.CargoPresent, workerIndex);
-        for (int i = startIndex; i < startIndex + workLength; i++)
+        for (int i = Math.Max(1, startIndex); i < startIndex + workLength; i++)
         {
             CargoPath cargoPath = pathPool[i];
             if (cargoPath == null ||
