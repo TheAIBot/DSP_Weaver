@@ -190,7 +190,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
             }
             DeepProfiler.EndSample(DPEntry.Station, workerIndex);
         }
-        else if (_workType == WorkType.PresentCargoPathsData && _planet.cargoTraffic != null)
+        else if (_workType == WorkType.PresentCargoPathsData && _planet.cargoTraffic != null && isActive)
         {
             ParallelPresentCargoPathsGameTick(workerIndex);
         }
