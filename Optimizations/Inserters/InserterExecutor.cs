@@ -95,7 +95,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly int[] _researchingLabMatrixIncServed = null!;
 
     private readonly ReadonlyArray<int> _siloIndexes;
-    private readonly ReadonlyArray<int> _ejectorIndexes;
+    private readonly EjectorBulletData[] _ejectorBulletDatas;
 
     private readonly UniverseStaticData _universeStaticData;
 
@@ -121,7 +121,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             int[] researchingLabMatrixServed,
                             int[] researchingLabMatrixIncServed,
                             ReadonlyArray<int> siloIndexes,
-                            ReadonlyArray<int> ejectorIndexes,
+                            EjectorBulletData[] ejectorBulletDatas,
                             UniverseStaticData universeStaticData)
     {
         _assemblerStates = assemblerStates;
@@ -144,7 +144,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         _researchingLabMatrixServed = researchingLabMatrixServed;
         _researchingLabMatrixIncServed = researchingLabMatrixIncServed;
         _siloIndexes = siloIndexes;
-        _ejectorIndexes = ejectorIndexes;
+        _ejectorBulletDatas = ejectorBulletDatas;
         _universeStaticData = universeStaticData;
     }
 
@@ -586,18 +586,14 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else if (typedObjectIndex.EntityType == EntityType.Ejector)
         {
-            int ejectorId = _ejectorIndexes[objectIndex];
+            ref EjectorBulletData bulletData = ref _ejectorBulletDatas[objectIndex];
             int needsOffset = groupNeeds.GetObjectNeedsIndex(inserterConnections.InsertInto.Index);
             ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
             short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
-            ref EjectorComponent ejector = ref planet.factorySystem.ejectorPool[ejectorId];
-            int bulletId = ejector.bulletId;
-            int bulletCount = ejector.bulletCount;
-            if (bulletId > 0 && bulletCount > 5 && (filter == 0 || filter == bulletId) && IsInNeed((short)bulletId, componentNeeds, needsPatterns, groupNeeds.GroupNeedsSize))
+            if (bulletData.BulletId > 0 && bulletData.BulletCount > 5 && (filter == 0 || filter == bulletData.BulletId) && IsInNeed(bulletData.BulletId, componentNeeds, needsPatterns, groupNeeds.GroupNeedsSize))
             {
-                ejector.TakeOneBulletUnsafe(out inc);
-                return (short)bulletId;
+                return bulletData.TakeOneBulletUnsafe(out inc);
             }
             return 0;
         }
@@ -790,15 +786,15 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 throw new InvalidOperationException("Need was null for active ejector.");
             }
 
-            int ejectorId = _ejectorIndexes[objectIndex];
+            ref EjectorBulletData bulletData = ref _ejectorBulletDatas[objectIndex];
             int needsOffset = groupNeeds.GetObjectNeedsIndex(objectIndex);
             ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
             short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
-            if (needsPatterns[componentNeeds.PatternIndex + EjectorExecutor.SoleEjectorNeedsIndex] == itemId && planet.factorySystem.ejectorPool[ejectorId].bulletId == itemId)
+            if (needsPatterns[componentNeeds.PatternIndex + EjectorExecutor.SoleEjectorNeedsIndex] == itemId && bulletData.BulletId == itemId)
             {
-                planet.factorySystem.ejectorPool[ejectorId].bulletCount += itemCount;
-                planet.factorySystem.ejectorPool[ejectorId].bulletInc += itemInc;
+                bulletData.BulletCount += itemCount;
+                bulletData.BulletInc += itemInc;
                 remainInc = 0;
                 return itemCount;
             }

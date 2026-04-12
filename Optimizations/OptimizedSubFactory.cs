@@ -165,7 +165,7 @@ internal sealed class OptimizedSubFactory
                                                                                                   _researchingLabExecutor._matrixServed,
                                                                                                   _researchingLabExecutor._matrixIncServed,
                                                                                                   _siloExecutor._siloIndexes,
-                                                                                                  _ejectorExecutor._ejectorIndexes,
+                                                                                                  _ejectorExecutor._ejectorBulletDatas,
                                                                                                   universeStaticDataBuilder.UniverseStaticData);
         _optimizedBiInserterExecutor.Initialize(_planet,
                                                 this,
@@ -196,7 +196,7 @@ internal sealed class OptimizedSubFactory
                                                                                             _researchingLabExecutor._matrixServed,
                                                                                             _researchingLabExecutor._matrixIncServed,
                                                                                             _siloExecutor._siloIndexes,
-                                                                                            _ejectorExecutor._ejectorIndexes,
+                                                                                            _ejectorExecutor._ejectorBulletDatas,
                                                                                             universeStaticDataBuilder.UniverseStaticData);
         _optimizedInserterExecutor.Initialize(_planet,
                                               this,
@@ -607,7 +607,7 @@ internal sealed class OptimizedSubFactory
         RefreshPowerConsumptionDemands(statistics, _waterMinerExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.WaterMinerPowerConsumerTypeIndexes, powerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _assemblerExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.AssemblerPowerConsumerTypeIndexes, powerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _fractionatorExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.FractionatorPowerConsumerTypeIndexes, powerConsumerTypes));
-        RefreshPowerConsumptionDemands(statistics, _ejectorExecutor.UpdatePowerConsumptionPerPrototype(_planet, powerSystem.EjectorPowerConsumerTypeIndexes, powerConsumerTypes));
+        RefreshPowerConsumptionDemands(statistics, _ejectorExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.EjectorPowerConsumerTypeIndexes, powerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _siloExecutor.UpdatePowerConsumptionPerPrototype(_planet, powerSystem.SiloPowerConsumerTypeIndexes, powerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _producingLabExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.ProducingLabPowerConsumerTypeIndexes, powerConsumerTypes));
         RefreshPowerConsumptionDemands(statistics, _researchingLabExecutor.UpdatePowerConsumptionPerPrototype(powerSystem.ResearchingLabPowerConsumerTypeIndexes, powerConsumerTypes));
