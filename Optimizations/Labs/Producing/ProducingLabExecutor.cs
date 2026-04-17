@@ -22,6 +22,7 @@ internal sealed class ProducingLabExecutor
     public Dictionary<int, int> _labIdToOptimizedLabIndex = null!;
     public HashSet<int> _unOptimizedLabIds = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
+    private long[]? _previousPowerConsumptions;
 
     public int _producedSize = -1;
     public short[] _served = null!;
@@ -55,18 +56,27 @@ internal sealed class ProducingLabExecutor
         short[] produced = _produced;
         ReadonlyArray<short> labRecipeIndexes = _labRecipeIndexes;
         bool[] needToUpdateNeeds = _needToUpdateNeeds;
+        long[]? previousPowerConsumptions = _previousPowerConsumptions;
+
+        if (previousPowerConsumptions == null)
+        {
+            _previousPowerConsumptions = new long[optimizedLabs.Length];
+            previousPowerConsumptions = _previousPowerConsumptions;
+            for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
+            {
+                previousPowerConsumptions[labIndex] = UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, labIndex, labsPowerFields[labIndex]);
+            }
+        }
 
         for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
         {
             int networkIndex = labNetworkIds[labIndex];
             ref LabState labState = ref labStates[labIndex];
-            ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
             if (labState != LabState.Active)
             {
-                UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
+                thisSubFactoryNetworkPowerConsumption[networkIndex] += previousPowerConsumptions[labIndex];
                 continue;
             }
-
 
             ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[labRecipeIndexes[labIndex]];
             ref ProducingLabTimingData labTimingData = ref labsTimingData[labIndex];
@@ -81,10 +91,11 @@ internal sealed class ProducingLabExecutor
                 needToUpdateNeeds[labIndex] = false;
             }
 
+            ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
             float power = networkServes[networkIndex];
             if (!labTimingData.UpdateTimings(power, labPowerFields.replicating, in producingLabRecipe))
             {
-                UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
+                thisSubFactoryNetworkPowerConsumption[networkIndex] += previousPowerConsumptions[labIndex];
                 continue;
             }
 
@@ -108,7 +119,8 @@ internal sealed class ProducingLabExecutor
                 needToUpdateNeeds[labIndex] = true;
             }
 
-            UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
+            previousPowerConsumptions[labIndex] = UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, labIndex, labPowerFields);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += previousPowerConsumptions[labIndex];
         }
     }
 
@@ -164,20 +176,18 @@ internal sealed class ProducingLabExecutor
         {
             int networkIndex = labNetworkIds[labIndex];
             LabPowerFields labPowerFields = labsPowerFields[labIndex];
-            UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
+            thisSubFactoryNetworkPowerConsumption[networkIndex] += UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, labIndex, labPowerFields);
         }
     }
 
-    private static void UpdatePower(ReadonlyArray<short> producingLabPowerConsumerIndexes,
+    private static long UpdatePower(ReadonlyArray<short> producingLabPowerConsumerIndexes,
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
-                                    long[] thisSubFactoryNetworkPowerConsumption,
                                     int labIndex,
-                                    int networkIndex,
                                     LabPowerFields labPowerFields)
     {
         int powerConsumerTypeIndex = producingLabPowerConsumerIndexes[labIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-        thisSubFactoryNetworkPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, labPowerFields);
+        return GetPowerConsumption(powerConsumerType, labPowerFields);
     }
 
     public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> producingLabPowerConsumerIndexes,

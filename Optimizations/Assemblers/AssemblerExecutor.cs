@@ -21,6 +21,7 @@ internal sealed class AssemblerExecutor
     public Dictionary<int, int> _assemblerIdToOptimizedIndex = null!;
     public HashSet<int> _unOptimizedAssemblerIds = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
+    private long[]? _previousPowerConsumptions;
 
     public int _producedSize = -1;
     public short[] _served = null!;
@@ -57,16 +58,27 @@ internal sealed class AssemblerExecutor
         short[] produced = _produced;
         ReadonlyArray<short> assemblerRecipeIndexes = _assemblerRecipeIndexes;
         bool[] needToUpdateNeeds = _needToUpdateNeeds;
+        long[]? previousPowerConsumptions = _previousPowerConsumptions;
+
+        if (previousPowerConsumptions == null)
+        {
+            _previousPowerConsumptions = new long[optimizedAssemblers.Length];
+            previousPowerConsumptions = _previousPowerConsumptions;
+            for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
+            {
+                ref bool replicating = ref assemblerReplicatings[assemblerIndex];
+                ref int extraPowerRatios = ref assemblerExtraPowerRatios[assemblerIndex];
+                previousPowerConsumptions[assemblerIndex] = UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, assemblerIndex, replicating, extraPowerRatios);
+            }
+        }
 
         for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
         {
             int networkIndex = assemblerNetworkIds[assemblerIndex];
             ref AssemblerState assemblerState = ref assemblerStates[assemblerIndex];
-            ref bool replicating = ref assemblerReplicatings[assemblerIndex];
-            ref int extraPowerRatios = ref assemblerExtraPowerRatios[assemblerIndex];
             if (assemblerState != AssemblerState.Active)
             {
-                UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, networksPowerConsumption, assemblerIndex, networkIndex, replicating, extraPowerRatios);
+                networksPowerConsumption[networkIndex] += previousPowerConsumptions[assemblerIndex];
                 continue;
             }
 
@@ -82,10 +94,13 @@ internal sealed class AssemblerExecutor
                                                assemblerIndex);
                 needToUpdateNeeds[assemblerIndex] = false;
             }
+
+            ref bool replicating = ref assemblerReplicatings[assemblerIndex];
+            ref int extraPowerRatios = ref assemblerExtraPowerRatios[assemblerIndex];
             float power = networkServes[networkIndex];
             if (!assemblerTimingData.UpdateTimings(power, replicating, in recipeData))
             {
-                UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, networksPowerConsumption, assemblerIndex, networkIndex, replicating, extraPowerRatios);
+                networksPowerConsumption[networkIndex] += previousPowerConsumptions[assemblerIndex];
                 continue;
             }
 
@@ -110,7 +125,8 @@ internal sealed class AssemblerExecutor
                 needToUpdateNeeds[assemblerIndex] = true;
             }
 
-            UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, networksPowerConsumption, assemblerIndex, networkIndex, replicating, extraPowerRatios);
+            previousPowerConsumptions[assemblerIndex] = UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, assemblerIndex, replicating, extraPowerRatios);
+            networksPowerConsumption[networkIndex] += previousPowerConsumptions[assemblerIndex];
         }
     }
 
@@ -127,21 +143,19 @@ internal sealed class AssemblerExecutor
             int networkIndex = assemblerNetworkIds[assemblerIndex];
             bool replicating = assemblerReplicatings[assemblerIndex];
             int extraPowerRatios = assemblerExtraPowerRatios[assemblerIndex];
-            UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, networksPowerConsumption, assemblerIndex, networkIndex, replicating, extraPowerRatios);
+            networksPowerConsumption[networkIndex] += UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, assemblerIndex, replicating, extraPowerRatios);
         }
     }
 
-    private static void UpdatePower(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
+    private static long UpdatePower(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
-                                    long[] networksPowerConsumption,
                                     int assemblerIndex,
-                                    int networkIndex,
                                     bool replicating,
                                     int extraPowerRatios)
     {
         int powerConsumerTypeIndex = assemblerPowerConsumerTypeIndexes[assemblerIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
-        networksPowerConsumption[networkIndex] += GetPowerConsumption(powerConsumerType, replicating, extraPowerRatios);
+        return GetPowerConsumption(powerConsumerType, replicating, extraPowerRatios);
     }
 
     public PrototypePowerConsumptions UpdatePowerConsumptionPerPrototype(ReadonlyArray<short> assemblerPowerConsumerTypeIndexes,
