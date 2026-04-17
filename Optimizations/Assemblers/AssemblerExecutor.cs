@@ -105,9 +105,10 @@ internal sealed class AssemblerExecutor
                                               incServed,
                                               produced);
 
-            // Just assumes default update requires updating needs.
-            // In reality it only needs to be done if any served items were consumed.
-            needToUpdateNeeds[assemblerIndex] = true;
+            if (replicating)
+            {
+                needToUpdateNeeds[assemblerIndex] = true;
+            }
 
             UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, networksPowerConsumption, assemblerIndex, networkIndex, replicating, extraPowerRatios);
         }
@@ -292,7 +293,7 @@ internal sealed class AssemblerExecutor
             assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
             int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
             assemblerNetworkIds.Add(networkIndex);
-            assemblerStates.Add(assembler.recipeId == 0 ? AssemblerState.InactiveNoRecipeSet : AssemblerState.Active);
+            assemblerStates.Add(AssemblerState.Active);
             optimizedAssemblers.Add(new OptimizedAssembler(ref assembler));
             assemblerReplicatings.Add(assembler.replicating);
             assemblerExtraPowerRatios.Add(assembler.extraPowerRatio);

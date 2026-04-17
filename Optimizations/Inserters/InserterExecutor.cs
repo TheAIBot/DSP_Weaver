@@ -90,6 +90,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly short[] _producingLabIncServed;
     private readonly short[] _producingLabProduced;
     private readonly ReadonlyArray<short> _producingLabRecipeIndexes;
+    private readonly bool[] _producingLabNeedToUpdateNeeds;
 
     private readonly int[] _researchingLabMatrixServed = null!;
     private readonly int[] _researchingLabMatrixIncServed = null!;
@@ -118,6 +119,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             short[] producingLabIncServed,
                             short[] producingLabProduced,
                             ReadonlyArray<short> producingLabRecipeIndexes,
+                            bool[] producingLabNeedToUpdateNeeds,
                             int[] researchingLabMatrixServed,
                             int[] researchingLabMatrixIncServed,
                             ReadonlyArray<int> siloIndexes,
@@ -141,6 +143,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         _producingLabIncServed = producingLabIncServed;
         _producingLabProduced = producingLabProduced;
         _producingLabRecipeIndexes = producingLabRecipeIndexes;
+        _producingLabNeedToUpdateNeeds = producingLabNeedToUpdateNeeds;
         _researchingLabMatrixServed = researchingLabMatrixServed;
         _researchingLabMatrixIncServed = researchingLabMatrixIncServed;
         _siloIndexes = siloIndexes;
@@ -849,6 +852,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                     incServed[servedOffset + i] += itemInc;
                     remainInc = 0;
                     _producingLabStates[objectIndex] = LabState.Active;
+                    _producingLabNeedToUpdateNeeds[objectIndex] = true;
                     return itemCount;
                 }
             }

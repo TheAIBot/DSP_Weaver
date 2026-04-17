@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
@@ -15,6 +16,7 @@ internal sealed class ProducingLabExecutor
     public LabState[] _labStates = null!;
     public OptimizedProducingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
+    private ProducingLabTimingData[] _labsTimingData = null!;
     public ReadonlyArray<short> _labRecipeIndexes = default;
     public ReadonlyArray<int> _entityIds = default;
     public Dictionary<int, int> _labIdToOptimizedLabIndex = null!;
@@ -25,6 +27,7 @@ internal sealed class ProducingLabExecutor
     public short[] _served = null!;
     public short[] _incServed = null!;
     public short[] _produced = null!;
+    public bool[] _needToUpdateNeeds = null!;
 
     public int Count => _optimizedLabs.Length;
 
@@ -42,6 +45,7 @@ internal sealed class ProducingLabExecutor
         LabState[] labStates = _labStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
+        ProducingLabTimingData[] labsTimingData = _labsTimingData;
         ReadonlyArray<ProducingLabRecipe> producingLabRecipes = universeStaticData.ProducingLabRecipes;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
@@ -50,6 +54,7 @@ internal sealed class ProducingLabExecutor
         short[] incServed = _incServed;
         short[] produced = _produced;
         ReadonlyArray<short> labRecipeIndexes = _labRecipeIndexes;
+        bool[] needToUpdateNeeds = _needToUpdateNeeds;
 
         for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
         {
@@ -62,27 +67,46 @@ internal sealed class ProducingLabExecutor
                 continue;
             }
 
-            ref OptimizedProducingLab lab = ref optimizedLabs[labIndex];
-            ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[labRecipeIndexes[labIndex]];
-            lab.UpdateNeedsAssemble(in producingLabRecipe,
-                                    groupNeeds,
-                                    served,
-                                    componentsNeeds,
-                                    labIndex);
 
+            ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[labRecipeIndexes[labIndex]];
+            ref ProducingLabTimingData labTimingData = ref labsTimingData[labIndex];
+            if (needToUpdateNeeds[labIndex])
+            {
+                OptimizedProducingLab.UpdateNeedsAssemble(in producingLabRecipe,
+                                                          ref labTimingData,
+                                                          groupNeeds,
+                                                          served,
+                                                          componentsNeeds,
+                                                          labIndex);
+                needToUpdateNeeds[labIndex] = false;
+            }
+
+            float power = networkServes[networkIndex];
+            if (!labTimingData.UpdateTimings(power, labPowerFields.replicating, in producingLabRecipe))
+            {
+                UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
+                continue;
+            }
+
+            ref OptimizedProducingLab lab = ref optimizedLabs[labIndex];
             int servedOffset = labIndex * groupNeeds.GroupNeedsSize;
             int producedOffset = labIndex * producedSize;
-            float power = networkServes[networkIndex];
             labState = lab.InternalUpdateAssemble(power,
                                                   productRegister,
                                                   consumeRegister,
                                                   in producingLabRecipe,
                                                   ref labPowerFields,
+                                                  ref labTimingData,
                                                   servedOffset,
                                                   producedOffset,
                                                   served,
                                                   incServed,
                                                   produced);
+
+            if (labPowerFields.replicating)
+            {
+                needToUpdateNeeds[labIndex] = true;
+            }
 
             UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
@@ -96,10 +120,12 @@ internal sealed class ProducingLabExecutor
         short[] served = _served;
         short[] incServed = _incServed;
         short[] produced = _produced;
+        bool[] needToUpdateNeeds = _needToUpdateNeeds;
         ReadonlyArray<short> labRecipeIndexes = _labRecipeIndexes;
         LabState[] labStates = _labStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         ReadonlyArray<ProducingLabRecipe> producingLabRecipes = universeStaticData.ProducingLabRecipes;
+        ProducingLabTimingData[] labsTimingData = _labsTimingData;
 
         int num = (int)(time & 3);
         for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
@@ -109,11 +135,14 @@ internal sealed class ProducingLabExecutor
                 int servedOffset = labIndex * groupNeeds.GroupNeedsSize;
                 ref OptimizedProducingLab lab = ref optimizedLabs[labIndex];
                 ref readonly ProducingLabRecipe producingLabRecipe = ref producingLabRecipes[labRecipeIndexes[labIndex]];
+                ref readonly ProducingLabTimingData producingLabTimingData = ref labsTimingData[labIndex];
 
                 lab.UpdateOutputToNext(labIndex,
                                        optimizedLabs,
                                        labStates,
+                                       needToUpdateNeeds,
                                        in producingLabRecipe,
+                                       in producingLabTimingData,
                                        groupNeeds,
                                        componentsNeeds,
                                        servedOffset,
@@ -191,6 +220,7 @@ internal sealed class ProducingLabExecutor
         LabComponent[] labComponents = planet.factorySystem.labPool;
         OptimizedProducingLab[] optimizedProducingLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
+        ProducingLabTimingData[] labsTimingData = _labsTimingData;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         short[] needsPatterns = subFactoryNeeds.NeedsPatterns;
@@ -208,6 +238,7 @@ internal sealed class ProducingLabExecutor
             ref OptimizedProducingLab optimizedLab = ref optimizedProducingLabs[optimizedIndex];
             optimizedLab.Save(ref labComponents[i],
                               labsPowerFields[optimizedIndex],
+                              labsTimingData[optimizedIndex],
                               groupNeeds,
                               componentsNeeds,
                               needsPatterns,
@@ -230,6 +261,7 @@ internal sealed class ProducingLabExecutor
         List<LabState> labStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
         List<LabPowerFields> labsPowerFields = [];
+        List<ProducingLabTimingData> labsTimingData = [];
         HashSet<ProducingLabRecipe> producingLabRecipes = [];
         List<int> entityIds = [];
         List<short> labRecipeIndexes = [];
@@ -297,6 +329,7 @@ internal sealed class ProducingLabExecutor
             labIdToOptimizedLabIndex.Add(labIndex, optimizedLabs.Count);
             optimizedLabs.Add(new OptimizedProducingLab(nextLabIndex, ref lab));
             labsPowerFields.Add(new LabPowerFields(in lab));
+            labsTimingData.Add(new ProducingLabTimingData(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
             labNetworkIds.Add(networkIndex);
             labStates.Add(LabState.Active);
@@ -361,12 +394,15 @@ internal sealed class ProducingLabExecutor
             _served = servedFlat.ToArray();
             _incServed = incServedFlat.ToArray();
             _produced = producedFlat.ToArray();
+            _needToUpdateNeeds = new bool[optimizedLabs.Count];
+            _needToUpdateNeeds.Fill(true);
         }
 
         _labNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(labNetworkIds);
         _labStates = labStates.ToArray();
         _optimizedLabs = optimizedLabs.ToArray();
         _labsPowerFields = labsPowerFields.ToArray();
+        _labsTimingData = labsTimingData.ToArray();
         _entityIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(entityIds);
         _labRecipeIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(labRecipeIndexes);
         _labIdToOptimizedLabIndex = labIdToOptimizedLabIndex;

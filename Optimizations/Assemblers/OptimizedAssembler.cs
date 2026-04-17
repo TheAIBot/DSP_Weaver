@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.StaticData;
-using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Assemblers;
 

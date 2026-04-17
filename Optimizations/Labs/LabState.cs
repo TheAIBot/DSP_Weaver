@@ -8,15 +8,9 @@ internal enum LabState : byte
     Active
         = 0b00000,
     Inactive
-        = 0b01000,
-    InactiveNoAssembler
-        = 0b00001 | Inactive,
-    InactiveNoRecipeSet
-        = 0b00010 | Inactive,
+        = 0b00100,
     InactiveOutputFull
-        = 0b00011 | Inactive,
+        = 0b00001 | Inactive,
     InactiveInputMissing
-        = 0b00100 | Inactive,
-    ResearchMode
-        = 0b10000
+        = 0b00010 | Inactive,
 }

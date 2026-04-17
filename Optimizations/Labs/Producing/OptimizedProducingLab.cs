@@ -5,6 +5,34 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Labs.Producing;
 
+internal struct ProducingLabTimingData
+{
+    public int Time;
+    public int ExtraTime;
+    public int SpeedOverride;
+    public int ExtraSpeed;
+
+    public ProducingLabTimingData(ref readonly LabComponent lab)
+    {
+        Time = lab.time;
+        ExtraTime = lab.extraTime;
+        SpeedOverride = lab.speedOverride;
+        ExtraSpeed = lab.extraSpeed;
+    }
+
+    public bool UpdateTimings(float power, bool replicating, ref readonly ProducingLabRecipe producingLabRecipe)
+    {
+        if (replicating && Time < producingLabRecipe.TimeSpend && ExtraTime < producingLabRecipe.ExtraTimeSpend)
+        {
+            Time += (int)(power * SpeedOverride);
+            ExtraTime += (int)(power * ExtraSpeed);
+            return false;
+        }
+
+        return true;
+    }
+}
+
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedProducingLab
 {
@@ -12,10 +40,6 @@ internal struct OptimizedProducingLab
     public readonly bool forceAccMode;
     public readonly int nextLabIndex;
     public bool incUsed;
-    public int time;
-    public int extraTime;
-    public int extraSpeed;
-    public int speedOverride;
 
     public OptimizedProducingLab(int? nextLabIndex,
                                  ref readonly LabComponent lab)
@@ -23,10 +47,6 @@ internal struct OptimizedProducingLab
         forceAccMode = lab.forceAccMode;
         this.nextLabIndex = nextLabIndex.HasValue ? nextLabIndex.Value : NO_NEXT_LAB;
         incUsed = lab.incUsed;
-        time = lab.time;
-        extraTime = lab.extraTime;
-        extraSpeed = lab.extraSpeed;
-        speedOverride = lab.speedOverride;
     }
 
     public OptimizedProducingLab(int nextLabIndex,
@@ -35,19 +55,16 @@ internal struct OptimizedProducingLab
         forceAccMode = lab.forceAccMode;
         this.nextLabIndex = nextLabIndex;
         incUsed = lab.incUsed;
-        time = lab.time;
-        extraTime = lab.extraTime;
-        extraSpeed = lab.extraSpeed;
-        speedOverride = lab.speedOverride;
     }
 
-    public readonly void UpdateNeedsAssemble(ref readonly ProducingLabRecipe producingLabRecipe,
-                                             GroupNeeds groupNeeds,
-                                             short[] served,
-                                             ComponentNeeds[] componentsNeeds,
-                                             int labIndex)
+    public static void UpdateNeedsAssemble(ref readonly ProducingLabRecipe producingLabRecipe,
+                                           ref readonly ProducingLabTimingData producingLabTimingData,
+                                           GroupNeeds groupNeeds,
+                                           short[] served,
+                                           ComponentNeeds[] componentsNeeds,
+                                           int labIndex)
     {
-        int num2 = producingLabRecipe.TimeSpend > 5400000 ? 6 : 3 * ((speedOverride + 5001) / 10000) + 3;
+        int num2 = producingLabRecipe.TimeSpend > 5400000 ? 6 : 3 * ((producingLabTimingData.SpeedOverride + 5001) / 10000) + 3;
 
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * labIndex;
@@ -66,6 +83,7 @@ internal struct OptimizedProducingLab
                                            int[] consumeRegister,
                                            ref readonly ProducingLabRecipe producingLabRecipe,
                                            ref LabPowerFields labPowerFields,
+                                           ref ProducingLabTimingData producingLabTimingData,
                                            int servedOffset,
                                            int producedOffset,
                                            short[] served,
@@ -77,21 +95,21 @@ internal struct OptimizedProducingLab
             // Lets not deal with missing power for now. Just check every tick.
             return LabState.Active;
         }
-        if (extraTime >= producingLabRecipe.ExtraTimeSpend)
+        if (producingLabTimingData.ExtraTime >= producingLabRecipe.ExtraTimeSpend)
         {
             for (int i = 0; i < producingLabRecipe.ProductCounts.Length; i++)
             {
                 produced[producedOffset + i] += (short)producingLabRecipe.ProductCounts[i];
                 productRegister[producingLabRecipe.Products[i].OptimizedItemIndex] += producingLabRecipe.ProductCounts[i];
             }
-            extraTime -= producingLabRecipe.ExtraTimeSpend;
+            producingLabTimingData.ExtraTime -= producingLabRecipe.ExtraTimeSpend;
         }
-        if (time >= producingLabRecipe.TimeSpend)
+        if (producingLabTimingData.Time >= producingLabRecipe.TimeSpend)
         {
             labPowerFields.replicating = false;
             for (int j = 0; j < producingLabRecipe.Products.Length; j++)
             {
-                if (produced[producedOffset + j] + producingLabRecipe.ProductCounts[j] > 10 * ((speedOverride + 9999) / 10000))
+                if (produced[producedOffset + j] + producingLabRecipe.ProductCounts[j] > 10 * ((producingLabTimingData.SpeedOverride + 9999) / 10000))
                 {
                     return LabState.InactiveOutputFull;
                 }
@@ -101,10 +119,10 @@ internal struct OptimizedProducingLab
                 produced[producedOffset + k] += (short)producingLabRecipe.ProductCounts[k];
                 productRegister[producingLabRecipe.Products[k].OptimizedItemIndex] += producingLabRecipe.ProductCounts[k];
             }
-            extraSpeed = 0;
-            speedOverride = producingLabRecipe.Speed;
+            producingLabTimingData.ExtraSpeed = 0;
+            producingLabTimingData.SpeedOverride = producingLabRecipe.Speed;
             labPowerFields.extraPowerRatio = 0;
-            time -= producingLabRecipe.TimeSpend;
+            producingLabTimingData.Time -= producingLabRecipe.TimeSpend;
         }
         if (!labPowerFields.replicating)
         {
@@ -117,7 +135,7 @@ internal struct OptimizedProducingLab
                 }
                 if (served[servedOffset + l] < producingLabRecipe.RequireCounts[l] || served[servedOffset + l] == 0)
                 {
-                    time = 0;
+                    producingLabTimingData.Time = 0;
                     return LabState.InactiveInputMissing;
                 }
             }
@@ -142,23 +160,19 @@ internal struct OptimizedProducingLab
             }
             if (producingLabRecipe.Productive && !forceAccMode)
             {
-                extraSpeed = (int)(producingLabRecipe.Speed * Cargo.incTableMilli[num4] * 10.0 + 0.1);
-                speedOverride = producingLabRecipe.Speed;
+                producingLabTimingData.ExtraSpeed = (int)(producingLabRecipe.Speed * Cargo.incTableMilli[num4] * 10.0 + 0.1);
+                producingLabTimingData.SpeedOverride = producingLabRecipe.Speed;
                 labPowerFields.extraPowerRatio = Cargo.powerTable[num4];
             }
             else
             {
-                extraSpeed = 0;
-                speedOverride = (int)(producingLabRecipe.Speed * (1.0 + Cargo.accTableMilli[num4]) + 0.1);
+                producingLabTimingData.ExtraSpeed = 0;
+                producingLabTimingData.SpeedOverride = (int)(producingLabRecipe.Speed * (1.0 + Cargo.accTableMilli[num4]) + 0.1);
                 labPowerFields.extraPowerRatio = Cargo.powerTable[num4];
             }
             labPowerFields.replicating = true;
         }
-        if (labPowerFields.replicating && time < producingLabRecipe.TimeSpend && extraTime < producingLabRecipe.ExtraTimeSpend)
-        {
-            time += (int)(power * speedOverride);
-            extraTime += (int)(power * extraSpeed);
-        }
+        producingLabTimingData.UpdateTimings(power, labPowerFields.replicating, in producingLabRecipe);
         if (!labPowerFields.replicating)
         {
             throw new InvalidOperationException("I do not think this is possible. Not sure why it is in the game.");
@@ -169,7 +183,9 @@ internal struct OptimizedProducingLab
     public readonly void UpdateOutputToNext(int labIndex,
                                             OptimizedProducingLab[] labPool,
                                             LabState[] labStates,
+                                            bool[] needToUpdateNeeds,
                                             ref readonly ProducingLabRecipe producingLabRecipe,
+                                            ref readonly ProducingLabTimingData producingLabTimingData,
                                             GroupNeeds groupNeeds,
                                             ComponentNeeds[] componentsNeeds,
                                             int serveOffset,
@@ -184,7 +200,7 @@ internal struct OptimizedProducingLab
         }
 
         bool movedItems = false;
-        int num14 = producingLabRecipe.TimeSpend > 5400000 ? 1 : 1 + speedOverride / 20000;
+        int num14 = producingLabRecipe.TimeSpend > 5400000 ? 1 : 1 + producingLabTimingData.SpeedOverride / 20000;
         int nextLabNeedsOffset = groupNeeds.GetObjectNeedsIndex(nextLabIndex);
         int nextLabServeOffset = groupNeeds.GroupNeedsSize * nextLabIndex;
         int recipeRequireCountLength = producingLabRecipe.RequireCounts.Length;
@@ -210,7 +226,7 @@ internal struct OptimizedProducingLab
 
         int producedOffset = producedSize * labIndex;
         int nextLabProducedOffset = producedSize * nextLabIndex;
-        int num17 = 10 * ((speedOverride + 9999) / 10000) - 2;
+        int num17 = 10 * ((producingLabTimingData.SpeedOverride + 9999) / 10000) - 2;
         if (produced[producedOffset] < num17 && produced[nextLabProducedOffset] > 0)
         {
             int num18 = num17 - produced[producedOffset] < produced[nextLabProducedOffset] ? num17 - produced[producedOffset] : produced[nextLabProducedOffset];
@@ -223,11 +239,14 @@ internal struct OptimizedProducingLab
         {
             labStates[labIndex] = LabState.Active;
             labStates[nextLabIndex] = LabState.Active;
+            needToUpdateNeeds[labIndex] = true;
+            needToUpdateNeeds[nextLabIndex] = true;
         }
     }
 
     public readonly void Save(ref LabComponent lab,
                               LabPowerFields labPowerFields,
+                              ProducingLabTimingData producingLabTimingData,
                               GroupNeeds groupNeeds,
                               ComponentNeeds[] componentsNeeds,
                               short[] needsPatterns,
@@ -253,13 +272,13 @@ internal struct OptimizedProducingLab
             GroupNeeds.SetIfInRange(lab.produced, produced, i, producedOffset + i);
         }
 
-        lab.replicating = labPowerFields.replicating;
         lab.incUsed = incUsed;
-        lab.time = time;
-        lab.extraTime = extraTime;
-        lab.extraSpeed = extraSpeed;
+        lab.replicating = labPowerFields.replicating;
         lab.extraPowerRatio = labPowerFields.extraPowerRatio;
-        lab.speedOverride = speedOverride;
+        lab.time = producingLabTimingData.Time;
+        lab.extraTime = producingLabTimingData.ExtraTime;
+        lab.extraSpeed = producingLabTimingData.ExtraSpeed;
+        lab.speedOverride = producingLabTimingData.SpeedOverride;
     }
 
     private static int split_inc_level(ref short n, ref short m, short p)
