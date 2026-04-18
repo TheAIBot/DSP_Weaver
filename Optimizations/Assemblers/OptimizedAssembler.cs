@@ -7,25 +7,25 @@ namespace Weaver.Optimizations.Assemblers;
 
 internal struct AssemblerTimingData
 {
-    public int time;
-    public int extraTime;
-    public int speedOverride;
-    public int extraSpeed;
+    public int Time;
+    public int ExtraTime;
+    public int ExtraSpeed;
+    public int SpeedOverride;
 
     public AssemblerTimingData(ref readonly AssemblerComponent assembler)
     {
-        time = assembler.time;
-        extraTime = assembler.extraTime;
-        speedOverride = assembler.speedOverride;
-        extraSpeed = assembler.extraSpeed;
+        Time = assembler.time;
+        ExtraTime = assembler.extraTime;
+        SpeedOverride = assembler.speedOverride;
+        ExtraSpeed = assembler.extraSpeed;
     }
 
     public bool UpdateTimings(float power, bool replicating, ref readonly AssemblerRecipe assemblerRecipeData)
     {
-        if (replicating && time < assemblerRecipeData.TimeSpend && extraTime < assemblerRecipeData.ExtraTimeSpend)
+        if (replicating && Time < assemblerRecipeData.TimeSpend && ExtraTime < assemblerRecipeData.ExtraTimeSpend)
         {
-            time += (int)(power * speedOverride);
-            extraTime += (int)(power * extraSpeed);
+            Time += (int)(power * SpeedOverride);
+            ExtraTime += (int)(power * ExtraSpeed);
             return false;
         }
 
@@ -37,7 +37,6 @@ internal struct AssemblerTimingData
 internal struct OptimizedAssembler
 {
     public readonly bool forceAccMode;
-    public readonly int speed;
     public bool incUsed;
     public int cycleCount;
     public int extraCycleCount;
@@ -45,7 +44,6 @@ internal struct OptimizedAssembler
     public OptimizedAssembler(ref readonly AssemblerComponent assembler)
     {
         forceAccMode = assembler.forceAccMode;
-        speed = assembler.speed;
         incUsed = assembler.incUsed;
         cycleCount = assembler.cycleCount;
         extraCycleCount = assembler.extraCycleCount;
@@ -58,7 +56,7 @@ internal struct OptimizedAssembler
                                    ComponentNeeds[] componentsNeeds,
                                    int assemblerIndex)
     {
-        int num2 = assemblerTimingData.speedOverride * 180 / assemblerRecipeData.TimeSpend + 1;
+        int num2 = assemblerTimingData.SpeedOverride * 180 / assemblerRecipeData.TimeSpend + 1;
         if (num2 < 2)
         {
             num2 = 2;
@@ -66,7 +64,7 @@ internal struct OptimizedAssembler
 
         int needsOffset = groupNeeds.GetObjectNeedsIndex(assemblerIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * assemblerIndex;
-        ReadonlyArray<int> requireCounts = assemblerRecipeData.RequireCounts;
+        ReadonlyArray<short> requireCounts = assemblerRecipeData.RequireCounts;
         byte needBits = 0;
         for (int i = 0; i < requireCounts.Length; i++)
         {
@@ -95,7 +93,7 @@ internal struct OptimizedAssembler
             return AssemblerState.Active;
         }
 
-        if (assemblerTimingData.extraTime >= assemblerRecipeData.ExtraTimeSpend)
+        if (assemblerTimingData.ExtraTime >= assemblerRecipeData.ExtraTimeSpend)
         {
             for (int i = 0; i < assemblerRecipeData.ProductCounts.Length; i++)
             {
@@ -103,9 +101,9 @@ internal struct OptimizedAssembler
                 productRegister[assemblerRecipeData.Products[i].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[i];
             }
             extraCycleCount++;
-            assemblerTimingData.extraTime -= assemblerRecipeData.ExtraTimeSpend;
+            assemblerTimingData.ExtraTime -= assemblerRecipeData.ExtraTimeSpend;
         }
-        if (assemblerTimingData.time >= assemblerRecipeData.TimeSpend)
+        if (assemblerTimingData.Time >= assemblerRecipeData.TimeSpend)
         {
             replicating = false;
             if (assemblerRecipeData.Products.Length == 1)
@@ -199,15 +197,15 @@ internal struct OptimizedAssembler
                 }
                 for (int num4 = 0; num4 < num2; num4++)
                 {
-                    produced[producedOffset + num4] += (short)assemblerRecipeData.ProductCounts[num4];
+                    produced[producedOffset + num4] += assemblerRecipeData.ProductCounts[num4];
                     productRegister[assemblerRecipeData.Products[num4].OptimizedItemIndex] += assemblerRecipeData.ProductCounts[num4];
                 }
             }
-            assemblerTimingData.extraSpeed = 0;
-            assemblerTimingData.speedOverride = speed;
+            assemblerTimingData.ExtraSpeed = 0;
+            assemblerTimingData.SpeedOverride = assemblerRecipeData.Speed;
             extraPowerRatio = 0;
             cycleCount++;
-            assemblerTimingData.time -= assemblerRecipeData.TimeSpend;
+            assemblerTimingData.Time -= assemblerRecipeData.TimeSpend;
         }
         if (!replicating)
         {
@@ -220,7 +218,7 @@ internal struct OptimizedAssembler
                 }
                 if (served[servedOffset + num6] < assemblerRecipeData.RequireCounts[num6] || served[servedOffset + num6] == 0)
                 {
-                    assemblerTimingData.time = 0;
+                    assemblerTimingData.Time = 0;
                     return AssemblerState.InactiveInputMissing;
                 }
             }
@@ -245,14 +243,14 @@ internal struct OptimizedAssembler
             }
             if (assemblerRecipeData.Productive && !forceAccMode)
             {
-                assemblerTimingData.extraSpeed = (int)(speed * Cargo.incTableMilli[num7] * 10.0 + 0.1);
-                assemblerTimingData.speedOverride = speed;
+                assemblerTimingData.ExtraSpeed = (int)(assemblerRecipeData.Speed * Cargo.incTableMilli[num7] * 10.0 + 0.1);
+                assemblerTimingData.SpeedOverride = assemblerRecipeData.Speed;
                 extraPowerRatio = Cargo.powerTable[num7];
             }
             else
             {
-                assemblerTimingData.extraSpeed = 0;
-                assemblerTimingData.speedOverride = (int)(speed * (1.0 + Cargo.accTableMilli[num7]) + 0.1);
+                assemblerTimingData.ExtraSpeed = 0;
+                assemblerTimingData.SpeedOverride = (int)(assemblerRecipeData.Speed * (1.0 + Cargo.accTableMilli[num7]) + 0.1);
                 extraPowerRatio = Cargo.powerTable[num7];
             }
             replicating = true;
@@ -295,12 +293,12 @@ internal struct OptimizedAssembler
         }
 
         assembler.incUsed = incUsed;
-        assembler.speedOverride = assemblerTimingData.speedOverride;
-        assembler.time = assemblerTimingData.time;
-        assembler.extraTime = assemblerTimingData.extraTime;
+        assembler.speedOverride = assemblerTimingData.SpeedOverride;
+        assembler.time = assemblerTimingData.Time;
+        assembler.extraTime = assemblerTimingData.ExtraTime;
         assembler.cycleCount = cycleCount;
         assembler.extraCycleCount = extraCycleCount;
-        assembler.extraSpeed = assemblerTimingData.extraSpeed;
+        assembler.extraSpeed = assemblerTimingData.ExtraSpeed;
         assembler.replicating = replicating;
         assembler.extraPowerRatio = extraPowerRatio;
     }

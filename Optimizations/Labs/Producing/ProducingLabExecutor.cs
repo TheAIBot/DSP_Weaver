@@ -332,7 +332,11 @@ internal sealed class ProducingLabExecutor
                 }
             }
 
-            var producingLabRecipe = new ProducingLabRecipe(in lab, subFactoryProductionRegisterBuilder);
+            var producingLabRecipe = new ProducingLabRecipe(in lab,
+                                                            subFactoryProductionRegisterBuilder.AddConsume(lab.recipeExecuteData.requires),
+                                                            universeStaticDataBuilder.DeduplicateArrayUnmanaged(ConverterUtilities.ConvertToShortArrayOrThrow(lab.recipeExecuteData.requireCounts, nameof(lab.recipeExecuteData.requireCounts))),
+                                                            subFactoryProductionRegisterBuilder.AddProduct(lab.recipeExecuteData.products),
+                                                            universeStaticDataBuilder.DeduplicateArrayUnmanaged(ConverterUtilities.ConvertToShortArrayOrThrow(lab.recipeExecuteData.productCounts, nameof(lab.recipeExecuteData.productCounts))));
             producingLabRecipes.Add(producingLabRecipe);
             int producingLabRecipeIndex = universeStaticDataBuilder.AddProducingLabRecipe(in producingLabRecipe);
 

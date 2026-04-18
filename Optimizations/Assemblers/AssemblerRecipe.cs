@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Weaver.Optimizations.Labs.Producing;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
@@ -15,26 +13,29 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemoryS
     public readonly ERecipeType RecipeType;
     public readonly int TimeSpend;
     public readonly int ExtraTimeSpend;
+    public readonly int Speed;
     public readonly bool Productive;
     public readonly OptimizedItemId[] Requires;
-    public readonly ReadonlyArray<int> RequireCounts;
+    public readonly ReadonlyArray<short> RequireCounts;
     public readonly OptimizedItemId[] Products;
-    public readonly ReadonlyArray<int> ProductCounts;
+    public readonly ReadonlyArray<short> ProductCounts;
 
     public AssemblerRecipe(int recipeId,
                            ERecipeType recipeType,
                            int timeSpend,
                            int extraTimeSpend,
+                           int speed,
                            bool productive,
                            OptimizedItemId[] requires,
-                           ReadonlyArray<int> requireCounts,
+                           ReadonlyArray<short> requireCounts,
                            OptimizedItemId[] products,
-                           ReadonlyArray<int> productCounts)
+                           ReadonlyArray<short> productCounts)
     {
         RecipeId = recipeId;
         RecipeType = recipeType;
         TimeSpend = timeSpend;
         ExtraTimeSpend = extraTimeSpend;
+        Speed = speed;
         Productive = productive;
         Requires = requires;
         RequireCounts = requireCounts;

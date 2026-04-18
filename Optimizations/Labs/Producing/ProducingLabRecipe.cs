@@ -15,21 +15,25 @@ internal readonly struct ProducingLabRecipe : IEquatable<ProducingLabRecipe>, IM
     public readonly int Speed;
     public readonly bool Productive;
     public readonly OptimizedItemId[] Requires;
-    public readonly int[] RequireCounts;
+    public readonly ReadonlyArray<short> RequireCounts;
     public readonly OptimizedItemId[] Products;
-    public readonly int[] ProductCounts;
+    public readonly ReadonlyArray<short> ProductCounts;
 
-    public ProducingLabRecipe(ref readonly LabComponent lab, SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder)
+    public ProducingLabRecipe(ref readonly LabComponent lab,
+                              OptimizedItemId[] requires,
+                              ReadonlyArray<short> requireCounts,
+                              OptimizedItemId[] products,
+                              ReadonlyArray<short> productCounts)
     {
         RecipeId = lab.recipeId;
         TimeSpend = lab.recipeExecuteData.timeSpend;
         ExtraTimeSpend = lab.recipeExecuteData.extraTimeSpend;
         Speed = lab.speed;
         Productive = lab.recipeExecuteData.productive;
-        Requires = subFactoryProductionRegisterBuilder.AddConsume(lab.recipeExecuteData.requires);
-        RequireCounts = lab.recipeExecuteData.requireCounts;
-        Products = subFactoryProductionRegisterBuilder.AddProduct(lab.recipeExecuteData.products);
-        ProductCounts = lab.recipeExecuteData.productCounts;
+        Requires = requires;
+        RequireCounts = requireCounts;
+        Products = products;
+        ProductCounts = productCounts;
     }
 
     public int GetSize()

@@ -296,11 +296,12 @@ internal sealed class AssemblerExecutor
                                                                   assembler.recipeType,
                                                                   assembler.recipeExecuteData.timeSpend,
                                                                   assembler.recipeExecuteData.extraTimeSpend,
+                                                                  assembler.speed,
                                                                   assembler.recipeExecuteData.productive,
                                                                   subFactoryProductionRegisterBuilder.AddConsume(assembler.recipeExecuteData.requires),
-                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.recipeExecuteData.requireCounts),
+                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(ConverterUtilities.ConvertToShortArrayOrThrow(assembler.recipeExecuteData.requireCounts, nameof(assembler.recipeExecuteData.requireCounts))),
                                                                   subFactoryProductionRegisterBuilder.AddProduct(assembler.recipeExecuteData.products),
-                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(assembler.recipeExecuteData.productCounts));
+                                                                  universeStaticDataBuilder.DeduplicateArrayUnmanaged(ConverterUtilities.ConvertToShortArrayOrThrow(assembler.recipeExecuteData.productCounts, nameof(assembler.recipeExecuteData.productCounts))));
             assemblerRecipes.Add(assemblerRecipe);
             int assemblerRecipeIndex = universeStaticDataBuilder.AddAssemblerRecipe(in assemblerRecipe);
 
