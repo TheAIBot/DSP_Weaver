@@ -202,6 +202,8 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
+
+        await comparer.AssertEqualAsync();
     }
 
     [Test]
@@ -223,6 +225,8 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
+
+        await comparer.AssertEqualAsync();
     }
 
     [Test]
@@ -240,6 +244,8 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
+
+        await comparer.AssertEqualAsync();
     }
 
     [Test]
@@ -261,6 +267,8 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
+
+        await comparer.AssertEqualAsync();
     }
 
     [Test]
@@ -275,6 +283,8 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
+
+        await comparer.AssertEqualAsync();
     }
 
     [Test]
@@ -289,6 +299,8 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
+
+        await comparer.AssertEqualAsync();
     }
 
     [Test]
@@ -303,5 +315,7 @@ public sealed class OptimizedCargoPathTestsThreeBeltChunks
             await comparer.AssertEqualAsync();
             comparer.Update();
         }
+
+        await comparer.AssertEqualAsync();
     }
 }
