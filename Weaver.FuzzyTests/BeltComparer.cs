@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.StaticData;
@@ -107,6 +108,18 @@ internal sealed class BeltComparer
 
     public async Task AssertEqualAsync()
     {
+        bool areOptimizedItemsValue = _optimized.buffer.IsAllCargoItemsValid();
+        if (!areOptimizedItemsValue)
+        {
+            byte[] optimizedValues = _optimized.buffer.GetBytesAsArray();
+            await TUnit.Assertions.Assert.That(areOptimizedItemsValue)
+                                         .IsTrue()
+                                         .Because($"""
+                                                  Optimized: [{string.Join(", ", optimizedValues.Select(x => $"{x,3}"))}]
+                                                  Old:       [{string.Join(", ", _original.buffer.Select(x => $"{x,3}"))}]
+                                                  """);
+        }
+
         for (int i = 0; i < _original.buffer.Length; i++)
         {
             await TUnit.Assertions.Assert.That(TryGetItem(i)).IsTrue();

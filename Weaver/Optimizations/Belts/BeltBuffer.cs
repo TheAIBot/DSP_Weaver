@@ -24,15 +24,17 @@ namespace Weaver.Optimizations.Belts;
 internal unsafe struct BeltBuffer
 {
     private readonly byte* _buffer;
+    private readonly int _beltLength;
     private readonly int _beltSpeed;
     private readonly int _maxOffsetBeforeMove;
     private int _offset;
     private int _updatedActualIndex;
     private int _stoppedItemsActualIndex;
 
-    private BeltBuffer(byte* buffer, int beltSpeed, int offset, int stoppedItemsIndex, int maxOffsetBeforeMove)
+    private BeltBuffer(byte* buffer, int beltLength, int beltSpeed, int offset, int stoppedItemsIndex, int maxOffsetBeforeMove)
     {
         _buffer = buffer;
+        _beltLength = beltLength;
         _beltSpeed = beltSpeed;
         _offset = offset;
         _updatedActualIndex = 0;
@@ -51,17 +53,18 @@ internal unsafe struct BeltBuffer
         return CreateFromExistingBuffer(copyFrom, copyFrom.Length, beltSpeed, offsetUpdatesPerMove);
     }
 
-    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int bufferLength, int beltSpeed, int offsetUpdatesPerMove)
+    public static BeltBuffer CreateFromExistingBuffer(byte[] copyFrom, int beltLength, int beltSpeed, int offsetUpdatesPerMove)
     {
         int maxOffsetBeforeMove = offsetUpdatesPerMove * beltSpeed;
-        byte* buffer = (byte*)Marshal.AllocCoTaskMem(bufferLength + maxOffsetBeforeMove);
-        Clear(buffer, 0, bufferLength + maxOffsetBeforeMove);
-        for (int i = 0; i < bufferLength; i++)
+        int totalBufferLength = beltLength + maxOffsetBeforeMove;
+        byte* buffer = (byte*)Marshal.AllocCoTaskMem(totalBufferLength);
+        Clear(buffer, 0, totalBufferLength);
+        for (int i = 0; i < beltLength; i++)
         {
             *(buffer + i + maxOffsetBeforeMove) = copyFrom[i];
         }
 
-        return new BeltBuffer(buffer, beltSpeed, 0, bufferLength + maxOffsetBeforeMove, maxOffsetBeforeMove);
+        return new BeltBuffer(buffer, beltLength, beltSpeed, 0, totalBufferLength, maxOffsetBeforeMove);
     }
 
     public readonly byte GetBufferValue(int beltIndex)
@@ -323,6 +326,72 @@ internal unsafe struct BeltBuffer
     public void Free()
     {
         Marshal.FreeCoTaskMem(new IntPtr(_buffer));
+    }
+
+    public readonly bool IsAllCargoItemsValid()
+    {
+        int beltLength = _beltLength;
+        int beltIndex = 0;
+        while (beltIndex < beltLength)
+        {
+            byte value = GetBufferValue(beltIndex);
+            if (value == 0)
+            {
+                beltIndex++;
+                continue;
+            }
+
+            if (value != CargoPath.kCargoHead)
+            {
+                return false;
+            }
+
+            if (beltIndex + CargoPath.kCargoLength > beltLength)
+            {
+                return false;
+            }
+
+            if (GetBufferValue(beltIndex + 1) != CargoPath.kCargoHead + 1 ||
+                GetBufferValue(beltIndex + 2) != CargoPath.kCargoHead + 2 ||
+                GetBufferValue(beltIndex + 3) != CargoPath.kCargoHead + 3 ||
+                GetBufferValue(beltIndex + 4) != CargoPath.kCargoHead + 4)
+            {
+                return false;
+            }
+
+            if (GetBufferValue(beltIndex + 5) == 0 ||
+                GetBufferValue(beltIndex + 6) == 0 ||
+                GetBufferValue(beltIndex + 7) == 0 ||
+                GetBufferValue(beltIndex + 8) == 0)
+            {
+                return false;
+            }
+
+            if (GetBufferValue(beltIndex + 9) != CargoPath.kCargoRear)
+            {
+                return false;
+            }
+
+            beltIndex += CargoPath.kCargoLength;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// This method is for debug purposes as there 
+    /// is no way to see the values of the pointer array.
+    /// </summary>
+    /// <returns></returns>
+    public byte[] GetBytesAsArray()
+    {
+        byte[] values = new byte[_beltLength];
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = GetBufferValue(i);
+        }
+
+        return values;
     }
 
     /// <summary>
