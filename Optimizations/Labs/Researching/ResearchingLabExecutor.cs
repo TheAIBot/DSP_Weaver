@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
@@ -13,7 +14,7 @@ internal sealed class ResearchingLabExecutor
 {
     private readonly StarClusterResearchManager _starClusterResearchManager;
     private OptimizedItemId[]? _matrixIds = null!;
-    private ReadonlyArray<int> _labNetworkIds = default;
+    private ReadonlyArray<short> _labNetworkIds = default;
     public LabState[] _labStates = null!;
     public OptimizedResearchingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
@@ -48,7 +49,7 @@ internal sealed class ResearchingLabExecutor
             SignData[] entitySignPool = planet.entitySignPool;
             PowerSystem powerSystem = planet.powerSystem;
             float[] networkServes = powerSystem.networkServes;
-            ReadonlyArray<int> labNetworkIds = _labNetworkIds;
+            ReadonlyArray<short> labNetworkIds = _labNetworkIds;
             LabState[] labStates = _labStates;
             OptimizedResearchingLab[] optimizedLabs = _optimizedLabs;
             LabPowerFields[] labsPowerFields = _labsPowerFields;
@@ -122,7 +123,7 @@ internal sealed class ResearchingLabExecutor
 
             for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
             {
-                int networkIndex = labNetworkIds[labIndex];
+                short networkIndex = labNetworkIds[labIndex];
                 ref LabState labState = ref labStates[labIndex];
                 ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
                 if (labState != LabState.Active)
@@ -205,11 +206,11 @@ internal sealed class ResearchingLabExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> labNetworkIds = _labNetworkIds;
+        ReadonlyArray<short> labNetworkIds = _labNetworkIds;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         for (int labIndex = 0; labIndex < labNetworkIds.Length; labIndex++)
         {
-            int networkIndex = labNetworkIds[labIndex];
+            short networkIndex = labNetworkIds[labIndex];
             LabPowerFields labPowerFields = labsPowerFields[labIndex];
             UpdatePower(researchingLabPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, labIndex, networkIndex, labPowerFields);
         }
@@ -219,7 +220,7 @@ internal sealed class ResearchingLabExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int labIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     LabPowerFields labPowerFields)
     {
         int powerConsumerTypeIndex = researchingLabPowerConsumerIndexes[labIndex];
@@ -304,7 +305,7 @@ internal sealed class ResearchingLabExecutor
                            SubFactoryNeedsBuilder subFactoryNeedsBuilder,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> labNetworkIds = [];
+        List<short> labNetworkIds = [];
         List<LabState> labStates = [];
         List<OptimizedResearchingLab> optimizedLabs = [];
         List<LabPowerFields> labsPowerFields = [];
@@ -334,7 +335,7 @@ internal sealed class ResearchingLabExecutor
             optimizedLabs.Add(new OptimizedResearchingLab(nextLabIndex, ref lab));
             labsPowerFields.Add(new LabPowerFields(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
-            labNetworkIds.Add(networkIndex);
+            labNetworkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             labStates.Add(LabState.Active);
             entityIds.Add(lab.entityId);
             matrixServed.Add(lab.matrixServed);

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.PowerSystems;
@@ -10,7 +11,7 @@ namespace Weaver.Optimizations.Fractionators;
 
 internal sealed class FractionatorExecutor
 {
-    private int[]? _fractionatorNetworkId = null;
+    private ReadonlyArray<short> _fractionatorNetworkId = default;
     private OptimizedFractionator[] _optimizedFractionators = null!;
     private FractionatorPowerFields[] _fractionatorsPowerFields = null!;
     private FractionatorRecipeProduct[] _fractionatorRecipeProducts = null!;
@@ -28,14 +29,9 @@ internal sealed class FractionatorExecutor
                          OptimizedCargoPath[] optimizedCargoPaths,
                          UniverseStaticData universeStaticData)
     {
-        if (_fractionatorNetworkId == null)
-        {
-            return;
-        }
-
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        int[] fractionatorNetworkId = _fractionatorNetworkId;
+        ReadonlyArray<short> fractionatorNetworkId = _fractionatorNetworkId;
         OptimizedFractionator[] optimizedFractionators = _optimizedFractionators;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         ReadonlyArray<FractionatorConfiguration> fractionatorConfigurations = universeStaticData.FractionatorConfigurations;
@@ -43,7 +39,7 @@ internal sealed class FractionatorExecutor
 
         for (int fractionatorIndex = 0; fractionatorIndex < optimizedFractionators.Length; fractionatorIndex++)
         {
-            int networkIndex = fractionatorNetworkId[fractionatorIndex];
+            short networkIndex = fractionatorNetworkId[fractionatorIndex];
             float power2 = networkServes[networkIndex];
             ref OptimizedFractionator fractionator = ref optimizedFractionators[fractionatorIndex];
             ref readonly FractionatorConfiguration configuration = ref fractionatorConfigurations[fractionator.configurationIndex];
@@ -64,16 +60,11 @@ internal sealed class FractionatorExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        if (_fractionatorNetworkId == null)
-        {
-            return;
-        }
-
-        int[] fractionatorNetworkId = _fractionatorNetworkId;
+        ReadonlyArray<short> fractionatorNetworkId = _fractionatorNetworkId;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         for (int fractionatorIndex = 0; fractionatorIndex < fractionatorsPowerFields.Length; fractionatorIndex++)
         {
-            int networkIndex = fractionatorNetworkId[fractionatorIndex];
+            short networkIndex = fractionatorNetworkId[fractionatorIndex];
             ref readonly FractionatorPowerFields fractionatorPowerFields = ref fractionatorsPowerFields[fractionatorIndex];
 
             UpdatePower(fractionatorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, fractionatorIndex, networkIndex, in fractionatorPowerFields);
@@ -84,7 +75,7 @@ internal sealed class FractionatorExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int fractionatorIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     ref readonly FractionatorPowerFields fractionatorPowerFields)
     {
         int powerConsumerTypeIndex = fractionatorPowerConsumerTypeIndexes[fractionatorIndex];
@@ -152,7 +143,7 @@ internal sealed class FractionatorExecutor
                            BeltExecutor beltExecutor,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> fractionatorNetworkId = [];
+        List<short> fractionatorNetworkId = [];
         List<OptimizedFractionator> optimizedFractionators = [];
         List<FractionatorPowerFields> fractionatorsPowerFields = [];
         Dictionary<int, int> fractionatorIdToOptimizedIndex = [];
@@ -196,7 +187,7 @@ internal sealed class FractionatorExecutor
 
             fractionatorIdToOptimizedIndex.Add(fractionator.id, optimizedFractionators.Count);
             int networkIndex = planet.powerSystem.consumerPool[fractionator.pcId].networkId;
-            fractionatorNetworkId.Add(networkIndex);
+            fractionatorNetworkId.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             optimizedFractionators.Add(new OptimizedFractionator(belt0Index,
                                                                  belt1Index,
                                                                  belt2Index,
@@ -209,7 +200,6 @@ internal sealed class FractionatorExecutor
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[fractionator.entityId]);
         }
 
-        _fractionatorNetworkId = null;
         if (optimizedFractionators.Count > 0)
         {
             RecipeProto[] fractionatorRecipes = RecipeProto.fractionatorRecipes;
@@ -222,10 +212,9 @@ internal sealed class FractionatorExecutor
                                                                               fractionatorRecipe.ResultCounts[0] / (float)fractionatorRecipe.ItemCounts[0]);
                 fractionatorRecipeProducts.Add(fractionatorRecipeProduct);
             }
-
-            _fractionatorNetworkId = fractionatorNetworkId.ToArray();
         }
 
+        _fractionatorNetworkId = universeStaticDataBuilder.DeduplicateArrayUnmanaged(fractionatorNetworkId);
         _optimizedFractionators = optimizedFractionators.ToArray();
         _fractionatorsPowerFields = fractionatorsPowerFields.ToArray();
         _fractionatorIdToOptimizedIndex = fractionatorIdToOptimizedIndex;

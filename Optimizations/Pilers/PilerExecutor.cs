@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.PowerSystems;
@@ -9,7 +10,7 @@ namespace Weaver.Optimizations.Pilers;
 
 internal sealed class PilerExecutor
 {
-    private ReadonlyArray<int> _networkIndices = default;
+    private ReadonlyArray<short> _networkIndices = default;
     private OptimizedPiler[] _optimizedPilers = null!;
     private int[] _timeSpends = null!;
     private Dictionary<int, int> _pilerIdToOptimizedIndex = null!;
@@ -25,13 +26,13 @@ internal sealed class PilerExecutor
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        ReadonlyArray<int> networkIndices = _networkIndices;
+        ReadonlyArray<short> networkIndices = _networkIndices;
         OptimizedPiler[] optimizedPilers = _optimizedPilers;
         int[] timeSpends = _timeSpends;
 
         for (int pilerIndex = 0; pilerIndex < optimizedPilers.Length; pilerIndex++)
         {
-            int networkIndex = networkIndices[pilerIndex];
+            short networkIndex = networkIndices[pilerIndex];
             float power = networkServes[networkIndex];
             ref int timeSpend = ref timeSpends[pilerIndex];
             optimizedPilers[pilerIndex].InternalUpdate(power, ref timeSpend, optimizedCargoPaths);
@@ -44,11 +45,11 @@ internal sealed class PilerExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> networkIndices = _networkIndices;
+        ReadonlyArray<short> networkIndices = _networkIndices;
         int[] timeSpends = _timeSpends;
         for (int pilerIndex = 0; pilerIndex < timeSpends.Length; pilerIndex++)
         {
-            int networkIndex = networkIndices[pilerIndex];
+            short networkIndex = networkIndices[pilerIndex];
             int timeSpend = timeSpends[pilerIndex];
             UpdatePower(pilerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, pilerIndex, networkIndex, timeSpend);
         }
@@ -58,7 +59,7 @@ internal sealed class PilerExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int pilerIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     int timeSpend)
     {
         int powerConsumerTypeIndex = pilerPowerConsumerIndexes[pilerIndex];
@@ -123,7 +124,7 @@ internal sealed class PilerExecutor
                            BeltExecutor beltExecutor,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> networkIndices = [];
+        List<short> networkIndices = [];
         List<OptimizedPiler> optimizedPilers = [];
         List<int> timeSpends = [];
         Dictionary<int, int> pilerIdToOptimizedIndex = [];
@@ -156,7 +157,7 @@ internal sealed class PilerExecutor
             }
 
             int networkIndex = planet.powerSystem.consumerPool[piler.pcId].networkId;
-            networkIndices.Add(networkIndex);
+            networkIndices.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             pilerIdToOptimizedIndex.Add(piler.id, optimizedPilers.Count);
             optimizedPilers.Add(new OptimizedPiler(inputBeltIndex, outputBeltIndex, inputBeltComponent.speed, outputBeltComponent.speed, in piler));
             timeSpends.Add(piler.timeSpend);

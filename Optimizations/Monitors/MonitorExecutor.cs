@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.PowerSystems;
@@ -10,7 +11,7 @@ namespace Weaver.Optimizations.Monitors;
 internal sealed class MonitorExecutor
 {
     private ReadonlyArray<int> _monitorIndexes = default;
-    private ReadonlyArray<int> _networkIds = default;
+    private ReadonlyArray<short> _networkIds = default;
     private OptimizedMonitor[] _optimizedMonitors = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
@@ -27,13 +28,13 @@ internal sealed class MonitorExecutor
         float[] networkServes = planet.powerSystem.networkServes;
         MonitorComponent[] monitors = planet.cargoTraffic.monitorPool;
         ReadonlyArray<int> monitorIndexes = _monitorIndexes;
-        ReadonlyArray<int> networkIds = _networkIds;
+        ReadonlyArray<short> networkIds = _networkIds;
         OptimizedMonitor[] optimizedMonitors = _optimizedMonitors;
 
         for (int monitorIndexIndex = 0; monitorIndexIndex < _monitorIndexes.Length; monitorIndexIndex++)
         {
             int monitorIndex = monitorIndexes[monitorIndexIndex];
-            int networkIndex = networkIds[monitorIndexIndex];
+            short networkIndex = networkIds[monitorIndexIndex];
             float power = networkServes[networkIndex];
             optimizedMonitors[monitorIndexIndex].InternalUpdate(ref monitors[monitorIndex], power, sandboxToolsEnabled, speakerPool, optimizedCargoPaths);
 
@@ -45,11 +46,11 @@ internal sealed class MonitorExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> networkIds = _networkIds;
+        ReadonlyArray<short> networkIds = _networkIds;
 
         for (int monitorIndex = 0; monitorIndex < networkIds.Length; monitorIndex++)
         {
-            int networkIndex = networkIds[monitorIndex];
+            short networkIndex = networkIds[monitorIndex];
             UpdatePower(monitorPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, monitorIndex, networkIndex);
         }
     }
@@ -58,7 +59,7 @@ internal sealed class MonitorExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int monitorIndex,
-                                    int networkIndex)
+                                    short networkIndex)
     {
         int powerConsumerTypeIndex = monitorPowerConsumerIndexes[monitorIndex];
         PowerConsumerType powerConsumerType = powerConsumerTypes[powerConsumerTypeIndex];
@@ -103,7 +104,7 @@ internal sealed class MonitorExecutor
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<int> monitorIndexes = [];
-        List<int> networkIds = [];
+        List<short> networkIds = [];
         List<OptimizedMonitor> optimizedMonitors = [];
         var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
 
@@ -128,7 +129,7 @@ internal sealed class MonitorExecutor
             int networkIndex = planet.powerSystem.consumerPool[monitor.pcId].networkId;
             subFactoryPowerSystemBuilder.AddMonitor(in monitor, networkIndex);
             monitorIndexes.Add(monitorIndex);
-            networkIds.Add(networkIndex);
+            networkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             optimizedMonitors.Add(new OptimizedMonitor(targetBeltIndex, targetBeltComponent.speed, targetBeltOffset));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[monitor.entityId]);
         }

@@ -12,7 +12,7 @@ namespace Weaver.Optimizations.Labs.Producing;
 
 internal sealed class ProducingLabExecutor
 {
-    private ReadonlyArray<int> _labNetworkIds = default;
+    private ReadonlyArray<short> _labNetworkIds = default;
     public LabState[] _labStates = null!;
     public OptimizedProducingLab[] _optimizedLabs = null!;
     public LabPowerFields[] _labsPowerFields = null!;
@@ -42,7 +42,7 @@ internal sealed class ProducingLabExecutor
                                        UniverseStaticData universeStaticData)
     {
         float[] networkServes = planet.powerSystem.networkServes;
-        ReadonlyArray<int> labNetworkIds = _labNetworkIds;
+        ReadonlyArray<short> labNetworkIds = _labNetworkIds;
         LabState[] labStates = _labStates;
         OptimizedProducingLab[] optimizedLabs = _optimizedLabs;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
@@ -70,7 +70,7 @@ internal sealed class ProducingLabExecutor
 
         for (int labIndex = 0; labIndex < optimizedLabs.Length; labIndex++)
         {
-            int networkIndex = labNetworkIds[labIndex];
+            short networkIndex = labNetworkIds[labIndex];
             ref LabState labState = ref labStates[labIndex];
             if (labState != LabState.Active)
             {
@@ -170,11 +170,11 @@ internal sealed class ProducingLabExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> labNetworkIds = _labNetworkIds;
+        ReadonlyArray<short> labNetworkIds = _labNetworkIds;
         LabPowerFields[] labsPowerFields = _labsPowerFields;
         for (int labIndex = 0; labIndex < _optimizedLabs.Length; labIndex++)
         {
-            int networkIndex = labNetworkIds[labIndex];
+            short networkIndex = labNetworkIds[labIndex];
             LabPowerFields labPowerFields = labsPowerFields[labIndex];
             thisSubFactoryNetworkPowerConsumption[networkIndex] += UpdatePower(producingLabPowerConsumerIndexes, powerConsumerTypes, labIndex, labPowerFields);
         }
@@ -267,7 +267,7 @@ internal sealed class ProducingLabExecutor
                            SubFactoryNeedsBuilder subFactoryNeedsBuilder,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> labNetworkIds = [];
+        List<short> labNetworkIds = [];
         List<LabState> labStates = [];
         List<OptimizedProducingLab> optimizedLabs = [];
         List<LabPowerFields> labsPowerFields = [];
@@ -345,7 +345,7 @@ internal sealed class ProducingLabExecutor
             labsPowerFields.Add(new LabPowerFields(in lab));
             labsTimingData.Add(new ProducingLabTimingData(in lab));
             int networkIndex = planet.powerSystem.consumerPool[lab.pcId].networkId;
-            labNetworkIds.Add(networkIndex);
+            labNetworkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             labStates.Add(LabState.Active);
             entityIds.Add(lab.entityId);
             served.Add(lab.served);

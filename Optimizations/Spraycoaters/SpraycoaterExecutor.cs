@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.PowerSystems;
@@ -11,7 +12,7 @@ namespace Weaver.Optimizations.Spraycoaters;
 
 internal sealed class SpraycoaterExecutor
 {
-    private ReadonlyArray<int> _spraycoaterNetworkIds = default;
+    private ReadonlyArray<short> _spraycoaterNetworkIds = default;
     private OptimizedSpraycoater[] _optimizedSpraycoaters = null!;
     private bool[] _isSpraycoatingItems = null!;
     private int[] _sprayTimes = null!;
@@ -32,14 +33,14 @@ internal sealed class SpraycoaterExecutor
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
         OptimizedItemId[] incItemIds = _incItemIds;
-        ReadonlyArray<int> spraycoaterNetworkIds = _spraycoaterNetworkIds;
+        ReadonlyArray<short> spraycoaterNetworkIds = _spraycoaterNetworkIds;
         for (int spraycoaterIndex = 0; spraycoaterIndex < optimizedSpraycoaters.Length; spraycoaterIndex++)
         {
             ref bool isSpraycoatingItem = ref isSpraycoatingItems[spraycoaterIndex];
             ref int sprayTime = ref sprayTimes[spraycoaterIndex];
             optimizedSpraycoaters[spraycoaterIndex].InternalUpdate(incItemIds, consumeRegister, ref isSpraycoatingItems[spraycoaterIndex], ref sprayTimes[spraycoaterIndex], optimizedCargoPaths);
 
-            int networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
+            short networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
             UpdatePower(spraycoaterPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, spraycoaterIndex, networkIndex, isSpraycoatingItems[spraycoaterIndex], sprayTimes[spraycoaterIndex]);
         }
     }
@@ -48,12 +49,12 @@ internal sealed class SpraycoaterExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> spraycoaterNetworkIds = _spraycoaterNetworkIds;
+        ReadonlyArray<short> spraycoaterNetworkIds = _spraycoaterNetworkIds;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
         for (int spraycoaterIndex = 0; spraycoaterIndex < spraycoaterNetworkIds.Length; spraycoaterIndex++)
         {
-            int networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
+            short networkIndex = spraycoaterNetworkIds[spraycoaterIndex];
             UpdatePower(spraycoaterPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, spraycoaterIndex, networkIndex, isSpraycoatingItems[spraycoaterIndex], sprayTimes[spraycoaterIndex]);
         }
     }
@@ -62,7 +63,7 @@ internal sealed class SpraycoaterExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int spraycoaterIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     bool isSpraycoatingItem,
                                     int sprayTime)
     {
@@ -134,7 +135,7 @@ internal sealed class SpraycoaterExecutor
                            BeltExecutor beltExecutor,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> spraycoaterNetworkIds = [];
+        List<short> spraycoaterNetworkIds = [];
         List<OptimizedSpraycoater> optimizedSpraycoaters = [];
         List<bool> isSpraycoatingItems = [];
         List<int> sprayTimes = [];
@@ -196,7 +197,7 @@ internal sealed class SpraycoaterExecutor
 
             subFactoryPowerSystemBuilder.AddSpraycoater(in spraycoater, networkId);
             spraycoaterIdToOptimizedSpraycoaterIndex.Add(spraycoaterIndex, optimizedSpraycoaters.Count);
-            spraycoaterNetworkIds.Add(networkId);
+            spraycoaterNetworkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkId, nameof(networkId)));
             optimizedSpraycoaters.Add(new OptimizedSpraycoater(incomingBeltSegIndexPlusSegPivotOffset,
                                                                incomingBeltIndex,
                                                                outgoingbeltIndex,

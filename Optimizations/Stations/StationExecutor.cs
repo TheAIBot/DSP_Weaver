@@ -11,7 +11,7 @@ namespace Weaver.Optimizations.Stations;
 internal sealed class StationExecutor
 {
     private OptimizedStation[] _optimizedStations = null!;
-    private ReadonlyArray<int> _networkIds = default;
+    private ReadonlyArray<short> _networkIds = default;
 
     public int Count => _optimizedStations.Length;
 
@@ -54,7 +54,7 @@ internal sealed class StationExecutor
         bool starmap = UIGame.viewMode == EViewMode.Starmap;
         OptimizedVeinMiner<StationMinerOutput>[] stationMiners = stationVeinMinerExecutor._optimizedMiners;
         OptimizedStation[] optimizedStations = _optimizedStations;
-        ReadonlyArray<int> networkIds = _networkIds;
+        ReadonlyArray<short> networkIds = _networkIds;
         GameTick_SandboxMode();
         for (int i = 0; i < optimizedStations.Length; i++)
         {
@@ -100,7 +100,7 @@ internal sealed class StationExecutor
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<OptimizedStation> optimizedStations = [];
-        List<int> networkIds = [];
+        List<short> networkIds = [];
 
         foreach (int stationIndex in subFactoryGraph.GetAllNodes()
                                                     .Where(x => x.EntityTypeIndex.EntityType == EntityType.Station)
@@ -136,7 +136,7 @@ internal sealed class StationExecutor
 
             int networkIndex = planet.powerSystem.consumerPool[station.pcId].networkId;
             optimizedStations.Add(new OptimizedStation(station, beltIndexes, optimizedMinerIndex));
-            networkIds.Add(networkIndex);
+            networkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
 
             planet.entityNeeds[station.entityId] = station.needs;
         }

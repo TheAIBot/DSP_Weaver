@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.PowerSystems;
@@ -10,7 +11,7 @@ namespace Weaver.Optimizations.Miners;
 
 internal sealed class WaterMinerExecutor
 {
-    private ReadonlyArray<int> _networkIds = default;
+    private ReadonlyArray<short> _networkIds = default;
     private OptimizedWaterMiner[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -27,12 +28,12 @@ internal sealed class WaterMinerExecutor
         GameHistoryData history = GameMain.history;
         float[] networkServes = planet.powerSystem.networkServes;
         float miningSpeedScale = history.miningSpeedScale;
-        ReadonlyArray<int> networkIds = _networkIds;
+        ReadonlyArray<short> networkIds = _networkIds;
         OptimizedWaterMiner[] optimizedMiners = _optimizedMiners;
 
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            int networkIndex = networkIds[minerIndex];
+            short networkIndex = networkIds[minerIndex];
             float power = networkServes[networkIndex];
             ref OptimizedWaterMiner miner = ref optimizedMiners[minerIndex];
             miner.InternalUpdate(power, miningSpeedScale, productRegister, optimizedCargoPaths);
@@ -45,12 +46,12 @@ internal sealed class WaterMinerExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> networkIds = _networkIds;
+        ReadonlyArray<short> networkIds = _networkIds;
         OptimizedWaterMiner[] optimizedMiners = _optimizedMiners;
 
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            int networkIndex = networkIds[minerIndex];
+            short networkIndex = networkIds[minerIndex];
             UpdatePower(waterMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref optimizedMiners[minerIndex]);
         }
     }
@@ -59,7 +60,7 @@ internal sealed class WaterMinerExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int minerIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     ref OptimizedWaterMiner miner)
     {
         float num4 = miner.productCount / 50f;
@@ -130,7 +131,7 @@ internal sealed class WaterMinerExecutor
                            BeltExecutor beltExecutor,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> networkIds = [];
+        List<short> networkIds = [];
         List<OptimizedWaterMiner> optimizedMiners = [];
         Dictionary<int, int> minerIdToOptimizedIndex = [];
         var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
@@ -172,7 +173,7 @@ internal sealed class WaterMinerExecutor
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
             subFactoryPowerSystemBuilder.AddWaterMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
-            networkIds.Add(networkIndex);
+            networkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             optimizedMiners.Add(new OptimizedWaterMiner(outputBeltIndex, outputBeltOffset, productId, in miner));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }

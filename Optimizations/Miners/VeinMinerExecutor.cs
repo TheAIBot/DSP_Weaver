@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.PowerSystems;
@@ -11,7 +12,7 @@ namespace Weaver.Optimizations.Miners;
 internal sealed class VeinMinerExecutor<TMinerOutput>
     where TMinerOutput : struct, IMinerOutput<TMinerOutput>
 {
-    private ReadonlyArray<int> _networkIds = default;
+    private ReadonlyArray<short> _networkIds = default;
     public OptimizedVeinMiner<TMinerOutput>[] _optimizedMiners = null!;
     public Dictionary<int, int> _minerIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -34,7 +35,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
         GameHistoryData history = GameMain.history;
         float[] networkServes = planet.powerSystem.networkServes;
         VeinData[] veinPool = planet.veinPool;
-        ReadonlyArray<int> networkIds = _networkIds;
+        ReadonlyArray<short> networkIds = _networkIds;
         OptimizedVeinMiner<TMinerOutput>[] optimizedMiners = _optimizedMiners;
 
         float num3 = planet.gameData.gameDesc.resourceMultiplier;
@@ -47,7 +48,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
 
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            int networkIndex = networkIds[minerIndex];
+            short networkIndex = networkIds[minerIndex];
             float power = networkServes[networkIndex];
             ref OptimizedVeinMiner<TMinerOutput> miner = ref optimizedMiners[minerIndex];
             miner.InternalUpdate(planet, veinPool, power, num4, miningSpeedScale, productRegister, ref miningFlags, optimizedCargoPaths);
@@ -60,12 +61,12 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> networkIds = _networkIds;
+        ReadonlyArray<short> networkIds = _networkIds;
         OptimizedVeinMiner<TMinerOutput>[] optimizedMiners = _optimizedMiners;
 
         for (int minerIndex = 0; minerIndex < optimizedMiners.Length; minerIndex++)
         {
-            int networkIndex = networkIds[minerIndex];
+            short networkIndex = networkIds[minerIndex];
             UpdatePower(veinMinerPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, minerIndex, networkIndex, ref optimizedMiners[minerIndex]);
         }
     }
@@ -74,7 +75,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int minerIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     ref OptimizedVeinMiner<TMinerOutput> miner)
     {
         miner.output.PrePowerUpdate(ref miner);
@@ -141,7 +142,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
                            BeltExecutor beltExecutor,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> networkIds = [];
+        List<short> networkIds = [];
         List<OptimizedVeinMiner<TMinerOutput>> optimizedMiners = [];
         Dictionary<int, int> minerIdToOptimizedIndex = [];
         TMinerOutput minerOutputBuilder = new TMinerOutput();
@@ -183,7 +184,7 @@ internal sealed class VeinMinerExecutor<TMinerOutput>
             int networkIndex = planet.powerSystem.consumerPool[miner.pcId].networkId;
             optimizedPowerSystemVeinMinerBuilder.AddMiner(in miner, networkIndex);
             minerIdToOptimizedIndex.Add(minerIndex, optimizedMiners.Count);
-            networkIds.Add(networkIndex);
+            networkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             optimizedMiners.Add(new OptimizedVeinMiner<TMinerOutput>(minerOutput, veinProducts, veinProductId, in miner));
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[miner.entityId]);
         }

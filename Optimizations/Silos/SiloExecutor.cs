@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
@@ -13,7 +14,7 @@ internal sealed class SiloExecutor
 {
     public ReadonlyArray<int> _siloIndexes = default;
     private ReadonlyArray<short> _optimizedBulletItemId = default;
-    private ReadonlyArray<int> _siloNetworkIds = default;
+    private ReadonlyArray<short> _siloNetworkIds = default;
     private Dictionary<int, int> _siloIdToOptimizedSiloIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
     public const int SoleSiloNeedsIndex = 0;
@@ -35,7 +36,7 @@ internal sealed class SiloExecutor
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         ReadonlyArray<int> siloIndexes = _siloIndexes;
-        ReadonlyArray<int> siloNetworkIds = _siloNetworkIds;
+        ReadonlyArray<short> siloNetworkIds = _siloNetworkIds;
         SiloComponent[] silos = planet.factorySystem.siloPool;
         ReadonlyArray<short> optimizedBulletItemId = _optimizedBulletItemId;
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.Silo);
@@ -47,7 +48,7 @@ internal sealed class SiloExecutor
             int siloIndex = siloIndexes[siloIndexIndex];
             short optimizedBulletId = optimizedBulletItemId[siloIndexIndex];
             int needsOffset = groupNeeds.GetObjectNeedsIndex(siloIndexIndex);
-            int networkIndex = siloNetworkIds[siloIndexIndex];
+            short networkIndex = siloNetworkIds[siloIndexIndex];
             float power4 = networkServes[networkIndex];
             ref SiloComponent silo = ref silos[siloIndex];
             InternalUpdate(ref silo, power4, dysonSphere, optimizedBulletId, consumeRegister, componentsNeeds, needsOffset);
@@ -62,13 +63,13 @@ internal sealed class SiloExecutor
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
         ReadonlyArray<int> siloIndexes = _siloIndexes;
-        ReadonlyArray<int> siloNetworkIds = _siloNetworkIds;
+        ReadonlyArray<short> siloNetworkIds = _siloNetworkIds;
         SiloComponent[] silos = planet.factorySystem.siloPool;
 
         for (int siloIndexIndex = 0; siloIndexIndex < siloIndexes.Length; siloIndexIndex++)
         {
             int siloIndex = siloIndexes[siloIndexIndex];
-            int networkIndex = siloNetworkIds[siloIndexIndex];
+            short networkIndex = siloNetworkIds[siloIndexIndex];
             ref readonly SiloComponent silo = ref silos[siloIndex];
             UpdatePower(siloPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, siloIndexIndex, networkIndex, in silo);
         }
@@ -78,7 +79,7 @@ internal sealed class SiloExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int siloIndexIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     ref readonly SiloComponent silo)
     {
         int powerConsumerTypeIndex = siloPowerConsumerTypeIndexes[siloIndexIndex];
@@ -160,7 +161,7 @@ internal sealed class SiloExecutor
                                                                                           .ToArray());
 
         short[] optimizedBulletItemId = new short[_siloIndexes.Length];
-        int[] siloNetworkIds = new int[_siloIndexes.Length];
+        short[] siloNetworkIds = new short[_siloIndexes.Length];
         Dictionary<int, int> siloIdToOptimizedSiloIndex = [];
         var prototypePowerConsumptionBuilder = new PrototypePowerConsumptionBuilder();
         GroupNeedsBuilder needsBuilder = subFactoryNeedsBuilder.CreateGroupNeedsBuilder(EntityType.Silo);
@@ -172,7 +173,7 @@ internal sealed class SiloExecutor
 
             optimizedBulletItemId[siloIndexIndex] = subFactoryProductionRegisterBuilder.AddConsume(silo.bulletId).OptimizedItemIndex;
             int networkIndex = planet.powerSystem.consumerPool[silo.pcId].networkId;
-            siloNetworkIds[siloIndexIndex] = networkIndex;
+            siloNetworkIds[siloIndexIndex] = ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex));
             siloIdToOptimizedSiloIndex.Add(siloIndex, siloIndexIndex);
 
             // set it here so we don't have to set it in the update loop

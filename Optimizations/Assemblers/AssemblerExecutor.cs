@@ -11,7 +11,7 @@ namespace Weaver.Optimizations.Assemblers;
 
 internal sealed class AssemblerExecutor
 {
-    private ReadonlyArray<int> _assemblerNetworkIds = default;
+    private ReadonlyArray<short> _assemblerNetworkIds = default;
     public AssemblerState[] _assemblerStates = null!;
     public OptimizedAssembler[] _optimizedAssemblers = null!;
     private bool[] _assemblerReplicatings = null!;
@@ -43,7 +43,7 @@ internal sealed class AssemblerExecutor
     {
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
-        ReadonlyArray<int> assemblerNetworkIds = _assemblerNetworkIds;
+        ReadonlyArray<short> assemblerNetworkIds = _assemblerNetworkIds;
         AssemblerState[] assemblerStates = _assemblerStates;
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
         ReadonlyArray<AssemblerRecipe> assemblerRecipes = universeStaticData.AssemblerRecipes;
@@ -74,7 +74,7 @@ internal sealed class AssemblerExecutor
 
         for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
         {
-            int networkIndex = assemblerNetworkIds[assemblerIndex];
+            short networkIndex = assemblerNetworkIds[assemblerIndex];
             ref AssemblerState assemblerState = ref assemblerStates[assemblerIndex];
             if (assemblerState != AssemblerState.Active)
             {
@@ -135,12 +135,12 @@ internal sealed class AssemblerExecutor
                             long[] networksPowerConsumption)
     {
         OptimizedAssembler[] optimizedAssemblers = _optimizedAssemblers;
-        ReadonlyArray<int> assemblerNetworkIds = _assemblerNetworkIds;
+        ReadonlyArray<short> assemblerNetworkIds = _assemblerNetworkIds;
         bool[] assemblerReplicatings = _assemblerReplicatings;
         int[] assemblerExtraPowerRatios = _assemblerExtraPowerRatios;
         for (int assemblerIndex = 0; assemblerIndex < optimizedAssemblers.Length; assemblerIndex++)
         {
-            int networkIndex = assemblerNetworkIds[assemblerIndex];
+            short networkIndex = assemblerNetworkIds[assemblerIndex];
             bool replicating = assemblerReplicatings[assemblerIndex];
             int extraPowerRatios = assemblerExtraPowerRatios[assemblerIndex];
             networksPowerConsumption[networkIndex] += UpdatePower(assemblerPowerConsumerTypeIndexes, powerConsumerTypes, assemblerIndex, replicating, extraPowerRatios);
@@ -241,7 +241,7 @@ internal sealed class AssemblerExecutor
                                      SubFactoryNeedsBuilder subFactoryNeedsBuilder,
                                      UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        List<int> assemblerNetworkIds = [];
+        List<short> assemblerNetworkIds = [];
         List<AssemblerState> assemblerStates = [];
         List<OptimizedAssembler> optimizedAssemblers = [];
         List<bool> assemblerReplicatings = [];
@@ -307,7 +307,7 @@ internal sealed class AssemblerExecutor
 
             assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
             int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
-            assemblerNetworkIds.Add(networkIndex);
+            assemblerNetworkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             assemblerStates.Add(AssemblerState.Active);
             optimizedAssemblers.Add(new OptimizedAssembler(ref assembler));
             assemblerReplicatings.Add(assembler.replicating);

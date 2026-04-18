@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Assemblers;
 using Weaver.Optimizations.Belts;
@@ -65,7 +66,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 {
     private TInserter[] _optimizedInserters = null!;
     private OptimizedInserterStage[] _optimizedInserterStages = null!;
-    private ReadonlyArray<int> _inserterNetworkIds = default;
+    private ReadonlyArray<short> _inserterNetworkIds = default;
     private InserterState[] _inserterStates = null!;
     private ReadonlyArray<InserterConnections> _inserterConnections = default;
     private Dictionary<int, int> _inserterIdToOptimizedIndex = null!;
@@ -161,7 +162,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         PowerSystem powerSystem = planet.powerSystem;
         float[] networkServes = powerSystem.networkServes;
         OptimizedInserterStage[] optimizedInserterStages = _optimizedInserterStages;
-        ReadonlyArray<int> inserterNetworkIds = _inserterNetworkIds;
+        ReadonlyArray<short> inserterNetworkIds = _inserterNetworkIds;
         InserterState[] inserterStates = _inserterStates;
         TInserter[] optimizedInserters = _optimizedInserters;
         ReadonlyArray<TInserterGrade> inserterGrades = default(TInserter).GetInserterGrades(universeStaticData);
@@ -169,7 +170,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         for (int inserterIndex = 0; inserterIndex < optimizedInserterStages.Length; inserterIndex++)
         {
             ref OptimizedInserterStage optimizedInserterStage = ref optimizedInserterStages[inserterIndex];
-            int networkIndex = inserterNetworkIds[inserterIndex];
+            short networkIndex = inserterNetworkIds[inserterIndex];
             ref InserterState inserterState = ref inserterStates[inserterIndex];
             if (inserterState != InserterState.Active)
             {
@@ -217,10 +218,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> inserterNetworkIds = _inserterNetworkIds;
+        ReadonlyArray<short> inserterNetworkIds = _inserterNetworkIds;
         for (int j = 0; j < _optimizedInserters.Length; j++)
         {
-            int networkIndex = inserterNetworkIds[j];
+            short networkIndex = inserterNetworkIds[j];
             OptimizedInserterStage optimizedInserterStage = _optimizedInserterStages[j];
             UpdatePower(inserterPowerConsumerIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, j, networkIndex, optimizedInserterStage);
         }
@@ -230,7 +231,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int inserterIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     OptimizedInserterStage optimizedInserterStage)
     {
         int powerConsumerTypeIndex = inserterPowerConsumerIndexes[inserterIndex];
@@ -991,7 +992,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                            UniverseStaticDataBuilder universeStaticDataBuilder,
                            UniverseInserterStaticDataBuilder<TInserterGrade> universeInserterStaticDataBuilder)
     {
-        List<int> inserterNetworkIds = [];
+        List<short> inserterNetworkIds = [];
         List<InserterState> inserterStates = [];
         List<InserterConnections> inserterConnections = [];
         List<TInserter> optimizedInserters = [];
@@ -1075,7 +1076,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 
             inserterIdToOptimizedIndex.Add(inserterIndex, optimizedInserters.Count);
             int networkIndex = planet.powerSystem.consumerPool[inserter.pcId].networkId;
-            inserterNetworkIds.Add(networkIndex);
+            inserterNetworkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             inserterStates.Add(InserterState.Active);
             optimizedPowerSystemInserterBuilder.AddInserter(ref inserter, networkIndex);
 

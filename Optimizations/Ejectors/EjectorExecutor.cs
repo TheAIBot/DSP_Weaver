@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.PowerSystems;
@@ -12,7 +13,7 @@ internal sealed class EjectorExecutor
 {
     public OptimizedEjector[] _optimizedEjectors = null!;
     private ReadonlyArray<short> _optimizedBulletItemId = default;
-    private ReadonlyArray<int> _ejectorNetworkIds = default;
+    private ReadonlyArray<short> _ejectorNetworkIds = default;
     public EjectorBulletData[] _ejectorBulletDatas = null!;
     private int[] _directions = null!;
     private ReadonlyArray<int> _incLevels = default;
@@ -65,10 +66,10 @@ internal sealed class EjectorExecutor
             }
         }
 
-        ReadonlyArray<int> ejectorNetworkIds = _ejectorNetworkIds;
+        ReadonlyArray<short> ejectorNetworkIds = _ejectorNetworkIds;
         for (int ejectorIndex = 0; ejectorIndex < ejectors.Length; ejectorIndex++)
         {
-            int networkIndex = ejectorNetworkIds[ejectorIndex];
+            short networkIndex = ejectorNetworkIds[ejectorIndex];
             ref int direction = ref directions[ejectorIndex];
             int incLevel = incLevels[ejectorIndex];
 
@@ -101,13 +102,13 @@ internal sealed class EjectorExecutor
                             ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                             long[] thisSubFactoryNetworkPowerConsumption)
     {
-        ReadonlyArray<int> ejectorNetworkIds = _ejectorNetworkIds;
+        ReadonlyArray<short> ejectorNetworkIds = _ejectorNetworkIds;
         int[] directions = _directions;
         ReadonlyArray<int> incLevels = _incLevels;
 
         for (int ejectorIndex = 0; ejectorIndex < directions.Length; ejectorIndex++)
         {
-            int networkIndex = ejectorNetworkIds[ejectorIndex];
+            short networkIndex = ejectorNetworkIds[ejectorIndex];
             int direction = directions[ejectorIndex];
             int incLevel = incLevels[ejectorIndex];
             UpdatePower(ejectorPowerConsumerTypeIndexes, powerConsumerTypes, thisSubFactoryNetworkPowerConsumption, ejectorIndex, networkIndex, direction, incLevel);
@@ -118,7 +119,7 @@ internal sealed class EjectorExecutor
                                     ReadonlyArray<PowerConsumerType> powerConsumerTypes,
                                     long[] thisSubFactoryNetworkPowerConsumption,
                                     int ejectorIndex,
-                                    int networkIndex,
+                                    short networkIndex,
                                     int direction,
                                     int incLevel)
     {
@@ -204,7 +205,7 @@ internal sealed class EjectorExecutor
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<short> optimizedBulletItemId = [];
-        List<int> ejectorNetworkIds = [];
+        List<short> ejectorNetworkIds = [];
         List<EjectorBulletData> ejectorBulletDatas = [];
         List<int> directions = [];
         List<int> incLevels = [];
@@ -222,7 +223,7 @@ internal sealed class EjectorExecutor
 
             optimizedBulletItemId.Add(subFactoryProductionRegisterBuilder.AddConsume(ejector.bulletId).OptimizedItemIndex);
             int networkIndex = planet.powerSystem.consumerPool[ejector.pcId].networkId;
-            ejectorNetworkIds.Add(networkIndex);
+            ejectorNetworkIds.Add(ConverterUtilities.ThrowIfNotWithinPositiveShortRange(networkIndex, nameof(networkIndex)));
             ejectorBulletDatas.Add(new EjectorBulletData(ejector.bulletId, ejector.bulletCount, ejector.bulletInc));
             directions.Add(ejector.direction);
             incLevels.Add(ejector.incLevel);
