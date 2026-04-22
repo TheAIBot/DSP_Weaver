@@ -495,7 +495,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
                 {
                     DeepProfiler.BeginSample(DPEntry.DysonSwarm, -1, dysonSwarm.starData.id);
                     dysonSwarm.GameTick(time);
-                    DeepProfiler.EndSample(-1, -2L);
+                    DeepProfiler.EndSample(DPEntry.DysonSwarm);
                 }
             }
         }

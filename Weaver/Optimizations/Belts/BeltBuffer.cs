@@ -233,34 +233,36 @@ internal unsafe struct BeltBuffer
         _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex);
     }
 
-    public readonly void SetCargo(int beltIndex, OptimizedCargo optimizedCargo)
+    public void SetCargo(int beltIndex, OptimizedCargo optimizedCargo)
     {
         int actualIndex = GetActualIndex(beltIndex);
         SetCargoFromActualIndex(actualIndex, optimizedCargo);
     }
 
-    public readonly void SetCargoFromActualIndex(int actualIndex, OptimizedCargo optimizedCargo)
+    public void SetCargoFromActualIndex(int actualIndex, OptimizedCargo optimizedCargo)
     {
         byte* buffer = _buffer + actualIndex;
         *(buffer + 0) = (byte)((optimizedCargo.Item & 0b0111_1111) + 1);
         *(buffer + 1) = (byte)((optimizedCargo.Item >> 7) + 1);
         *(buffer + 2) = (byte)(optimizedCargo.Stack + 1);
         *(buffer + 3) = (byte)(optimizedCargo.Inc + 1);
+
+        _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex + 3);
     }
 
-    public readonly void SetCargoWithPadding(int beltIndex, OptimizedCargo optimizedCargo)
+    public void SetCargoWithPadding(int beltIndex, OptimizedCargo optimizedCargo)
     {
         int actualIndex = GetActualIndex(beltIndex);
         SetCargoWithPaddingFromActualIndex(actualIndex, optimizedCargo.Item, optimizedCargo.Stack, optimizedCargo.Inc);
     }
 
-    public readonly void SetCargoWithPadding(int beltIndex, int itemId, byte stack, byte inc)
+    public void SetCargoWithPadding(int beltIndex, int itemId, byte stack, byte inc)
     {
         int actualIndex = GetActualIndex(beltIndex);
         SetCargoWithPaddingFromActualIndex(actualIndex, itemId, stack, inc);
     }
 
-    public readonly void SetCargoWithPaddingFromActualIndex(int actualIndex, int itemId, byte stack, byte inc)
+    public void SetCargoWithPaddingFromActualIndex(int actualIndex, int itemId, byte stack, byte inc)
     {
         byte* buffer = _buffer + actualIndex;
         *(buffer + 0) = 246;
@@ -273,6 +275,8 @@ internal unsafe struct BeltBuffer
         *(buffer + 7) = (byte)(stack + 1);
         *(buffer + 8) = (byte)(inc + 1);
         *(buffer + 9) = byte.MaxValue;
+
+        _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex + 9);
     }
 
     public readonly void GetCargo(int beltIndex, out OptimizedCargo optimizedCargo)
