@@ -105,8 +105,8 @@ internal readonly struct OptimizedMonitor
                 {
                     int num12 = 0;
                     int index = num3 + 10;
-                    targetBelt.QueryItemAtIndex(index, out OptimizedCargo cargo1, out int actualCargoBufferIndex1);
-                    if (cargo1.Item == monitor.cargoFilter)
+                    if (targetBelt.QueryItemAtIndex(index, out OptimizedCargo cargo1, out int actualCargoBufferIndex1) &&
+                        cargo1.Item == monitor.cargoFilter)
                     {
                         int num13 = num10 - cargo1.Stack;
                         if (num13 > 0)
@@ -126,8 +126,8 @@ internal readonly struct OptimizedMonitor
                 else if (monitor.spawnItemOperator == 2)
                 {
                     int index2 = num3 - 10;
-                    targetBelt.QueryItemAtIndex(index2, out OptimizedCargo cargo1, out int actualCargoBufferIndex1);
-                    if (monitor.cargoFilter == 0 || monitor.cargoFilter > 0 && cargo1.Item == monitor.cargoFilter)
+                    if (targetBelt.QueryItemAtIndex(index2, out OptimizedCargo cargo1, out int actualCargoBufferIndex1) &&
+                        (monitor.cargoFilter == 0 || monitor.cargoFilter > 0 && cargo1.Item == monitor.cargoFilter))
                     {
                         int num14;
                         if (num11 >= cargo1.Stack)

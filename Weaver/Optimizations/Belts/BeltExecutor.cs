@@ -46,7 +46,13 @@ internal sealed class BeltExecutor
             ref OptimizedCargoPath optimizedCargoPath = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBelt(optimizedCargoPaths);
             CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key, ref optimizedCargoPath, cargoContainer);
             optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key);
-            optimizedCargoPath.buffer.Free();
+
+            // Retain allocation when debugging cargo paths.
+            // For debugging it does not matter if some memory is leaked.
+            if (!OptimizedTerrestrialPlanet.ViewBeltsOnLocalOptimizedPlanet)
+            {
+                optimizedCargoPath.buffer.Free();
+            }
         }
     }
 

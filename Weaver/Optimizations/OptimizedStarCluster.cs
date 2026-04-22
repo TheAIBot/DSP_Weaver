@@ -249,7 +249,7 @@ internal static class OptimizedStarCluster
         DeepProfiler.BeginSample(DPEntry.Scheduling, -1, 2L);
         __instance.EnsureThreadCount();
         __instance.threadManager.samplePerformanceCounters = DeepProfiler.watchEnabled;
-        DeepProfiler.EndSample();
+        DeepProfiler.EndSample(DPEntry.Scheduling);
 
         //DeepProfiler.watchEnabled = true;
         ExecuteSimulation(__instance.gameLogic, GameMain.data.factories);
@@ -299,7 +299,7 @@ internal static class OptimizedStarCluster
 
             ThreadSafeGameTickLabResearchMode(planetFactory, __instance.timei, isActive);
         }
-        DeepProfiler.EndSample();
+        DeepProfiler.EndSample(DPEntry.Lab);
 
         return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
