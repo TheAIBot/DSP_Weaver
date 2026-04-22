@@ -705,11 +705,9 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else if (typedObjectIndex.EntityType == EntityType.FuelPowerGenerator)
         {
-            ref readonly TInserter inserter = ref _optimizedInserters[inserterIndex];
-            ref OptimizedFuelGenerator insertIntoFuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[inserter.insertOffset][inserterConnections.InsertInto.Index];
-            if (insertIntoFuelGenerator.fuelCount <= 8)
+            ref OptimizedFuelGenerator pickFromFuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[offset][objectIndex];
+            if (pickFromFuelGenerator.fuelCount <= 8)
             {
-                ref OptimizedFuelGenerator pickFromFuelGenerator = ref _generatorSegmentToOptimizedFuelGenerators[offset][objectIndex];
                 int result = pickFromFuelGenerator.PickFuelFrom(filter, out int inc2).ItemIndex;
                 inc = (byte)inc2;
                 return (short)result;
