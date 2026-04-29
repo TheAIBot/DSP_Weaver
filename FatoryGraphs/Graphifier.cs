@@ -138,14 +138,7 @@ internal static class Graphifier
                     continue;
                 }
 
-                if (pickEntityTypeIndex.Value.EntityType != EntityType.FuelPowerGenerator)
-                {
-                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, pickEntityTypeIndex.Value);
-                }
-                else
-                {
-                    ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, new EntityTypeIndex(pickEntityTypeIndex.Value.EntityType, inserter.pickOffset));
-                }
+                ConnectReceiveFrom(entityTypeIndexToNode, inserterNode, pickEntityTypeIndex.Value);
             }
 
             if (inserter.insertTarget != 0)
