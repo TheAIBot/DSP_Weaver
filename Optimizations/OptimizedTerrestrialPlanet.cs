@@ -439,7 +439,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         int stationCount = _planet.transport.stationCursor - 1;
         int dispenserCount = _planet.transport.dispenserCursor - 1;
-        int transportEntities = stationCount + dispenserCount - 1;
+        int transportEntities = stationCount + dispenserCount;
 
         int turretCount = _planet.defenseSystem.turrets.cursor - 1;
         int fieldGeneratorCount = _planet.defenseSystem.fieldGenerators.cursor - 1;
