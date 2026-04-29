@@ -95,9 +95,15 @@ internal sealed class AssemblerExecutor
                 needToUpdateNeeds[assemblerIndex] = false;
             }
 
+            float power = networkServes[networkIndex];
+            if (power < 0.1f)
+            {
+                networksPowerConsumption[networkIndex] += previousPowerConsumptions[assemblerIndex];
+                continue;
+            }
+
             ref bool replicating = ref assemblerReplicatings[assemblerIndex];
             ref int extraPowerRatios = ref assemblerExtraPowerRatios[assemblerIndex];
-            float power = networkServes[networkIndex];
             if (!assemblerTimingData.UpdateTimings(power, replicating, in recipeData))
             {
                 networksPowerConsumption[networkIndex] += previousPowerConsumptions[assemblerIndex];

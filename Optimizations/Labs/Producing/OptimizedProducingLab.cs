@@ -90,11 +90,6 @@ internal struct OptimizedProducingLab
                                            short[] incServed,
                                            short[] produced)
     {
-        if (power < 0.1f)
-        {
-            // Lets not deal with missing power for now. Just check every tick.
-            return LabState.Active;
-        }
         if (producingLabTimingData.ExtraTime >= producingLabRecipe.ExtraTimeSpend)
         {
             for (int i = 0; i < producingLabRecipe.ProductCounts.Length; i++)

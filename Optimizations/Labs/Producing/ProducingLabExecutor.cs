@@ -91,8 +91,14 @@ internal sealed class ProducingLabExecutor
                 needToUpdateNeeds[labIndex] = false;
             }
 
-            ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
             float power = networkServes[networkIndex];
+            if (power < 0.1f)
+            {
+                thisSubFactoryNetworkPowerConsumption[networkIndex] += previousPowerConsumptions[labIndex];
+                continue;
+            }
+
+            ref LabPowerFields labPowerFields = ref labsPowerFields[labIndex];
             if (!labTimingData.UpdateTimings(power, labPowerFields.replicating, in producingLabRecipe))
             {
                 thisSubFactoryNetworkPowerConsumption[networkIndex] += previousPowerConsumptions[labIndex];

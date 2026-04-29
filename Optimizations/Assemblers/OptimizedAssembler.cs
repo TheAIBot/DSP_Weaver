@@ -87,12 +87,6 @@ internal struct OptimizedAssembler
                                  short[] incServed,
                                  short[] produced)
     {
-        if (power < 0.1f)
-        {
-            // Lets not deal with missing power for now. Just check every tick.
-            return AssemblerState.Active;
-        }
-
         if (assemblerTimingData.ExtraTime >= assemblerRecipeData.ExtraTimeSpend)
         {
             for (int i = 0; i < assemblerRecipeData.ProductCounts.Length; i++)
