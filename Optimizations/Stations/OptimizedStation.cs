@@ -140,10 +140,7 @@ internal readonly struct OptimizedStation
                     }
                     else if (reference2.dir != IODir.Input)
                     {
-                        // k here is mostly likely a mistake and should be num10
-                        // to match the read index at the start of the loop.
-                        // Haven't tested whether it is the case or not.
-                        beltIndexes[k] = BeltIndex.NoBelt;
+                        beltIndexes[num10] = BeltIndex.NoBelt;
                         reference2.beltId = 0;
                         reference2.counter = 0;
                     }
