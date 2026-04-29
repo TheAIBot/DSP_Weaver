@@ -704,10 +704,6 @@ internal sealed class OptimizedSubFactory
         {
             return new TypedObjectIndex(EntityType.Inserter, entity.inserterId);
         }
-        else if (entity.powerGenId != 0)
-        {
-            return new TypedObjectIndex(EntityType.FuelPowerGenerator, entity.powerGenId);
-        }
 
         throw new InvalidOperationException("Unknown entity type.");
     }
