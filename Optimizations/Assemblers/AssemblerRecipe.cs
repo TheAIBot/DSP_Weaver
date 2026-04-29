@@ -60,6 +60,7 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemoryS
                RecipeType == other.RecipeType &&
                TimeSpend == other.TimeSpend &&
                ExtraTimeSpend == other.ExtraTimeSpend &&
+               Speed == other.Speed &&
                Productive == other.Productive &&
                Requires.SequenceEqual(other.Requires) &&
                RequireCounts.SequenceEqual(other.RequireCounts) &&
@@ -79,6 +80,7 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemoryS
         hashCode.Add(RecipeType);
         hashCode.Add(TimeSpend);
         hashCode.Add(ExtraTimeSpend);
+        hashCode.Add(Speed);
         hashCode.Add(Productive);
         for (int i = 0; i < Requires.Length; i++)
         {
@@ -106,6 +108,7 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemoryS
         WeaverFixes.Logger.LogInfo($"{nameof(RecipeType)}: {RecipeType}");
         WeaverFixes.Logger.LogInfo($"{nameof(TimeSpend)}: {TimeSpend}");
         WeaverFixes.Logger.LogInfo($"{nameof(ExtraTimeSpend)}: {ExtraTimeSpend}");
+        WeaverFixes.Logger.LogInfo($"{nameof(Speed)}: {Speed}");
         WeaverFixes.Logger.LogInfo($"{nameof(Productive)}: {Productive}");
         WeaverFixes.Logger.LogInfo($"{nameof(Requires)}: [{(Requires != null ? string.Join(", ", Requires) : null)}]");
         WeaverFixes.Logger.LogInfo($"{nameof(RequireCounts)}: [{string.Join(", ", RequireCounts)}]");
