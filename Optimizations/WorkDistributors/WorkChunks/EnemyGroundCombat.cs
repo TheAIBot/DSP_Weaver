@@ -40,7 +40,14 @@ internal sealed class EnemyGroundCombat : IWorkChunk
 
     public static int GetParallelCount(PlanetFactory planet, int maxParallelism)
     {
-        int maxEntityCount = Math.Max(planet.enemySystem.turrets.cursor - 1, planet.enemySystem.units.cursor - 1);
+        EnemyDFGroundSystem enemySystem = planet.enemySystem;
+        if (enemySystem.turrets.count == 0 &&
+            enemySystem.units.count == 0)
+        {
+            return 0;
+        }
+
+        int maxEntityCount = Math.Max(enemySystem.turrets.cursor - 1, enemySystem.units.cursor - 1);
         const int entitiesPerWorkChunk = 100;
         int workChunkCount = (maxEntityCount + (entitiesPerWorkChunk - 1)) / entitiesPerWorkChunk;
         return Math.Min(workChunkCount, maxParallelism);
