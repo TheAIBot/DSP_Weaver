@@ -1,3 +1,17 @@
+## 2.4.0
+* Parallelize the following on planets the player is close to: Miners, fractionators, ejectors, silos, assemblers and labs.
+* Fix cargo visual update should only execute on the planet the player is close to.
+* Optimize ejectors. 
+  * They now skip updates when no orbits are available.
+  * Sorters interacting with ejectors is now more efficient.
+* Applied the same optimizations from assembler to labs that produce science cubes.
+* Optimized assemblers and labs by reusing their previous power calculations when possible.
+* Slightly reduced the memory size of each assembler, assembler recipe and lab recipe.
+* Halved memory size of weavers precomputed network ids for all entity types.
+* Slightly reduced memory size of each optimized sorter.
+* Fix sorters picking from a fuel power generator would crash the game if they did not insert into another fuel power generator.
+* Parallelized enemy ground combat update.
+
 ## 2.3.0
 * Parallelized sorters, spray coaters, pilers, monitors and belts when player is on/near a planet.
 * Parallelized dyson sphere sails and rocket updates.
