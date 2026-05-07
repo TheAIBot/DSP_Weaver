@@ -10,7 +10,7 @@
 * Halved memory size of weavers precomputed network ids for all entity types.
 * Slightly reduced memory size of each optimized sorter.
 * Fix sorters picking from a fuel power generator would crash the game if they did not insert into another fuel power generator.
-* Parallelized enemy ground combat update.
+* Further parallelized enemy ground combat update.
 
 ## 2.3.0
 * Parallelized sorters, spray coaters, pilers, monitors and belts when player is on/near a planet.
