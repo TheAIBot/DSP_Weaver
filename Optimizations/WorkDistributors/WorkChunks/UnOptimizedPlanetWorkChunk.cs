@@ -1,7 +1,274 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
+
+internal struct UnOptimizedWorkChunkCounts : IEquatable<UnOptimizedWorkChunkCounts>
+{
+    private readonly PlanetFactory _planet;
+    private int _beforePowerWorkWorkChunkCount;
+    private int _powerNetworkWorkChunkCount;
+    private int _minerWorkChunkCount;
+    private int _assemblerWorkChunkCount;
+    private int _fractionatorWorkChunkCount;
+    private int _ejectorWorkChunkCount;
+    private int _siloWorkChunkCount;
+    private int _producingLabWorkChunkCount;
+    private int _researchingLabWorkChunkCount;
+    private int _labWorkChunkCount;
+    private int _transportEntitiesWorkChunkCount;
+    private int _stationWorkChunkCount;
+    private int _inserterWorkWorkChunkCount;
+    private int _storageAndTankWorkChunkCount;
+    private int _cargoPathsWorkWorkChunkCount;
+    private int _splitterWorkChunkCount;
+    private int _cargoTrafficMiscWorkChunkCount;
+    private int _sandboxModeWorkWorkChunkCount;
+    private int _cargoPathPresentWorkChunkCount;
+    private int _markerWorkChunkCount;
+
+    public UnOptimizedWorkChunkCounts(PlanetFactory planet)
+    {
+        _planet = planet;
+    }
+
+    public static UnOptimizedWorkChunkCounts ComputeWorkChunkCounts(PlanetFactory planet, int maxParallelism)
+    {
+        var workChunkCounts = new UnOptimizedWorkChunkCounts(planet);
+
+        // -1 because cursor skip index 0 as that index is used
+        // to represent an invalid entity
+        int minerCount = planet.factorySystem.minerCursor - 1;
+        int assemblerCount = planet.factorySystem.assemblerCursor - 1;
+        int fractionatorCount = planet.factorySystem.fractionatorCursor - 1;
+        int ejectorCount = planet.factorySystem.ejectorCursor - 1;
+        int siloCount = planet.factorySystem.siloCursor - 1;
+
+        int monitorCount = planet.cargoTraffic.monitorCursor - 1;
+        int spraycoaterCount = planet.cargoTraffic.spraycoaterCursor - 1;
+        int pilerCount = planet.cargoTraffic.pilerCursor - 1;
+        int splitterCount = planet.cargoTraffic.splitterCursor - 1;
+        int cargoPathCount = planet.cargoTraffic.pathCursor - 1;
+
+        int stationCount = planet.transport.stationCursor - 1;
+        int dispenserCount = planet.transport.dispenserCursor - 1;
+        int transportEntities = stationCount + dispenserCount;
+
+        int turretCount = planet.defenseSystem.turrets.cursor - 1;
+        int fieldGeneratorCount = planet.defenseSystem.fieldGenerators.cursor - 1;
+        int battleBaseCount = planet.defenseSystem.battleBases.cursor - 1;
+
+        int markerCount = planet.digitalSystem.markers.cursor - 1;
+
+        int inserterCount = planet.factorySystem.inserterCursor - 1;
+
+        int producingLabCount = planet.factorySystem.labCursor - 1;
+        int researchingLabCount = planet.factorySystem.labCursor - 1;
+        int labCount = planet.factorySystem.labCursor - 1;
+
+        int storageCount = planet.factoryStorage.storageCursor - 1;
+        int tankCount = planet.factoryStorage.tankCursor - 1;
+
+        int powerNetworkCount = planet.powerSystem.netCursor - 1;
+
+        int totalEntities = minerCount +
+                            assemblerCount +
+                            fractionatorCount +
+                            ejectorCount +
+                            siloCount +
+                            monitorCount +
+                            spraycoaterCount +
+                            pilerCount +
+                            stationCount +
+                            dispenserCount +
+                            turretCount +
+                            fieldGeneratorCount +
+                            battleBaseCount +
+                            markerCount;
+
+        const int minimumWorkPerCore = 500;
+        workChunkCounts._beforePowerWorkWorkChunkCount = (totalEntities + (minimumWorkPerCore - 1)) / minimumWorkPerCore;
+        workChunkCounts._beforePowerWorkWorkChunkCount = Math.Min(workChunkCounts._beforePowerWorkWorkChunkCount, maxParallelism);
+        workChunkCounts._powerNetworkWorkChunkCount = powerNetworkCount > 0 ? 1 : 0;
+        workChunkCounts._minerWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, minerCount);
+        workChunkCounts._assemblerWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, assemblerCount);
+        workChunkCounts._fractionatorWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, fractionatorCount);
+        workChunkCounts._ejectorWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, ejectorCount);
+        workChunkCounts._siloWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, siloCount);
+        workChunkCounts._producingLabWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, producingLabCount);
+        workChunkCounts._researchingLabWorkChunkCount = GetComponentWorkChunkCount(1, minimumWorkPerCore, researchingLabCount);
+        workChunkCounts._labWorkChunkCount = GetComponentWorkChunkCount(1, minimumWorkPerCore, labCount);
+        workChunkCounts._transportEntitiesWorkChunkCount = GetComponentWorkChunkCount(1, minimumWorkPerCore, transportEntities);
+        workChunkCounts._stationWorkChunkCount = stationCount > 0 ? 1 : 0;
+        const int minimumWorkPerInserterCore = 2_000;
+        workChunkCounts._inserterWorkWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerInserterCore, inserterCount);
+        workChunkCounts._storageAndTankWorkChunkCount = storageCount + tankCount > 0 ? 1 : 0;
+        workChunkCounts._cargoPathsWorkWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, cargoPathCount);
+        workChunkCounts._splitterWorkChunkCount = splitterCount > 0 ? 1 : 0;
+        workChunkCounts._cargoTrafficMiscWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, Math.Max(Math.Max(monitorCount, spraycoaterCount), pilerCount));
+        workChunkCounts._sandboxModeWorkWorkChunkCount = GameMain.sandboxToolsEnabled ? GetComponentWorkChunkCount(maxParallelism, minimumWorkPerCore, transportEntities) : 0;
+        const int minimumWorkPerPresentCargoCore = 100;
+        workChunkCounts._cargoPathPresentWorkChunkCount = GetComponentWorkChunkCount(maxParallelism, minimumWorkPerPresentCargoCore, cargoPathCount);
+        workChunkCounts._markerWorkChunkCount = GetComponentWorkChunkCount(1, minimumWorkPerCore, markerCount);
+
+        return workChunkCounts;
+    }
+
+    public readonly IWorkNode CreateWorkNode()
+    {
+        List<IWorkNode[]> work = [];
+
+        if (_beforePowerWorkWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.BeforePower, _beforePowerWorkWorkChunkCount));
+        }
+
+        if (_powerNetworkWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Power, _powerNetworkWorkChunkCount));
+        }
+
+        List<SingleWorkLeaf> factoryWorkLeafs = [];
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Miner, _minerWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Assembler, _assemblerWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Fractionator, _fractionatorWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Ejector, _ejectorWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Silo, _siloWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabProduce, _producingLabWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabResearchMode, _researchingLabWorkChunkCount));
+        if (factoryWorkLeafs.Count > 0)
+        {
+            work.Add(factoryWorkLeafs.ToArray());
+        }
+
+        factoryWorkLeafs.Clear();
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabOutput2NextData, _labWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.TransportData, _transportEntitiesWorkChunkCount));
+        if (factoryWorkLeafs.Count > 0)
+        {
+            work.Add(factoryWorkLeafs.ToArray());
+        }
+
+        if (_stationWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.InputFromBelt, _stationWorkChunkCount));
+        }
+
+        if (_inserterWorkWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.InserterData, _inserterWorkWorkChunkCount));
+        }
+
+        if (_storageAndTankWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Storage, _storageAndTankWorkChunkCount));
+        }
+
+        if (_cargoPathsWorkWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.CargoPathsData, _cargoPathsWorkWorkChunkCount));
+        }
+
+        if (_splitterWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Splitter, _splitterWorkChunkCount));
+        }
+
+        if (_cargoTrafficMiscWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.CargoTrafficMisc, _cargoTrafficMiscWorkChunkCount));
+        }
+
+        if (_stationWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.OutputToBelt, _stationWorkChunkCount));
+        }
+
+        if (_sandboxModeWorkWorkChunkCount > 0)
+        {
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.SandboxMode, _sandboxModeWorkWorkChunkCount));
+        }
+
+        factoryWorkLeafs.Clear();
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.PresentCargoPathsData, _cargoPathPresentWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Digital, _markerWorkChunkCount));
+        if (factoryWorkLeafs.Count > 0)
+        {
+            work.Add(factoryWorkLeafs.ToArray());
+        }
+
+        if (work.Count == 0)
+        {
+            return new NoWorkNode();
+        }
+
+        return new WorkNode(work.ToArray());
+    }
+
+    public readonly bool Equals(UnOptimizedWorkChunkCounts other)
+    {
+        return _beforePowerWorkWorkChunkCount == other._beforePowerWorkWorkChunkCount &&
+               _powerNetworkWorkChunkCount == other._powerNetworkWorkChunkCount &&
+               _minerWorkChunkCount == other._minerWorkChunkCount &&
+               _assemblerWorkChunkCount == other._assemblerWorkChunkCount &&
+               _fractionatorWorkChunkCount == other._fractionatorWorkChunkCount &&
+               _ejectorWorkChunkCount == other._ejectorWorkChunkCount &&
+               _siloWorkChunkCount == other._siloWorkChunkCount &&
+               _producingLabWorkChunkCount == other._producingLabWorkChunkCount &&
+               _researchingLabWorkChunkCount == other._researchingLabWorkChunkCount &&
+               _labWorkChunkCount == other._labWorkChunkCount &&
+               _transportEntitiesWorkChunkCount == other._transportEntitiesWorkChunkCount &&
+               _stationWorkChunkCount == other._stationWorkChunkCount &&
+               _inserterWorkWorkChunkCount == other._inserterWorkWorkChunkCount &&
+               _storageAndTankWorkChunkCount == other._storageAndTankWorkChunkCount &&
+               _cargoPathsWorkWorkChunkCount == other._cargoPathsWorkWorkChunkCount &&
+               _splitterWorkChunkCount == other._splitterWorkChunkCount &&
+               _cargoTrafficMiscWorkChunkCount == other._cargoTrafficMiscWorkChunkCount &&
+               _sandboxModeWorkWorkChunkCount == other._sandboxModeWorkWorkChunkCount &&
+               _cargoPathPresentWorkChunkCount == other._cargoPathPresentWorkChunkCount &&
+               _markerWorkChunkCount == other._markerWorkChunkCount;
+    }
+
+    public override readonly bool Equals(object other)
+    {
+        return other is UnOptimizedWorkChunkCounts otherCounts &&
+               Equals(otherCounts);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(_beforePowerWorkWorkChunkCount);
+        hashCode.Add(_powerNetworkWorkChunkCount);
+        hashCode.Add(_minerWorkChunkCount);
+        hashCode.Add(_assemblerWorkChunkCount);
+        hashCode.Add(_fractionatorWorkChunkCount);
+        hashCode.Add(_ejectorWorkChunkCount);
+        hashCode.Add(_siloWorkChunkCount);
+        hashCode.Add(_producingLabWorkChunkCount);
+        hashCode.Add(_researchingLabWorkChunkCount);
+        hashCode.Add(_labWorkChunkCount);
+        hashCode.Add(_transportEntitiesWorkChunkCount);
+        hashCode.Add(_stationWorkChunkCount);
+        hashCode.Add(_inserterWorkWorkChunkCount);
+        hashCode.Add(_storageAndTankWorkChunkCount);
+        hashCode.Add(_cargoPathsWorkWorkChunkCount);
+        hashCode.Add(_splitterWorkChunkCount);
+        hashCode.Add(_cargoTrafficMiscWorkChunkCount);
+        hashCode.Add(_sandboxModeWorkWorkChunkCount);
+        hashCode.Add(_cargoPathPresentWorkChunkCount);
+        hashCode.Add(_markerWorkChunkCount);
+
+        return hashCode.ToHashCode();
+    }
+
+    private static int GetComponentWorkChunkCount(int maxParallelism, int minimumWorkPerCore, int componentCount)
+    {
+        int componentWorkCount = (componentCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore;
+        return Math.Min(componentWorkCount, maxParallelism);
+    }
+}
 
 internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
 {
@@ -20,6 +287,11 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
 
     public static SingleWorkLeaf[] CreateDuplicateChunksInWorkLeafs(PlanetFactory planet, WorkType workType, int count)
     {
+        if (count == 0)
+        {
+            return Array.Empty<SingleWorkLeaf>();
+        }
+
         SingleWorkLeaf[] workLeafs = new SingleWorkLeaf[count];
         for (int i = 0; i < workLeafs.Length; i++)
         {
