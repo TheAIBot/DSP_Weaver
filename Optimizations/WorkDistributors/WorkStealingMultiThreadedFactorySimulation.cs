@@ -460,17 +460,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         gameLogic.CombatGroundSystemGameTick();
 
         // 3100
-        DeepProfiler.BeginSample(DPEntry.GroundDefenseSystem);
-        foreach (var optimizedPlanet in OptimizedStarCluster.GetAllOptimizedPlanets())
-        {
-            if (optimizedPlanet is not OptimizedTerrestrialPlanet terrestrialPlanet)
-            {
-                continue;
-            }
-
-            terrestrialPlanet.GameTickDefense(time);
-        }
-        DeepProfiler.EndSample(DPEntry.GroundDefenseSystem);
+        gameLogic.DefenseGroundSystemGameTick();
 
         // 3151
         ExecuteParallel(targetThreadCount, WorkTaskType.DefenseSystemTurret);

@@ -105,22 +105,6 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         _workNodesWorkChunkCounts = null;
     }
 
-    public void GameTickDefense(long time)
-    {
-        bool isActive = GameMain.localPlanet == _planet.planet;
-        _planet.spaceHashSystemDynamic.GameTick();
-        if (Status == OptimizedPlanetStatus.Running)
-        {
-            DefenseGameTick(_planet.defenseSystem, time);
-            DefenseGameTickUIThread(time);
-        }
-        else
-        {
-            _planet.defenseSystem.GameTick(time, isActive);
-        }
-        _planet.planetATField.GameTick(time, isActive);
-    }
-
     public IWorkNode GetMultithreadedWork(int maxParallelism)
     {
         if (HasWorkChanged(maxParallelism, out UnOptimizedWorkChunkCounts unOptimizedWorkChunkCounts))
@@ -290,130 +274,9 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         DeepProfiler.EndSample(DPEntry.Statistics, workerIndex);
     }
 
-    private void DefenseGameTick(DefenseSystem defenseSystem, long tick)
-    {
-        GameHistoryData history = GameMain.history;
-        PowerSystem powerSystem = defenseSystem.factory.powerSystem;
-        float[] networkServes = powerSystem.networkServes;
-        PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
-        PowerNodeComponent[] nodePool = powerSystem.nodePool;
-        EntityData[] entityPool = defenseSystem.factory.entityPool;
-        AnimData[] entityAnimPool = defenseSystem.factory.entityAnimPool;
-        ref CombatSettings combatSettings = ref defenseSystem.factory.gameData.history.combatSettings;
-        CombatUpgradeData combatUpgradeData = default;
-        history.GetCombatUpgradeData(ref combatUpgradeData);
-        defenseSystem.UpdateMatchSpaceEnemies();
-        if (defenseSystem.beacons.count > 0)
-        {
-            DeepProfiler.BeginSample(DPEntry.Beacon, -1, defenseSystem.factory.planetId);
-            EAggressiveLevel aggressiveLevel = combatSettings.aggressiveLevel;
-            int cursor = defenseSystem.beacons.cursor;
-            BeaconComponent[] buffer = defenseSystem.beacons.buffer;
-            for (int i = 1; i < cursor; i++)
-            {
-                ref BeaconComponent reference = ref buffer[i];
-                if (reference.id == i)
-                {
-                    float power = networkServes[nodePool[reference.pnId].networkId];
-                    PrefabDesc pdesc = PlanetFactory.PrefabDescByModelIndex[entityPool[reference.entityId].modelIndex];
-                    reference.GameTick(defenseSystem.factory, pdesc, aggressiveLevel, power, tick);
-                    if (reference.DeterminActiveEnemyUnits(isSpace: false, tick))
-                    {
-                        reference.ActiveEnemyUnits_Ground(defenseSystem.factory, pdesc);
-                    }
-                    if (reference.DeterminActiveEnemyUnits(isSpace: true, tick))
-                    {
-                        reference.ActiveEnemyUnits_Space(defenseSystem.factory, pdesc);
-                    }
-                }
-            }
-            DeepProfiler.EndSample(DPEntry.Beacon);
-        }
-        bool flag2 = false;
-        for (int num3 = defenseSystem.localGlobalTargetCursor - 1; num3 >= 0; num3--)
-        {
-            defenseSystem.globalTargets[num3].lifeTick--;
-            if (defenseSystem.globalTargets[num3].lifeTick <= 0)
-            {
-                defenseSystem.RemoveGlobalTargets(num3);
-                flag2 = true;
-            }
-        }
-        if (flag2)
-        {
-            defenseSystem.ArrangeGlobalTargets();
-        }
-        defenseSystem.UpdateSpaceUniqueGlobalTargets();
-        defenseSystem.UpdateOtherGlobalTargets();
-        defenseSystem.engagingGaussCount = 0;
-        defenseSystem.engagingLaserCount = 0;
-        defenseSystem.engagingCannonCount = 0;
-        defenseSystem.engagingMissileCount = 0;
-        defenseSystem.engagingPlasmaCount = 0;
-        defenseSystem.engagingLocalPlasmaCount = 0;
-        defenseSystem.engagingTurretTotalCount = 0;
-        defenseSystem.turretEnableDefenseSpace = false;
-        if (defenseSystem.fieldGenerators.count > 0)
-        {
-            DeepProfiler.BeginSample(DPEntry.PlanetATFieldGenerator, -1, defenseSystem.factory.planetId);
-            int cursor3 = defenseSystem.fieldGenerators.cursor;
-            FieldGeneratorComponent[] buffer3 = defenseSystem.fieldGenerators.buffer;
-
-            for (int k = 1; k < cursor3; k++)
-            {
-                ref FieldGeneratorComponent reference3 = ref buffer3[k];
-                if (reference3.id != k)
-                {
-                    continue;
-                }
-                ref PowerConsumerComponent reference4 = ref consumerPool[reference3.pcId];
-                float num11 = networkServes[reference4.networkId];
-                reference3.InternalUpdate(defenseSystem.factory, num11, ref reference4, ref entityAnimPool[reference3.entityId]);
-            }
-
-            DeepProfiler.EndSample(DPEntry.PlanetATFieldGenerator);
-        }
-    }
-
     public void TurretBeltUpdate(ref TurretComponent turret)
     {
         _turretExecutor.TurretBeltUpdate(ref turret);
-    }
-
-    private void DefenseGameTickUIThread(long tick)
-    {
-        DefenseSystem defenseSystem = _planet.defenseSystem;
-        if (defenseSystem.battleBases.count > 0)
-        {
-            DeepProfiler.BeginSample(DPEntry.BattleBase, -1, _planet.planetId);
-            FactoryProductionStat obj = GameMain.statistics.production.factoryStatPool[defenseSystem.factory.index];
-            int[] productRegister = obj.productRegister;
-            PowerSystem powerSystem = defenseSystem.factory.powerSystem;
-            float[] networkServes = powerSystem.networkServes;
-            PowerConsumerComponent[] consumerPool = powerSystem.consumerPool;
-            AnimData[] entityAnimPool = defenseSystem.factory.entityAnimPool;
-            VectorLF3 relativePos = defenseSystem.factory.gameData.relativePos;
-            UnityEngine.Quaternion relativeRot = defenseSystem.factory.gameData.relativeRot;
-            TrashSystem trashSystem = defenseSystem.factory.gameData.trashSystem;
-            bool flag = trashSystem.trashCount > 0;
-            float num = 1f / 60f;
-            int num13 = (int)(tick % 4);
-            BattleBaseComponent[] buffer4 = defenseSystem.battleBases.buffer;
-            for (int l = 1; l < defenseSystem.battleBases.cursor; l++)
-            {
-                BattleBaseComponent battleBaseComponent = buffer4[l];
-                if (battleBaseComponent != null && battleBaseComponent.id == l)
-                {
-                    float power2 = networkServes[consumerPool[battleBaseComponent.pcId].networkId];
-                    battleBaseComponent.InternalUpdate(num, defenseSystem.factory, power2, ref entityAnimPool[battleBaseComponent.entityId]);
-                    if (flag && battleBaseComponent.autoPickEnabled && battleBaseComponent.energy > 0 && l % 4L == num13)
-                    {
-                        battleBaseComponent.AutoPickTrash(defenseSystem.factory, trashSystem, tick, ref relativePos, ref relativeRot, productRegister);
-                    }
-                }
-            }
-            DeepProfiler.EndSample(DPEntry.BattleBase);
-        }
     }
 
     public void AddMiningFlags(MiningFlags miningFlags)
