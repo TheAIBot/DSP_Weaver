@@ -1,3 +1,7 @@
+## 2.4.1
+* Fix not all enemies were updated.
+* Fix defense turrets were updated twice per tick.
+
 ## 2.4.0
 * Parallelize the following on planets the player is close to: Miners, fractionators, ejectors, silos, assemblers and labs.
 * Fix cargo visual update should only execute on the planet the player is close to.
