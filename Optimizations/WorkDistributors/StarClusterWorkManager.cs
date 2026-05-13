@@ -134,7 +134,16 @@ internal sealed class StarClusterWorkManager : IDisposable
                     continue;
                 }
 
-                _defenseSystemTurretWork.Add(new DefenseSystemTurret(planet.defenseSystem));
+                int turretIndexesToUpdate = planet.defenseSystem.turrets.cursor;
+                const int turretsPerWorkChunk = 20;
+                int workChunkCount = UnOptimizedWorkChunkCounts.GetComponentWorkChunkCount(parallelism, turretsPerWorkChunk, turretIndexesToUpdate);
+                if (workChunkCount > 0)
+                {
+                    for (int z = 0; z < workChunkCount; z++)
+                    {
+                        _defenseSystemTurretWork.Add(new DefenseSystemTurret(planet, z, workChunkCount));
+                    }
+                }
             }
 
             _defenseSystemTurretRootWorkNode = new RootWorkNode(new WorkLeaf(_defenseSystemTurretWork.ToArray()));

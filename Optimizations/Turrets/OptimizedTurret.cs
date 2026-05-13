@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Weaver.Optimizations.Belts;
 
 namespace Weaver.Optimizations.Turrets;
@@ -17,136 +18,33 @@ internal readonly struct OptimizedTurret
         this.turretIndex = turretIndex;
     }
 
-    public void InternalUpdate(ref TurretComponent turret, long time, float power, PlanetFactory factory, SkillSystem skillSystem, PrefabDesc pdesc, bool multithreaded)
+    public static bool NeedToCheckBelt(ref TurretComponent turret)
     {
-        if (turret.type == ETurretType.Laser)
+        if (turret.targetBeltId == 0 || turret.itemCount >= 5)
         {
-            turret.bulletCount = 1;
+            return false;
         }
-        turret.lastTotalKillCount = turret.totalKillCount;
-        BeltUpdate(ref turret);
-        if (turret.projectileId > 0 && (!turret.isLockingTarget || turret.supernovaCharging))
-        {
-            turret.StopContinuousSkill(skillSystem, multithreaded);
-        }
-        if (turret.supernovaTick > 0)
-        {
-            turret.supernovaTick--;
-            if (turret.supernovaTick <= 600)
-            {
-                turret.supernovaStrength = 0f;
-            }
-            else
-            {
-                turret.supernovaStrength = turret.supernovaStrength * 0.98f + 0.06f;
-            }
-        }
-        if (turret.supernovaTick < 0)
-        {
-            turret.supernovaTick++;
-            if (turret.supernovaTick == 0)
-            {
-                turret.supernovaTick = 901;
-                turret.supernovaStrength = 30f;
-            }
-            else
-            {
-                turret.supernovaStrength = 0f;
-            }
-        }
-        if (power < 0.3f && turret.inSupernova)
-        {
-            turret.CancelSupernova();
-        }
-        if (!turret.isAiming)
-        {
-            turret.aimt = 0;
-        }
-        if (turret.target.id == 0)
-        {
-            turret.isAiming = false;
-            turret.isLockingTarget = false;
-        }
-        else if (turret.target.astroId == factory.planet.astroId)
-        {
-            ref EnemyData reference = ref factory.enemyPool[turret.target.id];
-            if (reference.id == 0 || reference.isInvincible)
-            {
-                turret.SetNullTarget(needSearch: true, factory, pdesc, time);
-            }
-        }
-        else
-        {
-            ref EnemyData reference2 = ref factory.sector.enemyPool[turret.target.id];
-            if (reference2.id == 0 || reference2.isInvincible)
-            {
-                turret.SetNullTarget(needSearch: true, factory, pdesc, time);
-            }
-        }
-        if (power < 0.1f)
-        {
-            turret.StopContinuousSkill(skillSystem, multithreaded);
-            turret.isAiming = false;
-            turret.isLockingTarget = false;
-            turret.CancelSupernova();
-            int turretROF = pdesc.turretROF;
-            turret.roundFire -= turretROF;
-            turret.muzzleFire -= turretROF;
-            if (turret.roundFire < 0)
-            {
-                turret.roundFire = 0;
-            }
-            if (turret.muzzleFire < 0)
-            {
-                turret.muzzleFire = 0;
-            }
-            return;
-        }
-        if (turret.bulletCount == 0 && turret.itemCount == 0)
-        {
-            turret.SetNullTarget(needSearch: false, null, null, 0L);
-            turret.ClearItem();
-            turret.CancelSupernova();
-            return;
-        }
-        if (turret.DetermineSearchTarget(time))
-        {
-            turret.Search(factory, pdesc, time);
-        }
-        if (!turret.hatred0.notNull || turret.hatred0.value >= 60)
-        {
-            return;
-        }
-        if (turret.hatred0.isSpace)
-        {
-            if (turret.id % 30 == (int)(time % 30))
-            {
-                turret.hatred0.value++;
-            }
-        }
-        else if (turret.id % 10 == (int)(time % 10))
-        {
-            turret.hatred0.value++;
-        }
+
+        return true;
     }
 
-    public void BeltUpdate(ref TurretComponent turret)
+    public void BeltUpdate(ref TurretComponent turret, Dictionary<BeltIndex, object> beltLocks)
     {
         if (!targetBelt.HasBelt || turret.itemCount >= 5)
         {
             return;
         }
-        if (turret.itemId == 0)
+
+        lock (beltLocks[targetBelt.BeltIndex])
         {
-            if (targetBelt.Belt.TryPickItem(targetBeltOffset - 2, 5, 0, ItemProto.turretNeeds[(uint)turret.ammoType], out OptimizedCargo optimizedCargo))
+            if (turret.itemId == 0)
             {
-                turret.SetNewItem(optimizedCargo.Item, optimizedCargo.Stack, optimizedCargo.Inc);
+                if (targetBelt.Belt.TryPickItem(targetBeltOffset - 2, 5, 0, ItemProto.turretNeeds[(uint)turret.ammoType], out OptimizedCargo optimizedCargo))
+                {
+                    turret.SetNewItem(optimizedCargo.Item, optimizedCargo.Stack, optimizedCargo.Inc);
+                }
             }
-        }
-        else
-        {
-            targetBelt.Belt.TryPickItem(targetBeltOffset - 2, 5, turret.itemId, out OptimizedCargo optimizedCargo);
-            if (turret.itemId == optimizedCargo.Item)
+            else if (targetBelt.Belt.TryPickItem(targetBeltOffset - 2, 5, turret.itemId, out OptimizedCargo optimizedCargo))
             {
                 turret.itemCount += optimizedCargo.Stack;
                 turret.itemInc += optimizedCargo.Inc;

@@ -7,6 +7,7 @@ using System.Reflection.Emit;
 using Weaver.Optimizations.Labs;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
+using Weaver.Optimizations.Turrets;
 using Weaver.Optimizations.WorkDistributors;
 
 namespace Weaver.Optimizations;
@@ -49,6 +50,7 @@ internal static class OptimizedStarCluster
     }
 
     public static IOptimizedPlanet GetOptimizedPlanet(PlanetFactory planet) => _planetToOptimizedPlanet[planet];
+    public static bool TryGetOptimizedPlanet(PlanetFactory planet, [NotNullWhen(true)] out IOptimizedPlanet? optimizedPlanet) => _planetToOptimizedPlanet.TryGetValue(planet, out optimizedPlanet);
     public static bool TryGetOptimizedPlanet(FactoryProductionStat productionStatistics, [NotNullWhen(true)] out IOptimizedPlanet? optimizedPlanet) => _planetProductionStatisticsToOptimizedPlanet.TryGetValue(productionStatistics, out optimizedPlanet);
 
     public static IEnumerable<IOptimizedPlanet> GetAllOptimizedPlanets() => _planetToOptimizedPlanet.Values;
@@ -476,6 +478,26 @@ internal static class OptimizedStarCluster
     public static void DeepProfiler_EndSampleTyped(DPEntry entry, ref int thread)
     {
         UpdateThreadIndexIfRequired(ref thread);
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(TurretComponent), nameof(TurretComponent.BeltUpdate))]
+    public static bool TurretComponent_BeltUpdate(ref TurretComponent __instance, CargoTraffic cargoTraffic)
+    {
+        if (!OptimizedTurret.NeedToCheckBelt(ref __instance))
+        {
+            return HarmonyConstants.SKIP_ORIGINAL_METHOD;
+        }
+
+        if (!TryGetOptimizedPlanet(cargoTraffic.factory, out IOptimizedPlanet? optimizedPlanet)
+            || optimizedPlanet.Status == OptimizedPlanetStatus.Stopped
+            || optimizedPlanet is not OptimizedTerrestrialPlanet optimizedTerrestrialPlanet)
+        {
+            return HarmonyConstants.EXECUTE_ORIGINAL_METHOD;
+        }
+
+        optimizedTerrestrialPlanet.TurretBeltUpdate(ref __instance);
+        return HarmonyConstants.SKIP_ORIGINAL_METHOD;
     }
 
     public static void ReOptimizeAllPlanets()

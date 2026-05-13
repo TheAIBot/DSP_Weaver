@@ -371,7 +371,6 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
         // Handled by DysonSpherePowerRequest
 
         // 1250
-        //gameLogic.EnemyGroundPrepare();
         if (gameLogic.isCombatMode)
         {
             DeepProfiler.BeginSample(DPEntry.DFGSystem, -1, 99L);

@@ -9,6 +9,8 @@ namespace Weaver.Optimizations.Turrets;
 internal sealed class TurretExecutorBuilder
 {
     private readonly List<OptimizedTurret> _optimizedTurrets = [];
+    private readonly Dictionary<int, int> _turretIdToOptimizedTurretIndex = [];
+    private readonly Dictionary<BeltIndex, object> _beltLocks = [];
 
     public void Initialize(PlanetFactory planet,
                            Graph subFactoryGraph,
@@ -32,6 +34,10 @@ internal sealed class TurretExecutorBuilder
             {
                 targetBeltOffset = planet.cargoTraffic.beltPool[turret.targetBeltId].pivotOnPath;
                 targetBelt = new OptimizedIndexedCargoPath(beltExecutor.OptimizedCargoPaths, targetBeltIndex);
+                if (!_beltLocks.ContainsKey(targetBeltIndex))
+                {
+                    _beltLocks.Add(targetBeltIndex, new object());
+                }
             }
 
             int[] turretAmmunitionItemIds = ItemProto.turretNeeds[(uint)turret.ammoType];
@@ -40,13 +46,13 @@ internal sealed class TurretExecutorBuilder
                 planetWideProductionRegisterBuilder.AdditionalConsumeItemsIdToWatch(turretAmmunitionItemIds[i]);
             }
 
-
+            _turretIdToOptimizedTurretIndex.Add(turret.id, _optimizedTurrets.Count);
             _optimizedTurrets.Add(new OptimizedTurret(targetBelt, targetBeltOffset, turretIndex));
         }
     }
 
     public TurretExecutor Build()
     {
-        return new TurretExecutor(_optimizedTurrets.OrderBy(x => x.turretIndex).ToArray());
+        return new TurretExecutor(_optimizedTurrets.ToArray(), _turretIdToOptimizedTurretIndex, _beltLocks);
     }
 }

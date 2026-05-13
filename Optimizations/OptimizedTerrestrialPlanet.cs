@@ -353,16 +353,6 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         defenseSystem.engagingLocalPlasmaCount = 0;
         defenseSystem.engagingTurretTotalCount = 0;
         defenseSystem.turretEnableDefenseSpace = false;
-        int num2 = _turretExecutor.GameTick(defenseSystem, tick, ref combatUpgradeData);
-        defenseSystem.engagingTurretTotalCount = defenseSystem.engagingGaussCount + defenseSystem.engagingLaserCount + defenseSystem.engagingCannonCount + defenseSystem.engagingPlasmaCount + defenseSystem.engagingMissileCount + defenseSystem.engagingLocalPlasmaCount;
-        if (num2 < 300)
-        {
-            defenseSystem.incomingSupernovaTime = num2;
-        }
-        else
-        {
-            defenseSystem.incomingSupernovaTime = 0;
-        }
         if (defenseSystem.fieldGenerators.count > 0)
         {
             DeepProfiler.BeginSample(DPEntry.PlanetATFieldGenerator, -1, defenseSystem.factory.planetId);
@@ -383,6 +373,11 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
             DeepProfiler.EndSample(DPEntry.PlanetATFieldGenerator);
         }
+    }
+
+    public void TurretBeltUpdate(ref TurretComponent turret)
+    {
+        _turretExecutor.TurretBeltUpdate(ref turret);
     }
 
     private void DefenseGameTickUIThread(long tick)

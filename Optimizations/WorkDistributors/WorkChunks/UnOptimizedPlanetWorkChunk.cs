@@ -263,7 +263,7 @@ internal struct UnOptimizedWorkChunkCounts : IEquatable<UnOptimizedWorkChunkCoun
         return hashCode.ToHashCode();
     }
 
-    private static int GetComponentWorkChunkCount(int maxParallelism, int minimumWorkPerCore, int componentCount)
+    public static int GetComponentWorkChunkCount(int maxParallelism, int minimumWorkPerCore, int componentCount)
     {
         int componentWorkCount = (componentCount + (minimumWorkPerCore - 1)) / minimumWorkPerCore;
         return Math.Min(componentWorkCount, maxParallelism);

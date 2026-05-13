@@ -10,6 +10,8 @@ internal readonly struct OptimizedIndexedCargoPath
     [MemberNotNullWhen(true, nameof(_optimizedCargoPaths))] // Doesn't do anything but helps make it clear to me what i intended
     public bool HasBelt => _optimizedCargoPaths != null;
 
+    public BeltIndex BeltIndex => _index;
+
     public ref OptimizedCargoPath Belt => ref _index.GetBelt(_optimizedCargoPaths!);
 
     public OptimizedIndexedCargoPath(OptimizedCargoPath[]? optimizedCargoPaths, BeltIndex index)
