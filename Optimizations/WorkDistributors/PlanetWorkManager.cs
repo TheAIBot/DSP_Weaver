@@ -24,7 +24,7 @@ internal sealed class PlanetWorkManager
     public bool UpdatePlanetWork(int parallelism)
     {
         bool needsToUpdate = false;
-        int enemyGroundCombatParallelism = EnemyGroundCombat.GetParallelCount(_planet, parallelism);
+        int enemyGroundCombatParallelism = EnemyGroundCombatWorkChunk.GetParallelCount(_planet, parallelism);
         if (enemyGroundCombatParallelism > 0 &&
             (_enemyGroundCombatWorkNodes == null ||
              _enemyGroundCombatWorkNodes.Length != enemyGroundCombatParallelism))
@@ -40,7 +40,7 @@ internal sealed class PlanetWorkManager
             _enemyGroundCombatWorkNodes = new SingleWorkLeaf[enemyGroundCombatParallelism];
             for (int i = 0; i < _enemyGroundCombatWorkNodes.Length; i++)
             {
-                _enemyGroundCombatWorkNodes[i] = new SingleWorkLeaf(new EnemyGroundCombat(_planet, i, parallelism));
+                _enemyGroundCombatWorkNodes[i] = new SingleWorkLeaf(new EnemyGroundCombatWorkChunk(_planet, i, enemyGroundCombatParallelism));
             }
 
             needsToUpdate = true;

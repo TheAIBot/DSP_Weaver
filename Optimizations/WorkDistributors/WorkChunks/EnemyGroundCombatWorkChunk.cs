@@ -4,13 +4,13 @@ using UnityEngine;
 
 namespace Weaver.Optimizations.WorkDistributors.WorkChunks;
 
-internal sealed class EnemyGroundCombat : IWorkChunk
+internal sealed class EnemyGroundCombatWorkChunk : IWorkChunk
 {
     private readonly PlanetFactory _planet;
     private readonly int _workIndex;
     private readonly int _maxWorkCount;
 
-    public EnemyGroundCombat(PlanetFactory planet, int workIndex, int maxWorkCount)
+    public EnemyGroundCombatWorkChunk(PlanetFactory planet, int workIndex, int maxWorkCount)
     {
         _planet = planet;
         _workIndex = workIndex;
