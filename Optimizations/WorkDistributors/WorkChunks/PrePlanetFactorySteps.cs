@@ -13,7 +13,7 @@ internal sealed class PrePlanetFactorySteps : IWorkChunk
 
     public void Execute(int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
-        if (time > 0)
+        if (time > 0 && _gameLogic.isCombatMode)
         {
             DeepProfiler.BeginSample(DPEntry.DFGSystem, workerIndex);
             DeepProfiler.BeginSample(DPEntry.DFGBase, workerIndex);
