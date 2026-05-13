@@ -514,6 +514,23 @@ internal static class OptimizedStarCluster
 
     private static void ExecuteSimulation(GameLogic gameLogic, PlanetFactory?[] planets)
     {
+        // LogicFrame variables update
+        DeepProfiler.BeginSample(DPEntry.Scheduling, -1, 1L);
+        gameLogic.timef = gameLogic.main.timef;
+        gameLogic.timei = gameLogic.main.timei;
+        gameLogic.timef_once = gameLogic.main.timef_once;
+        gameLogic.timei_once = gameLogic.main.timei_once;
+        gameLogic.deltaTime = 1f / 60f;
+        gameLogic.deltaTime_lf = 1.0 / 60.0;
+        gameLogic.sandbox_tool_enabled = GameMain.sandboxToolsEnabled;
+        gameLogic.isPrologue = gameLogic.timei == 0;
+        EnemyUnitComponent.gameTick = gameLogic.timei;
+        gameLogic.CollectCombatSettings();
+        gameLogic.factories = gameLogic.data.factories;
+        gameLogic.factoryCount = gameLogic.data.factoryCount;
+        gameLogic.localLoadedFactory = gameLogic.data.localLoadedPlanetFactory;
+        DeepProfiler.EndSample(DPEntry.Scheduling);
+
         _workStealingMultiThreadedFactorySimulation.Simulate(gameLogic, planets);
     }
 
