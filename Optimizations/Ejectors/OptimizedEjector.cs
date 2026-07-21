@@ -8,8 +8,8 @@ namespace Weaver.Optimizations.Ejectors;
 internal struct EjectorBulletData
 {
     public readonly short BulletId;
-    public byte BulletCount;
-    public byte BulletInc;
+    public ushort BulletCount;
+    public ushort BulletInc;
 
     public EjectorBulletData(int bulletId, int bulletCount, int bulletInc)
     {
@@ -17,23 +17,23 @@ internal struct EjectorBulletData
         {
             throw new ArgumentOutOfRangeException(nameof(bulletId), $"{nameof(bulletId)} was not within the bounds of a short. Value: {bulletId}");
         }
-        if (bulletCount < 0 || bulletCount > byte.MaxValue)
+        if (bulletCount < 0 || bulletCount > ushort.MaxValue)
         {
-            throw new ArgumentOutOfRangeException(nameof(bulletCount), $"{nameof(bulletCount)} was not within the bounds of a byte. Value: {bulletCount}");
+            throw new ArgumentOutOfRangeException(nameof(bulletCount), $"{nameof(bulletCount)} was not within the bounds of a ushort. Value: {bulletCount}");
         }
-        if (bulletInc < 0 || bulletInc > byte.MaxValue)
+        if (bulletInc < 0 || bulletInc > ushort.MaxValue)
         {
-            throw new ArgumentOutOfRangeException(nameof(bulletInc), $"{nameof(bulletInc)} was not within the bounds of a byte. Value: {bulletInc}");
+            throw new ArgumentOutOfRangeException(nameof(bulletInc), $"{nameof(bulletInc)} was not within the bounds of a ushort. Value: {bulletInc}");
         }
 
         BulletId = (short)bulletId;
-        BulletCount = (byte)bulletCount;
-        BulletInc = (byte)bulletInc;
+        BulletCount = (ushort)bulletCount;
+        BulletInc = (ushort)bulletInc;
     }
 
     public short TakeOneBulletUnsafe(out byte inc)
     {
-        inc = (byte)((BulletInc >= 0) ? ((uint)(BulletInc / BulletCount)) : 0u);
+        inc = (byte)((BulletInc >= 0) ? Math.Min((uint)(BulletInc / BulletCount), byte.MaxValue) : 0u);
         BulletCount--;
         BulletInc -= inc;
         return BulletId;
@@ -355,7 +355,7 @@ internal struct OptimizedEjector
                 {
                     incUsed = num18 > 0;
                 }
-                bulletData.BulletInc -= (byte)num18;
+                bulletData.BulletInc -= (ushort)num18;
                 bulletData.BulletCount--;
                 if (bulletData.BulletCount == 0)
                 {
