@@ -120,10 +120,10 @@ internal unsafe struct BeltBuffer
 
     public readonly int GetIndexOfNonZeroValue(int beltStartIndex, int length)
     {
-        if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length - 1))
+        if (IsInSameRegion(beltStartIndex, beltStartIndex + length - 1, out bool isInStoppedRegion))
         {
             byte* buffer = _buffer;
-            int actualIndex = GetActualIndex(beltStartIndex);
+            int actualIndex = GetActualIndex(beltStartIndex, isInStoppedRegion);
             for (int i = 0; i < length; i++)
             {
                 if (*(buffer + actualIndex + i) != 0)
@@ -148,9 +148,9 @@ internal unsafe struct BeltBuffer
 
     public readonly bool TryGetCargoWithinRange(int beltStartIndex, int length, out OptimizedCargo optimizedCargo, out int actualIndex)
     {
-        if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length - 1))
+        if (IsInSameRegion(beltStartIndex, beltStartIndex + length - 1, out bool isInStoppedRegion))
         {
-            actualIndex = GetActualIndex(beltStartIndex);
+            actualIndex = GetActualIndex(beltStartIndex, isInStoppedRegion);
             for (int i = 0; i < length; i++)
             {
                 int bufferValue = GetBufferValueFromActualIndex(actualIndex + i);
@@ -187,11 +187,9 @@ internal unsafe struct BeltBuffer
 
     public readonly bool TryFindIndexOfFirstPreviousZeroValue(ref int index, ref int num, int num2)
     {
-        int beltStartIndex = num2 + 1;
-        int length = index - num2;
-        if (IsInStoppedRegion(beltStartIndex) == IsInStoppedRegion(beltStartIndex + length))
+        if (IsInSameRegion(num, num2, out bool isInStoppedRegion))
         {
-            int actualIndex = GetActualIndex(num);
+            int actualIndex = GetActualIndex(num, isInStoppedRegion);
             while (index > num2)
             {
                 if (GetBufferValueFromActualIndex(actualIndex) != 0)
@@ -225,10 +223,6 @@ internal unsafe struct BeltBuffer
     {
         int actualIndex = GetActualIndex(beltIndex);
         _buffer[actualIndex] = value;
-        if (value > 0)
-        {
-            return;
-        }
 
         _updatedActualIndex = Math.Max(_updatedActualIndex, actualIndex);
     }
@@ -672,7 +666,12 @@ internal unsafe struct BeltBuffer
 
     public readonly int GetActualIndex(int beltIndex)
     {
-        if (IsInStoppedRegion(beltIndex))
+        return GetActualIndex(beltIndex, IsInStoppedRegion(beltIndex));
+    }
+
+    public readonly int GetActualIndex(int beltIndex, bool isInStoppedRegion)
+    {
+        if (isInStoppedRegion)
         {
             return beltIndex + _maxOffsetBeforeMove;
         }
@@ -680,6 +679,14 @@ internal unsafe struct BeltBuffer
         {
             return beltIndex + _maxOffsetBeforeMove - _offset;
         }
+    }
+
+    private readonly bool IsInSameRegion(int beltIndexA, int beltIndexB, out bool isInStoppedRegion)
+    {
+        bool isBeltAInStoppedRegion = IsInStoppedRegion(beltIndexA);
+        bool isBeltBInStoppedRegion = IsInStoppedRegion(beltIndexB);
+        isInStoppedRegion = isBeltAInStoppedRegion;
+        return isBeltAInStoppedRegion == isBeltBInStoppedRegion;
     }
 
     private readonly bool IsInStoppedRegion(int beltIndex) => beltIndex + _maxOffsetBeforeMove >= _stoppedItemsActualIndex;
