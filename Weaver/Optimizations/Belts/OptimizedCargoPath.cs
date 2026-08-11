@@ -862,13 +862,23 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public readonly bool GetCargoAtIndex(int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="index"></param>
+    /// <param name="cargo"></param>
+    /// <param name="cargoBufferIndex"></param>
+    /// <param name="offset"></param>
+    /// <param name="actualCargoBufferIndex">Start index of 10 length cargo.</param>
+    /// <returns></returns>
+    public readonly bool GetCargoAtIndex(int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset, out int actualCargoBufferIndex)
     {
-        cargo = new OptimizedCargo(0, 1, 0);
         offset = -1;
+        actualCargoBufferIndex = -1;
         byte b = buffer.GetBufferValue(index);
         if (b == 0)
         {
+            cargo = default;
             cargoBufferIndex = -1;
             return false;
         }
@@ -888,13 +898,15 @@ internal struct OptimizedCargoPath
                 }
             }
         }
-        if (num >= 0 && buffer.TryGetCargo(num, out cargo))
+        if (num >= 0 && buffer.TryGetCargo(num, out cargo, out actualCargoBufferIndex))
         {
             cargoBufferIndex = num + 1;
             offset = index - num + 4;
+            actualCargoBufferIndex -= CargoPath.kCargoLeftMargin;
             return true;
         }
 
+        cargo = default;
         cargoBufferIndex = -1;
         return false;
     }

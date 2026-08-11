@@ -108,7 +108,7 @@ internal unsafe struct BeltBuffer
     {
         byte* buffer = _buffer;
         actualIndex = GetActualIndex(beltIndex);
-        if (buffer[actualIndex] != 250)
+        if (buffer[actualIndex] != CargoPath.kCargoSign)
         {
             optimizedCargo = default;
             return false;

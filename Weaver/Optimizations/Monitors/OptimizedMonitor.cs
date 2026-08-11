@@ -47,19 +47,22 @@ internal readonly struct OptimizedMonitor
             monitor.prewarmSampleTick++;
         }
         ref OptimizedCargoPath targetBelt = ref targetBeltIndex.GetBelt(optimizedCargoPaths);
-        GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num3, out var cargo, out int cargoBufferIndex, out int num5);
-        if (monitor.lastCargoId == -1 && cargoBufferIndex >= 0)
+        if (GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num3, out var cargo, out int cargoBufferIndex, out int num5))
         {
-            num = cargoBufferIndex != monitor.formerCargoId ? num + (10 - num5 - 1) * cargo.Stack : num - (num5 + 1) * cargo.Stack;
+            if (monitor.lastCargoId == -1)
+            {
+                num = cargoBufferIndex != monitor.formerCargoId ? num + (10 - num5 - 1) * cargo.Stack : num - (num5 + 1) * cargo.Stack;
+            }
+            else if (monitor.lastCargoId >= 0)
+            {
+                num = monitor.lastCargoId == cargoBufferIndex ? num + (monitor.lastCargoOffset - num5) * cargo.Stack : monitor.formerCargoId != cargoBufferIndex ? num + (monitor.lastCargoOffset + 1) * monitor.lastCargoStack + (10 - num5 - 1) * cargo.Stack : num + ((monitor.lastCargoOffset + 1) * monitor.lastCargoStack + (10 - num5 - 1) * cargo.Stack - 10 * (monitor.lastCargoStack + cargo.Stack));
+            }
         }
-        else if (monitor.lastCargoId >= 0 && cargoBufferIndex >= 0)
-        {
-            num = monitor.lastCargoId == cargoBufferIndex ? num + (monitor.lastCargoOffset - num5) * cargo.Stack : monitor.formerCargoId != cargoBufferIndex ? num + (monitor.lastCargoOffset + 1) * monitor.lastCargoStack + (10 - num5 - 1) * cargo.Stack : num + ((monitor.lastCargoOffset + 1) * monitor.lastCargoStack + (10 - num5 - 1) * cargo.Stack - 10 * (monitor.lastCargoStack + cargo.Stack));
-        }
-        else if (monitor.lastCargoId >= 0 && cargoBufferIndex == -1)
+        else if (monitor.lastCargoId >= 0)
         {
             num += (monitor.lastCargoOffset + 1) * monitor.lastCargoStack;
         }
+
         if (num4 < targetBelt.pathLength)
         {
             GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num4, out var _, out monitor.formerCargoId, out _);
@@ -184,8 +187,7 @@ internal readonly struct OptimizedMonitor
                     bool flag = true;
                     for (int i = 0; i < targetBeltSpeed; i++)
                     {
-                        GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num + i, out _, out int cargoBufferIndex, out _);
-                        if (cargoBufferIndex < 0)
+                        if (!GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num + i, out _, out int _, out _))
                         {
                             flag = false;
                             break;
@@ -212,8 +214,7 @@ internal readonly struct OptimizedMonitor
                                 int num4 = num + j;
                                 num4 = num4 < num3 ? num3 : num4;
                                 num4 = num4 >= pathLength ? pathLength - 1 : num4;
-                                GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num4, out _, out int cargoBufferIndex, out _);
-                                if (cargoBufferIndex < 0)
+                                if (!GetCargoAtIndexByFilter(monitor.cargoFilter, ref targetBelt, num4, out _, out int _, out _))
                                 {
                                     flag = false;
                                     break;
@@ -231,14 +232,17 @@ internal readonly struct OptimizedMonitor
         }
     }
 
-    private static void GetCargoAtIndexByFilter(int filter, ref OptimizedCargoPath targetBelt, int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
+    private static bool GetCargoAtIndexByFilter(int filter, ref OptimizedCargoPath targetBelt, int index, out OptimizedCargo cargo, out int cargoBufferIndex, out int offset)
     {
-        targetBelt.GetCargoAtIndex(index, out cargo, out cargoBufferIndex, out offset);
-        if (cargoBufferIndex >= 0 && cargo.Item != filter && filter != 0)
+        cargo = default;
+        cargoBufferIndex = -1;
+        offset = -1;
+        if (filter == 0)
         {
-            cargo.Item = 0;
-            cargoBufferIndex = -1;
-            offset = -1;
+            return false;
         }
+
+        return targetBelt.GetCargoAtIndex(index, out cargo, out cargoBufferIndex, out offset, out _) &&
+               cargo.Item == filter;
     }
 }
