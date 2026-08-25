@@ -745,7 +745,7 @@ internal struct OptimizedCargoPath
         if (buffer.TryGetCargoWithinRange(index, num - index, out optimizedCargo, out int actualIndex))
         {
             int item = optimizedCargo.Item;
-            if ((filter == 0 || item == filter) && AnyMatch(componentNeeds, needsPatterns, needsSize, item))
+            if ((filter == 0 || item == filter) && componentNeeds.AnyMatch(needsPatterns, item, needsSize))
             {
                 buffer.ClearFromActualIndex(actualIndex - 4, 10);
                 return;
@@ -995,19 +995,6 @@ internal struct OptimizedCargoPath
         lastUpdateFrameOdd = (time & 1) == 1;
 
         buffer.Update(chunkCount, chunks);
-    }
-
-    private static bool AnyMatch(ComponentNeeds componentNeeds, short[] needsPatterns, int needsSize, int match)
-    {
-        for (int i = 0; i < needsSize; i++)
-        {
-            if (componentNeeds.GetNeeds(i) && needsPatterns[componentNeeds.PatternIndex + i] == match)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static void AddItemStackToCargo(ref OptimizedCargo cargo, int itemId, int maxStack, ref int count, ref int inc)

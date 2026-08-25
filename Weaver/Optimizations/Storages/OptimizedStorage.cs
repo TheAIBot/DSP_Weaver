@@ -30,7 +30,7 @@ internal sealed class OptimizedStorage
             {
                 result = true;
                 int gridItemIndex = storageComponent.grids[num2].itemId;
-                if (IsInNeed(gridItemIndex, componentNeeds, needsPatterns, needsSize))
+                if (componentNeeds.AnyMatch(needsPatterns, gridItemIndex, needsSize))
                 {
                     itemId = storageComponent.grids[num2].itemId;
                     if (storageComponent.grids[num2].count > num)
@@ -125,21 +125,5 @@ internal sealed class OptimizedStorage
             storageComponent.NotifyStorageChange();
         }
         return result;
-    }
-
-    private static bool IsInNeed(int productItemIndex,
-                                 ComponentNeeds componentNeeds,
-                                 short[] needsPatterns,
-                                 int needsSize)
-    {
-        for (int i = 0; i < needsSize; i++)
-        {
-            if (componentNeeds.GetNeeds(i) && needsPatterns[componentNeeds.PatternIndex + i] == productItemIndex)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

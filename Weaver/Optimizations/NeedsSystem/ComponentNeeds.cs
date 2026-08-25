@@ -17,4 +17,17 @@ internal struct ComponentNeeds
     {
         return ((Needs >> index) & 1) == 1;
     }
+
+    public readonly bool AnyMatch(short[] needsPatterns, int match, int needsSize)
+    {
+        for (int i = 0; i < needsSize; i++)
+        {
+            if (GetNeeds(i) && needsPatterns[PatternIndex + i] == match)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

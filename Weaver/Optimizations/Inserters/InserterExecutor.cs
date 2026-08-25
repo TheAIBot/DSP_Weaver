@@ -327,15 +327,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             return true;
         }
 
-        for (int i = 0; i < needsSize; i++)
-        {
-            if (componentNeeds.GetNeeds(i) && needsPatterns[componentNeeds.PatternIndex + i] == productItemIndex)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return componentNeeds.AnyMatch(needsPatterns, productItemIndex, needsSize);
     }
 
     public short PickFuelForPowerGenFrom(PlanetFactory planet,
