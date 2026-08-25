@@ -98,6 +98,52 @@ internal sealed class BeltComparer
         return oldInserted == optimizedInserted;
     }
 
+    public bool TryQueryItem(int index)
+    {
+        int oldItem = _original.QueryItemAtIndex(index, out byte oldStack, out byte oldInc);
+        bool optimizedFound = _optimized.QueryItemAtIndex(index, out OptimizedCargo optimizedCargo, out _);
+
+        if (oldItem == 0)
+        {
+            return !optimizedFound;
+        }
+        if (!optimizedFound)
+        {
+            return false;
+        }
+
+        return oldItem == optimizedCargo.Item &&
+               oldStack == optimizedCargo.Stack &&
+               oldInc == optimizedCargo.Inc;
+    }
+
+    public bool TryGetCargoAtIndex(int index)
+    {
+        bool oldFound = _original.GetCargoAtIndex(index, out GameCode.Cargo oldCargo, out _, out _);
+        bool optimizedFound = _optimized.GetCargoAtIndex(index, out OptimizedCargo optimizedCargo, out _, out _, out _);
+
+        if (oldFound != optimizedFound)
+        {
+            return false;
+        }
+        if (!oldFound)
+        {
+            return true;
+        }
+
+        return oldCargo.item == optimizedCargo.Item &&
+               oldCargo.stack == optimizedCargo.Stack &&
+               oldCargo.inc == optimizedCargo.Inc;
+    }
+
+    public bool TryRemoveCargoAtIndex(int index)
+    {
+        bool oldRemoved = _original.RemoveCargoAtIndex(index);
+        bool optimizedRemoved = _optimized.RemoveCargoAtIndex(index);
+        return oldRemoved == optimizedRemoved;
+    }
+
+
     public void Update()
     {
         _original.Update(_time);
