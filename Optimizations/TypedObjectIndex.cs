@@ -19,7 +19,7 @@ internal readonly struct TypedObjectIndex : IEquatable<TypedObjectIndex>
     {
         if ((int)entityType < 0 || (int)entityType > EntityTypeMask)
         {
-            throw new ArgumentOutOfRangeException(nameof(index), $"{entityType} was outside the range {0} to {EntityTypeMask:N0}");
+            throw new ArgumentOutOfRangeException(nameof(entityType), $"{entityType} was outside the range {0} to {EntityTypeMask:N0}");
         }
         if (index < 0 || index > IndexBitMask)
         {
@@ -29,7 +29,7 @@ internal readonly struct TypedObjectIndex : IEquatable<TypedObjectIndex>
         _value = (uint)entityType << IndexBitCount | IndexBitMask & (uint)index;
     }
 
-    public static bool operator==(TypedObjectIndex left, TypedObjectIndex right)
+    public static bool operator ==(TypedObjectIndex left, TypedObjectIndex right)
     {
         return left._value == right._value;
     }

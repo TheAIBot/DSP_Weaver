@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Weaver.Optimizations.PowerSystems;
+using Weaver.Extensions;
 using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Statistics;
@@ -13,14 +12,8 @@ internal readonly struct OptimizedItemId : IEquatable<OptimizedItemId>, IMemoryS
 
     public OptimizedItemId(int itemIndex, int optimizedItemIndex)
     {
-        if (itemIndex > short.MaxValue || itemIndex < short.MinValue)
-        {
-            throw new InvalidOperationException($"Assumption that {nameof(itemIndex)} first in a short is not correct.");
-        }
-        if (optimizedItemIndex > short.MaxValue || optimizedItemIndex < short.MinValue)
-        {
-            throw new InvalidOperationException($"Assumption that {nameof(optimizedItemIndex)} first in a short is not correct.");
-        }
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(itemIndex);
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(optimizedItemIndex);
 
         ItemIndex = (short)itemIndex;
         OptimizedItemIndex = (short)optimizedItemIndex;
@@ -30,7 +23,7 @@ internal readonly struct OptimizedItemId : IEquatable<OptimizedItemId>, IMemoryS
 
     public readonly bool Equals(OptimizedItemId other)
     {
-        return ItemIndex == other.ItemIndex && 
+        return ItemIndex == other.ItemIndex &&
                OptimizedItemIndex == other.OptimizedItemIndex;
     }
 

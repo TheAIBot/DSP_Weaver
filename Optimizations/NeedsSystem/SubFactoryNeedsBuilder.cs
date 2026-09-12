@@ -30,9 +30,12 @@ internal sealed class SubFactoryNeedsBuilder
         }
 
         int newPatternIndex = _needsPatternsFlat.Count;
-        if (newPatternIndex > short.MaxValue || newPatternIndex < short.MinValue)
+        if (newPatternIndex > short.MaxValue || newPatternIndex < 0)
         {
-            throw new InvalidOperationException($"Assumption that {nameof(newPatternIndex)} fits in a short is not correct.");
+            throw new InvalidOperationException($"""
+                Assumption that {nameof(newPatternIndex)} fits in 0 to short max value is not correct.
+                Value: {newPatternIndex}
+                """);
         }
 
         for (int i = 0; i < largestGroupPatternSize; i++)
@@ -44,9 +47,12 @@ internal sealed class SubFactoryNeedsBuilder
             }
 
             int patternValue = needsPattern.Pattern[i];
-            if (patternValue > short.MaxValue || patternValue < short.MinValue)
+            if (patternValue > short.MaxValue || patternValue < 0)
             {
-                throw new InvalidOperationException($"Assumption that {nameof(patternValue)} fits in a short is not correct.");
+                throw new InvalidOperationException($"""
+                    Assumption that {nameof(patternValue)} fits in 0 to short max value is not correct.
+                    Value: {patternValue}
+                    """);
             }
 
             _needsPatternsFlat.Add((short)patternValue);

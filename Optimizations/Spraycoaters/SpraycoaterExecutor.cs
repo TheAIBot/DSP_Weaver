@@ -186,7 +186,11 @@ internal sealed class SpraycoaterExecutor
             int[] newIncItemIds = LDB.models.Select(planet.cargoTraffic.factory.entityPool[spraycoater.entityId].modelIndex).prefabDesc.incItemId;
             if (incItemIds != null && !incItemIds.SequenceEqual(newIncItemIds))
             {
-                throw new InvalidOperationException($"Assumption that {nameof(incItemIds)} is the same for all spray coaters is not correct.");
+                throw new InvalidOperationException($"""
+                    Assumption that {nameof(incItemIds)} is the same for all spray coaters is incorrect.
+                    Previous {nameof(incItemIds)}: {string.Join(", ", incItemIds)}
+                    Current {nameof(incItemIds)}: {string.Join(", ", newIncItemIds)}
+                    """);
             }
             incItemIds = newIncItemIds;
 

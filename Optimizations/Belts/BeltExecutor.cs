@@ -1,5 +1,4 @@
-﻿using Steamworks;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -114,6 +113,7 @@ internal sealed class BeltExecutor
                 if (num4 >= oldCargoPool.Length || num4 < 0 || num3 >= cargoPath.pointPos.Length)
                 {
                     Assert.CannotBeReached();
+                    throw new InvalidOperationException("Cannot be reached");
                 }
                 else
                 {
@@ -136,7 +136,7 @@ internal sealed class BeltExecutor
                 continue;
             }
             Assert.CannotBeReached("断言失败：buffer数据有误");
-            break;
+            throw new InvalidOperationException("Cannot be reached");
         }
 
         return bufferCopy;
@@ -149,7 +149,12 @@ internal sealed class BeltExecutor
     {
         if (bufferCopy.Length != optimizedCargoPath.buffer.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(bufferCopy), $"{nameof(bufferCopy)} did not have the same length as {nameof(optimizedCargoPath)}.{nameof(optimizedCargoPath.buffer)}.");
+            throw new ArgumentOutOfRangeException(nameof(bufferCopy),
+                                                  $"""
+                                                  {nameof(bufferCopy)} did not have the same length as {nameof(optimizedCargoPath)}.{nameof(optimizedCargoPath.buffer)}.
+                                                  Game buffer length: {bufferCopy.Length}
+                                                  Optimized buffer length: {optimizedCargoPath.buffer.Length}
+                                                  """);
         }
         Array.Copy(optimizedCargoPath.buffer, bufferCopy, optimizedCargoPath.buffer.Length);
 
@@ -182,7 +187,7 @@ internal sealed class BeltExecutor
                 continue;
             }
             Assert.CannotBeReached("断言失败：buffer数据有误");
-            break;
+            throw new InvalidOperationException("Cannot be reached");
         }
     }
 

@@ -6,10 +6,7 @@ internal static class ConverterUtilities
 {
     public static short ThrowIfNotWithinPositiveShortRange(int value, string name)
     {
-        if (value < 0 || value > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(name, $"{name} was not within the bounds of a short. Value: {value}");
-        }
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(value, name);
 
         return (short)value;
     }

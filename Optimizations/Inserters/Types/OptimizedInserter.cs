@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Weaver.Extensions;
 using Weaver.FatoryGraphs;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.NeedsSystem;
@@ -19,10 +20,7 @@ internal readonly struct InserterGrade : IInserterGrade<InserterGrade>, IMemoryS
 
     public InserterGrade(int delay, byte stackInput, byte stackOutput, bool careNeeds, int filter, int stt)
     {
-        if (filter < 0 || filter > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(filter), $"{nameof(filter)} was not within the bounds of a short. Value: {filter}");
-        }
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(filter);
 
         Delay = delay;
         StackInput = stackInput;
@@ -92,15 +90,8 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
 
     public OptimizedInserter(ref readonly InserterComponent inserter, int pickFromOffset, int insertIntoOffset, int grade)
     {
-        if (grade < 0 || grade > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(grade), $"{nameof(grade)} was not within the bounds of a short. Value: {grade}");
-        }
-
-        if (inserter.itemId < 0 || inserter.itemId > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(inserter.itemId), $"{nameof(inserter.itemId)} was not within the bounds of a short. Value: {inserter.itemId}");
-        }
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(grade);
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(inserter.itemId);
 
         this.grade = (short)grade;
         pickOffset = pickFromOffset;

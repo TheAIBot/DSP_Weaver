@@ -93,14 +93,22 @@ internal sealed class SolarGeneratorExecutor
 
             if (subId.HasValue && subId != powerGenerator.subId)
             {
-                throw new InvalidOperationException($"Assumption that {nameof(PowerGeneratorComponent.subId)} is the same for all solar machines is incorrect.");
+                throw new InvalidOperationException($"""
+                    Assumption that {nameof(PowerGeneratorComponent.subId)} is the same for all solar machines is incorrect.
+                    Previous {nameof(PowerGeneratorComponent.subId)}: {subId}
+                    Current {nameof(PowerGeneratorComponent.subId)}: {powerGenerator.subId}
+                    """);
             }
             subId = powerGenerator.subId;
 
             int componentPrototypeId = planet.entityPool[powerGenerator.entityId].protoId;
             if (prototypeId.HasValue && prototypeId != componentPrototypeId)
             {
-                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all solar machines is incorrect.");
+                throw new InvalidOperationException($"""
+                    Assumption that {nameof(EntityData.protoId)} is the same for all solar machines is incorrect.
+                    Previous {nameof(EntityData.protoId)}: {prototypeId}
+                    Current {nameof(EntityData.protoId)}: {componentPrototypeId}
+                    """);
             }
             prototypeId = componentPrototypeId;
 

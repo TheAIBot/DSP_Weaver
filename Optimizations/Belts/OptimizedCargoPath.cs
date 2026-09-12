@@ -205,6 +205,7 @@ internal struct OptimizedCargoPath
                 return true;
             }
             Assert.CannotBeReached("断言失败：插入货物逻辑有误");
+            throw new InvalidOperationException("Cannot be reached");
         }
         return false;
     }
@@ -374,6 +375,7 @@ internal struct OptimizedCargoPath
                 return true;
             }
             Assert.CannotBeReached("断言失败：插入货物逻辑有误");
+            throw new InvalidOperationException("Cannot be reached");
         }
         return false;
     }
@@ -643,6 +645,7 @@ internal struct OptimizedCargoPath
         else
         {
             Assert.CannotBeReached("断言失败：插入货物逻辑有误");
+            throw new InvalidOperationException("Cannot be reached");
         }
     }
 
@@ -773,8 +776,7 @@ internal struct OptimizedCargoPath
             }
         }
         Assert.CannotBeReached();
-        cargoBufferIndex = -1;
-        return default;
+        throw new InvalidOperationException("Cannot be reached");
     }
 
     public bool RemoveCargoAtIndex(int index)
@@ -811,7 +813,7 @@ internal struct OptimizedCargoPath
             }
         }
         Assert.CannotBeReached();
-        return false;
+        throw new InvalidOperationException("Cannot be reached");
     }
 
     public bool TryPickFuel(int index, int length, int filter, OptimizedItemId[]? fuelMask, out OptimizedCargo optimizedCargo)

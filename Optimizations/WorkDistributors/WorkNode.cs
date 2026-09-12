@@ -21,7 +21,7 @@ internal sealed class WorkNode : IWorkNode
     {
         if (workNodes.Any(x => x.Length == 0))
         {
-            throw new InvalidOperationException("");
+            throw new InvalidOperationException("Code does not support handling empty work node sub arrays.");
         }
         if (workNodes.Length == 0)
         {

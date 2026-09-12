@@ -168,7 +168,7 @@ internal sealed class StarClusterWorkManager : IDisposable
     {
         if (_factorySimulationRootWorkNode == null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Error in Weaver logic. {nameof(_factorySimulationRootWorkNode)} was null.");
         }
 
         return _factorySimulationRootWorkNode;
@@ -178,7 +178,7 @@ internal sealed class StarClusterWorkManager : IDisposable
     {
         if (_defenseSystemTurretRootWorkNode == null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Error in Weaver logic. {nameof(_defenseSystemTurretRootWorkNode)} was null.");
         }
 
         return _defenseSystemTurretRootWorkNode;
@@ -188,7 +188,7 @@ internal sealed class StarClusterWorkManager : IDisposable
     {
         if (_dysonSphereAttachRootWorkNode == null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Error in Weaver logic. {nameof(_dysonSphereAttachRootWorkNode)} was null.");
         }
 
         return _dysonSphereAttachRootWorkNode;
@@ -198,19 +198,19 @@ internal sealed class StarClusterWorkManager : IDisposable
     {
         if (_factorySimulationRootWorkNode == null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Error in Weaver logic. {nameof(_factorySimulationRootWorkNode)} was null.");
         }
         _factorySimulationRootWorkNode.Reset();
 
         if (_defenseSystemTurretRootWorkNode == null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Error in Weaver logic. {nameof(_defenseSystemTurretRootWorkNode)} was null.");
         }
         _defenseSystemTurretRootWorkNode.Reset();
 
         if (_dysonSphereAttachRootWorkNode == null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Error in Weaver logic. {nameof(_dysonSphereAttachRootWorkNode)} was null.");
         }
         _dysonSphereAttachRootWorkNode.Reset();
     }
@@ -230,7 +230,7 @@ internal sealed class StarClusterWorkManager : IDisposable
     {
         if (_factorySimulationRootWorkNode == null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Error in Weaver logic. {nameof(_factorySimulationRootWorkNode)} was null.");
         }
 
         return _factorySimulationRootWorkNode.GetAllWorkChunks();

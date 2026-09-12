@@ -164,14 +164,22 @@ internal sealed class PowerExchangerExecutor
 
             if (subId.HasValue && subId != powerExchanger.subId)
             {
-                throw new InvalidOperationException($"Assumption that {nameof(PowerExchangerComponent.subId)} is the same for all power exchangers is incorrect.");
+                throw new InvalidOperationException($"""
+                    Assumption that {nameof(PowerExchangerComponent.subId)} is the same for all power exchanger machines is incorrect.
+                    Previous {nameof(PowerExchangerComponent.subId)}: {subId}
+                    Current {nameof(PowerExchangerComponent.subId)}: {powerExchanger.subId}
+                    """);
             }
             subId = powerExchanger.subId;
 
             int componentPrototypeId = planet.entityPool[powerExchanger.entityId].protoId;
             if (prototypeId.HasValue && prototypeId != componentPrototypeId)
             {
-                throw new InvalidOperationException($"Assumption that {nameof(EntityData.protoId)} is the same for all power exchanger machines is incorrect.");
+                throw new InvalidOperationException($"""
+                    Assumption that {nameof(EntityData.protoId)} is the same for all power exchanger machines is incorrect.
+                    Previous {nameof(EntityData.protoId)}: {prototypeId}
+                    Current {nameof(EntityData.protoId)}: {componentPrototypeId}
+                    """);
             }
             prototypeId = componentPrototypeId;
 

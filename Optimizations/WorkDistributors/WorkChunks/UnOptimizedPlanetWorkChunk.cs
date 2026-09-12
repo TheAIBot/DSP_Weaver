@@ -334,7 +334,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.Miner} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Miner} work on a null factory.");
             }
 
             ParallelMinerGameTick(workerIndex, time, isActive);
@@ -343,7 +343,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.Fractionator} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Fractionator} work on a null factory.");
             }
 
             ParallelFractionatorGameTick(workerIndex, time, isActive);
@@ -352,7 +352,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.Ejector} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Ejector} work on a null factory.");
             }
 
             ParallelEjectorGameTick(workerIndex, time, isActive);
@@ -361,7 +361,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.Silo} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Silo} work on a null factory.");
             }
 
             ParallelSiloGameTick(workerIndex, time, isActive);
@@ -370,7 +370,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.Assembler} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.Assembler} work on a null factory.");
             }
 
             ParallelAssemblerGameTick(workerIndex, time, isActive);
@@ -379,7 +379,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.LabProduce} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.LabProduce} work on a null factory.");
             }
 
             ParallelLabProduceGameTick(workerIndex, time, isActive);
@@ -394,7 +394,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.LabOutput2NextData} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.LabOutput2NextData} work on a null factory.");
             }
 
             DeepProfiler.BeginSample(DPEntry.Lab, workerIndex);
@@ -417,7 +417,7 @@ internal sealed class UnOptimizedPlanetWorkChunk : IWorkChunk
         {
             if (_planet.factorySystem == null)
             {
-                throw new InvalidOperationException($"Attempted to execute {WorkType.InserterData} work on a null planet.");
+                throw new InvalidOperationException($"Attempted to execute {WorkType.InserterData} work on a null factory.");
             }
 
             ParallelInserterGameTick(workerIndex, time, isActive);

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Weaver.Extensions;
 using Weaver.Optimizations.StaticData;
 
 namespace Weaver.Optimizations.Statistics;
@@ -171,14 +172,8 @@ internal readonly struct ItemIdWithOptimizedRegisterIndex : IEquatable<ItemIdWit
 
     public ItemIdWithOptimizedRegisterIndex(int itemIndex, int optimizedRegisterIndex)
     {
-        if (itemIndex > short.MaxValue || itemIndex < short.MinValue)
-        {
-            throw new InvalidOperationException($"Assumption that {nameof(itemIndex)} first in a short is not correct.");
-        }
-        if (optimizedRegisterIndex > short.MaxValue || optimizedRegisterIndex < short.MinValue)
-        {
-            throw new InvalidOperationException($"Assumption that {nameof(optimizedRegisterIndex)} first in a short is not correct.");
-        }
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(itemIndex);
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(optimizedRegisterIndex);
 
         ItemIndex = (short)itemIndex;
         OptimizedRegisterIndex = (short)optimizedRegisterIndex;

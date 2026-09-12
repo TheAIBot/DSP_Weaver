@@ -107,23 +107,39 @@ internal static class KillStatisticsPatches
         bool?[]? isStarUpdated = _isStarUpdated;
         if (isStarUpdated == null)
         {
-            throw new InvalidOperationException($"{nameof(isStarUpdated)} was null");
+            throw new InvalidOperationException($"""
+                Weaver's statistics patch ran before its data was initialized ({nameof(PrepareTick_Parallelize)} never ran first). 
+                This should not happen in normal game flow.
+                {nameof(isStarUpdated)} was null
+                """);
         }
         List<KillStat>[]? starsStatistics = _starsStatistics;
         if (starsStatistics == null)
         {
-            throw new InvalidOperationException($"{nameof(starsStatistics)} was null");
+            throw new InvalidOperationException($"""
+                Weaver's statistics patch ran before its data was initialized ({nameof(PrepareTick_Parallelize)} never ran first). 
+                This should not happen in normal game flow.
+                {nameof(starsStatistics)} was null
+                """);
         }
 
         bool?[]? isPlanetUpdated = _isPlanetUpdated;
         if (isPlanetUpdated == null)
         {
-            throw new InvalidOperationException($"{nameof(isPlanetUpdated)} was null");
+            throw new InvalidOperationException($"""
+                Weaver's statistics patch ran before its data was initialized ({nameof(PrepareTick_Parallelize)} never ran first). 
+                This should not happen in normal game flow.
+                {nameof(isPlanetUpdated)} was null
+                """);
         }
         List<KillStat>[]? planetsStatistics = _planetsStatistics;
         if (planetsStatistics == null)
         {
-            throw new InvalidOperationException($"{nameof(planetsStatistics)} was null");
+            throw new InvalidOperationException($"""
+                Weaver's statistics patch ran before its data was initialized ({nameof(PrepareTick_Parallelize)} never ran first). 
+                This should not happen in normal game flow.
+                {nameof(planetsStatistics)} was null
+                """);
         }
 
         var parallelOptions = new ParallelOptions

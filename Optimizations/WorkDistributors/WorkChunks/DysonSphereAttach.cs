@@ -124,7 +124,7 @@ internal sealed class DysonSphereAttach : IWorkChunk
                         break;
                     default:
                         Assert.CannotBeReached();
-                        break;
+                        throw new InvalidOperationException("Cannot be reached");
                 }
             }
         }

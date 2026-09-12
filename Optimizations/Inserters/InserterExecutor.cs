@@ -291,7 +291,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else
         {
-            throw new InvalidOperationException($"Check if pick from is active does currently not support entity type of type: {objectIndex.EntityType}");
+            throw new InvalidOperationException($"Check if pick from is active does not currently support entity type: {objectIndex.EntityType}");
         }
     }
 
@@ -312,7 +312,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         }
         else
         {
-            throw new InvalidOperationException($"Check if insert into is active does currently not support entity type of type: {objectIndex.EntityType}");
+            throw new InvalidOperationException($"Check if insert into is active does not currently support entity type: {objectIndex.EntityType}");
         }
     }
 
@@ -1160,7 +1160,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         EInserterStage.Sending => OptimizedInserterStage.Sending,
         EInserterStage.Inserting => OptimizedInserterStage.Inserting,
         EInserterStage.Returning => OptimizedInserterStage.Returning,
-        _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
+        _ => throw new ArgumentOutOfRangeException(nameof(inserterStage), $"Value: {inserterStage}")
     };
 
     private static EInserterStage ToEInserterStage(OptimizedInserterStage inserterStage) => inserterStage switch
@@ -1169,7 +1169,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         OptimizedInserterStage.Sending => EInserterStage.Sending,
         OptimizedInserterStage.Inserting => EInserterStage.Inserting,
         OptimizedInserterStage.Returning => EInserterStage.Returning,
-        _ => throw new ArgumentOutOfRangeException(nameof(inserterStage))
+        _ => throw new ArgumentOutOfRangeException(nameof(inserterStage), $"Value: {inserterStage}")
     };
 
     private static int GetCorrectedPickOffset(int pickOffset, ref readonly BeltComponent belt, ref readonly OptimizedCargoPath cargoPath)

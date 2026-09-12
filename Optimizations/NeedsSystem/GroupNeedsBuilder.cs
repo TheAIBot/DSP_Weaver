@@ -12,7 +12,7 @@ internal sealed class GroupNeedsBuilder
     private readonly int _needsStartIndex;
     private readonly List<(int[] Needs, int[] Pattern)> _needsWithPatterns = [];
 
-    public GroupNeedsBuilder(SubFactoryNeedsBuilder needsBuilder, 
+    public GroupNeedsBuilder(SubFactoryNeedsBuilder needsBuilder,
                                 EntityType entityType,
                                 int needsStartIndex)
     {
@@ -48,12 +48,22 @@ internal sealed class GroupNeedsBuilder
     {
         if (pattern.Length > SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH)
         {
-            throw new InvalidOperationException($"Assumption that no needs pattern is larger than {SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH} was incorrect. Length: {pattern.Length}");
+            throw new InvalidOperationException($"""
+                An entity of type {_entityType} has a needs pattern with {pattern.Length} items,
+                but Weaver supports at most {SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH}.
+                This is either caused by a recent game update or a mod that adds very large
+                recipes to the game.
+                """);
         }
 
         if (needs.Length > SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH)
         {
-            throw new InvalidOperationException($"Assumption that no needs is larger than {SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH} was incorrect. Length: {needs.Length}");
+            throw new InvalidOperationException($"""
+                An entity of type {_entityType} has needs with {needs.Length} items,
+                but Weaver supports at most {SubFactoryNeedsBuilder.MAX_NEEDS_LENGTH}.
+                This is either caused by a recent game update or a mod that adds very large
+                recipes to the game.
+                """);
         }
 
         var needsPattern = new NeedsPattern(pattern, largestPatternSize);

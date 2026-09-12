@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using Weaver.Extensions;
 using Weaver.Optimizations.NeedsSystem;
 
 namespace Weaver.Optimizations.Ejectors;
@@ -13,18 +14,9 @@ internal struct EjectorBulletData
 
     public EjectorBulletData(int bulletId, int bulletCount, int bulletInc)
     {
-        if (bulletId < 0 || bulletId > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(bulletId), $"{nameof(bulletId)} was not within the bounds of a short. Value: {bulletId}");
-        }
-        if (bulletCount < 0 || bulletCount > byte.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(bulletCount), $"{nameof(bulletCount)} was not within the bounds of a byte. Value: {bulletCount}");
-        }
-        if (bulletInc < 0 || bulletInc > byte.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(nameof(bulletInc), $"{nameof(bulletInc)} was not within the bounds of a byte. Value: {bulletInc}");
-        }
+        ArgumentOutOfRangeException.ThrowIfOutsideZeroToShortMaxValue(bulletId);
+        ArgumentOutOfRangeException.ThrowIfOutsideByteStackSize(bulletCount);
+        ArgumentOutOfRangeException.ThrowIfProliferationOutsideZeroToMaxByteValue(bulletInc);
 
         BulletId = (short)bulletId;
         BulletCount = (byte)bulletCount;
