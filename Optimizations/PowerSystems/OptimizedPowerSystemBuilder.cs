@@ -249,18 +249,6 @@ internal sealed class OptimizedPowerSystemBuilder
 
     public OptimizedPowerSystem Build(PlanetWideBeltExecutor planetWideBeltExecutor)
     {
-        int[][] networkNonOptimizedPowerConsumerIndexes = new int[_planet.powerSystem.netCursor][];
-        for (int i = 0; i < networkNonOptimizedPowerConsumerIndexes.Length; i++)
-        {
-            if (!_networkIndexToOptimizedConsumerIndexes.TryGetValue(i, out HashSet<int> optimizedConsumerIndexes))
-            {
-                networkNonOptimizedPowerConsumerIndexes[i] = _planet.powerSystem.netPool[i].consumers.ToArray();
-                continue;
-            }
-
-            networkNonOptimizedPowerConsumerIndexes[i] = _planet.powerSystem.netPool[i].consumers.Except(optimizedConsumerIndexes).ToArray();
-        }
-
         OptimizedPowerNetwork[] optimizedPowerNetworks = GetOptimizedPowerNetworks(_planet, planetWideBeltExecutor, _networkIndexToOptimizedConsumerIndexes);
         Dictionary<OptimizedSubFactory, SubFactoryPowerConsumption> subFactoryToPowerConsumption = _subFactoryToPowerSystemBuilder.ToDictionary(x => x.Key, x => x.Value.Build(_universeStaticDataBuilder));
 
