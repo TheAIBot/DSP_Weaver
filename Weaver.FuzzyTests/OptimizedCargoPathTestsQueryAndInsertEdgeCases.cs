@@ -150,7 +150,7 @@ public sealed class OptimizedCargoPathTestsQueryAndInsertEdgeCases
         {
             if (i % addRate == 0)
             {
-                await TUnit.Assertions.Assert.That(comparer.TryInsertItem(insertionIndex, new TestCargo(3, 2, 1))).IsTrue();
+                await comparer.IsTruePrintBeltsIfFalseAsync(() => comparer.TryInsertItem(insertionIndex, new TestCargo(3, 2, 1)));
             }
 
             await TUnit.Assertions.Assert.That(comparer.TryQueryItem(queryIndex))
@@ -160,7 +160,9 @@ public sealed class OptimizedCargoPathTestsQueryAndInsertEdgeCases
                                          .IsTrue()
                                          .Because($"GetCargoAtIndex diverged at index {queryIndex}, frame {i}");
 
+            await comparer.AssertEqualAsync();
             comparer.Update();
+            await comparer.AssertEqualAsync();
         }
 
         await comparer.AssertEqualAsync();

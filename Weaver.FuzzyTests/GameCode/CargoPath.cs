@@ -68,12 +68,15 @@ public class CargoPath
         }
     }
 
-    public CargoPath(CargoContainer _cargoContainer, int[] chunks, int length)
+    public CargoPath(CargoContainer _cargoContainer, int[] chunks, int chunkCount, int length, bool closed)
     {
         cargoContainer = _cargoContainer;
         buffer = new byte[length];
         this.chunks = chunks;
+        this.chunkCount = chunkCount;
         bufferLength = length;
+        updateLen = length;
+        this.closed = closed;
     }
 
     public bool TryInsertCargo(int index, int cargoId)

@@ -10,7 +10,8 @@ internal sealed class BeltComparer
 {
     private readonly GameCode.CargoContainer _cargoContainer;
     private readonly GameCode.CargoPath _original;
-    private readonly OptimizedCargoPath _optimized;
+    // Can't be readonly because it is a mutable struct
+    private OptimizedCargoPath _optimized;
     private long _time;
 
     public BeltComparer(BeltChunk[] beltChunks, long time)
@@ -29,8 +30,7 @@ internal sealed class BeltComparer
         }
 
         _cargoContainer = new GameCode.CargoContainer();
-        _original = new GameCode.CargoPath(_cargoContainer, chunks, usedLength);
-        _original.chunks = chunks;
+        _original = new GameCode.CargoPath(_cargoContainer, chunks, beltChunks.Length, usedLength, true);
         _optimized = new OptimizedCargoPath(BeltBuffer.CreateFromExistingBuffer(new byte[usedLength], maxSpeed),
                                             new ReadonlyArray<int>(chunks),
                                             outputIndex: -1,
@@ -154,21 +154,30 @@ internal sealed class BeltComparer
 
     public async Task AssertEqualAsync()
     {
-        bool areOptimizedItemsValue = _optimized.buffer.IsAllCargoItemsValid();
-        if (!areOptimizedItemsValue)
-        {
-            byte[] optimizedValues = _optimized.buffer.GetBytesAsArray();
-            await TUnit.Assertions.Assert.That(areOptimizedItemsValue)
-                                         .IsTrue()
-                                         .Because($"""
-                                                  Optimized: [{string.Join(", ", optimizedValues.Select(x => $"{x,3}"))}]
-                                                  Old:       [{string.Join(", ", _original.buffer.Select(x => $"{x,3}"))}]
-                                                  """);
-        }
+        await IsTruePrintBeltsIfFalseAsync(_optimized.buffer.IsAllCargoItemsValid);
 
         for (int i = 0; i < _original.buffer.Length; i++)
         {
-            await TUnit.Assertions.Assert.That(TryGetItem(i)).IsTrue();
+            await IsTruePrintBeltsIfFalseAsync(() => TryQueryItem(i));
+        }
+    }
+
+    public Task IsTruePrintBeltsIfFalseAsync(Func<bool> operation)
+    {
+        return IsTrueAsync(() => Task.FromResult(operation()));
+    }
+
+    public async Task IsTrueAsync(Func<Task<bool>> operation)
+    {
+        bool result = await operation();
+        if (!result)
+        {
+            await TUnit.Assertions.Assert.That(result)
+                                         .IsTrue()
+                                         .Because($"""
+                                                      Optimized: [{string.Join(", ", _optimized.buffer.GetBytesAsArray().Select(x => $"{x,3}"))}]
+                                                      Old:       [{string.Join(", ", _original.buffer.Select(x => $"{x,3}"))}]
+                                                      """);
         }
     }
 
