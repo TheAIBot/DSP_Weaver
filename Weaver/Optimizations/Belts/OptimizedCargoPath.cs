@@ -561,7 +561,7 @@ internal struct OptimizedCargoPath
             num = bufferLength - 1;
         }
 
-        if (buffer.TryGetCargoWithinRange(index, num - index, out optimizedCargo, out int actualIndex))
+        if (buffer.TryGetCargoWithinRange(index, num - index + 1, out optimizedCargo, out int actualIndex))
         {
             actualCargoBufferIndex = actualIndex + 1;
             return true;
