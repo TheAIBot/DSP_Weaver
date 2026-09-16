@@ -625,7 +625,7 @@ internal unsafe struct BeltBuffer
 
         if (movedCount > 0)
         {
-            Clear(_buffer, _stoppedItemsActualIndex - movedCount - 1, movedCount);
+            Clear(_buffer, _stoppedItemsActualIndex - movedCount, movedCount);
         }
     }
 
