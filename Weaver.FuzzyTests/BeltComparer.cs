@@ -12,10 +12,12 @@ internal sealed class BeltComparer
     private readonly GameCode.CargoPath _original;
     // Can't be readonly because it is a mutable struct
     private OptimizedCargoPath _optimized;
+    private readonly BeltChunk[] _beltChunks;
     private long _time;
 
     public BeltComparer(BeltChunk[] beltChunks, long time)
     {
+        _beltChunks = beltChunks;
         int[] chunks = new int[beltChunks.Length * 3];
         int usedLength = 0;
         int maxSpeed = 0;
@@ -175,8 +177,12 @@ internal sealed class BeltComparer
             await TUnit.Assertions.Assert.That(result)
                                          .IsTrue()
                                          .Because($"""
-                                                      Optimized: [{string.Join(", ", _optimized.buffer.GetBytesAsArray().Select(x => $"{x,3}"))}]
-                                                      Old:       [{string.Join(", ", _original.buffer.Select(x => $"{x,3}"))}]
+                                                      Speed:
+                                                      [{string.Join(", ", _beltChunks.SelectMany(x => Enumerable.Repeat(x.Speed, x.Length).Select(x => $"{x,3}")))}]
+                                                      Optimized: 
+                                                      [{string.Join(", ", _optimized.buffer.GetBytesAsArray().Select(x => $"{x,3}"))}]
+                                                      Old:       
+                                                      [{string.Join(", ", _original.buffer.Select(x => $"{x,3}"))}]
                                                       """);
         }
     }
