@@ -316,6 +316,21 @@ internal unsafe struct BeltBuffer
 
     public void Update(int chunkCount, ReadonlyArray<int> chunks)
     {
+        // If the offset is at its maximum the belt head maps to physical index 0 and
+        // MoveItemsOnBeltsWithLowerSpeed has no room to shift slow chunks back.
+        // Move the items to make space for slow belts. Probably makes the move in
+        // MoveItemsAndResetOffset unecessary. Needs to be tested later.
+        if (_offset >= _maxOffsetBeforeMove)
+        {
+            MemoryMove(_buffer, 0, _buffer, _maxOffsetBeforeMove, _stoppedItemsActualIndex - _maxOffsetBeforeMove);
+            Clear(_buffer, 0, _maxOffsetBeforeMove);
+            if (_updatedActualIndex < _stoppedItemsActualIndex)
+            {
+                _updatedActualIndex += _maxOffsetBeforeMove;
+            }
+            _offset = 0;
+        }
+
         MoveItemsOnBeltsWithLowerSpeed(chunkCount, chunks);
         UpdateStoppedItems();
         MoveItemsAndResetOffset();
@@ -527,7 +542,7 @@ internal unsafe struct BeltBuffer
                     int copyToActualIndex = backwardsSearchActualIndex;
                     int copyFromActualIndex = copyToActualIndex;
                     int targetIndex = startBackwardsSearchEmptySpacesActualIndex - emptySpacesFound;
-                    while (copyToActualIndex < targetIndex)
+                    while (copyToActualIndex <= targetIndex)
                     {
 
                         while (buffer[copyFromActualIndex] == 0 && copyFromActualIndex <= startBackwardsSearchEmptySpacesActualIndex)
@@ -550,6 +565,10 @@ internal unsafe struct BeltBuffer
                         copyFromActualIndex += copyLength;
                     }
                 }
+            }
+            else
+            {
+                emptySpacesFound = speedDifference;
             }
 
             int chunkUpdateLength = chunkEndActualIndex - chunkStartActualIndex + 1;
@@ -625,7 +644,7 @@ internal unsafe struct BeltBuffer
 
         if (movedCount > 0)
         {
-            Clear(_buffer, _stoppedItemsActualIndex - movedCount, movedCount);
+            Clear(_buffer, _stoppedItemsActualIndex - movedCount - _offset, movedCount);
         }
     }
 
