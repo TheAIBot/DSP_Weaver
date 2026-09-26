@@ -320,6 +320,12 @@ internal unsafe struct BeltBuffer
         // MoveItemsOnBeltsWithLowerSpeed has no room to shift slow chunks back.
         // Move the items to make space for slow belts. Probably makes the move in
         // MoveItemsAndResetOffset unecessary. Needs to be tested later.
+
+        // If the offset is at its max then it's not possible for an item at belt index
+        // 0 to be moved left by MoveItemsOnBeltsWithLowerSpeed. That means an item
+        // would not move at the right speed for that specific update. The solution
+        // is to move all items so the offset can be reset before executing 
+        // MoveItemsOnBeltsWithLowerSpeed.
         if (_offset >= _maxOffsetBeforeMove)
         {
             MemoryMove(_buffer, 0, _buffer, _maxOffsetBeforeMove, _stoppedItemsActualIndex - _maxOffsetBeforeMove);
@@ -449,6 +455,7 @@ internal unsafe struct BeltBuffer
         Index: 5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15
          */
 
+        int startNotBeforethis = 0;
         byte* buffer = _buffer;
         for (int i = 0; i < chunkCount; i++)
         {
@@ -467,18 +474,63 @@ internal unsafe struct BeltBuffer
             {
                 break;
             }
-
             int speedDifference = _beltSpeed - chunkSpeed;
             int chunkEndActualIndex = chunkStartActualIndex + chunkLength - 1;
 
-            // An item may start at the end of this chunk and cross over onto the next chunk.
-            // This here ensures that the entirety of the last items is moved.
-            // An item is 10 indexes wide and always ends with CargoPath.kCargoRear.
-            while (chunkEndActualIndex < _stoppedItemsActualIndex &&
-                   buffer[chunkEndActualIndex] != 0 &&
-                   buffer[chunkEndActualIndex] != CargoPath.kCargoRear)
+            // If an item is in between the start of this chunk and the end
+            // of the previous chunk then it should be used only if kCargoSign
+            // or its later parts are part of this chunk 
+            if (chunkStartActualIndex < _stoppedItemsActualIndex &&
+                buffer[chunkStartActualIndex] != 0 &&
+                buffer[chunkStartActualIndex] != CargoPath.kCargoHead)
             {
-                chunkEndActualIndex++;
+                if (buffer[chunkStartActualIndex] >= CargoPath.kCargoHead &&
+                    buffer[chunkStartActualIndex] <= CargoPath.kCargoSign)
+                {
+                    while (buffer[chunkStartActualIndex] != CargoPath.kCargoHead)
+                    {
+                        chunkStartActualIndex--;
+                    }
+                }
+                else
+                {
+                    while (buffer[chunkStartActualIndex] != CargoPath.kCargoRear)
+                    {
+                        chunkStartActualIndex++;
+                    }
+                    chunkStartActualIndex++;
+
+                    if (chunkStartActualIndex >= _stoppedItemsActualIndex)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // Also need to check if an item is between the end of this chunk
+            // and the start of the next chunk. It's essentially a reverse check of the
+            // start cross chunk check above.
+            if (chunkEndActualIndex < _stoppedItemsActualIndex &&
+                buffer[chunkEndActualIndex] != 0 &&
+                buffer[chunkEndActualIndex] != CargoPath.kCargoRear)
+            {
+                if (buffer[chunkEndActualIndex] >= CargoPath.kCargoHead &&
+                    buffer[chunkEndActualIndex] < CargoPath.kCargoSign)
+                {
+                    while (buffer[chunkEndActualIndex] != CargoPath.kCargoHead)
+                    {
+                        chunkEndActualIndex--;
+                    }
+                    chunkEndActualIndex--;
+                    chunkEndActualIndex = Math.Max(0, chunkEndActualIndex);
+                }
+                else
+                {
+                    while (buffer[chunkEndActualIndex] != CargoPath.kCargoRear)
+                    {
+                        chunkEndActualIndex++;
+                    }
+                }
             }
 
             // Stopped items are not moving forward and should therefore not be
@@ -490,19 +542,37 @@ internal unsafe struct BeltBuffer
 
             int emptySpacesFound = 0;
 
-            // Attempt to find the free spaces required to move the chunk back
-            // by checking forward in the chunk.
-            bool foundAllRequiredFreeSpaces = true;
-            for (int x = 0; x < speedDifference; x++)
-            {
-                if (buffer[chunkStartActualIndex] != 0)
-                {
-                    foundAllRequiredFreeSpaces = false;
-                    break;
-                }
 
-                chunkStartActualIndex++;
+            // --- NEW ---
+            // The old belt throttles the faster chunk on the left even when this
+            // chunk is empty at the seam: its "wall" sits at seam + chunkSpeed and
+            // advances at chunkSpeed, so an approaching item never moves more than
+            // this chunk's speed once it is close. A fake item parked at the seam
+            // reproduces that by making the free-space search fail; doing it
+            // virtually keeps fake bytes out of the buffer (handoff, picking and
+            // validation would all see them).
+            bool hasFasterChunkBefore = i > 0 && chunks[(i - 1) * 3 + 2] > chunkSpeed;
+
+            bool foundAllRequiredFreeSpaces = !hasFasterChunkBefore;
+            if (foundAllRequiredFreeSpaces)
+            {
+                for (int x = 0; x < speedDifference; x++)
+                {
+                    if (buffer[chunkStartActualIndex] != 0)
+                    {
+                        foundAllRequiredFreeSpaces = false;
+                        break;
+                    }
+
+                    chunkStartActualIndex++;
+                }
             }
+
+            // If an item is between previous and this chunk and the previous chunk
+            // was slower than this chunk then it is possible that the lower speed move
+            // moved its kCargoSign onto this chunk. This here ensures the item is not
+            // moved twice by excluding any item from the previous chunk.
+            chunkStartActualIndex = Math.Max(startNotBeforethis, chunkStartActualIndex);
 
             // If the free spaces could not be found by looking forward in the chunk then
             // the free spaces must be found in the previous spaces. If any items are found
@@ -574,6 +644,7 @@ internal unsafe struct BeltBuffer
             int chunkUpdateLength = chunkEndActualIndex - chunkStartActualIndex + 1;
             MemoryMove(buffer, chunkStartActualIndex, buffer, chunkStartActualIndex - emptySpacesFound, chunkUpdateLength);
             ClearFromActualIndex(chunkStartActualIndex - emptySpacesFound + chunkUpdateLength, emptySpacesFound);
+            startNotBeforethis = chunkEndActualIndex + 1;
         }
     }
 
@@ -634,17 +705,19 @@ internal unsafe struct BeltBuffer
             // endMovePosition can be further back than _stoppedItemsActualIndex if partial moves are done.
             // This is because endMovePosition moves freeSpacesFound + itemsToMoveCount back on each partial move while 
             // _stoppedItemsActualIndex represents where the items should be moved to.
-            MemoryMove(_buffer, endMovePosition - itemsToMoveCount - freeSpacesFound + 1, _buffer, _stoppedItemsActualIndex - itemsToMoveCount, itemsToMoveCount);
+            int sourceMoveIndex = endMovePosition - itemsToMoveCount - freeSpacesFound + 1;
+            int destinationMoveIndex = _stoppedItemsActualIndex - itemsToMoveCount;
+            MemoryMove(_buffer, sourceMoveIndex, _buffer, destinationMoveIndex, itemsToMoveCount);
+            int moveDistance = destinationMoveIndex - sourceMoveIndex;
+            if (moveDistance > 0)
+            {
+                Clear(_buffer, sourceMoveIndex, moveDistance);
+            }
 
             endMovePosition -= freeSpacesFound;
             endMovePosition -= itemsToMoveCount;
             movedCount += freeSpacesFound;
             _stoppedItemsActualIndex -= itemsToMoveCount;
-        }
-
-        if (movedCount > 0)
-        {
-            Clear(_buffer, _stoppedItemsActualIndex - movedCount - _offset, movedCount);
         }
     }
 

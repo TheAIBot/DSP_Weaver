@@ -177,6 +177,7 @@ internal sealed class BeltComparer
             await TUnit.Assertions.Assert.That(result)
                                          .IsTrue()
                                          .Because($"""
+                                                      Time:  {_time}
                                                       Speed:
                                                       [{string.Join(", ", _beltChunks.SelectMany(x => Enumerable.Repeat(x.Speed, x.Length).Select(x => $"{x,3}")))}]
                                                       Optimized: 
