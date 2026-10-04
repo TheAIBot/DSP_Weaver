@@ -4,7 +4,7 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Miners;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedOilMiner
 {
     private readonly BeltIndex outputBeltIndex;
@@ -67,7 +67,7 @@ internal struct OptimizedOilMiner
                     {
                         lock (veinPool)
                         {
-                            factory.NotifyVeinExhausted((int)oilVein.type, oilVein.groupIndex, oilVein.pos);
+                            factory.NotifyVeinExhausted((int)oilVein.type, oilVein.groupIndex, oilVein.pos, false);
                         }
                     }
                 }

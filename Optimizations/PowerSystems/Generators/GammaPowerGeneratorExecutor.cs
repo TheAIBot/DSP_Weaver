@@ -10,6 +10,7 @@ internal sealed class GammaPowerGeneratorExecutor
 {
     private OptimizedGammaPowerGenerator[] _optimizedGammaPowerGenerators = null!;
     private Dictionary<int, int> _gammaIdToOptimizedIndex = null!;
+    private Dictionary<int, OptimizedItemId> _catalystItemIdToOptimizedCatalystItemId = null!;
     private int _subId;
     private int _gammaMachinesGeneratingEnergyCount;
 
@@ -64,7 +65,7 @@ internal sealed class GammaPowerGeneratorExecutor
         for (int i = 0; i < optimizedGammaPowerGenerators.Length; i++)
         {
             bool keyFrame = (i + num10) % 90 == 0;
-            optimizedGammaPowerGenerators[i].GameTick_Gamma(useIonLayer, useCata, keyFrame, productRegister, consumeRegister);
+            optimizedGammaPowerGenerators[i].GameTick_Gamma(useIonLayer, useCata, keyFrame, productRegister, consumeRegister, _catalystItemIdToOptimizedCatalystItemId);
         }
     }
 
@@ -188,5 +189,29 @@ internal sealed class GammaPowerGeneratorExecutor
         _subId = subId ?? -1;
         PrototypeId = prototypeId;
         _gammaMachinesGeneratingEnergyCount = gammaMachinesGeneratingEnergyCount;
+
+        if (_optimizedGammaPowerGenerators.Length > 0)
+        {
+            Dictionary<int, OptimizedItemId> catalystItemIdToOptimizedCatalystItemId = new();
+            foreach (int[]? catalystItems in ItemProto.catalystNeeds)
+            {
+                if (catalystItems == null)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < catalystItems.Length; i++)
+                {
+                    if (catalystItemIdToOptimizedCatalystItemId.ContainsKey(catalystItems[i]))
+                    {
+                        continue;
+                    }
+
+                    catalystItemIdToOptimizedCatalystItemId.Add(catalystItems[i], subProductionRegisterBuilder.AddConsume(catalystItems[i]));
+                }
+            }
+
+            _catalystItemIdToOptimizedCatalystItemId = catalystItemIdToOptimizedCatalystItemId;
+        }
     }
 }

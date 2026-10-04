@@ -1,10 +1,11 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.PowerSystems.Generators;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedGammaPowerGenerator
 {
     private readonly OptimizedIndexedCargoPath slot0Belt;
@@ -13,34 +14,25 @@ internal struct OptimizedGammaPowerGenerator
     private readonly OptimizedIndexedCargoPath slot1Belt;
     private readonly int slot1BeltOffset;
     private readonly bool slot1IsOutput;
-    private readonly OptimizedItemId catalystId;
     private readonly OptimizedItemId productId;
     private readonly long productHeat;
     private readonly UnityEngine.Vector3 position;
     private readonly float ionEnhance;
     private readonly long genEnergyPerTick;
     private float currentStrength;
+    private OptimizedItemId catalystId;
+    public readonly short catalystMask;
+    public byte catalystIncLevel;
+    public int curCatalystId;
+    public short catalystCount;
+    public short catalystInc;
     private int catalystPoint;
     private bool incUsed;
     private long fuelHeat;
-    private int catalystIncPoint;
     private float productCount;
     private float warmup;
     private float warmupSpeed;
     private long capacityCurrentTick;
-
-    public readonly int catalystIncLevel
-    {
-        get
-        {
-            int num = catalystPoint != 0 ? catalystIncPoint / catalystPoint : 0;
-            if (num >= 10)
-            {
-                return 10;
-            }
-            return num;
-        }
-    }
 
     public OptimizedGammaPowerGenerator(OptimizedIndexedCargoPath slot0Belt,
                                         int slot0BeltOffset,
@@ -62,13 +54,17 @@ internal struct OptimizedGammaPowerGenerator
         ionEnhance = powerGenerator.ionEnhance;
         genEnergyPerTick = powerGenerator.genEnergyPerTick;
         currentStrength = powerGenerator.currentStrength;
+        catalystMask = powerGenerator.catalystMask;
+        catalystIncLevel = powerGenerator.catalystIncLevel;
+        curCatalystId = powerGenerator.curCatalystId;
+        catalystCount = powerGenerator.catalystCount;
+        catalystInc = powerGenerator.catalystInc;
         this.catalystId = catalystId;
         this.productId = productId;
         productHeat = powerGenerator.productHeat;
         catalystPoint = powerGenerator.catalystPoint;
         incUsed = powerGenerator.incUsed;
         fuelHeat = powerGenerator.fuelHeat;
-        catalystIncPoint = powerGenerator.catalystIncPoint;
         productCount = powerGenerator.productCount;
         warmup = powerGenerator.warmup;
         warmupSpeed = powerGenerator.warmupSpeed;
@@ -77,10 +73,11 @@ internal struct OptimizedGammaPowerGenerator
 
     public long EnergyCap_Gamma_Req(UnityEngine.Vector3 normalizedSunDirection, float increase, float eta)
     {
-        float num = (UnityEngine.Vector3.Dot(normalizedSunDirection, position) + increase * 0.8f + (catalystPoint > 0 ? ionEnhance : 0f)) * 6f + 0.5f;
+        float num = (UnityEngine.Vector3.Dot(normalizedSunDirection, position) + increase * 0.8f + ((catalystPoint > 0 || catalystCount > 0) ? ionEnhance : 0f)) * 6f + 0.5f;
         num = currentStrength = num > 1f ? 1f : num < 0f ? 0f : num;
         float num2 = (float)Cargo.accTableMilli[catalystIncLevel];
-        capacityCurrentTick = (long)(currentStrength * (1f + warmup * 1.5f) * (catalystPoint > 0 ? 2f * (1f + num2) : 1f) * (productId.ItemIndex > 0 ? 8f : 1f) * genEnergyPerTick);
+        float num3 = ItemProto.catalystAbilityById[curCatalystId];
+        capacityCurrentTick = (long)(currentStrength * (1f + warmup * 1.5f) * ((catalystPoint > 0 || catalystCount > 0) ? (num3 * (1f + num2)) : 1f) * ((productId.ItemIndex > 0) ? 8f : 1f) * genEnergyPerTick);
         eta = 1f - (1f - eta) * (1f - warmup * warmup * 0.4f);
         warmupSpeed = (num - 0.75f) * 4f * 1.3888889E-05f;
         return (long)(capacityCurrentTick / (double)eta + 0.49999999);
@@ -100,34 +97,47 @@ internal struct OptimizedGammaPowerGenerator
         return 0L;
     }
 
-    public void GameTick_Gamma(bool useIon, bool useCata, bool keyFrame, int[] productRegister, int[] consumeRegister)
+    public void GameTick_Gamma(bool useIon, bool useCata, bool keyFrame, int[] productRegister, int[] consumeRegister, Dictionary<int, OptimizedItemId> catalystItemIdToOptimizedCatalystItemId)
     {
-        if (catalystPoint > 0)
+        if (useCata)
         {
-            int num = catalystPoint / 3600;
-            if (useCata)
+            if (catalystPoint > 0)
             {
-                int num2 = catalystIncPoint / catalystPoint;
                 catalystPoint--;
-                catalystIncPoint -= num2;
+            }
+            else if (catalystCount > 0)
+            {
+                int num = catalystInc / catalystCount;
+                num = ((num > 0) ? ((num > 10) ? 10 : num) : 0);
+                catalystInc -= (short)num;
+                catalystIncLevel = (byte)num;
+                curCatalystId = catalystId.ItemIndex;
+                catalystPoint = 3600;
+                catalystPoint--;
+                catalystCount--;
+                consumeRegister[catalystId.OptimizedItemIndex]++;
                 if (!incUsed)
                 {
-                    incUsed = num2 > 0;
+                    incUsed = catalystIncLevel > 0;
                 }
-                if (catalystIncPoint < 0 || catalystPoint <= 0)
+                if (catalystCount == 0)
                 {
-                    catalystIncPoint = 0;
+                    catalystId = default;
+                    catalystInc = 0;
                 }
             }
-            int num3 = catalystPoint / 3600;
-            consumeRegister[catalystId.OptimizedItemIndex] += num - num3;
+            else
+            {
+                curCatalystId = 0;
+                catalystIncLevel = 0;
+            }
         }
         if (productId.ItemIndex > 0 && productCount < 20f)
         {
-            int num4 = (int)productCount;
+            int num2 = (int)productCount;
             productCount += (float)(capacityCurrentTick / (double)productHeat);
-            int num5 = (int)productCount;
-            productRegister[productId.OptimizedItemIndex] += num5 - num4;
+            int num3 = (int)productCount;
+            productRegister[productId.OptimizedItemIndex] += num3 - num2;
             if (productCount > 20f)
             {
                 productCount = 20f;
@@ -140,7 +150,7 @@ internal struct OptimizedGammaPowerGenerator
             return;
         }
         bool flag = productId.ItemIndex > 0 && productCount >= 1f;
-        bool flag2 = keyFrame && useIon && catalystPoint < 72000f;
+        bool flag2 = keyFrame && useIon && catalystCount < 10;
         if (!(flag || flag2))
         {
             return;
@@ -211,25 +221,61 @@ internal struct OptimizedGammaPowerGenerator
                 fuelHeat = 0L;
             }
         }
-        if (flag2)
+        if (!flag2)
         {
-            if (flag4)
+            return;
+        }
+        if (flag4)
+        {
+            if (catalystCount > 0)
             {
                 OptimizedCargo optimizedCargo = PickFrom(ref slot0Belt.Belt, slot0BeltOffset, catalystId.ItemIndex, null);
                 if (optimizedCargo.Item == catalystId.ItemIndex)
                 {
-                    catalystPoint += 3600 * optimizedCargo.Stack;
-                    catalystIncPoint += 3600 * optimizedCargo.Inc;
+                    catalystCount += optimizedCargo.Stack;
+                    catalystInc += optimizedCargo.Inc;
                 }
             }
-
-            if (flag6)
+            else
             {
-                OptimizedCargo optimizedCargo = PickFrom(ref slot1Belt.Belt, slot1BeltOffset, catalystId.ItemIndex, null);
-                if (optimizedCargo.Item == catalystId.ItemIndex)
+                int[] array = ItemProto.catalystNeeds[catalystMask];
+                if (array != null && array.Length != 0)
                 {
-                    catalystPoint += 3600 * optimizedCargo.Stack;
-                    catalystIncPoint += 3600 * optimizedCargo.Inc;
+                    OptimizedCargo optimizedCargo = PickFrom(ref slot0Belt.Belt, slot0BeltOffset, 0, array);
+                    if (optimizedCargo.Item > 0)
+                    {
+                        catalystId = catalystItemIdToOptimizedCatalystItemId[optimizedCargo.Item];
+                        catalystCount += optimizedCargo.Stack;
+                        catalystInc += optimizedCargo.Inc;
+                    }
+                }
+            }
+        }
+
+        if (!flag6)
+        {
+            return;
+        }
+        if (catalystCount > 0)
+        {
+            OptimizedCargo optimizedCargo = PickFrom(ref slot1Belt.Belt, slot1BeltOffset, catalystId.ItemIndex, null);
+            if (optimizedCargo.Item == catalystId.ItemIndex)
+            {
+                catalystCount += optimizedCargo.Stack;
+                catalystInc += optimizedCargo.Inc;
+            }
+        }
+        else
+        {
+            int[] array = ItemProto.catalystNeeds[catalystMask];
+            if (array != null && array.Length != 0)
+            {
+                OptimizedCargo optimizedCargo = PickFrom(ref slot1Belt.Belt, slot1BeltOffset, 0, array);
+                if (optimizedCargo.Item > 0)
+                {
+                    catalystId = catalystItemIdToOptimizedCatalystItemId[optimizedCargo.Item];
+                    catalystCount += optimizedCargo.Stack;
+                    catalystInc += optimizedCargo.Inc;
                 }
             }
         }
@@ -241,7 +287,11 @@ internal struct OptimizedGammaPowerGenerator
         powerGenerator.catalystPoint = catalystPoint;
         powerGenerator.incUsed = incUsed;
         powerGenerator.fuelHeat = fuelHeat;
-        powerGenerator.catalystIncPoint = catalystIncPoint;
+        powerGenerator.catalystId = catalystId.ItemIndex;
+        powerGenerator.catalystIncLevel = catalystIncLevel;
+        powerGenerator.curCatalystId = curCatalystId;
+        powerGenerator.catalystCount = catalystCount;
+        powerGenerator.catalystInc = catalystInc;
         powerGenerator.productCount = productCount;
         powerGenerator.warmup = warmup;
         powerGenerator.warmupSpeed = warmupSpeed;

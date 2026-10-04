@@ -1,3 +1,6 @@
+## 2.4.2
+* Updated to DSP version 0.10.35.29088
+
 ## 2.4.1
 * Fix not all enemies were updated.
 * Fix defense turrets were updated twice per tick.

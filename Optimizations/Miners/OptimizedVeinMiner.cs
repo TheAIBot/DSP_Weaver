@@ -5,7 +5,7 @@ using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Miners;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedVeinMiner<T> : IMiner
     where T : struct, IMinerOutput<T>
 {
@@ -134,9 +134,14 @@ internal struct OptimizedVeinMiner<T> : IMiner
                                         UnityEngine.Vector3 pos = veinPool[num].pos;
                                         lock (veinPool)
                                         {
+                                            bool hasMinerLostAllVeins = false;
+                                            if (GameMain.preferences.mineralExhaustionAlertMode == 2)
+                                            {
+                                                hasMinerLostAllVeins = factory.factorySystem.WillMinerLoseAllVeins(num);
+                                            }
                                             factory.RemoveVeinWithComponents(num);
                                             factory.RecalculateVeinGroup(groupIndex);
-                                            factory.NotifyVeinExhausted(veinType, groupIndex, pos);
+                                            factory.NotifyVeinExhausted(veinType, groupIndex, pos, hasMinerLostAllVeins);
                                         }
                                     }
                                     else
