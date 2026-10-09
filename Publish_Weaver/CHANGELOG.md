@@ -1,5 +1,10 @@
+# 2.5.0
+* Transport system update can now run in parallel with assembler update.
+* Cargo path preparation step can now run in parallel with enemy and defense updates.
+
 ## 2.4.2
 * Updated to DSP version 0.10.35.29088
+* Improve Weaver error messages.
 
 ## 2.4.1
 * Fix not all enemies were updated.
