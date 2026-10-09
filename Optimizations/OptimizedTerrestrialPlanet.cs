@@ -29,6 +29,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
     public int OptimizeDelayInTicks { get; set; } = 0;
 
     private IWorkNode? _workNodes;
+    private RootWorkNode? _cargoPresentRootWorkNode;
     private int _workStepsParallelism;
     private UnOptimizedWorkChunkCounts? _workNodesWorkChunkCounts;
 
@@ -61,6 +62,8 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         {
             Status = OptimizedPlanetStatus.Stopped;
             _workNodes = null;
+            _cargoPresentRootWorkNode?.Dispose();
+            _cargoPresentRootWorkNode = null;
             _workStepsParallelism = -1;
             _workNodesWorkChunkCounts = null;
         }
@@ -101,6 +104,8 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         Status = OptimizedPlanetStatus.Running;
         _workNodes = null;
+        _cargoPresentRootWorkNode?.Dispose();
+        _cargoPresentRootWorkNode = null;
         _workStepsParallelism = -1;
         _workNodesWorkChunkCounts = null;
     }
@@ -111,9 +116,22 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         {
             _workNodes = CreateMultithreadedWork(maxParallelism, ref unOptimizedWorkChunkCounts);
             _workStepsParallelism = maxParallelism;
+
+            _cargoPresentRootWorkNode?.Dispose();
+            _cargoPresentRootWorkNode = null;
+            var cargoPresentWorkNode = unOptimizedWorkChunkCounts.CreatePresentCargoWorkNode();
+            if (cargoPresentWorkNode != null)
+            {
+                _cargoPresentRootWorkNode = new RootWorkNode(cargoPresentWorkNode);
+            }
         }
 
         return _workNodes;
+    }
+
+    public RootWorkNode? GetCargoPresentWork()
+    {
+        return _cargoPresentRootWorkNode;
     }
 
     [MemberNotNullWhen(false, nameof(_workNodes))]
@@ -153,7 +171,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
 
         if (_subFactories.Length == 0)
         {
-            return new NoWorkNode();
+            return NoWorkNode.Instance;
         }
 
         if (_subFactories.Length == 1)

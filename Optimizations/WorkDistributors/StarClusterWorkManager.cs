@@ -13,12 +13,13 @@ internal sealed class StarClusterWorkManager : IDisposable
     private readonly Dictionary<StarData, SolarSystemWorkManager> _starToWorkManagers = [];
     private readonly List<IWorkNode> _solarSystemWorkNodes = [];
     private RootWorkNode? _factorySimulationRootWorkNode;
+    private RootWorkNode? _cargoPresentRootWorkNode;
     private RootWorkNode? _defenseSystemTurretRootWorkNode;
     private RootWorkNode? _dysonSphereAttachRootWorkNode;
 
     public int Parallelism { get; private set; } = -1;
 
-    public void UpdateListOfPlanets(GameLogic gameLogic, PlanetFactory?[] allPlanets, DysonSphere[] dysonSpheres, int parallelism)
+    public void UpdateListOfPlanets(GameLogic gameLogic, PlanetData? localPlanet, PlanetFactory?[] allPlanets, DysonSphere[] dysonSpheres, int parallelism)
     {
         Parallelism = parallelism;
 
@@ -160,7 +161,16 @@ internal sealed class StarClusterWorkManager : IDisposable
             {
                 _dysonSphereAttachRootWorkNode = new RootWorkNode(new WorkLeaf(dysonShereAttachWorkChunks));
             }
+        }
 
+        if (localPlanet == null)
+        {
+            _cargoPresentRootWorkNode = null;
+        }
+        else
+        {
+            IOptimizedPlanet optimizedPlanet = OptimizedStarCluster.GetOptimizedPlanet(localPlanet.factory);
+            _cargoPresentRootWorkNode = optimizedPlanet.GetCargoPresentWork();
         }
     }
 
@@ -172,6 +182,11 @@ internal sealed class StarClusterWorkManager : IDisposable
         }
 
         return _factorySimulationRootWorkNode;
+    }
+
+    public RootWorkNode? GetCargoPresentRootWorkNode()
+    {
+        return _cargoPresentRootWorkNode;
     }
 
     public RootWorkNode GetDefenseSystemTurretRootWorkNode()
@@ -201,6 +216,8 @@ internal sealed class StarClusterWorkManager : IDisposable
             throw new InvalidOperationException($"Error in Weaver logic. {nameof(_factorySimulationRootWorkNode)} was null.");
         }
         _factorySimulationRootWorkNode.Reset();
+
+        _cargoPresentRootWorkNode?.Reset();
 
         if (_defenseSystemTurretRootWorkNode == null)
         {

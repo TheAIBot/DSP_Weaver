@@ -137,6 +137,7 @@ internal struct UnOptimizedWorkChunkCounts : IEquatable<UnOptimizedWorkChunkCoun
         factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Silo, _siloWorkChunkCount));
         factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabProduce, _producingLabWorkChunkCount));
         factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabResearchMode, _researchingLabWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.TransportData, _transportEntitiesWorkChunkCount));
         if (factoryWorkLeafs.Count > 0)
         {
             work.Add(factoryWorkLeafs.ToArray());
@@ -144,15 +145,10 @@ internal struct UnOptimizedWorkChunkCounts : IEquatable<UnOptimizedWorkChunkCoun
 
         factoryWorkLeafs.Clear();
         factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.LabOutput2NextData, _labWorkChunkCount));
-        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.TransportData, _transportEntitiesWorkChunkCount));
+        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.InputFromBelt, _stationWorkChunkCount));
         if (factoryWorkLeafs.Count > 0)
         {
             work.Add(factoryWorkLeafs.ToArray());
-        }
-
-        if (_stationWorkChunkCount > 0)
-        {
-            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.InputFromBelt, _stationWorkChunkCount));
         }
 
         if (_inserterWorkWorkChunkCount > 0)
@@ -190,20 +186,33 @@ internal struct UnOptimizedWorkChunkCounts : IEquatable<UnOptimizedWorkChunkCoun
             work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.SandboxMode, _sandboxModeWorkWorkChunkCount));
         }
 
-        factoryWorkLeafs.Clear();
-        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.PresentCargoPathsData, _cargoPathPresentWorkChunkCount));
-        factoryWorkLeafs.AddRange(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Digital, _markerWorkChunkCount));
-        if (factoryWorkLeafs.Count > 0)
+        if (_markerWorkChunkCount > 0)
         {
-            work.Add(factoryWorkLeafs.ToArray());
+            work.Add(UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.Digital, _markerWorkChunkCount));
         }
 
         if (work.Count == 0)
         {
-            return new NoWorkNode();
+            return NoWorkNode.Instance;
         }
 
         return new WorkNode(work.ToArray());
+    }
+
+    public readonly IWorkNode? CreatePresentCargoWorkNode()
+    {
+        if (_cargoPathPresentWorkChunkCount == 0)
+        {
+            return null;
+        }
+
+        SingleWorkLeaf[] cargoPresentWorkChunks = UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.PresentCargoPathsData, _cargoPathPresentWorkChunkCount);
+        if (cargoPresentWorkChunks.Length == 0)
+        {
+            return null;
+        }
+
+        return new WorkNode([cargoPresentWorkChunks]);
     }
 
     public readonly bool Equals(UnOptimizedWorkChunkCounts other)

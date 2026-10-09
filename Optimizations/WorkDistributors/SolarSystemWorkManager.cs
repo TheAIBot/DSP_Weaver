@@ -85,7 +85,7 @@ internal sealed class SolarSystemWorkManager
 
             if (solarSystemWork.Count == 0)
             {
-                _solarSystemWorkNode = new NoWorkNode();
+                _solarSystemWorkNode = NoWorkNode.Instance;
             }
             else
             {

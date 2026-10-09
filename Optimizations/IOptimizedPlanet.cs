@@ -11,4 +11,5 @@ internal interface IOptimizedPlanet
     void Initialize(UniverseStaticDataBuilder universeStaticDataBuilder);
     void TransportGameTick(int workerIndex, long time, UnityEngine.Vector3 playerPos);
     IWorkNode GetMultithreadedWork(int maxParallelism);
+    RootWorkNode? GetCargoPresentWork();
 }

@@ -99,6 +99,9 @@ internal sealed class WeaverThread : IDisposable
                     case WorkTaskType.FactorySimulation:
                         _workExecutor.ExecuteFactorySimulation(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
                         break;
+                    case WorkTaskType.CargoPresent:
+                        _workExecutor.ExecuteCargoPresent(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
+                        break;
                     case WorkTaskType.DefenseSystemTurret:
                         _workExecutor.ExecuteDefenseSystemTurret(_workStealingMultiThreadedFactorySimulation._localPlanet, _workStealingMultiThreadedFactorySimulation._time, _workStealingMultiThreadedFactorySimulation._playerPosition);
                         break;
@@ -144,6 +147,7 @@ internal sealed class WeaverThread : IDisposable
 internal enum WorkTaskType
 {
     FactorySimulation,
+    CargoPresent,
     DefenseSystemTurret,
     DysonSphereAttach
 }
@@ -225,7 +229,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
 
             //WeaverFixes.Logger.LogMessage("Before scheduling");
             DeepProfiler.BeginSample(DPEntry.Scheduling);
-            _starClusterWorkManager.UpdateListOfPlanets(gameLogic, GameMain.data.factories, GameMain.data.dysonSpheres, targetThreadCount);
+            _starClusterWorkManager.UpdateListOfPlanets(gameLogic, GameMain.localPlanet, GameMain.data.factories, GameMain.data.dysonSpheres, targetThreadCount);
             _starClusterWorkManager.Reset();
             DeepProfiler.EndSample(DPEntry.Scheduling);
             //WeaverFixes.Logger.LogMessage("After scheduling");
@@ -265,10 +269,20 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
 
     private void ExecuteParallel(int targetThreadCount, WorkTaskType workTaskType)
     {
+        StartExecuteParallel(targetThreadCount, workTaskType);
+        WaitExecuteParallel(targetThreadCount);
+    }
+
+    private void StartExecuteParallel(int targetThreadCount, WorkTaskType workTaskType)
+    {
         for (int i = 0; i < targetThreadCount; i++)
         {
             _threads[i].StartWork(workTaskType);
         }
+    }
+
+    private void WaitExecuteParallel(int targetThreadCount)
+    {
         for (int i = 0; i < targetThreadCount; i++)
         {
             _threads[i].WaitForCompletion();
@@ -308,7 +322,7 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
             _starClusterWorkManager = new StarClusterWorkManager();
         }
 
-        _starClusterWorkManager.UpdateListOfPlanets(GameMain.logic, GameMain.data.factories, GameMain.data.dysonSpheres, WeaverThreadHelper.GetParallelism());
+        _starClusterWorkManager.UpdateListOfPlanets(GameMain.logic, GameMain.localPlanet, GameMain.data.factories, GameMain.data.dysonSpheres, WeaverThreadHelper.GetParallelism());
         StarClusterWorkStatistics starClusterWorkStatistics = _starClusterWorkManager.GetStarClusterStatistics();
 
         WeaverFixes.Logger.LogInfo($"Planet Count: {starClusterWorkStatistics.PlanetWorkStatistics.Length:N0}");
@@ -408,6 +422,10 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
 
     private void ExecutePostFactorySingleThreadedSteps(GameLogic gameLogic, PlanetFactory?[] planetsToUpdate, long time, int targetThreadCount)
     {
+        // Copying cargo data to render on gpu can be done while certain
+        // steps are running as they do not affect belts
+        StartExecuteParallel(targetThreadCount, WorkTaskType.CargoPresent);
+
         // 1601
         // Nothing
 
@@ -461,6 +479,11 @@ internal sealed class WorkStealingMultiThreadedFactorySimulation : IDisposable
 
         // 3100
         gameLogic.DefenseGroundSystemGameTick();
+
+        // Waiting for WorkTaskType.CargoPresent to complete.
+        // Defense step below interacts with belts which is
+        // why this has to complete here.
+        WaitExecuteParallel(targetThreadCount);
 
         // 3151
         ExecuteParallel(targetThreadCount, WorkTaskType.DefenseSystemTurret);

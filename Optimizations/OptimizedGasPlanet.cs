@@ -89,6 +89,8 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
         return _workNodes;
     }
 
+    public RootWorkNode? GetCargoPresentWork() => null;
+
     private IWorkNode CreateMultithreadedWork(int maxParallelism)
     {
         if (Status == OptimizedPlanetStatus.Stopped)
@@ -101,7 +103,7 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
             return new SingleWorkLeaf(new PlanetWideTransport(this));
         }
 
-        return new NoWorkNode();
+        return NoWorkNode.Instance;
     }
 
     private IWorkNode CreateParallelWorkForNonRunningOptimizedPlanet(int maxParallelism)
@@ -111,6 +113,6 @@ internal sealed class OptimizedGasPlanet : IOptimizedPlanet
             return UnOptimizedPlanetWorkChunk.CreateDuplicateChunksInWorkLeafs(_planet, WorkType.TransportData, 1)[0];
         }
 
-        return new NoWorkNode();
+        return NoWorkNode.Instance;
     }
 }

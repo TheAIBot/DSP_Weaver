@@ -33,6 +33,21 @@ internal sealed class WorkExecutor
         }
     }
 
+    public void ExecuteCargoPresent(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
+    {
+        try
+        {
+            RootWorkNode? rootWorkNode = _starClusterWorkManager.GetCargoPresentRootWorkNode();
+            rootWorkNode?.Execute(_workerIndex, _singleThreadedCodeLock, localPlanet, time, playerPosition);
+        }
+        catch (Exception e)
+        {
+            WeaverFixes.Logger.LogError(e.Message);
+            WeaverFixes.Logger.LogError(e.StackTrace);
+            throw;
+        }
+    }
+
     public void ExecuteDefenseSystemTurret(PlanetData localPlanet, long time, UnityEngine.Vector3 playerPosition)
     {
         try

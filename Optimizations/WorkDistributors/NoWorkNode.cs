@@ -7,6 +7,7 @@ namespace Weaver.Optimizations.WorkDistributors;
 
 internal sealed class NoWorkNode : IWorkNode
 {
+    public static readonly NoWorkNode Instance = new NoWorkNode();
     public bool IsLeaf => throw new NotImplementedException();
 
     public int GetWorkChunkCount() => throw new NotImplementedException();
@@ -26,7 +27,7 @@ internal sealed class DummyWorkDoneImmediatelyNode : IWorkNode
 
     public int GetWorkChunkCount() => 0;
 
-    public void Reset(){ }
+    public void Reset() { }
 
     public (bool isNodeComplete, bool didAnyWork) TryDoWork(bool waitForWork, bool searchAllWork, int workerIndex, object singleThreadedCodeLock, PlanetData localPlanet, long time, Vector3 playerPosition) => (true, true);
     public IEnumerable<IWorkChunk> GetAllWorkChunks() => [];
