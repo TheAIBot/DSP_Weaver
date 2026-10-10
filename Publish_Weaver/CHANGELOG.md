@@ -1,3 +1,6 @@
+# 2.6.0
+* Optimize belt data access by splitting it into interaction data and game tick data.
+
 # 2.5.0
 * Transport system update can now run in parallel with assembler update.
 * Cargo path preparation step can now run in parallel with enemy and defense updates.

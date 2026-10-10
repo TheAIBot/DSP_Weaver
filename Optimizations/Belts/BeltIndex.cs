@@ -15,10 +15,15 @@ internal readonly struct BeltIndex : IEquatable<BeltIndex>, IMemorySize
 
     public BeltIndex(int index)
     {
-        _index = index; 
+        _index = index;
     }
 
     public readonly ref OptimizedCargoPath GetBelt(OptimizedCargoPath[] belts)
+    {
+        return ref belts[_index];
+    }
+
+    public readonly ref OptimizedCargoPathGameTickData GetBeltGameTickData(OptimizedCargoPathGameTickData[] belts)
     {
         return ref belts[_index];
     }
@@ -30,12 +35,12 @@ internal readonly struct BeltIndex : IEquatable<BeltIndex>, IMemorySize
             throw new InvalidOperationException("Attempted to get index of empty belt index.");
         }
 
-        return _index; 
+        return _index;
     }
 
     public readonly int GetSize() => Marshal.SizeOf<BeltIndex>();
 
-    public static bool operator==(BeltIndex left, BeltIndex right)
+    public static bool operator ==(BeltIndex left, BeltIndex right)
     {
         return left._index == right._index;
     }

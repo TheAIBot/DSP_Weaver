@@ -1,50 +1,60 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Belts;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct OptimizedCargoPath
+internal struct OptimizedCargoPathGameTickData
 {
-    public readonly byte[] buffer;
-    private readonly ReadonlyArray<int> chunks;
+    public readonly ReadonlyArray<int> chunks;
     public readonly int outputIndex = -1;
-    public readonly bool closed;
-    public readonly int bufferLength;
     public readonly int chunkCount;
-    public BeltIndex outputCargoPathIndex;
-    private int outputChunk;
-    private bool lastUpdateFrameOdd;
-    public int updateLen;
-    public readonly int pathLength => bufferLength;
+    public readonly BeltIndex outputCargoPathIndex;
+    public int outputChunk;
 
-    public OptimizedCargoPath(byte[] buffer, CargoPath cargoPath, UniverseStaticDataBuilder universeStaticDataBuilder)
+    public OptimizedCargoPathGameTickData(CargoPath cargoPath, UniverseStaticDataBuilder universeStaticDataBuilder)
     {
-        this.buffer = buffer;
         chunks = universeStaticDataBuilder.DeduplicateArrayUnmanaged(cargoPath.chunks);
         outputIndex = cargoPath.outputIndex;
-        closed = cargoPath.closed;
-        bufferLength = cargoPath.bufferLength;
         chunkCount = cargoPath.chunkCount;
         outputCargoPathIndex = BeltIndex.NoBelt;
         outputChunk = cargoPath.outputChunk;
-        lastUpdateFrameOdd = cargoPath.lastUpdateFrameOdd;
-        updateLen = cargoPath.updateLen;
     }
 
-    public readonly void Save(CargoPath cargoPath)
+    public OptimizedCargoPathGameTickData(ref OptimizedCargoPathGameTickData optimizedCargoPathGameTickData, BeltIndex beltIndex)
     {
-        cargoPath.outputChunk = outputChunk;
+        chunks = optimizedCargoPathGameTickData.chunks;
+        outputIndex = optimizedCargoPathGameTickData.outputIndex;
+        chunkCount = optimizedCargoPathGameTickData.chunkCount;
+        outputCargoPathIndex = beltIndex;
+        outputChunk = optimizedCargoPathGameTickData.outputChunk;
+    }
+}
+
+internal struct OptimizedCargoPath
+{
+    public readonly byte[] buffer;
+    public readonly int bufferLength;
+    public int updateLen;
+    public readonly bool closed;
+    public bool lastUpdateFrameOdd;
+    public readonly int pathLength => bufferLength;
+
+    public OptimizedCargoPath(byte[] buffer, CargoPath cargoPath)
+    {
+        this.buffer = buffer;
+        bufferLength = cargoPath.bufferLength;
+        updateLen = cargoPath.updateLen;
+        closed = cargoPath.closed;
+        lastUpdateFrameOdd = cargoPath.lastUpdateFrameOdd;
+    }
+
+    public readonly void Save(CargoPath cargoPath, ref OptimizedCargoPathGameTickData optimizedCargoPathGameTickData)
+    {
+        cargoPath.outputChunk = optimizedCargoPathGameTickData.outputChunk;
         cargoPath.lastUpdateFrameOdd = lastUpdateFrameOdd;
         cargoPath.updateLen = updateLen;
-    }
-
-    public void SetOutputPath(BeltIndex cargoPathIndex)
-    {
-        outputCargoPathIndex = cargoPathIndex;
     }
 
     public readonly bool TryInsertCargo(int index, OptimizedCargo optimizedCargo)
@@ -380,7 +390,7 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public void TryInsertItemWithStackIncreasement(int index, int itemId, int maxStack, ref int count, ref int inc)
+    public readonly void TryInsertItemWithStackIncreasement(int index, int itemId, int maxStack, ref int count, ref int inc)
     {
         int num = index + 5;
         if (num >= 0 && num < bufferLength)
@@ -1310,41 +1320,42 @@ internal struct OptimizedCargoPath
         return false;
     }
 
-    public void Update(OptimizedCargoPath[] optimizedCargoPaths)
+    public void Update(OptimizedCargoPath[] optimizedCargoPaths, OptimizedCargoPathGameTickData[] optimizedCargoPathGameTickDatas, ref OptimizedCargoPathGameTickData optimizedCargoPathGameTickData)
     {
-        if (outputCargoPathIndex.HasValue)
+        if (optimizedCargoPathGameTickData.outputCargoPathIndex.HasValue)
         {
-            ref OptimizedCargoPath outputCargoPath = ref outputCargoPathIndex.GetBelt(optimizedCargoPaths);
+            ref OptimizedCargoPath outputCargoPath = ref optimizedCargoPathGameTickData.outputCargoPathIndex.GetBelt(optimizedCargoPaths);
+            ref OptimizedCargoPathGameTickData outputCargoGameTicData = ref optimizedCargoPathGameTickData.outputCargoPathIndex.GetBeltGameTickData(optimizedCargoPathGameTickDatas);
             int num;
-            if (outputCargoPath.chunkCount == 1)
+            if (outputCargoGameTicData.chunkCount == 1)
             {
-                num = outputCargoPath.chunks[2];
-                outputChunk = 0;
+                num = outputCargoGameTicData.chunks[2];
+                optimizedCargoPathGameTickData.outputChunk = 0;
             }
             else
             {
-                int num2 = outputCargoPath.chunkCount - 1;
-                if (outputChunk > num2)
+                int num2 = outputCargoGameTicData.chunkCount - 1;
+                if (optimizedCargoPathGameTickData.outputChunk > num2)
                 {
-                    outputChunk = num2;
+                    optimizedCargoPathGameTickData.outputChunk = num2;
                 }
                 int num3 = 0;
                 while (true)
                 {
-                    if (outputIndex < outputCargoPath.chunks[outputChunk * 3])
+                    if (optimizedCargoPathGameTickData.outputIndex < outputCargoGameTicData.chunks[optimizedCargoPathGameTickData.outputChunk * 3])
                     {
-                        num2 = outputChunk - 1;
-                        outputChunk = (num3 + num2) / 2;
+                        num2 = optimizedCargoPathGameTickData.outputChunk - 1;
+                        optimizedCargoPathGameTickData.outputChunk = (num3 + num2) / 2;
                         continue;
                     }
-                    if (outputIndex < outputCargoPath.chunks[outputChunk * 3] + outputCargoPath.chunks[outputChunk * 3 + 1])
+                    if (optimizedCargoPathGameTickData.outputIndex < outputCargoGameTicData.chunks[optimizedCargoPathGameTickData.outputChunk * 3] + outputCargoGameTicData.chunks[optimizedCargoPathGameTickData.outputChunk * 3 + 1])
                     {
                         break;
                     }
-                    num3 = outputChunk + 1;
-                    outputChunk = (num3 + num2) / 2;
+                    num3 = optimizedCargoPathGameTickData.outputChunk + 1;
+                    optimizedCargoPathGameTickData.outputChunk = (num3 + num2) / 2;
                 }
-                num = outputCargoPath.chunks[outputChunk * 3 + 2];
+                num = outputCargoGameTicData.chunks[optimizedCargoPathGameTickData.outputChunk * 3 + 2];
             }
             int num4 = bufferLength - 5 - 1;
             if (buffer[num4] == 250)
@@ -1352,13 +1363,13 @@ internal struct OptimizedCargoPath
                 OptimizedCargo optimizedCargo = GetCargo(num4 + 1);
                 if (closed)
                 {
-                    if (outputCargoPath.TryInsertCargoNoSqueeze(outputIndex, optimizedCargo))
+                    if (outputCargoPath.TryInsertCargoNoSqueeze(optimizedCargoPathGameTickData.outputIndex, optimizedCargo))
                     {
                         Array.Clear(buffer, num4 - 4, 10);
                         updateLen = bufferLength;
                     }
                 }
-                else if (outputCargoPath.TryInsertCargo(lastUpdateFrameOdd == outputCargoPath.lastUpdateFrameOdd ? outputIndex : outputIndex + num > outputCargoPath.bufferLength - 6 ? outputCargoPath.bufferLength - 6 : outputIndex + num, optimizedCargo))
+                else if (outputCargoPath.TryInsertCargo(lastUpdateFrameOdd == outputCargoPath.lastUpdateFrameOdd ? optimizedCargoPathGameTickData.outputIndex : optimizedCargoPathGameTickData.outputIndex + num > outputCargoPath.bufferLength - 6 ? outputCargoPath.bufferLength - 6 : optimizedCargoPathGameTickData.outputIndex + num, optimizedCargo))
                 {
                     Array.Clear(buffer, num4 - 4, 10);
                     updateLen = bufferLength;
@@ -1381,10 +1392,10 @@ internal struct OptimizedCargoPath
             return;
         }
         int num6 = updateLen;
-        for (int num7 = chunkCount - 1; num7 >= 0; num7--)
+        for (int num7 = optimizedCargoPathGameTickData.chunkCount - 1; num7 >= 0; num7--)
         {
-            int num8 = chunks[num7 * 3];
-            int num9 = chunks[num7 * 3 + 2];
+            int num8 = optimizedCargoPathGameTickData.chunks[num7 * 3];
+            int num9 = optimizedCargoPathGameTickData.chunks[num7 * 3 + 2];
             if (num8 < num6)
             {
                 if (buffer[num8] != 0)

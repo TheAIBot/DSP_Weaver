@@ -10,6 +10,7 @@ namespace Weaver.Optimizations.Belts;
 internal sealed class BeltExecutor
 {
     private OptimizedCargoPath[] _optimizedCargoPaths = null!;
+    private OptimizedCargoPathGameTickData[] _optimizedCargoPathGameTickDatas = null!;
     private Dictionary<CargoPath, BeltIndex> _cargoPathToOptimizedCargoPathIndex = null!;
 
     public Dictionary<CargoPath, BeltIndex> CargoPathToOptimizedCargoPathIndex => _cargoPathToOptimizedCargoPathIndex;
@@ -33,26 +34,30 @@ internal sealed class BeltExecutor
     public void GameTick()
     {
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
+        OptimizedCargoPathGameTickData[] optimizedCargoPathGameTickDatas = _optimizedCargoPathGameTickDatas;
         for (int i = 0; i < optimizedCargoPaths.Length; i++)
         {
-            optimizedCargoPaths[i].Update(optimizedCargoPaths);
+            optimizedCargoPaths[i].Update(optimizedCargoPaths, optimizedCargoPathGameTickDatas, ref optimizedCargoPathGameTickDatas[i]);
         }
     }
 
     public void Save(CargoContainer cargoContainer)
     {
         OptimizedCargoPath[] optimizedCargoPaths = _optimizedCargoPaths;
+        OptimizedCargoPathGameTickData[] optimizedCargoPathGameTickDatas = _optimizedCargoPathGameTickDatas;
         foreach (KeyValuePair<CargoPath, BeltIndex> cargoPathWithOptimizedCargoPathIndex in _cargoPathToOptimizedCargoPathIndex)
         {
             ref OptimizedCargoPath optimizedCargoPath = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBelt(optimizedCargoPaths);
             CopyToBufferWithUpdatedCargoIndexes(cargoPathWithOptimizedCargoPathIndex.Key.buffer, ref optimizedCargoPath, cargoContainer);
-            optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key);
+            ref OptimizedCargoPathGameTickData optimizedCargoPathGameTickData = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBeltGameTickData(optimizedCargoPathGameTickDatas);
+            optimizedCargoPath.Save(cargoPathWithOptimizedCargoPathIndex.Key, ref optimizedCargoPathGameTickData);
         }
     }
 
     public void Initialize(PlanetFactory planet, Graph subFactoryGraph, UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         List<OptimizedCargoPath> optimizedCargoPaths = [];
+        List<OptimizedCargoPathGameTickData> optimizedCargoPathGameTickDatas = [];
         Dictionary<CargoPath, BeltIndex> cargoPathToOptimizedCargoPath = [];
 
         foreach (int cargoPathIndex in subFactoryGraph.GetAllNodes()
@@ -67,12 +72,14 @@ internal sealed class BeltExecutor
             }
 
             byte[] updatedBuffer = GetBufferWithUpdatedCargoIndexes(cargoPath);
-            var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath, universeStaticDataBuilder);
+            var optimizedCargoPath = new OptimizedCargoPath(updatedBuffer, cargoPath);
             cargoPathToOptimizedCargoPath.Add(cargoPath, new BeltIndex(optimizedCargoPaths.Count));
             optimizedCargoPaths.Add(optimizedCargoPath);
+            optimizedCargoPathGameTickDatas.Add(new OptimizedCargoPathGameTickData(cargoPath, universeStaticDataBuilder));
         }
 
         _optimizedCargoPaths = optimizedCargoPaths.ToArray();
+        _optimizedCargoPathGameTickDatas = optimizedCargoPathGameTickDatas.ToArray();
 
         foreach (KeyValuePair<CargoPath, BeltIndex> cargoPathWithOptimizedCargoPathIndex in cargoPathToOptimizedCargoPath)
         {
@@ -81,8 +88,9 @@ internal sealed class BeltExecutor
                 continue;
             }
 
-            ref OptimizedCargoPath belt = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBelt(_optimizedCargoPaths);
-            belt.SetOutputPath(cargoPathToOptimizedCargoPath[cargoPathWithOptimizedCargoPathIndex.Key.outputPath]);
+            ref OptimizedCargoPathGameTickData beltGameTickData = ref cargoPathWithOptimizedCargoPathIndex.Value.GetBeltGameTickData(_optimizedCargoPathGameTickDatas);
+            var beltGameTickDataWithOutputBelt = new OptimizedCargoPathGameTickData(ref beltGameTickData, cargoPathToOptimizedCargoPath[cargoPathWithOptimizedCargoPathIndex.Key.outputPath]);
+            beltGameTickData = beltGameTickDataWithOutputBelt;
         }
 
         _cargoPathToOptimizedCargoPathIndex = cargoPathToOptimizedCargoPath;
