@@ -52,7 +52,7 @@ internal struct OptimizedAssembler
     public static void UpdateNeeds(ref readonly AssemblerRecipe assemblerRecipeData,
                                    ref readonly AssemblerTimingData assemblerTimingData,
                                    GroupNeeds groupNeeds,
-                                   short[] served,
+                                   ServedData[] served,
                                    ComponentNeeds[] componentsNeeds,
                                    int assemblerIndex)
     {
@@ -68,7 +68,7 @@ internal struct OptimizedAssembler
         byte needBits = 0;
         for (int i = 0; i < requireCounts.Length; i++)
         {
-            needBits |= (byte)((served[servedOffset + i] < requireCounts[i] * num2 ? 1 : 0) << i);
+            needBits |= (byte)((served[servedOffset + i].Served < requireCounts[i] * num2 ? 1 : 0) << i);
         }
 
         componentsNeeds[needsOffset].Needs = needBits;
@@ -83,8 +83,7 @@ internal struct OptimizedAssembler
                                  ref AssemblerTimingData assemblerTimingData,
                                  int servedOffset,
                                  int producedOffset,
-                                 short[] served,
-                                 short[] incServed,
+                                 ServedData[] served,
                                  short[] produced)
     {
         if (assemblerTimingData.ExtraTime >= assemblerRecipeData.ExtraTimeSpend)
@@ -206,11 +205,11 @@ internal struct OptimizedAssembler
             int num5 = assemblerRecipeData.RequireCounts.Length;
             for (int num6 = 0; num6 < num5; num6++)
             {
-                if (incServed[servedOffset + num6] <= 0)
+                if (served[servedOffset + num6].IncServed <= 0)
                 {
-                    incServed[servedOffset + num6] = 0;
+                    served[servedOffset + num6].IncServed = 0;
                 }
-                if (served[servedOffset + num6] < assemblerRecipeData.RequireCounts[num6] || served[servedOffset + num6] == 0)
+                if (served[servedOffset + num6].Served < assemblerRecipeData.RequireCounts[num6] || served[servedOffset + num6].Served == 0)
                 {
                     assemblerTimingData.Time = 0;
                     return AssemblerState.InactiveInputMissing;
@@ -219,15 +218,15 @@ internal struct OptimizedAssembler
             int num7 = num5 > 0 ? 10 : 0;
             for (int num8 = 0; num8 < num5; num8++)
             {
-                int num9 = split_inc_level(ref served[servedOffset + num8], ref incServed[servedOffset + num8], (short)assemblerRecipeData.RequireCounts[num8]);
+                int num9 = split_inc_level(ref served[servedOffset + num8], assemblerRecipeData.RequireCounts[num8]);
                 num7 = num7 < num9 ? num7 : num9;
                 if (!incUsed)
                 {
                     incUsed = num9 > 0;
                 }
-                if (served[servedOffset + num8] == 0)
+                if (served[servedOffset + num8].Served == 0)
                 {
-                    incServed[servedOffset + num8] = 0;
+                    served[servedOffset + num8].IncServed = 0;
                 }
                 consumeRegister[assemblerRecipeData.Requires[num8].OptimizedItemIndex] += assemblerRecipeData.RequireCounts[num8];
             }
@@ -265,8 +264,7 @@ internal struct OptimizedAssembler
                               ComponentNeeds[] componentsNeeds,
                               short[] needsPatterns,
                               int producedSize,
-                              short[] served,
-                              short[] incServed,
+                              ServedData[] served,
                               short[] produced,
                               int assemblerIndex)
     {
@@ -275,9 +273,8 @@ internal struct OptimizedAssembler
         ComponentNeeds componentNeeds = componentsNeeds[needsOffset];
         for (int i = 0; i < groupNeeds.GroupNeedsSize; i++)
         {
-            GroupNeeds.SetIfInRange(assembler.served, served, i, servedOffset + i);
+            GroupNeeds.SetIfInRange(assembler.served, assembler.incServed, served, i, servedOffset + i);
             GroupNeeds.SetNeedsIfInRange(assembler.needs, componentNeeds, needsPatterns, i);
-            GroupNeeds.SetIfInRange(assembler.incServed, incServed, i, servedOffset + i);
         }
 
         int producedOffset = assemblerIndex * producedSize;
@@ -297,13 +294,13 @@ internal struct OptimizedAssembler
         assembler.extraPowerRatio = extraPowerRatio;
     }
 
-    private static int split_inc_level(ref short n, ref short m, short p)
+    private static int split_inc_level(ref ServedData served, short p)
     {
-        int num = m / n;
-        int num2 = m - num * n;
-        n -= p;
-        num2 -= n;
-        m -= (short)(num2 > 0 ? num * p + num2 : num * p);
+        int num = served.IncServed / served.Served;
+        int num2 = served.IncServed - num * served.Served;
+        served.Served -= p;
+        num2 -= served.Served;
+        served.IncServed -= (short)(num2 > 0 ? num * p + num2 : num * p);
         return num;
     }
 }

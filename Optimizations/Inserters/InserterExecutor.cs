@@ -80,15 +80,13 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly SubFactoryNeeds _subFactoryNeeds;
 
     private readonly int _assemblerProducedSize;
-    private readonly short[] _assemblerServed;
-    private readonly short[] _assemblerIncServed;
+    private readonly ServedData[] _assemblerServed;
     private readonly short[] _assemblerProduced;
     private readonly ReadonlyArray<short> _assemblerRecipeIndexes;
     private readonly bool[] _assemblerNeedToUpdateNeeds;
 
     private readonly int _producingLabProducedSize;
-    private readonly short[] _producingLabServed;
-    private readonly short[] _producingLabIncServed;
+    private readonly ServedData[] _producingLabServed;
     private readonly short[] _producingLabProduced;
     private readonly ReadonlyArray<short> _producingLabRecipeIndexes;
     private readonly bool[] _producingLabNeedToUpdateNeeds;
@@ -110,14 +108,12 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             OptimizedItemId[]?[]? fuelNeeds,
                             SubFactoryNeeds subFactoryNeeds,
                             int assemblerProducedSize,
-                            short[] assemblerServed,
-                            short[] assemblerIncServed,
+                            ServedData[] assemblerServed,
                             short[] assemblerProduced,
                             ReadonlyArray<short> assemblerRecipeIndexes,
                             bool[] assemblerNeedToUpdateNeeds,
                             int producingLabProducedSize,
-                            short[] producingLabServed,
-                            short[] producingLabIncServed,
+                            ServedData[] producingLabServed,
                             short[] producingLabProduced,
                             ReadonlyArray<short> producingLabRecipeIndexes,
                             bool[] producingLabNeedToUpdateNeeds,
@@ -135,13 +131,11 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         _subFactoryNeeds = subFactoryNeeds;
         _assemblerProducedSize = assemblerProducedSize;
         _assemblerServed = assemblerServed;
-        _assemblerIncServed = assemblerIncServed;
         _assemblerProduced = assemblerProduced;
         _assemblerRecipeIndexes = assemblerRecipeIndexes;
         _assemblerNeedToUpdateNeeds = assemblerNeedToUpdateNeeds;
         _producingLabProducedSize = producingLabProducedSize;
         _producingLabServed = producingLabServed;
-        _producingLabIncServed = producingLabIncServed;
         _producingLabProduced = producingLabProduced;
         _producingLabRecipeIndexes = producingLabRecipeIndexes;
         _producingLabNeedToUpdateNeeds = producingLabNeedToUpdateNeeds;
@@ -760,8 +754,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
 
             OptimizedItemId[] requires = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Requires;
-            short[] assemblerServed = _assemblerServed;
-            short[] assemblerIncServed = _assemblerIncServed;
+            ServedData[] assemblerServed = _assemblerServed;
             int assemblerServedOffset = groupNeeds.GroupNeedsSize * objectIndex;
 
             for (int i = 0; i < requires.Length; i++)
@@ -771,8 +764,9 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                     continue;
                 }
 
-                assemblerServed[assemblerServedOffset + i] += itemCount;
-                assemblerIncServed[assemblerServedOffset + i] += itemInc;
+                ref ServedData served = ref assemblerServed[assemblerServedOffset + i];
+                served.Served += itemCount;
+                served.IncServed += itemInc;
                 remainInc = 0;
                 _assemblerStates[objectIndex] = AssemblerState.Active;
                 _assemblerNeedToUpdateNeeds[objectIndex] = true;
@@ -839,16 +833,16 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             }
 
             OptimizedItemId[] requires = _universeStaticData.ProducingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Requires;
-            short[] served = _producingLabServed;
-            short[] incServed = _producingLabIncServed;
+            ServedData[] producingLabServed = _producingLabServed;
             int servedOffset = groupNeeds.GroupNeedsSize * objectIndex;
 
             for (int i = 0; i < requires.Length; i++)
             {
                 if (requires[i].ItemIndex == itemId)
                 {
-                    served[servedOffset + i] += itemCount;
-                    incServed[servedOffset + i] += itemInc;
+                    ref ServedData served = ref producingLabServed[servedOffset + i];
+                    served.Served += itemCount;
+                    served.IncServed += itemInc;
                     remainInc = 0;
                     _producingLabStates[objectIndex] = LabState.Active;
                     _producingLabNeedToUpdateNeeds[objectIndex] = true;

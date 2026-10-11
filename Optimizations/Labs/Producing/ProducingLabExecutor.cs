@@ -25,8 +25,7 @@ internal sealed class ProducingLabExecutor
     private long[]? _previousPowerConsumptions;
 
     public int _producedSize = -1;
-    public short[] _served = null!;
-    public short[] _incServed = null!;
+    public ServedData[] _served = null!;
     public short[] _produced = null!;
     public bool[] _needToUpdateNeeds = null!;
 
@@ -51,8 +50,7 @@ internal sealed class ProducingLabExecutor
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         int producedSize = _producedSize;
-        short[] served = _served;
-        short[] incServed = _incServed;
+        ServedData[] served = _served;
         short[] produced = _produced;
         ReadonlyArray<short> labRecipeIndexes = _labRecipeIndexes;
         bool[] needToUpdateNeeds = _needToUpdateNeeds;
@@ -117,7 +115,6 @@ internal sealed class ProducingLabExecutor
                                                   servedOffset,
                                                   producedOffset,
                                                   served,
-                                                  incServed,
                                                   produced);
 
             if (labPowerFields.replicating)
@@ -135,8 +132,7 @@ internal sealed class ProducingLabExecutor
         GroupNeeds groupNeeds = subFactoryNeeds.GetGroupNeeds(EntityType.ProducingLab);
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         int producedSize = _producedSize;
-        short[] served = _served;
-        short[] incServed = _incServed;
+        ServedData[] served = _served;
         short[] produced = _produced;
         bool[] needToUpdateNeeds = _needToUpdateNeeds;
         ReadonlyArray<short> labRecipeIndexes = _labRecipeIndexes;
@@ -166,7 +162,6 @@ internal sealed class ProducingLabExecutor
                                        servedOffset,
                                        producedSize,
                                        served,
-                                       incServed,
                                        produced);
             }
         }
@@ -241,8 +236,7 @@ internal sealed class ProducingLabExecutor
         ComponentNeeds[] componentsNeeds = subFactoryNeeds.ComponentsNeeds;
         short[] needsPatterns = subFactoryNeeds.NeedsPatterns;
         int producedSize = _producedSize;
-        short[] served = _served;
-        short[] incServed = _incServed;
+        ServedData[] served = _served;
         short[] produced = _produced;
         for (int i = 1; i < planet.factorySystem.labCursor; i++)
         {
@@ -260,7 +254,6 @@ internal sealed class ProducingLabExecutor
                               needsPatterns,
                               producedSize,
                               served,
-                              incServed,
                               produced,
                               optimizedIndex);
         }
@@ -386,8 +379,7 @@ internal sealed class ProducingLabExecutor
         {
             int maxServedsSize = producingLabRecipes.Max(x => x.Requires.Length);
             int maxProducedSize = producingLabRecipes.Max(x => x.Products.Length);
-            List<short> servedFlat = [];
-            List<short> incServedFlat = [];
+            List<ServedData> servedFlat = [];
             List<short> producedFlat = [];
 
             // Apparently some labs have a ridiculously high number of items inside it.
@@ -400,8 +392,9 @@ internal sealed class ProducingLabExecutor
             {
                 for (int servedIndex = 0; servedIndex < maxServedsSize; servedIndex++)
                 {
-                    servedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(served[labIndex], servedIndex, minAllowedValue, maxAllowedValue));
-                    incServedFlat.Add(GroupNeeds.GetOrDefaultConvertToShortWithClamping(incServed[labIndex], servedIndex, minAllowedValue, maxAllowedValue));
+                    short servedShort = GroupNeeds.GetOrDefaultConvertToShortWithClamping(served[labIndex], servedIndex, minAllowedValue, maxAllowedValue);
+                    short incServedShort = GroupNeeds.GetOrDefaultConvertToShortWithClamping(incServed[labIndex], servedIndex, minAllowedValue, maxAllowedValue);
+                    servedFlat.Add(new ServedData(servedShort, incServedShort));
                 }
 
                 for (int producedIndex = 0; producedIndex < maxProducedSize; producedIndex++)
@@ -412,7 +405,6 @@ internal sealed class ProducingLabExecutor
 
             _producedSize = maxProducedSize;
             _served = servedFlat.ToArray();
-            _incServed = incServedFlat.ToArray();
             _produced = producedFlat.ToArray();
             _needToUpdateNeeds = new bool[optimizedLabs.Count];
             _needToUpdateNeeds.Fill(true);

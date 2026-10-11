@@ -24,6 +24,19 @@ internal record struct GroupNeeds(int GroupNeedStartIndex, byte GroupNeedsSize)
         copyTo[copyToIndex] = copyFrom[copyFromIndex];
     }
 
+    public static void SetIfInRange(int[] copyToServed, int[] copyToIncServed, ServedData[] copyFrom, int copyToIndex, int copyFromIndex)
+    {
+        if (copyToServed.Length > copyToIndex)
+        {
+            copyToServed[copyToIndex] = copyFrom[copyFromIndex].Served;
+        }
+
+        if (copyToIncServed.Length > copyToIndex)
+        {
+            copyToIncServed[copyToIndex] = copyFrom[copyFromIndex].IncServed;
+        }
+    }
+
     public static void SetNeedsIfInRange(int[] copyTo, ComponentNeeds componentNeeds, short[] needsPatterns, int copyIndex)
     {
         if (copyTo.Length <= copyIndex)
