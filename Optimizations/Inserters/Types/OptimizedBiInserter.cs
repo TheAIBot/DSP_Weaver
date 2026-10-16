@@ -254,7 +254,6 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
 
             short num2 = inserterExecutor.PickFrom(planet,
                                                    ref inserterState,
-                                                   inserterIndex,
                                                    pickOffset,
                                                    filter,
                                                    inserterConnections,
@@ -335,7 +334,6 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
             byte remainInc;
             int num9 = inserterExecutor.InsertInto(planet,
                                                    ref inserterState,
-                                                   inserterIndex,
                                                    inserterConnections,
                                                    groupNeeds,
                                                    insertOffset,

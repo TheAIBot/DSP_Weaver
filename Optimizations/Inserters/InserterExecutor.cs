@@ -507,7 +507,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 
     public short PickFrom(PlanetFactory planet,
                           ref InserterState inserterState,
-                          int inserterIndex,
                           int offset,
                           int filter,
                           InserterConnections inserterConnections,
@@ -717,7 +716,6 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
 
     public short InsertInto(PlanetFactory planet,
                             ref InserterState inserterState,
-                            int inserterIndex,
                             InserterConnections inserterConnections,
                             GroupNeeds groupNeeds,
                             int offset,

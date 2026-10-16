@@ -219,7 +219,6 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
 
                     short num = inserterExecutor.PickFrom(planet,
                                                           ref inserterState,
-                                                          inserterIndex,
                                                           pickOffset,
                                                           filter,
                                                           inserterConnections,
@@ -320,7 +319,6 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                     byte remainInc;
                     int num7 = inserterExecutor.InsertInto(planet,
                                                            ref inserterState,
-                                                           inserterIndex,
                                                            inserterConnections,
                                                            groupNeeds,
                                                            insertOffset,
