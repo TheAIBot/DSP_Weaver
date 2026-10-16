@@ -18,6 +18,8 @@ internal sealed class AssemblerExecutor
     private int[] _assemblerExtraPowerRatios = null!;
     private AssemblerTimingData[] _assemblersTimingData = null!;
     public ReadonlyArray<short> _assemblerRecipeIndexes = default;
+    public ReadonlyArray<short> _assemblerRecipeRequiresIndexes = default;
+    public ReadonlyArray<short> _assemblerRecipeProductsIndexes = default;
     public Dictionary<int, int> _assemblerIdToOptimizedIndex = null!;
     public HashSet<int> _unOptimizedAssemblerIds = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
@@ -249,6 +251,8 @@ internal sealed class AssemblerExecutor
         List<int> assemblerExtraPowerRatios = [];
         List<AssemblerTimingData> assemblersTimingData = [];
         List<short> assemblerRecipeIndexes = [];
+        List<short> assemblerRecipeRequiresIndexes = [];
+        List<short> assemblerRecipeProductsIndexes = [];
         HashSet<AssemblerRecipe> assemblerRecipes = [];
         Dictionary<int, int> assemblerIdToOptimizedIndex = [];
         HashSet<int> unOptimizedAssemblerIds = [];
@@ -304,7 +308,7 @@ internal sealed class AssemblerExecutor
                                                                   subFactoryProductionRegisterBuilder.AddProduct(assembler.recipeExecuteData.products),
                                                                   universeStaticDataBuilder.DeduplicateArrayUnmanaged(ConverterUtilities.ConvertToShortArrayOrThrow(assembler.recipeExecuteData.productCounts, nameof(assembler.recipeExecuteData.productCounts))));
             assemblerRecipes.Add(assemblerRecipe);
-            int assemblerRecipeIndex = universeStaticDataBuilder.AddAssemblerRecipe(in assemblerRecipe);
+            (int recipeIndex, int requiresIndex, int productsIndex) = universeStaticDataBuilder.AddAssemblerRecipe(in assemblerRecipe);
 
             assemblerIdToOptimizedIndex.Add(assembler.id, optimizedAssemblers.Count);
             int networkIndex = planet.powerSystem.consumerPool[assembler.pcId].networkId;
@@ -317,7 +321,9 @@ internal sealed class AssemblerExecutor
             served.Add(assembler.served);
             incServed.Add(assembler.incServed);
             produced.Add(assembler.produced);
-            assemblerRecipeIndexes.Add((short)assemblerRecipeIndex);
+            assemblerRecipeIndexes.Add((short)recipeIndex);
+            assemblerRecipeRequiresIndexes.Add((short)requiresIndex);
+            assemblerRecipeProductsIndexes.Add((short)productsIndex);
             subFactoryPowerSystemBuilder.AddAssembler(ref assembler, networkIndex);
             prototypePowerConsumptionBuilder.AddPowerConsumer(in planet.entityPool[assembler.entityId]);
 
@@ -369,6 +375,8 @@ internal sealed class AssemblerExecutor
         _assemblerExtraPowerRatios = assemblerExtraPowerRatios.ToArray();
         _assemblersTimingData = assemblersTimingData.ToArray();
         _assemblerRecipeIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(assemblerRecipeIndexes);
+        _assemblerRecipeRequiresIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(assemblerRecipeRequiresIndexes);
+        _assemblerRecipeProductsIndexes = universeStaticDataBuilder.DeduplicateArrayUnmanaged(assemblerRecipeProductsIndexes);
         _assemblerIdToOptimizedIndex = assemblerIdToOptimizedIndex;
         _unOptimizedAssemblerIds = unOptimizedAssemblerIds;
         _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);

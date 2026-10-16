@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.Assemblers;
 using Weaver.Optimizations.Fractionators;
 using Weaver.Optimizations.Inserters.Types;
 using Weaver.Optimizations.Labs.Producing;
 using Weaver.Optimizations.PowerSystems;
+using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.StaticData;
 
@@ -14,6 +14,8 @@ internal sealed class UniverseStaticDataBuilder
 {
     private static bool _printStatistics = false;
     private readonly DataDeduplicator<AssemblerRecipe> _assemblerRecipes = new();
+    private readonly DataDeduplicator<ReadonlyArray<OptimizedItemId>> _assemblerRecipesRequires = new();
+    private readonly DataDeduplicator<ReadonlyArray<OptimizedItemId>> _assemblerRecipesProducts = new();
     private readonly DataDeduplicator<FractionatorConfiguration> _fractionatorConfigurations = new();
     private readonly DataDeduplicator<ProducingLabRecipe> _producingLabRecipes = new();
     private readonly DataDeduplicator<PowerConsumerType> _powerConsumerTypes = new();
@@ -28,9 +30,15 @@ internal sealed class UniverseStaticDataBuilder
         _printStatistics = true;
     }
 
-    public int AddAssemblerRecipe(ref readonly AssemblerRecipe assemblerRecipe)
+    public (int recipeIndex, int requiresIndex, int productsIndex) AddAssemblerRecipe(ref readonly AssemblerRecipe assemblerRecipe)
     {
-        return _assemblerRecipes.GetDeduplicatedValueIndex(in assemblerRecipe);
+        int recipeIndex = _assemblerRecipes.GetDeduplicatedValueIndex(in assemblerRecipe);
+        var requires = new ReadonlyArray<OptimizedItemId>(assemblerRecipe.Requires);
+        int requiresIndex = _assemblerRecipesRequires.GetDeduplicatedValueIndex(in requires);
+        var products = new ReadonlyArray<OptimizedItemId>(assemblerRecipe.Products);
+        int productsIndex = _assemblerRecipesProducts.GetDeduplicatedValueIndex(in products);
+
+        return (recipeIndex, requiresIndex, productsIndex);
     }
 
     public int AddFractionatorConfiguration(ref readonly FractionatorConfiguration fractionatorConfiguration)
@@ -74,6 +82,18 @@ internal sealed class UniverseStaticDataBuilder
             UniverseStaticData.UpdateAssemblerRecipes(assemblerRecipes.Value);
             dataUpdated = true;
         }
+        if (_assemblerRecipesRequires.TryGetUpdatedData(out ReadonlyArray<ReadonlyArray<OptimizedItemId>>? assemblerRecipesRequires))
+        {
+            //WeaverFixes.Logger.LogMessage($"Assembler recipe requires count: {assemblerRecipesRequires.Length}");
+            UniverseStaticData.UpdateAssemblerRecipesRequires(assemblerRecipesRequires.Value);
+            dataUpdated = true;
+        }
+        if (_assemblerRecipesProducts.TryGetUpdatedData(out ReadonlyArray<ReadonlyArray<OptimizedItemId>>? assemblerRecipesProducts))
+        {
+            //WeaverFixes.Logger.LogMessage($"Assembler recipe products count: {assemblerRecipesProducts.Length}");
+            UniverseStaticData.UpdateAssemblerRecipesProducts(assemblerRecipesProducts.Value);
+            dataUpdated = true;
+        }
         if (_fractionatorConfigurations.TryGetUpdatedData(out ReadonlyArray<FractionatorConfiguration>? fractionatorConfiguration))
         {
             //WeaverFixes.Logger.LogMessage($"Fractionator configuration count: {fractionatorConfiguration.Length}");
@@ -114,6 +134,8 @@ internal sealed class UniverseStaticDataBuilder
     public void Clear()
     {
         _assemblerRecipes.Clear();
+        _assemblerRecipesRequires.Clear();
+        _assemblerRecipesProducts.Clear();
         _fractionatorConfigurations.Clear();
         _producingLabRecipes.Clear();
         BiInserterGrades.Clear();
@@ -143,6 +165,8 @@ internal sealed class UniverseStaticDataBuilder
     {
         int totalBytes = 0;
         totalBytes += _assemblerRecipes.TotalBytes;
+        totalBytes += _assemblerRecipesRequires.TotalBytes;
+        totalBytes += _assemblerRecipesProducts.TotalBytes;
         totalBytes += _fractionatorConfigurations.TotalBytes;
         totalBytes += _producingLabRecipes.TotalBytes;
         totalBytes += _powerConsumerTypes.TotalBytes;
@@ -151,6 +175,8 @@ internal sealed class UniverseStaticDataBuilder
 
         int deduplicatedBytes = 0;
         deduplicatedBytes += _assemblerRecipes.BytesDeduplicated;
+        deduplicatedBytes += _assemblerRecipesRequires.BytesDeduplicated;
+        deduplicatedBytes += _assemblerRecipesProducts.BytesDeduplicated;
         deduplicatedBytes += _fractionatorConfigurations.BytesDeduplicated;
         deduplicatedBytes += _producingLabRecipes.BytesDeduplicated;
         deduplicatedBytes += _powerConsumerTypes.BytesDeduplicated;

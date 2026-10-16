@@ -82,7 +82,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly int _assemblerProducedSize;
     private readonly ServedData[] _assemblerServed;
     private readonly short[] _assemblerProduced;
-    private readonly ReadonlyArray<short> _assemblerRecipeIndexes;
+    private readonly ReadonlyArray<short> _assemblerRecipeRequiresIndexes;
+    private readonly ReadonlyArray<short> _assemblerRecipeProductsIndexes;
     private readonly bool[] _assemblerNeedToUpdateNeeds;
 
     private readonly int _producingLabProducedSize;
@@ -110,7 +111,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             int assemblerProducedSize,
                             ServedData[] assemblerServed,
                             short[] assemblerProduced,
-                            ReadonlyArray<short> assemblerRecipeIndexes,
+                            ReadonlyArray<short> assemblerRecipeRequiresIndexes,
+                            ReadonlyArray<short> assemblerRecipeProductsIndexes,
                             bool[] assemblerNeedToUpdateNeeds,
                             int producingLabProducedSize,
                             ServedData[] producingLabServed,
@@ -132,7 +134,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
         _assemblerProducedSize = assemblerProducedSize;
         _assemblerServed = assemblerServed;
         _assemblerProduced = assemblerProduced;
-        _assemblerRecipeIndexes = assemblerRecipeIndexes;
+        _assemblerRecipeRequiresIndexes = assemblerRecipeRequiresIndexes;
+        _assemblerRecipeProductsIndexes = assemblerRecipeProductsIndexes;
         _assemblerNeedToUpdateNeeds = assemblerNeedToUpdateNeeds;
         _producingLabProducedSize = producingLabProducedSize;
         _producingLabServed = producingLabServed;
@@ -390,7 +393,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 return 0;
             }
 
-            OptimizedItemId[] products = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Products;
+            ReadonlyArray<OptimizedItemId> products = _universeStaticData.AssemblerRecipesProducts[_assemblerRecipeProductsIndexes[objectIndex]];
             short[] produced = _assemblerProduced;
             int producedOffset = _assemblerProducedSize * objectIndex;
 
@@ -565,7 +568,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             ComponentNeeds componentNeeds = _subFactoryNeeds.ComponentsNeeds[needsOffset];
             short[] needsPatterns = _subFactoryNeeds.NeedsPatterns;
 
-            OptimizedItemId[] products = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Products;
+            ReadonlyArray<OptimizedItemId> products = _universeStaticData.AssemblerRecipesProducts[_assemblerRecipeProductsIndexes[objectIndex]];
             short[] produced = _assemblerProduced;
             int producedOffset = _assemblerProducedSize * objectIndex;
 
@@ -753,7 +756,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 throw new InvalidOperationException($"Needs should only be null if assembler is inactive which the above if statement should have caught.");
             }
 
-            OptimizedItemId[] requires = _universeStaticData.AssemblerRecipes[_assemblerRecipeIndexes[objectIndex]].Requires;
+            ReadonlyArray<OptimizedItemId> requires = _universeStaticData.AssemblerRecipesRequires[_assemblerRecipeRequiresIndexes[objectIndex]];
             ServedData[] assemblerServed = _assemblerServed;
             int assemblerServedOffset = groupNeeds.GroupNeedsSize * objectIndex;
 
