@@ -525,19 +525,10 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             ref OptimizedCargoPath pickFromBelt = ref optimizedCargoPaths[objectIndex];
             if (groupNeeds.GroupNeedsSize == 0)
             {
-                if (filter != 0)
-                {
-                    pickFromBelt.TryPickItem(offset - 2, 5, filter, out OptimizedCargo optimizedCargo);
-                    stack = optimizedCargo.Stack;
-                    inc = optimizedCargo.Inc;
-                    return optimizedCargo.Item;
-                }
-                {
-                    OptimizedCargo optimizedCargo = pickFromBelt.TryPickItem(offset - 2, 5);
-                    stack = optimizedCargo.Stack;
-                    inc = optimizedCargo.Inc;
-                    return optimizedCargo.Item;
-                }
+                pickFromBelt.TryPickItem(offset - 2, 5, filter, out OptimizedCargo optimizedCargo);
+                stack = optimizedCargo.Stack;
+                inc = optimizedCargo.Inc;
+                return optimizedCargo.Item;
             }
 
             {
