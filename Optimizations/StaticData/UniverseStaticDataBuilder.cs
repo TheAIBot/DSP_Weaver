@@ -33,10 +33,8 @@ internal sealed class UniverseStaticDataBuilder
     public (int recipeIndex, int requiresIndex, int productsIndex) AddAssemblerRecipe(ref readonly AssemblerRecipe assemblerRecipe)
     {
         int recipeIndex = _assemblerRecipes.GetDeduplicatedValueIndex(in assemblerRecipe);
-        var requires = new ReadonlyArray<OptimizedItemId>(assemblerRecipe.Requires);
-        int requiresIndex = _assemblerRecipesRequires.GetDeduplicatedValueIndex(in requires);
-        var products = new ReadonlyArray<OptimizedItemId>(assemblerRecipe.Products);
-        int productsIndex = _assemblerRecipesProducts.GetDeduplicatedValueIndex(in products);
+        int requiresIndex = _assemblerRecipesRequires.GetDeduplicatedValueIndex(in assemblerRecipe.Requires);
+        int productsIndex = _assemblerRecipesProducts.GetDeduplicatedValueIndex(in assemblerRecipe.Products);
 
         return (recipeIndex, requiresIndex, productsIndex);
     }

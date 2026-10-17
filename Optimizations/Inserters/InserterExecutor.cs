@@ -92,8 +92,8 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly ReadonlyArray<short> _producingLabRecipeIndexes;
     private readonly bool[] _producingLabNeedToUpdateNeeds;
 
-    private readonly int[] _researchingLabMatrixServed = null!;
-    private readonly int[] _researchingLabMatrixIncServed = null!;
+    private readonly int[] _researchingLabMatrixServed;
+    private readonly int[] _researchingLabMatrixIncServed;
 
     private readonly ReadonlyArray<int> _siloIndexes;
     private readonly EjectorBulletData[] _ejectorBulletDatas;

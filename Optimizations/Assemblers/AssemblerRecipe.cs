@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
@@ -15,9 +14,9 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemoryS
     public readonly int ExtraTimeSpend;
     public readonly int Speed;
     public readonly bool Productive;
-    public readonly OptimizedItemId[] Requires;
+    public readonly ReadonlyArray<OptimizedItemId> Requires;
     public readonly ReadonlyArray<short> RequireCounts;
-    public readonly OptimizedItemId[] Products;
+    public readonly ReadonlyArray<OptimizedItemId> Products;
     public readonly ReadonlyArray<short> ProductCounts;
 
     public AssemblerRecipe(int recipeId,
@@ -26,9 +25,9 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemoryS
                            int extraTimeSpend,
                            int speed,
                            bool productive,
-                           OptimizedItemId[] requires,
+                           ReadonlyArray<OptimizedItemId> requires,
                            ReadonlyArray<short> requireCounts,
-                           OptimizedItemId[] products,
+                           ReadonlyArray<OptimizedItemId> products,
                            ReadonlyArray<short> productCounts)
     {
         RecipeId = recipeId;
@@ -110,9 +109,9 @@ internal readonly struct AssemblerRecipe : IEquatable<AssemblerRecipe>, IMemoryS
         WeaverFixes.Logger.LogInfo($"{nameof(ExtraTimeSpend)}: {ExtraTimeSpend}");
         WeaverFixes.Logger.LogInfo($"{nameof(Speed)}: {Speed}");
         WeaverFixes.Logger.LogInfo($"{nameof(Productive)}: {Productive}");
-        WeaverFixes.Logger.LogInfo($"{nameof(Requires)}: [{(Requires != null ? string.Join(", ", Requires) : null)}]");
+        WeaverFixes.Logger.LogInfo($"{nameof(Requires)}: [{string.Join(", ", Requires)}]");
         WeaverFixes.Logger.LogInfo($"{nameof(RequireCounts)}: [{string.Join(", ", RequireCounts)}]");
-        WeaverFixes.Logger.LogInfo($"{nameof(Products)}: [{(Products != null ? string.Join(", ", Products) : null)}]");
+        WeaverFixes.Logger.LogInfo($"{nameof(Products)}: [{string.Join(", ", Products)}]");
         WeaverFixes.Logger.LogInfo($"{nameof(ProductCounts)}: [{string.Join(", ", ProductCounts)}]");
         WeaverFixes.Logger.LogInfo($"{nameof(GetHashCode)}: {GetHashCode()}");
     }
