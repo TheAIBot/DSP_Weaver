@@ -145,9 +145,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                 goto doneThing;
                             }
 
-                            if (!OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
-                                                                     subFactoryNeeds,
-                                                                     inserterIndex,
+                            if (!OptimizedBiInserter.IsNeedsNotEmpty(subFactoryNeeds,
                                                                      inserterConnections,
                                                                      out groupNeeds))
                             {
@@ -199,9 +197,7 @@ internal struct OptimizedInserter : IInserter<OptimizedInserter, InserterGrade>
                                 goto doneThing;
                             }
 
-                            if (!OptimizedBiInserter.IsNeedsNotEmpty(insertersConnections,
-                                                                     subFactoryNeeds,
-                                                                     inserterIndex,
+                            if (!OptimizedBiInserter.IsNeedsNotEmpty(subFactoryNeeds,
                                                                      inserterConnections,
                                                                      out groupNeeds))
                             {

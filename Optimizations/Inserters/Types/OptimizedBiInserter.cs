@@ -104,13 +104,10 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
         return universeStaticData.BiInserterGrades;
     }
 
-    internal static bool IsNeedsNotEmpty(ReadonlyArray<InserterConnections> insertersConnections,
-                                         SubFactoryNeeds subFactoryNeeds,
-                                         int inserterIndex,
+    internal static bool IsNeedsNotEmpty(SubFactoryNeeds subFactoryNeeds,
                                          InserterConnections inserterConnections,
                                          out GroupNeeds groupNeeds)
     {
-        inserterConnections = insertersConnections[inserterIndex];
         groupNeeds = subFactoryNeeds.GetGroupNeeds(inserterConnections.InsertInto.EntityType);
 
         // Object index for fuel power generators  does not represent the fuel generators index
@@ -172,9 +169,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                         break;
                     }
 
-                    if (!IsNeedsNotEmpty(insertersConnections,
-                                         subFactoryNeeds,
-                                         inserterIndex,
+                    if (!IsNeedsNotEmpty(subFactoryNeeds,
                                          inserterConnections,
                                          out groupNeeds))
                     {
@@ -233,9 +228,7 @@ internal struct OptimizedBiInserter : IInserter<OptimizedBiInserter, BiInserterG
                         {
                             break;
                         }
-                        if (!IsNeedsNotEmpty(insertersConnections,
-                                             subFactoryNeeds,
-                                             inserterIndex,
+                        if (!IsNeedsNotEmpty(subFactoryNeeds,
                                              inserterConnections,
                                              out groupNeeds))
                         {
