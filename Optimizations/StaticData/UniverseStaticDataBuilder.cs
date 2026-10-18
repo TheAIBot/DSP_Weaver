@@ -126,6 +126,7 @@ internal sealed class UniverseStaticDataBuilder
         if (dataUpdated && _printStatistics)
         {
             PrintStaticDataStatistics();
+            //UniverseStaticData.PrintUsage();
         }
     }
 

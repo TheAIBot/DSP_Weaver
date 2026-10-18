@@ -57,4 +57,17 @@ internal sealed class UniverseStaticData
     {
         InserterGrades = inserterGrades;
     }
+
+    public void PrintUsage()
+    {
+        WeaverFixes.Logger.LogMessage("Universe static data statistics");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(AssemblerRecipes),20}: {AssemblerRecipes.Length,6:N0}");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(AssemblerRecipesRequires),20}: {AssemblerRecipesRequires.Length,6:N0}");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(AssemblerRecipesProducts),20}: {AssemblerRecipesProducts.Length,6:N0}");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(FractionatorConfigurations),20}: {FractionatorConfigurations.Length,6:N0}");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(ProducingLabRecipes),20}: {ProducingLabRecipes.Length,6:N0}");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(PowerConsumerTypes),20}: {PowerConsumerTypes.Length,6:N0}");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(BiInserterGrades),20}: {BiInserterGrades.Length,6:N0}");
+        WeaverFixes.Logger.LogMessage($"\t{nameof(InserterGrades),20}: {InserterGrades.Length,6:N0}");
+    }
 }
