@@ -80,7 +80,7 @@ internal sealed class OptimizedTerrestrialPlanet : IOptimizedPlanet
         var optimizedPowerSystemBuilder = OptimizedPowerSystemBuilder.Create(_planet,
                                                                              planetWideProductionRegisterBuilder.GetSubFactoryBuilder(),
                                                                              universeStaticDataBuilder,
-                                                                             out OptimizedItemId[]?[]? fuelNeeds);
+                                                                             out ReadonlyArray<OptimizedItemId>?[]? fuelNeeds);
         var planetWideBeltExecutor = new PlanetWideBeltExecutor();
         var turretExecutorBuilder = new TurretExecutorBuilder();
 

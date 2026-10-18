@@ -14,7 +14,7 @@ internal sealed class FractionatorExecutor
     private ReadonlyArray<short> _fractionatorNetworkId = default;
     private OptimizedFractionator[] _optimizedFractionators = null!;
     private FractionatorPowerFields[] _fractionatorsPowerFields = null!;
-    private FractionatorRecipeProduct[] _fractionatorRecipeProducts = null!;
+    private ReadonlyArray<FractionatorRecipeProduct> _fractionatorRecipeProducts;
     public Dictionary<int, int> _fractionatorIdToOptimizedIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
@@ -35,7 +35,7 @@ internal sealed class FractionatorExecutor
         OptimizedFractionator[] optimizedFractionators = _optimizedFractionators;
         FractionatorPowerFields[] fractionatorsPowerFields = _fractionatorsPowerFields;
         ReadonlyArray<FractionatorConfiguration> fractionatorConfigurations = universeStaticData.FractionatorConfigurations;
-        FractionatorRecipeProduct[] fractionatorRecipeProducts = _fractionatorRecipeProducts;
+        ReadonlyArray<FractionatorRecipeProduct> fractionatorRecipeProducts = _fractionatorRecipeProducts;
 
         for (int fractionatorIndex = 0; fractionatorIndex < optimizedFractionators.Length; fractionatorIndex++)
         {
@@ -218,7 +218,7 @@ internal sealed class FractionatorExecutor
         _optimizedFractionators = optimizedFractionators.ToArray();
         _fractionatorsPowerFields = fractionatorsPowerFields.ToArray();
         _fractionatorIdToOptimizedIndex = fractionatorIdToOptimizedIndex;
-        _fractionatorRecipeProducts = fractionatorRecipeProducts.ToArray();
+        _fractionatorRecipeProducts = universeStaticDataBuilder.DeduplicateArrayUnmanaged(fractionatorRecipeProducts.OrderBy(x => x.GameFluidId).ToArray());
         _prototypePowerConsumptionExecutor = prototypePowerConsumptionBuilder.Build(universeStaticDataBuilder);
     }
 

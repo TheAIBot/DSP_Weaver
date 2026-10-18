@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using Weaver.Optimizations.Belts;
 using Weaver.Optimizations.Inserters;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Fractionators;
@@ -14,9 +15,9 @@ internal readonly struct FractionatorRecipeProduct : IEquatable<FractionatorReci
     public readonly OptimizedItemId Product;
     public readonly float ProduceProbability;
 
-    public FractionatorRecipeProduct(int gameFluidId, 
-                                     OptimizedItemId fluid, 
-                                     OptimizedItemId product, 
+    public FractionatorRecipeProduct(int gameFluidId,
+                                     OptimizedItemId fluid,
+                                     OptimizedItemId product,
                                      float produceProbability)
     {
         GameFluidId = gameFluidId;
@@ -44,7 +45,7 @@ internal readonly struct FractionatorRecipeProduct : IEquatable<FractionatorReci
     }
 }
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedFractionator
 {
     public readonly BeltIndex belt0Index;
@@ -90,7 +91,7 @@ internal struct OptimizedFractionator
         seed = fractionator.seed;
     }
 
-    public void SetRecipe(int needId, FractionatorRecipeProduct[] fractionatorRecipeProducts)
+    public void SetRecipe(int needId, ReadonlyArray<FractionatorRecipeProduct> fractionatorRecipeProducts)
     {
         incUsed = false;
         for (int i = 0; i < fractionatorRecipeProducts.Length; i++)
@@ -108,7 +109,7 @@ internal struct OptimizedFractionator
     public uint InternalUpdate(float power,
                                ref readonly FractionatorConfiguration configuration,
                                ref FractionatorPowerFields fractionatorPowerFields,
-                               FractionatorRecipeProduct[] fractionatorRecipeProducts,
+                               ReadonlyArray<FractionatorRecipeProduct> fractionatorRecipeProducts,
                                int[] productRegister,
                                int[] consumeRegister,
                                OptimizedCargoPath[] optimizedCargoPaths)

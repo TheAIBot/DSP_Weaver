@@ -16,7 +16,7 @@ internal sealed class SpraycoaterExecutor
     private OptimizedSpraycoater[] _optimizedSpraycoaters = null!;
     private bool[] _isSpraycoatingItems = null!;
     private int[] _sprayTimes = null!;
-    private OptimizedItemId[] _incItemIds = null!;
+    private ReadonlyArray<OptimizedItemId> _incItemIds;
     public Dictionary<int, int> _spraycoaterIdToOptimizedSpraycoaterIndex = null!;
     private PrototypePowerConsumptionExecutor _prototypePowerConsumptionExecutor;
 
@@ -32,7 +32,7 @@ internal sealed class SpraycoaterExecutor
         OptimizedSpraycoater[] optimizedSpraycoaters = _optimizedSpraycoaters;
         bool[] isSpraycoatingItems = _isSpraycoatingItems;
         int[] sprayTimes = _sprayTimes;
-        OptimizedItemId[] incItemIds = _incItemIds;
+        ReadonlyArray<OptimizedItemId> incItemIds = _incItemIds;
         ReadonlyArray<short> spraycoaterNetworkIds = _spraycoaterNetworkIds;
         for (int spraycoaterIndex = 0; spraycoaterIndex < optimizedSpraycoaters.Length; spraycoaterIndex++)
         {
@@ -216,7 +216,7 @@ internal sealed class SpraycoaterExecutor
         }
 
         incItemIds ??= [];
-        _incItemIds = subFactoryProductionRegisterBuilder.AddConsume(incItemIds);
+        _incItemIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(subFactoryProductionRegisterBuilder.AddConsume(incItemIds));
 
         _spraycoaterNetworkIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(spraycoaterNetworkIds);
         _optimizedSpraycoaters = optimizedSpraycoaters.ToArray();

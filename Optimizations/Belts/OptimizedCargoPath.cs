@@ -826,7 +826,7 @@ internal struct OptimizedCargoPath
         throw new InvalidOperationException("Cannot be reached");
     }
 
-    public bool TryPickFuel(int index, int length, int filter, OptimizedItemId[]? fuelMask, out OptimizedCargo optimizedCargo)
+    public bool TryPickFuel(int index, int length, int filter, ReadonlyArray<OptimizedItemId> fuelMask, out OptimizedCargo optimizedCargo)
     {
         if (index < 0)
         {

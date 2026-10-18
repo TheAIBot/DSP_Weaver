@@ -1,10 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.Belts;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Spraycoaters;
 
-[StructLayout(LayoutKind.Sequential, Pack=1)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal struct OptimizedSpraycoater
 {
     public readonly int incommingBeltSegIndexPlusSegPivotOffset;
@@ -45,7 +46,7 @@ internal struct OptimizedSpraycoater
         incUsed = spraycoater.incUsed;
     }
 
-    public void InternalUpdate(OptimizedItemId[] incItemIds, int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime, OptimizedCargoPath[] optimizedCargoPaths)
+    public void InternalUpdate(ReadonlyArray<OptimizedItemId> incItemIds, int[] consumeRegister, ref bool isSpraycoatingItem, ref int sprayTime, OptimizedCargoPath[] optimizedCargoPaths)
     {
         if (incommingBeltIndex.HasValue && incCount + extraIncCount < incCapacity)
         {

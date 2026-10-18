@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Weaver.Optimizations.PowerSystems;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.PowerSystems.Generators;
@@ -79,14 +79,15 @@ internal sealed class FuelGeneratorExecutor
     public void Initialize(PlanetFactory planet,
                            int networkId,
                            SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
-                           ref OptimizedItemId[]?[]? fuelNeeds)
+                           UniverseStaticDataBuilder universeStaticDataBuilder,
+                           ref ReadonlyArray<OptimizedItemId>?[]? fuelNeeds)
     {
         Dictionary<GeneratorID, List<OptimizedFuelGenerator>> generatorIDToOptimizedFuelGenerators = [];
         Dictionary<int, GeneratorIdIndexWithOptimizedGeneratorIndex> fuelIdToOptimizedIndex = [];
         Dictionary<GeneratorID, int> generatorIDToOptimizedGeneratorIndex = [];
         if (fuelNeeds == null)
         {
-            fuelNeeds = new OptimizedItemId[ItemProto.fuelNeeds.Length][];
+            fuelNeeds = new ReadonlyArray<OptimizedItemId>?[ItemProto.fuelNeeds.Length];
         }
 
         for (int i = 1; i < planet.powerSystem.genCursor; i++)
@@ -111,7 +112,7 @@ internal sealed class FuelGeneratorExecutor
             if (fuelNeeds[powerGenerator.fuelMask] == null &&
                 ItemProto.fuelNeeds[powerGenerator.fuelMask] != null)
             {
-                fuelNeeds[powerGenerator.fuelMask] = subProductionRegisterBuilder.AddConsume(ItemProto.fuelNeeds[powerGenerator.fuelMask]);
+                fuelNeeds[powerGenerator.fuelMask] = universeStaticDataBuilder.DeduplicateArrayUnmanaged(subProductionRegisterBuilder.AddConsume(ItemProto.fuelNeeds[powerGenerator.fuelMask]));
             }
 
             OptimizedItemId fuelId = default;

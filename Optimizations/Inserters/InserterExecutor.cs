@@ -76,7 +76,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
     private readonly LabState[] _producingLabStates;
     private readonly LabState[] _researchingLabStates;
     private readonly OptimizedFuelGenerator[][] _generatorSegmentToOptimizedFuelGenerators;
-    private readonly OptimizedItemId[]?[]? _fuelNeeds;
+    private readonly ReadonlyArray<OptimizedItemId>?[]? _fuelNeeds;
     private readonly SubFactoryNeeds _subFactoryNeeds;
 
     private readonly int _assemblerProducedSize;
@@ -106,7 +106,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                             LabState[] producingLabStates,
                             LabState[] researchingLabStates,
                             OptimizedFuelGenerator[][] generatorSegmentToOptimizedFuelGenerators,
-                            OptimizedItemId[]?[]? fuelNeeds,
+                            ReadonlyArray<OptimizedItemId>?[]? fuelNeeds,
                             SubFactoryNeeds subFactoryNeeds,
                             int assemblerProducedSize,
                             ServedData[] assemblerServed,
@@ -364,7 +364,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
             return 0;
         }
 
-        OptimizedItemId[]? insertIntoFuels = _fuelNeeds[insertIntoFuelGenerator.fuelMask];
+        ReadonlyArray<OptimizedItemId> insertIntoFuels = _fuelNeeds[insertIntoFuelGenerator.fuelMask] ?? throw new InvalidOperationException($"{nameof(_fuelNeeds)} was null at index {insertIntoFuelGenerator.fuelMask}.");
         if (typedObjectIndex.EntityType == EntityType.Belt)
         {
             ref OptimizedCargoPath pickFromBelt = ref optimizedCargoPaths[objectIndex];
@@ -669,7 +669,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 return 0;
             }
 
-            OptimizedItemId[] products = _universeStaticData.ProducingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Products;
+            ReadonlyArray<OptimizedItemId> products = _universeStaticData.ProducingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Products;
             short[] produced = _producingLabProduced;
             int producedOffset = _producingLabProducedSize * objectIndex;
 
@@ -824,7 +824,7 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 throw new InvalidOperationException($"Needs should only be null if producing lab is inactive which the above if statement should have caught.");
             }
 
-            OptimizedItemId[] requires = _universeStaticData.ProducingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Requires;
+            ReadonlyArray<OptimizedItemId> requires = _universeStaticData.ProducingLabRecipes[_producingLabRecipeIndexes[objectIndex]].Requires;
             ServedData[] producingLabServed = _producingLabServed;
             int servedOffset = groupNeeds.GroupNeedsSize * objectIndex;
 
@@ -925,11 +925,13 @@ internal sealed class InserterExecutor<TInserter, TInserterGrade>
                 {
                     throw new InvalidOperationException($"{nameof(_fuelNeeds)} was null when inserter attempted to insert into {nameof(EntityType.FuelPowerGenerator)}.");
                 }
-                OptimizedItemId[]? array = _fuelNeeds[fuelGenerator.fuelMask];
-                if (array == null || array.Length == 0)
+                ReadonlyArray<OptimizedItemId>? arrayMaybeNull = _fuelNeeds[fuelGenerator.fuelMask];
+                if (arrayMaybeNull == null || arrayMaybeNull.Value.Length == 0)
                 {
                     return 0;
                 }
+
+                ReadonlyArray<OptimizedItemId> array = arrayMaybeNull.Value;
                 for (int k = 0; k < array.Length; k++)
                 {
                     if (array[k].ItemIndex == itemId)

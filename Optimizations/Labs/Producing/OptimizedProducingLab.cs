@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Labs.Producing;
@@ -68,7 +69,7 @@ internal struct OptimizedProducingLab
 
         int needsOffset = groupNeeds.GetObjectNeedsIndex(labIndex);
         int servedOffset = groupNeeds.GroupNeedsSize * labIndex;
-        OptimizedItemId[] requires = producingLabRecipe.Requires;
+        ReadonlyArray<OptimizedItemId> requires = producingLabRecipe.Requires;
         byte needBits = 0;
         for (int i = 0; i < requires.Length; i++)
         {

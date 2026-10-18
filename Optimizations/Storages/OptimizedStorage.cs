@@ -1,4 +1,5 @@
 ﻿using Weaver.Optimizations.NeedsSystem;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Storages;
@@ -68,7 +69,7 @@ internal sealed class OptimizedStorage
     public static bool TakeTailFuel(StorageComponent storageComponent,
                                     ref int itemId,
                                     ref int count,
-                                    OptimizedItemId[]? fuelMask,
+                                    ReadonlyArray<OptimizedItemId> fuelMask,
                                     out int inc,
                                     bool useBan = false)
     {

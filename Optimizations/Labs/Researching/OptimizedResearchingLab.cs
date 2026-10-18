@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Weaver.Optimizations.NeedsSystem;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.Labs.Researching;
@@ -75,7 +76,7 @@ internal struct OptimizedResearchingLab
     public LabState InternalUpdateResearch(float power,
                                            float research_speed,
                                            int techId,
-                                           OptimizedItemId[] matrixIds,
+                                           ReadonlyArray<OptimizedItemId> matrixIds,
                                            int[] consumeRegister,
                                            ref TechState ts,
                                            ref int techHashedThisFrame,

@@ -179,7 +179,7 @@ internal sealed class OptimizedPowerSystemBuilder
     public static OptimizedPowerSystemBuilder Create(PlanetFactory planet,
                                                      SubFactoryProductionRegisterBuilder subProductionRegisterBuilder,
                                                      UniverseStaticDataBuilder universeStaticDataBuilder,
-                                                     out OptimizedItemId[]?[]? fuelNeeds)
+                                                     out ReadonlyArray<OptimizedItemId>?[]? fuelNeeds)
     {
         Dictionary<int, FuelGeneratorExecutor> networkIndexToFueldGeneratorExecutor = [];
         Dictionary<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdToOptimizedFueldGeneratorLocation = [];
@@ -194,7 +194,7 @@ internal sealed class OptimizedPowerSystemBuilder
             }
 
             var fuelExecutor = new FuelGeneratorExecutor();
-            fuelExecutor.Initialize(planet, networkIndex, subProductionRegisterBuilder, ref fuelNeeds);
+            fuelExecutor.Initialize(planet, networkIndex, subProductionRegisterBuilder, universeStaticDataBuilder, ref fuelNeeds);
             networkIndexToFueldGeneratorExecutor.Add(networkIndex, fuelExecutor);
 
             foreach (KeyValuePair<int, OptimizedFuelGeneratorLocation> fuelGeneratorIdWithOptimizedFuelGeneratorLocation in fuelExecutor.FuelGeneratorIdToOptimizedFuelGeneratorLocation)

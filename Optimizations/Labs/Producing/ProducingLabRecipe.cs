@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
@@ -14,15 +13,15 @@ internal readonly struct ProducingLabRecipe : IEquatable<ProducingLabRecipe>, IM
     public readonly int ExtraTimeSpend;
     public readonly int Speed;
     public readonly bool Productive;
-    public readonly OptimizedItemId[] Requires;
+    public readonly ReadonlyArray<OptimizedItemId> Requires;
     public readonly ReadonlyArray<short> RequireCounts;
-    public readonly OptimizedItemId[] Products;
+    public readonly ReadonlyArray<OptimizedItemId> Products;
     public readonly ReadonlyArray<short> ProductCounts;
 
     public ProducingLabRecipe(ref readonly LabComponent lab,
-                              OptimizedItemId[] requires,
+                              ReadonlyArray<OptimizedItemId> requires,
                               ReadonlyArray<short> requireCounts,
-                              OptimizedItemId[] products,
+                              ReadonlyArray<OptimizedItemId> products,
                               ReadonlyArray<short> productCounts)
     {
         RecipeId = lab.recipeId;

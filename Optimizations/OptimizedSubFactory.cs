@@ -108,7 +108,7 @@ internal sealed class OptimizedSubFactory
                            TurretExecutorBuilder turretExecutorBuilder,
                            PlanetWideProductionRegisterBuilder planetWideProductionRegisterBuilder,
                            SubFactoryProductionRegisterBuilder subFactoryProductionRegisterBuilder,
-                           OptimizedItemId[]?[]? fuelNeeds,
+                           ReadonlyArray<OptimizedItemId>?[]? fuelNeeds,
                            UniverseStaticDataBuilder universeStaticDataBuilder)
     {
         SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder = optimizedPowerSystemBuilder.AddSubFactory(this);
@@ -141,7 +141,7 @@ internal sealed class OptimizedSubFactory
     private void InitializeInserters(Graph subFactoryGraph,
                                      SubFactoryPowerSystemBuilder subFactoryPowerSystemBuilder,
                                      BeltExecutor beltExecutor,
-                                     OptimizedItemId[]?[]? fuelNeeds,
+                                     ReadonlyArray<OptimizedItemId>?[]? fuelNeeds,
                                      SubFactoryNeeds subFactoryNeeds,
                                      UniverseStaticDataBuilder universeStaticDataBuilder)
     {

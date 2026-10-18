@@ -13,7 +13,7 @@ namespace Weaver.Optimizations.Labs.Researching;
 internal sealed class ResearchingLabExecutor
 {
     private readonly StarClusterResearchManager _starClusterResearchManager;
-    private OptimizedItemId[]? _matrixIds = null!;
+    private ReadonlyArray<OptimizedItemId>? _matrixIds = null!;
     private ReadonlyArray<short> _labNetworkIds = default;
     public LabState[] _labStates = null!;
     public OptimizedResearchingLab[] _optimizedLabs = null!;
@@ -141,7 +141,7 @@ internal sealed class ResearchingLabExecutor
                     labState = reference.InternalUpdateResearch(power,
                                                                 research_speed,
                                                                 factorySystem.researchTechId,
-                                                                _matrixIds,
+                                                                _matrixIds.Value,
                                                                 consumeRegister,
                                                                 ref ts,
                                                                 ref techHashedThisFrame,
@@ -367,7 +367,7 @@ internal sealed class ResearchingLabExecutor
         _matrixIds = null;
         if (optimizedLabs.Count > 0)
         {
-            _matrixIds = subFactoryProductionRegisterBuilder.AddConsume(LabComponent.matrixIds);
+            _matrixIds = universeStaticDataBuilder.DeduplicateArrayUnmanaged(subFactoryProductionRegisterBuilder.AddConsume(LabComponent.matrixIds));
         }
 
         if (optimizedLabs.Count > 0)

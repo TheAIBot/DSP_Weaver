@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using Weaver.Optimizations.StaticData;
 using Weaver.Optimizations.Statistics;
 
 namespace Weaver.Optimizations.PowerSystems.Generators;
@@ -154,7 +155,7 @@ internal struct OptimizedFuelGenerator
         return default;
     }
 
-    public OptimizedItemId PickFuelFrom(int filter, OptimizedItemId[]? fuels, out int inc)
+    public OptimizedItemId PickFuelFrom(int filter, ReadonlyArray<OptimizedItemId> fuels, out int inc)
     {
         inc = 0;
         if (fuelId.ItemIndex > 0 && fuelCount > 5 && (filter == 0 || filter == fuelId.ItemIndex))
